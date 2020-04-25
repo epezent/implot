@@ -1,5 +1,5 @@
 # ImPlot
-Advanced 2D Plotting for Dear ImGui
+ImPlot is an advanced 2D plotting widget for Dear ImGui.  
 
 ## Features
 
