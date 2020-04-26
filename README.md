@@ -1,28 +1,21 @@
 # ImPlot
-ImPlot is an immediate mode plotting widget for Dear ImGui. It aims to provide a first-class API that will make ImGui users feel right at home. 
+ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that will make ImGui users feel right at home. ImPlot is well suited for visualizing program data in real-time and requires minimal code to integrate. Like ImGui, it does not use any C++11 features, headers, or STL containers, and has no external dependencies except for ImGui itself. 
 
 ## Features
 
-- mutliple plot types: line, scatter, virtical/horizontal bars, stem, error bars
+- mutliple plot types: line, scatter, virtical/horizontal bars, error bars, with more likey to come
 - mix/match multiple plot items on a single plot
-- zooming, panning, and box selection controls
+- configurable axes ranges and scaling (linear/log)
+- reversible and lockable axes
+- controls for zooming, panning, box selection, and auto-fitting data
 - several plot styling options: 10 marker types, adjustable marker sizes, line weights, outline colors, fill colors, etc.
 - optional plot titles, axis labels, and grid labels
-- optional legend with toggle buttons to show/hide items
-- reversible and lockable axes
-- logarithmic axis scaling
+- optional legend with toggle buttons to quickly show/hide items
 - size-aware grid with smart labels that are always power-of-ten multiples of 1, 2, and 5
 - default styling based on current ImGui theme, but most elements can be customized independently 
 - mouse cursor location display and optional crosshairs cursor
 - customizable data getters and data striding (just like ImGui:PlotLines)
 - relatively good performance for high density plots
-
-## Controls
-- scroll wheel zoom (both axes if plot area hovered, individual axes if axis labels hovered)
-- panning/dragging (both axes if plot area dragged, individual axes if axis labels dragged)
-- auto fit data (double-left-click plot area)
-- selection box (right-drag in plot area)
-- context menu (double-right-click plot area)
 
 ## Usage
 
@@ -37,7 +30,11 @@ if (ImGui::BeginPlot("My Plot") {
 }
 ```
 
-Consult `implot_demo.cpp` for a full run down of features. 
+Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features. 
+
+## Integration
+
+Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sources. This assumes you already have an ImGui-ready environment. If not, consider trying [mahi-gui], which bundles ImGui, ImPlot, and several other packages for you.
 
 ## Special Notes
 - By default, no anti-aliasing is done on line plots for performance reasons. My apps use 4X MSAA, so I didn't see any reason to waste cycles on software AA. However, you can enable AA with the `ImPlotFlags_AntiAliased` flag.
@@ -45,5 +42,6 @@ Consult `implot_demo.cpp` for a full run down of features.
 
 ## Known Issues (Fix Me!)
 
-- Mouse scroll zooming on a plot that is in scrollable ImGui region will both zoom and scroll the window since there is no built in scroll capture for ImGui. The current workaround is to CTRL+Scroll the plot (this disables window scrolling). 
 - Zooming to a range beyond the limits of `FLT_MAX` and `FLT_MIN` causes axes labels to disappear.
+
+## Gallery
