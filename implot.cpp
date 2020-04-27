@@ -183,6 +183,7 @@ struct ImPlotItem {
     ImPlotItem();
     ~ImPlotItem() { ID = 0; }
     bool Show;
+	bool Highlight;
     ImVec4 Color;
     int NameOffset;
     bool Active;
@@ -388,7 +389,7 @@ struct ImPlotContext {
 /// Global plot context
 static ImPlotContext gp;
 
-ImPlotItem::ImPlotItem() { Show = true; Color = gp.NextColor(); NameOffset = -1; Active = true; ID = 0;  }
+ImPlotItem::ImPlotItem() { Show = true; Highlight = false; Color = gp.NextColor(); NameOffset = -1; Active = true; ID = 0;  }
 
 //=============================================================================
 // Tick Utils
@@ -996,6 +997,13 @@ void EndPlot() {
             ImRect icon_bb;
             icon_bb.Min = legend_content_bb.Min + legend_padding + ImVec2(0, i * txt_ht) + ImVec2(2, 2);
             icon_bb.Max = legend_content_bb.Min + legend_padding + ImVec2(0, i * txt_ht) + ImVec2(legend_icon_size - 2, legend_icon_size - 2);
+            ImRect label_bb;
+            label_bb.Min = legend_content_bb.Min + legend_padding + ImVec2(0, i * txt_ht) + ImVec2(2, 2);
+            label_bb.Max = legend_content_bb.Min + legend_padding + ImVec2(0, i * txt_ht) + ImVec2(legend_content_bb.Max.x, legend_icon_size - 2);
+            if (hov_legend && (icon_bb.Contains(IO.MousePos) || label_bb.Contains(IO.MousePos)))
+                item->Highlight = true;
+            else
+                item->Highlight = false;
             ImU32 iconColor;
             if (hov_legend && icon_bb.Contains(IO.MousePos)) {
                 auto colAlpha = item->Color;
@@ -1011,7 +1019,7 @@ void EndPlot() {
             const char* label = gp.GetLegendLabel(i);
             const char* text_display_end = FindRenderedTextEnd(label, NULL);
             if (label != text_display_end)
-                DrawList.AddText(legend_content_bb.Min + legend_padding + ImVec2(legend_icon_size, i * txt_ht), item->Show ? gp.Col_Txt : gp.Col_TxtDis, label, text_display_end);
+                DrawList.AddText(legend_content_bb.Min + legend_padding + ImVec2(legend_icon_size, i * txt_ht), item->Show ? (item->Highlight ? GetColorU32(item->Color) : gp.Col_Txt) : gp.Col_TxtDis, label, text_display_end);
         }
     }
 
@@ -1460,7 +1468,7 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
                     draw = r.Overlaps(gp.BB_Grid);
                 }
                 if (draw)
-                    DrawList.AddLine(p1, p2, col_line, gp.Style.LineWeight);
+                    DrawList.AddLine(p1, p2, col_line, item->Highlight ? gp.Style.LineWeight * 2.0f : gp.Style.LineWeight);
             }
         }
         else {
@@ -1485,8 +1493,8 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
                     float dx = p2.x - p1.x;
                     float dy = p2.y - p1.y;
                     IM_NORMALIZE2F_OVER_ZERO(dx, dy);
-                    dx *= (gp.Style.LineWeight * 0.5f);
-                    dy *= (gp.Style.LineWeight * 0.5f);                    
+                    dx *= ((item->Highlight ? gp.Style.LineWeight * 2.0 : gp.Style.LineWeight) * 0.5f);
+                    dy *= ((item->Highlight ? gp.Style.LineWeight * 2.0 : gp.Style.LineWeight) * 0.5f);                  
                     DrawList._VtxWritePtr[0].pos.x = p1.x + dy;
                     DrawList._VtxWritePtr[0].pos.y = p1.y - dx;
                     DrawList._VtxWritePtr[0].uv    = uv;
