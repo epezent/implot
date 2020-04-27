@@ -1,6 +1,8 @@
 # ImPlot
 ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that will make ImGui users feel right at home. ImPlot is well suited for visualizing program data in real-time and requires minimal code to integrate. Like ImGui, it does not use any C++11 features, headers, or STL containers, and has no external dependencies except for ImGui itself. 
 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/zoom_pan.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="285">
+
 ## Features
 
 - multiple plot types: line, scatter, vertical/horizontal bars, error bars, with more likely to come
@@ -46,7 +48,7 @@ Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sour
 
 ## Gallery
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/zoom_pan.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="285">
+
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/line_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/scatter_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar_plot.png" width="285"> 
 
