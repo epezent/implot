@@ -175,6 +175,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Realtime Plots")) {
+        ImGui::BulletText("Move your mouse to change the data!");
         static bool paused = false;
         static ScrollingData sdata1, sdata2;
         static RollingData   rdata1, rdata2;
@@ -301,7 +302,8 @@ void ShowImPlotDemoWindow(bool* p_open) {
             if (ImGui::IsPlotHovered() && ImGui::IsMouseClicked(0)) 
                 data.push_back(ImGui::GetPlotMousePos());
             ImGui::PushPlotStyleVar(ImPlotStyleVar_Marker, ImMarker_Diamond);
-            ImGui::Plot("Art", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(float));
+            if (data.size() > 0)
+                ImGui::Plot("Art", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(float));
             ImGui::PopPlotStyleVar();
             ImGui::EndPlot();
         }
