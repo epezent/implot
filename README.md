@@ -36,7 +36,7 @@ Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features.
 
 ## Integration
 
-Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sources. This assumes you already have an ImGui-ready environment. If not, consider trying [mahi-gui], which bundles ImGui, ImPlot, and several other packages for you.
+Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sources. This assumes you already have an ImGui-ready environment. If not, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
 
 ## Special Notes
 - By default, no anti-aliasing is done on line plots for performance reasons. My apps use 4X MSAA, so I didn't see any reason to waste cycles on software AA. However, you can enable AA with the `ImPlotFlags_AntiAliased` flag.
