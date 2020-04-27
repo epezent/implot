@@ -1452,7 +1452,14 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
                 p1 = gp.ToPixels(getter(data, i1));
                 p2 = gp.ToPixels(getter(data, i2));
                 i1 = i2;
-                if (!cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2))
+                bool draw = !cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2);
+                //if cull enabled, BB_Grid does not contains points, check if line segment (between points) intersects rectangle
+                if (!draw) {
+                    ImRect r = ImRect(p1, p2);
+                    r.ClipWith(gp.BB_Grid);
+                    draw = r.Overlaps(gp.BB_Grid);
+                }
+                if (draw)
                     DrawList.AddLine(p1, p2, col_line, gp.Style.LineWeight);
             }
         }
@@ -1467,7 +1474,14 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
                 p1 = gp.ToPixels(getter(data, i1));
                 p2 = gp.ToPixels(getter(data, i2));
                 i1 = i2;
-                if (!cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2)) {
+                bool draw = !cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2);
+                //if cull enabled, BB_Grid does not contains points, check if line segment (between points) intersects rectangle
+                if (!draw) {
+                    ImRect r = ImRect(p1, p2);
+                    r.ClipWith(gp.BB_Grid);
+                    draw = r.Overlaps(gp.BB_Grid);
+                }
+                if (draw) {
                     float dx = p2.x - p1.x;
                     float dy = p2.y - p1.y;
                     IM_NORMALIZE2F_OVER_ZERO(dx, dy);
