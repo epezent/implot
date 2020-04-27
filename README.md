@@ -46,9 +46,9 @@ Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sour
 
 ## Gallery
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/zoom_pan.gif" width="275"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="275"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="275">
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/zoom_pan.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="285">
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/line_plot.png" width="275"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/scatter_plot.png" width="275"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar_plot.png" width="275"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/line_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/scatter_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar_plot.png" width="285"> 
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log_plot.png" width="275"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/error_bars.png" width="275"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/markers.png" width="275"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/error_bars.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/markers.png" width="285"> 
 
