@@ -3,7 +3,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 
 ## Features
 
-- mutliple plot types: line, scatter, virtical/horizontal bars, error bars, with more likey to come
+- multiple plot types: line, scatter, vertical/horizontal bars, error bars, with more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
 - reversible and lockable axes
@@ -45,3 +45,5 @@ Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sour
 - Zooming to a range beyond the limits of `FLT_MAX` and `FLT_MIN` causes axes labels to disappear.
 
 ## Gallery
+
+Coming soon ...
