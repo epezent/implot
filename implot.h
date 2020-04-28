@@ -39,12 +39,13 @@ typedef int ImMarker;
 enum ImPlotFlags_ {
     ImPlotFlags_MousePos    = 1 << 0, // the mouse position, in plot coordinates, will be displayed in the bottom-right
     ImPlotFlags_Legend      = 1 << 1, // a legend will be displayed in the top-left
-    ImPlotFlags_Selection   = 1 << 2, // the user will be able to box-select with right-mouse
-    ImPlotFlags_ContextMenu = 1 << 3, // the user will be able to open a context menu with double-right click
-    ImPlotFlags_Crosshairs  = 1 << 4, // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_CullData    = 1 << 5, // plot data outside the plot area will be culled from rendering
-    ImPlotFlags_AntiAliased = 1 << 6, // lines and fills will be anti-aliased (not recommended)
-    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Selection | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
+    ImPlotFlags_Highlight   = 1 << 2, // plot items will be highlighted when their legend entry is hovered
+    ImPlotFlags_Selection   = 1 << 3, // the user will be able to box-select with right-mouse
+    ImPlotFlags_ContextMenu = 1 << 4, // the user will be able to open a context menu with double-right click
+    ImPlotFlags_Crosshairs  = 1 << 5, // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_CullData    = 1 << 6, // plot data outside the plot area will be culled from rendering
+    ImPlotFlags_AntiAliased = 1 << 7, // lines and fills will be anti-aliased (not recommended)
+    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_Selection | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
 };
 
 // Options for plot axes (X and Y)

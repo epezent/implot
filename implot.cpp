@@ -192,6 +192,7 @@ struct ImPlotItem {
     ImPlotItem();
     ~ImPlotItem() { ID = 0; }
     bool Show;
+    bool Highlight;
     ImVec4 Color;
     int NameOffset;
     bool Active;
@@ -402,7 +403,14 @@ struct ImPlotContext {
 /// Global plot context
 static ImPlotContext gp;
 
-ImPlotItem::ImPlotItem() { Show = true; Color = gp.NextColor(); NameOffset = -1; Active = true; ID = 0;  }
+ImPlotItem::ImPlotItem() { 
+    Show = true; 
+    Highlight = false;
+    Color = gp.NextColor(); 
+    NameOffset = -1; 
+    Active = true; 
+    ID = 0;  
+}
 
 //=============================================================================
 // Tick Utils
@@ -1034,6 +1042,16 @@ void EndPlot() {
             ImRect icon_bb;
             icon_bb.Min = legend_content_bb.Min + legend_padding + ImVec2(0, i * txt_ht) + ImVec2(2, 2);
             icon_bb.Max = legend_content_bb.Min + legend_padding + ImVec2(0, i * txt_ht) + ImVec2(legend_icon_size - 2, legend_icon_size - 2);
+            ImRect label_bb;
+            label_bb.Min = legend_content_bb.Min + legend_padding + ImVec2(0, i * txt_ht) + ImVec2(2, 2);
+            label_bb.Max = legend_content_bb.Min + legend_padding + ImVec2(0, i * txt_ht) + ImVec2(legend_content_bb.Max.x, legend_icon_size - 2);
+            ImU32 col_hl_txt;
+            if (HasFlag(plot.Flags, ImPlotFlags_Highlight) && hov_legend && (icon_bb.Contains(IO.MousePos) || label_bb.Contains(IO.MousePos))) {
+                item->Highlight = true;
+                col_hl_txt = GetColorU32(ImLerp(G.Style.Colors[ImGuiCol_Text], item->Color, 0.25f));
+            }
+            else
+                item->Highlight = false;
             ImU32 iconColor;
             if (hov_legend && icon_bb.Contains(IO.MousePos)) {
                 auto colAlpha = item->Color;
@@ -1049,7 +1067,8 @@ void EndPlot() {
             const char* label = gp.GetLegendLabel(i);
             const char* text_display_end = FindRenderedTextEnd(label, NULL);
             if (label != text_display_end)
-                DrawList.AddText(legend_content_bb.Min + legend_padding + ImVec2(legend_icon_size, i * txt_ht), item->Show ? gp.Col_Txt : gp.Col_TxtDis, label, text_display_end);
+                DrawList.AddText(legend_content_bb.Min + legend_padding + ImVec2(legend_icon_size, i * txt_ht), 
+                                 item->Show ? (item->Highlight ? col_hl_txt : gp.Col_Txt) : gp.Col_TxtDis, label, text_display_end);
         }
     }
 
@@ -1541,6 +1560,8 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
     ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
     bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
 
+    const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
+
     // render line segments
     if (count > 1 && rend_line) {
         const int    segments  = count - 1;
@@ -1553,7 +1574,7 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
                 p2 = gp.ToPixels(getter(data, i2));
                 i1 = i2;
                 if (!cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2))
-                    DrawList.AddLine(p1, p2, col_line, gp.Style.LineWeight);
+                    DrawList.AddLine(p1, p2, col_line, line_weight);
             }
         }
         else {
@@ -1571,8 +1592,8 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
                     float dx = p2.x - p1.x;
                     float dy = p2.y - p1.y;
                     IM_NORMALIZE2F_OVER_ZERO(dx, dy);
-                    dx *= (gp.Style.LineWeight * 0.5f);
-                    dy *= (gp.Style.LineWeight * 0.5f);                    
+                    dx *= (line_weight * 0.5f);
+                    dy *= (line_weight * 0.5f);                    
                     DrawList._VtxWritePtr[0].pos.x = p1.x + dy;
                     DrawList._VtxWritePtr[0].pos.y = p1.y - dx;
                     DrawList._VtxWritePtr[0].uv    = uv;
