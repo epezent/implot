@@ -25,7 +25,7 @@ The API is used just like any other ImGui `Begin`/`End` function. First, start a
 
 ```cpp
 if (ImGui::BeginPlot("My Plot")) {
-    ImGui::Plot("My Line Plot", x_data y_data, 1000);
+    ImGui::Plot("My Line Plot", x_data, y_data, 1000);
     ImGui::PlotBar("My Bar Plot", values, 10);
     ...
     ImGui::EndPlot();
