@@ -727,7 +727,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // confirm selection
     if ((plot.Selecting || plot.Querying) && IO.MouseReleased[1]) {
-        if (plot.Selecting && (plot.Flags, ImPlotFlags_Selection)) {
+        if (plot.Selecting && HasFlag(plot.Flags, ImPlotFlags_Selection)) {
             gp.UpdateTransforms();
             ImVec2 select_size = plot.SelectStart - IO.MousePos;
             if (ImFabs(select_size.x) > 2 && ImFabs(select_size.y) > 2) {
