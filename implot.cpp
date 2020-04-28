@@ -1860,12 +1860,15 @@ void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), 
     PopClipRect();
 }
 
-void PlotLabel(const char* text, float x, float y, const ImVec2& pixel_offset) {
+void PlotLabel(const char* text, float x, float y, bool vertical, const ImVec2& pixel_offset) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotLabel() Needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
     PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
     ImVec2 pos = gp.ToPixels({x,y}) + pixel_offset;
-    DrawList.AddText(pos, gp.Col_Txt, text);
+    if (vertical)
+        AddTextVertical(&DrawList, text, pos, gp.Col_Txt);
+    else
+        DrawList.AddText(pos, gp.Col_Txt, text);
     PopClipRect();
 }
 

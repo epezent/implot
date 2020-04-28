@@ -213,7 +213,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
     }
 
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Marker Styles")) {
+    if (ImGui::CollapsingHeader("Markers and Labels")) {
         ImGui::SetNextPlotRange(0, 10, 0, 12);
         if (ImGui::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,300), 0, 0, 0)) {
             float xs[2] = {1,4};
@@ -280,6 +280,10 @@ void ShowImPlotDemoWindow(bool* p_open) {
             ImGui::Plot("Circle|Cross", xs, ys, 2);  
             ImGui::PopPlotStyleVar(4);  
             ImGui::PopPlotColor(3);
+
+            ImGui::PlotLabel("Filled Markers", 1.5, 11.75);
+            ImGui::PlotLabel("Open Markers", 6.75, 11.75);
+            ImGui::PlotLabel("Fancy Markers", 4.5, 4.25, true);
 
             ImGui::EndPlot();
         }
