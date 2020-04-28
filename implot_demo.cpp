@@ -70,9 +70,18 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::Text("USER GUIDE:");
         ImGui::BulletText("Left click and drag within the plot area to pan X and Y axes.");
         ImGui::BulletText("Left click and drag on an axis to pan an individual axis.");
-        ImGui::BulletText("Scroll in the plot area to zoom both X any Y axes");
+        ImGui::BulletText("Scroll in the plot area to zoom both X any Y axes.");
         ImGui::BulletText("Scroll on an axis to zoom an individual axis.");
         ImGui::BulletText("Right click and drag to box select data.");
+        ImGui::Indent();
+            ImGui::BulletText("Hold Alt to expand box selection horizontally.");
+            ImGui::BulletText("Hold Shift to expand box selection vertically.");
+        ImGui::Unindent();
+        ImGui::BulletText("Middle click (or Ctrl + right click) and drag to create a query range.");
+        ImGui::Indent();
+            ImGui::BulletText("Hold Alt to expand query horizontally.");
+            ImGui::BulletText("Hold Shift to expand query vertically.");
+        ImGui::Unindent();
         ImGui::BulletText("Double left click to fit all visible data.");
         ImGui::BulletText("Double right click to open the plot context menu.");
         ImGui::BulletText("Click legend label icons to show/hide plot items.");
@@ -296,17 +305,39 @@ void ShowImPlotDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
-        ImGui::BulletText("Click in the plot area to draw");
+        ImGui::BulletText("Ctrl + click in the plot area to draw points.");
+        ImGui::BulletText("Middle click (or Ctrl + right click) and drag to query points.");
+        ImGui::BulletText("Hold the Alt and/or Shift keys to expand the query range.");
         static ImVector<ImVec2> data;
-        if (ImGui::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default, 0, 0)) {
-            if (ImGui::IsPlotHovered() && ImGui::IsMouseClicked(0)) 
+        if (ImGui::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default, ImAxisFlags_GridLines, ImAxisFlags_GridLines)) {
+            if (ImGui::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) 
                 data.push_back(ImGui::GetPlotMousePos());
+            ImGui::PushPlotStyleVar(ImPlotStyleVar_LineWeight, 0);
             ImGui::PushPlotStyleVar(ImPlotStyleVar_Marker, ImMarker_Diamond);
             if (data.size() > 0)
-                ImGui::Plot("Art", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(float));
-            ImGui::PopPlotStyleVar();
+                ImGui::Plot("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(float));
+            if (ImGui::IsPlotQueried() && data.size() > 0) {
+                ImPlotRange range = ImGui::GetPlotQuery();
+                int cnt = 0;
+                ImVec2 avg;
+                for (int i = 0; i < data.size(); ++i) {
+                    if (range.Contains(data[i])) {
+                        avg.x += data[i].x;
+                        avg.y += data[i].y;
+                        cnt++;
+                    } 
+                }
+                if (cnt > 0) {
+                    avg.x = avg.x / cnt;
+                    avg.y = avg.y / cnt;
+                    ImGui::Plot("Average", &avg.x, &avg.y, 1);
+                }
+            }
+            ImGui::PopPlotStyleVar(2);
             ImGui::EndPlot();
         }
+        ImPlotRange range = ImGui::GetPlotRange();
+        ImGui::Text("The current plot range is: [%g,%g,%g,%g]", range.XMin, range.XMax, range.YMin, range.YMax);
     }
 
     //-------------------------------------------------------------------------

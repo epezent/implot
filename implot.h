@@ -74,6 +74,7 @@ enum ImPlotCol_ {
     ImPlotCol_XAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
     ImPlotCol_YAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
+    ImPlotCol_Query,         // box-query color (defaults to green)
     ImPlotCol_COUNT
 };
 
@@ -102,6 +103,13 @@ enum ImMarker_ {
     ImMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
+/// Plot range utility struct
+struct ImPlotRange {
+    float XMin, XMax, YMin, YMax;
+    ImPlotRange();
+    bool Contains(const ImVec2& p);
+};
+
 // Plot style structure
 struct ImPlotStyle {
     float    LineWeight;              // = 1, line weight in pixels
@@ -115,7 +123,7 @@ struct ImPlotStyle {
 };
 
 //-----------------------------------------------------------------------------
-// Plot API
+// Core API
 //-----------------------------------------------------------------------------
 
 namespace ImGui {
@@ -143,32 +151,43 @@ void SetNextPlotRange(float x_min, float x_max, float y_min, float y_max, ImGuiC
 void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
 /// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
 void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
-/// Returns true if the plot area in the current or most recent call to BeginPlot() is hovered
+
+//-----------------------------------------------------------------------------
+// Plot Queries
+//-----------------------------------------------------------------------------
+
+/// Returns true if the plot area in the current or most recent plot is hovered.
 bool IsPlotHovered();
 /// Returns the mouse position in x,y coordinates of the current or most recent plot.
 ImVec2 GetPlotMousePos();
+/// Returns the current or most recent plot axis range.
+ImPlotRange GetPlotRange();
+/// Returns true if the current or most recent plot is being queried.
+bool IsPlotQueried();
+/// Returns the current or most recent plot querey range.
+ImPlotRange GetPlotQuery();
 
 //-----------------------------------------------------------------------------
 // Plot Items
 //-----------------------------------------------------------------------------
 
-// Plots a standard 2D line and/or scatter plot 
+// Plots a standard 2D line and/or scatter plot .
 void Plot(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
-// Plots vertical bars
+// Plots vertical bars.
 void PlotBar(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
 void PlotBar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
 void PlotBar(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float width, int offset = 0);
-// Plots horizontal bars
+// Plots horizontal bars.
 void PlotBarH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
 void PlotBarH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
 void PlotBarH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float height,  int offset = 0);
-// Plots vertical error bars
+// Plots vertical error bars.
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
-// Plots a text label at point x,y
+// Plots a text label at point x,y.
 void PlotLabel(const char* text, float x, float y, const ImVec2& pixel_offset = ImVec2(0,0));
 
 //-----------------------------------------------------------------------------
@@ -178,9 +197,9 @@ void PlotLabel(const char* text, float x, float y, const ImVec2& pixel_offset = 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetPlotStyle();
 
-// Sets the color palette to be used for plot items 
+// Sets the color palette to be used for plot items.
 void SetPlotPalette(const ImVec4* colors, int num_colors);
-// Restores the default ImPlot color map 
+// Restores the default ImPlot color map.
 void RestorePlotPalette();
 
 // Temporarily modify a plot color.
@@ -190,9 +209,9 @@ void PushPlotColor(ImPlotCol idx, const ImVec4& col);
 // Undo temporary color modification. 
 void PopPlotColor(int count = 1);
 
-// Temporarily modify a style variable of float type
+// Temporarily modify a style variable of float type.
 void PushPlotStyleVar(ImPlotStyleVar idx, float val);
-// Temporarily modify a style variable of int type
+// Temporarily modify a style variable of int type.
 void PushPlotStyleVar(ImPlotStyleVar idx, int val);
 // Undo temporary style modification.
 void PopPlotStyleVar(int count = 1);
