@@ -83,6 +83,6 @@ A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) 
 
 ## Gallery
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar_plot.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/scatter_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="285"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/scatter_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="285"> 
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/error_bars.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/markers.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/custom_styling.png" width="285">
