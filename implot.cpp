@@ -106,7 +106,7 @@ inline float ConstrainInf(float val) {
 }
 
 inline float ConstrainLog(float val) {
-    return val <= 0 ? 0.1 : val;
+    return val <= 0 ? 0.001 : val;
 }
 
 inline bool NanOrInf(float val) {
@@ -221,9 +221,8 @@ struct ImPlotAxis {
 /// Holds Plot state information that must persist between frames
 struct ImPlot {
     ImPlot() {
-        Selecting = false;
-        Querying = false;
-        SelectStart = {0,0};
+        Selecting = Querying = Queried = false;
+        SelectStart =  QueryStart = ImVec2(0,0);
         Flags = ImPlotFlags_Default;
         ColorIdx = 0;
     }
@@ -231,8 +230,12 @@ struct ImPlot {
 
     ImRect BB_Legend;
     bool Selecting;
-    bool Querying;
     ImVec2 SelectStart;
+    bool Querying;
+    bool Queried;
+    ImVec2 QueryStart;
+    ImRect QueryRect;
+    ImPlotRange QueryRange;
     ImPlotAxis XAxis;
     ImPlotAxis YAxis;
     ImPlotFlags Flags;
@@ -255,15 +258,12 @@ struct ImNextPlotData {
 struct ImPlotContext {
     ImPlotContext() {
         CurrentPlot = NULL;
-        PreviousPlot = NULL;
         RestorePlotPalette();
     }
     /// ALl Plots    
     ImPool<ImPlot> Plots;
     /// Current Plot
     ImPlot* CurrentPlot;
-    /// Previous Plot
-    ImPlot* PreviousPlot;
 
     // Legend
     ImVector<int> _LegendIndices;    
@@ -397,7 +397,9 @@ struct ImPlotContext {
     ImPlotStyle Style;
     ImVector<ImGuiColorMod> ColorModifiers;  // Stack for PushStyleColor()/PopStyleColor()
     ImVector<ImGuiStyleMod> StyleModifiers;  // Stack for PushStyleVar()/PopStyleVar()
-    ImNextPlotData NextPlotData;        
+    ImNextPlotData NextPlotData; 
+
+       
 };
 
 /// Global plot context
@@ -723,62 +725,87 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }        
     }
 
-    // BOX-SELECTION ----------------------------------------------------------
+    // BOX-SELECTION AND QUERY ------------------------------------------------
 
     // confirm selection
-    if ((plot.Selecting || plot.Querying) && IO.MouseReleased[1]) {
-        if (plot.Selecting && HasFlag(plot.Flags, ImPlotFlags_Selection)) {
-            gp.UpdateTransforms();
-            ImVec2 select_size = plot.SelectStart - IO.MousePos;
-            if (ImFabs(select_size.x) > 2 && ImFabs(select_size.y) > 2) {
-                ImVec2 p1 = gp.FromPixels(plot.SelectStart);
-                ImVec2 p2 = gp.FromPixels(IO.MousePos);
-                if (!lock_x_min && !IO.KeyAlt) 
-                    plot.XAxis.Min = ImMin(p1.x, p2.x);
-                if (!lock_x_max && !IO.KeyAlt)
-                    plot.XAxis.Max = ImMax(p1.x, p2.x);                
-                if (!lock_y_min && !IO.KeyShift) 
-                    plot.YAxis.Min = ImMin(p1.y, p2.y);
-                if (!lock_y_max && !IO.KeyShift)
-                    plot.YAxis.Max = ImMax(p1.y, p2.y);                
-            }
-        }
+    if (plot.Selecting && (IO.MouseReleased[1] || !IO.MouseDown[1])) {
+        gp.UpdateTransforms();
+        ImVec2 select_size = plot.SelectStart - IO.MousePos;
+        if (HasFlag(plot.Flags, ImPlotFlags_Selection) && ImFabs(select_size.x) > 2 && ImFabs(select_size.y) > 2) {
+            ImVec2 p1 = gp.FromPixels(plot.SelectStart);
+            ImVec2 p2 = gp.FromPixels(IO.MousePos);
+            if (!lock_x_min && !IO.KeyAlt) 
+                plot.XAxis.Min = ImMin(p1.x, p2.x);
+            if (!lock_x_max && !IO.KeyAlt)
+                plot.XAxis.Max = ImMax(p1.x, p2.x);                
+            if (!lock_y_min && !IO.KeyShift) 
+                plot.YAxis.Min = ImMin(p1.y, p2.y);
+            if (!lock_y_max && !IO.KeyShift)
+                plot.YAxis.Max = ImMax(p1.y, p2.y);                
+        }        
         plot.Selecting = false;
-        plot.Querying = false;
-    }
-    if (plot.Querying && IO.MouseReleased[2]) {
-        plot.Querying = false;
     }
     // bad selection
-    if (plot.Selecting && (!HasFlag(plot.Flags, ImPlotFlags_Selection) || lock_plot) && ImLengthSqr(plot.SelectStart - IO.MousePos) > 4) {        
+    if (plot.Selecting && (!HasFlag(plot.Flags, ImPlotFlags_Selection) || lock_plot) && ImLengthSqr(plot.SelectStart - IO.MousePos) > 4) { 
         ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
     }
-    // toggle between select/query
-    if (plot.Selecting && IO.KeyCtrl) {
-        plot.Selecting = false;
-        plot.Querying = true;
-    }
-    if (plot.Querying && !IO.KeyCtrl && !IO.MouseDown[2]) {
-        plot.Selecting = true;
-        plot.Querying = false;
-    }
     // cancel selection
-    if ((plot.Selecting || plot.Querying) && (IO.MouseClicked[0] || IO.MouseDown[0])) {
+    if (plot.Selecting && (IO.MouseClicked[0] || IO.MouseDown[0])) {
         plot.Selecting = false;
-        plot.Querying = false;
     }
     // begin selection or query
     if (gp.Hov_Frame && gp.Hov_Grid && IO.MouseClicked[1]) {
         plot.SelectStart = IO.MousePos;
-        if (IO.KeyCtrl)
-            plot.Querying = true;
-        else
-            plot.Selecting = true;
+        plot.Selecting = true;
+    }
+    // update query
+    if (plot.Querying) {
+        gp.UpdateTransforms();
+        plot.QueryRect.Min.x = IO.KeyAlt ? gp.BB_Grid.Min.x :  ImMin(plot.QueryStart.x, IO.MousePos.x);
+        plot.QueryRect.Max.x = IO.KeyAlt ? gp.BB_Grid.Max.x :  ImMax(plot.QueryStart.x, IO.MousePos.x);
+        plot.QueryRect.Min.y = IO.KeyShift ? gp.BB_Grid.Min.y : ImMin(plot.QueryStart.y, IO.MousePos.y);
+        plot.QueryRect.Max.y = IO.KeyShift ? gp.BB_Grid.Max.y : ImMax(plot.QueryStart.y, IO.MousePos.y);
+        ImVec2 p1 = gp.FromPixels(plot.QueryRect.Min);
+        ImVec2 p2 = gp.FromPixels(plot.QueryRect.Max);
+        plot.QueryRange.XMin = ImMin(p1.x, p2.x);
+        plot.QueryRange.XMax = ImMax(p1.x, p2.x);
+        plot.QueryRange.YMin = ImMin(p1.y, p2.y);
+        plot.QueryRange.YMax = ImMax(p1.y, p2.y);
+    }
+    // end query
+    if (plot.Querying && (IO.MouseReleased[2] || IO.MouseReleased[1])) {
+        plot.Querying = false;
+        if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
+            plot.Queried = true;
+        }
+        else {
+            plot.Queried = false;
+            plot.QueryRange = ImPlotRange();
+        }
     }
     // begin query
-    if (gp.Hov_Frame && gp.Hov_Grid && IO.MouseClicked[2]) {
-        plot.SelectStart = IO.MousePos;
+    if ((gp.Hov_Frame && gp.Hov_Grid && IO.MouseClicked[2])) {
+        plot.QueryRect = ImRect(0,0,0,0);
+        plot.QueryRange = ImPlotRange();
         plot.Querying = true;
+        plot.Queried  = true;
+        plot.QueryStart = IO.MousePos;
+    }
+    // toggle between select/query
+    if (plot.Selecting && IO.KeyCtrl) {
+        plot.Selecting = false;
+        plot.QueryRect = ImRect(0,0,0,0);
+        plot.QueryRange = ImPlotRange();
+        plot.Querying = true;
+        plot.Queried  = true;
+        plot.QueryStart = plot.SelectStart;
+    }
+    if (plot.Querying && !IO.KeyCtrl && !IO.MouseDown[2]) {
+        plot.Selecting = true;
+        plot.Querying = false;
+        plot.Queried = false;
+        plot.QueryRect = ImRect(0,0,0,0);
+        plot.QueryRange = ImPlotRange();
     }
     
     // DOUBLE CLICK -----------------------------------------------------------
@@ -948,26 +975,28 @@ void PlotContextMenu(ImPlot& plot) {
     }
     ImGui::Separator();
     if ((ImGui::BeginMenu("Settings"))) {
+        if (ImGui::MenuItem("Box Select",NULL,HasFlag(plot.Flags, ImPlotFlags_Selection))) {
+            FlipFlag(plot.Flags, ImPlotFlags_Selection);
+        }
+        if (ImGui::MenuItem("Pixel Query",NULL,HasFlag(plot.Flags, ImPlotFlags_PixelQuery))) {
+            FlipFlag(plot.Flags, ImPlotFlags_PixelQuery);
+        }        
+        if (ImGui::MenuItem("Crosshairs",NULL,HasFlag(plot.Flags, ImPlotFlags_Crosshairs))) {
+            FlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
+        }
+        if (ImGui::MenuItem("Mouse Position",NULL,HasFlag(plot.Flags, ImPlotFlags_MousePos))) {
+            FlipFlag(plot.Flags, ImPlotFlags_MousePos);
+        }
         if (ImGui::MenuItem("Cull Data",NULL,HasFlag(plot.Flags, ImPlotFlags_CullData))) {
             FlipFlag(plot.Flags, ImPlotFlags_CullData);
         }
         if (ImGui::MenuItem("Anti-Aliased Lines",NULL,HasFlag(plot.Flags, ImPlotFlags_AntiAliased))) {
             FlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
         }
-        if (ImGui::MenuItem("Mouse Position",NULL,HasFlag(plot.Flags, ImPlotFlags_MousePos))) {
-            FlipFlag(plot.Flags, ImPlotFlags_MousePos);
-        }
-        if (ImGui::MenuItem("Selection Box",NULL,HasFlag(plot.Flags, ImPlotFlags_Selection))) {
-            FlipFlag(plot.Flags, ImPlotFlags_Selection);
-        }
         ImGui::EndMenu();
     }
     if (ImGui::MenuItem("Legend",NULL,HasFlag(plot.Flags, ImPlotFlags_Legend))) {
         FlipFlag(plot.Flags, ImPlotFlags_Legend);
-    }
-
-    if (ImGui::MenuItem("Crosshairs",NULL,HasFlag(plot.Flags, ImPlotFlags_Crosshairs))) {
-        FlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
     }
 #if 0
     if (ImGui::BeginMenu("Metrics")) {
@@ -1013,6 +1042,54 @@ void EndPlot() {
     // FINAL RENDER -----------------------------------------------------------
 
     PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
+
+    // render ticks
+    if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickMarks)) {
+        for (auto &xt : gp.XTicks)
+            DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Max.y},{xt.PixelPos, gp.BB_Grid.Max.y - (xt.Major ? 10.0f : 5.0f)}, gp.Col_Border, 1);
+    }
+    if (HasFlag(plot.YAxis.Flags, ImAxisFlags_TickMarks)) {
+        for (auto &yt : gp.YTicks)
+            DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Min.x + (yt.Major ? 10.0f : 5.0f), yt.PixelPos}, gp.Col_Border, 1);
+    }
+
+    // render selection/query
+    if (plot.Selecting) {
+        ImRect select_bb(ImMin(IO.MousePos, plot.SelectStart), ImMax(IO.MousePos, plot.SelectStart));
+        if (plot.Selecting && !lock_plot && HasFlag(plot.Flags, ImPlotFlags_Selection)) {
+            if (IO.KeyAlt && IO.KeyShift && select_bb.GetWidth() > 2 && select_bb.GetHeight() > 2) {
+                DrawList.AddRectFilled(gp.BB_Grid.Min, gp.BB_Grid.Max, gp.Col_SlctBg);
+                DrawList.AddRect(      gp.BB_Grid.Min, gp.BB_Grid.Max, gp.Col_SlctBd);
+            }
+            else if ((lock_x || IO.KeyAlt) && select_bb.GetHeight() > 2) {
+                DrawList.AddRectFilled(ImVec2(gp.BB_Grid.Min.x, select_bb.Min.y), ImVec2(gp.BB_Grid.Max.x, select_bb.Max.y), gp.Col_SlctBg);
+                DrawList.AddRect(      ImVec2(gp.BB_Grid.Min.x, select_bb.Min.y), ImVec2(gp.BB_Grid.Max.x, select_bb.Max.y), gp.Col_SlctBd);
+            }
+            else if ((lock_y || IO.KeyShift) && select_bb.GetWidth() > 2) {
+                DrawList.AddRectFilled(ImVec2(select_bb.Min.x, gp.BB_Grid.Min.y), ImVec2(select_bb.Max.x, gp.BB_Grid.Max.y), gp.Col_SlctBg);
+                DrawList.AddRect(      ImVec2(select_bb.Min.x, gp.BB_Grid.Min.y), ImVec2(select_bb.Max.x, gp.BB_Grid.Max.y), gp.Col_SlctBd);
+            }
+            else if (select_bb.GetWidth() > 2 && select_bb.GetHeight() > 2) {
+                DrawList.AddRectFilled(select_bb.Min, select_bb.Max, gp.Col_SlctBg);
+                DrawList.AddRect(      select_bb.Min, select_bb.Max, gp.Col_SlctBd);
+            }
+        }
+    }
+
+    if (plot.Querying || (HasFlag(plot.Flags, ImPlotFlags_PixelQuery) && plot.Queried)) {
+        if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
+            DrawList.AddRectFilled(plot.QueryRect.Min, plot.QueryRect.Max, gp.Col_QryBg);
+            DrawList.AddRect(      plot.QueryRect.Min, plot.QueryRect.Max, gp.Col_QryBd);
+        }  
+    }
+    else if (plot.Queried) {
+        ImVec2 p1 = gp.ToPixels(plot.QueryRange.XMin, plot.QueryRange.YMin); 
+        ImVec2 p2 = gp.ToPixels(plot.QueryRange.XMax, plot.QueryRange.YMax);
+        ImVec2 Min(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y));
+        ImVec2 Max(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y));
+        DrawList.AddRectFilled(Min, Max, gp.Col_QryBg);
+        DrawList.AddRect(      Min, Max, gp.Col_QryBd);
+    }
 
     // render legend
     const float txt_ht = GetTextLineHeight();
@@ -1072,57 +1149,6 @@ void EndPlot() {
         }
     }
 
-    // render ticks
-    if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickMarks)) {
-        for (auto &xt : gp.XTicks)
-            DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Max.y},{xt.PixelPos, gp.BB_Grid.Max.y - (xt.Major ? 10.0f : 5.0f)}, gp.Col_Border, 1);
-    }
-    if (HasFlag(plot.YAxis.Flags, ImAxisFlags_TickMarks)) {
-        for (auto &yt : gp.YTicks)
-            DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Min.x + (yt.Major ? 10.0f : 5.0f), yt.PixelPos}, gp.Col_Border, 1);
-    }
-
-    // render selection/query
-    if (plot.Selecting || plot.Querying) {
-        ImRect select_bb(ImMin(IO.MousePos, plot.SelectStart), ImMax(IO.MousePos, plot.SelectStart));
-        if (plot.Selecting && !lock_plot && HasFlag(plot.Flags, ImPlotFlags_Selection)) {
-            if (IO.KeyAlt && IO.KeyShift && select_bb.GetWidth() > 2 && select_bb.GetHeight() > 2) {
-                DrawList.AddRectFilled(gp.BB_Grid.Min, gp.BB_Grid.Max, gp.Col_SlctBg);
-                DrawList.AddRect(      gp.BB_Grid.Min, gp.BB_Grid.Max, gp.Col_SlctBd);
-            }
-            else if ((lock_x || IO.KeyAlt) && select_bb.GetHeight() > 2) {
-                DrawList.AddRectFilled(ImVec2(gp.BB_Grid.Min.x, select_bb.Min.y), ImVec2(gp.BB_Grid.Max.x, select_bb.Max.y), gp.Col_SlctBg);
-                DrawList.AddRect(      ImVec2(gp.BB_Grid.Min.x, select_bb.Min.y), ImVec2(gp.BB_Grid.Max.x, select_bb.Max.y), gp.Col_SlctBd);
-            }
-            else if ((lock_y || IO.KeyShift) && select_bb.GetWidth() > 2) {
-                DrawList.AddRectFilled(ImVec2(select_bb.Min.x, gp.BB_Grid.Min.y), ImVec2(select_bb.Max.x, gp.BB_Grid.Max.y), gp.Col_SlctBg);
-                DrawList.AddRect(      ImVec2(select_bb.Min.x, gp.BB_Grid.Min.y), ImVec2(select_bb.Max.x, gp.BB_Grid.Max.y), gp.Col_SlctBd);
-            }
-            else if (select_bb.GetWidth() > 2 && select_bb.GetHeight() > 2) {
-                DrawList.AddRectFilled(select_bb.Min, select_bb.Max, gp.Col_SlctBg);
-                DrawList.AddRect(      select_bb.Min, select_bb.Max, gp.Col_SlctBd);
-            }
-        }
-        else if (plot.Querying && select_bb.GetWidth() > 2 && select_bb.GetHeight() > 2) {
-            if (IO.KeyAlt && IO.KeyShift && select_bb.GetWidth() > 2 && select_bb.GetHeight() > 2) {
-                DrawList.AddRectFilled(gp.BB_Grid.Min, gp.BB_Grid.Max, gp.Col_QryBg);
-                DrawList.AddRect(      gp.BB_Grid.Min, gp.BB_Grid.Max, gp.Col_QryBd);
-            }
-            else if (IO.KeyAlt && select_bb.GetHeight() > 2) {
-                DrawList.AddRectFilled(ImVec2(gp.BB_Grid.Min.x, select_bb.Min.y), ImVec2(gp.BB_Grid.Max.x, select_bb.Max.y), gp.Col_QryBg);
-                DrawList.AddRect(      ImVec2(gp.BB_Grid.Min.x, select_bb.Min.y), ImVec2(gp.BB_Grid.Max.x, select_bb.Max.y), gp.Col_QryBd);
-            }
-            else if (IO.KeyShift && select_bb.GetWidth() > 2) {
-                DrawList.AddRectFilled(ImVec2(select_bb.Min.x, gp.BB_Grid.Min.y), ImVec2(select_bb.Max.x, gp.BB_Grid.Max.y), gp.Col_QryBg);
-                DrawList.AddRect(      ImVec2(select_bb.Min.x, gp.BB_Grid.Min.y), ImVec2(select_bb.Max.x, gp.BB_Grid.Max.y), gp.Col_QryBd);
-            }
-            else if (select_bb.GetWidth() > 2 && select_bb.GetHeight() > 2) {
-                DrawList.AddRectFilled(select_bb.Min, select_bb.Max, gp.Col_QryBg);
-                DrawList.AddRect(      select_bb.Min, select_bb.Max, gp.Col_QryBd);
-            }
-        }
-    }
-
     // render crosshairs
     if (HasFlag(plot.Flags, ImPlotFlags_Crosshairs) && gp.Hov_Grid && gp.Hov_Frame &&
         !(plot.XAxis.Dragging || plot.YAxis.Dragging) && !plot.Selecting && !plot.Querying && !hov_legend) {
@@ -1158,7 +1184,7 @@ void EndPlot() {
 
     // FIT DATA --------------------------------------------------------------
 
-    if (gp.FitThisFrame && gp.VisibleItemCount > 0) {
+    if (gp.FitThisFrame && (gp.VisibleItemCount > 0 || plot.Queried)) {
         if (!HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.Extents.Min.x))
             plot.XAxis.Min = gp.Extents.Min.x;
         if (!HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.x))
@@ -1182,7 +1208,6 @@ void EndPlot() {
     // Reset legend items
     gp._LegendIndices.shrink(0);
     // Null current plot/data
-    gp.PreviousPlot = gp.CurrentPlot;
     gp.CurrentPlot = NULL;
     // Reset next plot data
     gp.NextPlotData = ImNextPlotData();
@@ -1217,44 +1242,45 @@ void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond) {
     gp.NextPlotData.YMax = y_max;
 }
 
-bool IsPlotHovered() { return gp.Hov_Grid; }
-ImVec2 GetPlotMousePos() { return gp.LastMousePos; }
+bool IsPlotHovered() { 
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotHovered() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.Hov_Grid; 
+}
+ImVec2 GetPlotMousePos() { 
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotMousePos() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.LastMousePos; 
+}
+
 
 ImPlotRange GetPlotRange() {
-    ImPlot* plt = gp.CurrentPlot ? gp.CurrentPlot : gp.PreviousPlot ? gp.PreviousPlot : NULL;
-    if (plt == NULL)
-        return ImPlotRange();
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotRange() Needs to be called between BeginPlot() and EndPlot()!");
+    ImPlot& plot = *gp.CurrentPlot;
     ImPlotRange range;
-    range.XMin = plt->XAxis.Min;
-    range.XMax = plt->XAxis.Max;
-    range.YMin = plt->YAxis.Min;
-    range.YMax = plt->YAxis.Max;
+    range.XMin = plot.XAxis.Min;
+    range.XMax = plot.XAxis.Max;
+    range.YMin = plot.YAxis.Min;
+    range.YMax = plot.YAxis.Max;
     return range;
 }
 
 bool IsPlotQueried() {
-    if (gp.CurrentPlot) {
-        return gp.CurrentPlot->Querying;
-    }
-    else if (gp.PreviousPlot) {
-        return gp.PreviousPlot->Querying;
-    }
-    return false;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotQueried() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.CurrentPlot->Queried;
 }
 
 ImPlotRange GetPlotQuery() {
-    ImPlot* plt = gp.CurrentPlot ? gp.CurrentPlot : gp.PreviousPlot ? gp.PreviousPlot : NULL;
-    if (plt == NULL)
-        return ImPlotRange();
-    ImVec2 p1 = gp.FromPixels(plt->SelectStart);
-    ImVec2 p2 = gp.FromPixels(ImGui::GetIO().MousePos);
-
-    ImPlotRange range;
-    range.XMin = ImGui::GetIO().KeyAlt ? plt->XAxis.Min : ImMin(p1.x, p2.x);
-    range.XMax = ImGui::GetIO().KeyAlt ? plt->XAxis.Max : ImMax(p1.x, p2.x);
-    range.YMin = ImGui::GetIO().KeyShift ? plt->YAxis.Min : ImMin(p1.y, p2.y);
-    range.YMax = ImGui::GetIO().KeyShift ? plt->YAxis.Max : ImMax(p1.y, p2.y);
-    return range;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() Needs to be called between BeginPlot() and EndPlot()!");
+    ImPlot& plot = *gp.CurrentPlot;
+    if (HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
+        gp.UpdateTransforms();
+        ImVec2 p1 = gp.FromPixels(plot.QueryRect.Min);
+        ImVec2 p2 = gp.FromPixels(plot.QueryRect.Max);
+        plot.QueryRange.XMin = ImMin(p1.x, p2.x);
+        plot.QueryRange.XMax = ImMax(p1.x, p2.x);
+        plot.QueryRange.YMin = ImMin(p1.y, p2.y);
+        plot.QueryRange.YMax = ImMax(p1.y, p2.y);
+    }    
+    return plot.QueryRange;
 }
 
 //=============================================================================

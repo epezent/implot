@@ -76,6 +76,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::Indent();
             ImGui::BulletText("Hold Alt to expand box selection horizontally.");
             ImGui::BulletText("Hold Shift to expand box selection vertically.");
+            ImGui::BulletText("Left click while box selecting to cancel the selection.");
         ImGui::Unindent();
         ImGui::BulletText("Middle click (or Ctrl + right click) and drag to create a query range.");
         ImGui::Indent();
@@ -290,7 +291,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Log Scale")) {
-        ImGui::BulletText("Open the plot context menu (double right click) to scales.");
+        ImGui::BulletText("Open the plot context menu (double right click) to change scales.");
         static float xs[1001], ys1[1001], ys2[1001], ys3[1001];
         for (int i = 0; i < 1001; ++i) {
             xs[i] = (float)(i*0.1f);
@@ -313,6 +314,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::BulletText("Middle click (or Ctrl + right click) and drag to query points.");
         ImGui::BulletText("Hold the Alt and/or Shift keys to expand the query range.");
         static ImVector<ImVec2> data;
+        ImPlotRange range, query;
         if (ImGui::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default, ImAxisFlags_GridLines, ImAxisFlags_GridLines)) {
             if (ImGui::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) 
                 data.push_back(ImGui::GetPlotMousePos());
@@ -338,11 +340,52 @@ void ShowImPlotDemoWindow(bool* p_open) {
                 }
             }
             ImGui::PopPlotStyleVar(2);
+            range = ImGui::GetPlotRange();
+            query = ImGui::GetPlotQuery();
             ImGui::EndPlot();
         }
-        ImPlotRange range = ImGui::GetPlotRange();
-        ImGui::Text("The current plot range is: [%g,%g,%g,%g]", range.XMin, range.XMax, range.YMin, range.YMax);
+        ImGui::Text("The current plot range is:  [%g,%g,%g,%g]", range.XMin, range.XMax, range.YMin, range.YMax);
+        ImGui::Text("The current query range is: [%g,%g,%g,%g]", query.XMin, query.XMax, query.YMin, query.YMax);
     }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Views")) {
+        // mimic's soulthread's imgui_plot demo
+        static float x_data[512];
+        static float y_data1[512];
+        static float y_data2[512];
+        static float y_data3[512];
+        static float sampling_freq = 44100;
+        static float freq = 500;
+        for (size_t i = 0; i < 512; ++i) {
+            const float t = i / sampling_freq;
+            x_data[i] = t;
+            const float arg = 2 * 3.14 * freq * t;
+            y_data1[i] = sin(arg);
+            y_data2[i] = y_data1[i] * -0.6 + sin(2 * arg) * 0.4;
+            y_data3[i] = y_data2[i] * -0.6 + sin(3 * arg) * 0.4;
+        }
+        ImGui::BulletText("Query the first plot to render a subview in the second plot.");
+        ImGui::BulletText("Toggle \"Pixel Query\" in the context menu and then pan the plot.");
+        ImGui::SetNextPlotRange(0,0.01f,-1,1);
+        ImAxisFlags flgs = ImAxisFlags_Default & ~ImAxisFlags_TickLabels;
+        ImPlotRange query;
+        if (ImGui::BeginPlot("##View1",NULL,NULL,ImVec2(-1,150), ImPlotFlags_Default, flgs, flgs)) {
+            ImGui::Plot("Signal 1", x_data, y_data1, 512);
+            ImGui::Plot("Signal 2", x_data, y_data2, 512);
+            ImGui::Plot("Signal 3", x_data, y_data3, 512);
+            query = ImGui::GetPlotQuery();
+            ImGui::EndPlot();
+        }
+        ImGui::SetNextPlotRange(query.XMin, query.XMax, query.YMin, query.YMax, ImGuiCond_Always);
+        if (ImGui::BeginPlot("##View2",NULL,NULL,ImVec2(-1,150), 0, 0, 0)) {
+            ImGui::Plot("Signal 1", x_data, y_data1, 512);
+            ImGui::Plot("Signal 2", x_data, y_data2, 512);
+            ImGui::Plot("Signal 3", x_data, y_data3, 512);
+            ImGui::EndPlot();
+        }
+    }
+
+
 
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag and Drop")) {
