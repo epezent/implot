@@ -3,6 +3,8 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/views.gif" width="285">
 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="285"> 
+
 ## Features
 
 - multiple plot types: line, scatter, vertical/horizontal bars, error bars, with more likely to come
@@ -80,9 +82,3 @@ A: Not currently. Use your OS's screen capturing mechanisms if you need to captu
 **Q: Can ImPlot be used with other languages/bindings?**
 
 A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. 
-
-## Gallery
-
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/scatter_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="285"> 
-
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/error_bars.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/markers.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/custom_styling.png" width="285">
