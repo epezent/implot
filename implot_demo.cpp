@@ -384,37 +384,58 @@ void ShowImPlotDemoWindow(bool* p_open) {
             ImGui::EndPlot();
         }
     }
-
-
-
+	
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag and Drop")) {
         static bool paused = false;
         static bool init = true;
-        static ScrollingData data[10];
-        static bool show[10];
+        #define K_PLOT_ANALOG_CH_COUNT  4
+        #define K_PLOT_DIGITAL_CH_COUNT 8
+        static ScrollingData dataAnalog[K_PLOT_ANALOG_CH_COUNT];
+        static ScrollingData dataDigital[K_PLOT_DIGITAL_CH_COUNT];
+        static bool showAnalog[K_PLOT_ANALOG_CH_COUNT];
+        static bool showDigital[K_PLOT_DIGITAL_CH_COUNT];
         if (init) {
-            for (int i = 0; i < 10; ++i) {
-                show[i] = false;
-                data[i].AddPoint(0, 0.25f + 0.5f * (float)rand() / float(RAND_MAX));
+            for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
+                showAnalog[i] = false;
+                dataAnalog[i].AddPoint(0, 0.25f + 0.5f * (float)rand() / float(RAND_MAX));
+            }
+            for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
+                showDigital[i] = false;
+                dataDigital[i].AddPoint(0, false);
             }
             init = false;
         }
         ImGui::BulletText("Drag data items from the left column onto the plot.");
+        static int bitHeight = 7;
+        ImGui::SetNextItemWidth(100);
+        ImGui::DragInt("Customize Bit Hieght", &bitHeight, 0.2, 5, 50);
         ImGui::BeginGroup();
         if (ImGui::Button("Clear", {100, 0})) {
-            for (int i = 0; i < 10; ++i)
-                show[i] = false;
+            for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i)
+                showAnalog[i] = false;
+            for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i)
+                showDigital[i] = false;
         }
         if (ImGui::Button(paused ? "Resume" : "Pause", {100,0}))
             paused = !paused;
         ImGui::Separator();
-        for (int i = 0; i < 10; ++i) {
-            char label[8];
-            sprintf(label, "data_%d", i);
+        for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
+            char label[32];
+            sprintf(label, "analog_data_%d", i);
             ImGui::Selectable(label, false, 0, {100, 0});
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-                ImGui::SetDragDropPayload("DND_PLOT", &i, sizeof(int));
+                ImGui::SetDragDropPayload("DND_ANALOG_PLOT", &i, sizeof(int));
+                ImGui::TextUnformatted(label);
+                ImGui::EndDragDropSource();
+            }
+        }
+        for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
+            char label[32];
+            sprintf(label, "digital_data_%d", i);
+            ImGui::Selectable(label, false, 0, {100, 0});
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+                ImGui::SetDragDropPayload("DND_DIGITAL_PLOT", &i, sizeof(int));
                 ImGui::TextUnformatted(label);
                 ImGui::EndDragDropSource();
             }
@@ -424,29 +445,48 @@ void ShowImPlotDemoWindow(bool* p_open) {
         static float t = 0;
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;
-            for (int i = 0; i < 10; ++i) {
-                data[i].AddPoint(t, data[i].Data.back().y + (0.005f + 0.0002f * (float)rand() / float(RAND_MAX)) * (-1 + 2 * (float)rand() / float(RAND_MAX)));
+            for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
+                dataAnalog[i].AddPoint(t, dataAnalog[i].Data.back().y + (0.005f + 0.0002f * (float)rand() / float(RAND_MAX)) * (-1 + 2 * (float)rand() / float(RAND_MAX)));
             }
+            int i = 0;
+           	dataDigital[i++].AddPoint(t, sin(t) > 0.45);
+           	dataDigital[i++].AddPoint(t, sin(t) < 0.45);
+           	dataDigital[i++].AddPoint(t, sin(t) > 0.83);
+           	dataDigital[i++].AddPoint(t, sin(t) < 0.17);
         }
-        ImGui::SetNextPlotRangeX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
+		ImGui::SetNextPlotRangeX(t - 10.0f, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         if (ImGui::BeginPlot("##DND", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default)) {
-            for (int i = 0; i < 10; ++i) {
-                if (show[i]) {
-                    char label[8];
-                    sprintf(label, "data_%d", i);
-                    ImGui::Plot(label, &data[i].Data[0].x, &data[i].Data[0].y, data[i].Data.size(), data[i].Offset, 2 * sizeof(float));
+            for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
+                if (showDigital[i]) {
+                    char label[32];
+                    sprintf(label, "digital_data_%d", i);
+                    ImGui::PushPlotStyleVar(ImPlotStyleVar_DigitalBitHeight, bitHeight);
+                    ImGui::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), dataDigital[i].Offset, 2 * sizeof(float));
+                    ImGui::PopPlotStyleVar();
+                }
+            }
+            for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
+                if (showAnalog[i]) {
+                    char label[32];
+                    sprintf(label, "digital_data_%d", i);
+                    ImGui::Plot(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), dataAnalog[i].Offset, 2 * sizeof(float));
                 }
             }
             ImGui::EndPlot();
         }
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_ANALOG_PLOT")) {
                 int i = *(int*)payload->Data;
-                show[i] = true;
+                showAnalog[i] = true;
+            }
+            else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_DIGITAL_PLOT")) {
+                int i = *(int*)payload->Data;
+                showDigital[i] = true;
             }
             ImGui::EndDragDropTarget();
         }
     }
+	
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Styles")) {
         static ImVec4 my_palette[3] = {
