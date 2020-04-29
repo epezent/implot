@@ -81,12 +81,13 @@ enum ImPlotCol_ {
 };
 
 enum ImPlotStyleVar_ {
-    ImPlotStyleVar_LineWeight,     // float, line weight in pixels
-    ImPlotStyleVar_Marker,         // int,   marker specification
-    ImPlotStyleVar_MarkerSize,     // float, marker size in pixels (roughly the marker's "radius")
-    ImPlotStyleVar_MarkerWeight,   // float, outline weight of markers in pixels
-    ImPlotStyleVar_ErrorBarSize,   // float, error bar whisker width in pixels
-    ImPlotStyleVar_ErrorBarWeight, // float, error bar whisker weight in pixels
+    ImPlotStyleVar_LineWeight,         // float, line weight in pixels
+    ImPlotStyleVar_Marker,             // int,   marker specification
+    ImPlotStyleVar_MarkerSize,         // float, marker size in pixels (roughly the marker's "radius")
+    ImPlotStyleVar_MarkerWeight,       // float, outline weight of markers in pixels
+    ImPlotStyleVar_ErrorBarSize,       // float, error bar whisker width in pixels
+    ImPlotStyleVar_ErrorBarWeight,     // float, error bar whisker weight in pixels
+    ImPlotStyleVar_DigitalBitHeight,   // int, digital channels bit height (at 1)
     ImPlotStyleVar_COUNT
 };
 
@@ -120,6 +121,7 @@ struct ImPlotStyle {
     float    MarkerWeight;            // = 1, outline weight of markers in pixels
     float    ErrorBarSize;            // = 5, error bar whisker width in pixels
     float    ErrorBarWeight;          // = 1.5, error bar whisker weight in pixels
+    int      DigitalBitHeight;        // = 7, digital channels bit height (at 1)
     ImVec4   Colors[ImPlotCol_COUNT]; // array of plot specific colors
     ImPlotStyle();
 };
@@ -177,6 +179,9 @@ ImPlotRange GetPlotQuery();
 void Plot(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+// Plots digital channels.
+void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float) + sizeof(bool));
+void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots vertical bars.
 void PlotBar(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
 void PlotBar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
