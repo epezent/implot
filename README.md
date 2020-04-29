@@ -10,6 +10,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 - configurable axes ranges and scaling (linear/log)
 - reversible and lockable axes
 - controls for zooming, panning, box selection, and auto-fitting data
+- controls for creating persistent query ranges (see demo)
 - several plot styling options: 10 marker types, adjustable marker sizes, line weights, outline colors, fill colors, etc.
 - optional plot titles, axis labels, and grid labels
 - optional legend with toggle buttons to quickly show/hide items
