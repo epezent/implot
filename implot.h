@@ -147,28 +147,6 @@ bool BeginPlot(const char* title_id,
 // of an if statement conditioned on BeginPlot().
 void EndPlot();
 
-/// Set the axes ranges of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes will be locked.
-void SetNextPlotRange(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
-void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
-void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
-
-//-----------------------------------------------------------------------------
-// Plot Queries
-//-----------------------------------------------------------------------------
-
-/// Returns true if the plot area in the current or most recent plot is hovered.
-bool IsPlotHovered();
-/// Returns the mouse position in x,y coordinates of the current or most recent plot.
-ImVec2 GetPlotMousePos();
-/// Returns the current or most recent plot axis range.
-ImPlotRange GetPlotRange();
-/// Returns true if the current or most recent plot is being queried.
-bool IsPlotQueried();
-/// Returns the current or most recent plot querey range.
-ImPlotRange GetPlotQuery();
-
 //-----------------------------------------------------------------------------
 // Plot Items
 //-----------------------------------------------------------------------------
@@ -191,6 +169,21 @@ void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const
 void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a text label at point x,y.
 void PlotLabel(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
+
+//-----------------------------------------------------------------------------
+// Plot Queries
+//-----------------------------------------------------------------------------
+
+/// Returns true if the plot area in the current or most recent plot is hovered.
+bool IsPlotHovered();
+/// Returns the mouse position in x,y coordinates of the current or most recent plot.
+ImVec2 GetPlotMousePos();
+/// Returns the current or most recent plot axis range.
+ImPlotRange GetPlotRange();
+/// Returns true if the current or most recent plot is being queried.
+bool IsPlotQueried();
+/// Returns the current or most recent plot querey range.
+ImPlotRange GetPlotQuery();
 
 //-----------------------------------------------------------------------------
 // Plot Styling
@@ -217,6 +210,32 @@ void PushPlotStyleVar(ImPlotStyleVar idx, float val);
 void PushPlotStyleVar(ImPlotStyleVar idx, int val);
 // Undo temporary style modification.
 void PopPlotStyleVar(int count = 1);
+
+//-----------------------------------------------------------------------------
+// Plot Utils
+//-----------------------------------------------------------------------------
+
+/// Set the axes ranges of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes will be locked.
+void SetNextPlotRange(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
+/// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
+void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
+/// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
+void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
+
+// Get the current Plot position (top-left) in pixels.
+ImVec2 GetPlotPos();
+// Get the curent Plot size in pixels.
+ImVec2 GetPlotSize();
+
+// Convert pixels to a position in the current plot's coordinate system.
+ImVec2 PixelsToPlot(const ImVec2& pix);
+// Convert a position in the current plot's coordinate system to pixels.
+ImVec2 PlotToPixels(const ImVec2& plt);
+
+// Push clip rect for rendering to current plot area
+void PushPlotClipRect();
+// Pop plot clip rect
+void PopPlotClipRect();
 
 //-----------------------------------------------------------------------------
 // Demo

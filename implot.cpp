@@ -1295,6 +1295,35 @@ void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond) {
     gp.NextPlotData.YMax = y_max;
 }
 
+ImVec2 GetPlotPos() {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotPos() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.BB_Grid.Min;
+}
+
+ImVec2 GetPlotSize() {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotSize() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.BB_Grid.GetSize();
+}
+
+ImVec2 PixelsToPlot(const ImVec2& pix) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.FromPixels(pix);
+}
+
+ImVec2 PlotToPixels(const ImVec2& plt) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.ToPixels(plt);
+}
+
+void PushPlotClipRect() {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PushPlotClipRect() Needs to be called between BeginPlot() and EndPlot()!");
+    PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
+}
+
+void PopPlotClipRect() {
+    PopClipRect();
+}
+
 bool IsPlotHovered() { 
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotHovered() Needs to be called between BeginPlot() and EndPlot()!");
     return gp.Hov_Grid; 

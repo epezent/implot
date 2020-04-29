@@ -23,7 +23,6 @@
 // ImPlot v0.1 WIP
 
 #include <implot.h>
-#include <imgui_internal.h>
 #include <iostream>
 
 namespace {
@@ -48,7 +47,7 @@ struct RollingData {
     ImVector<ImVec2> Data;
     RollingData() { Data.reserve(1000); }
     void AddPoint(float x, float y) {
-        float xmod = ImFmod(x, Span);
+        float xmod = fmodf(x, Span);
         if (!Data.empty() && xmod < Data.back().x)
             Data.shrink(0);
         Data.push_back(ImVec2(xmod, y));
@@ -492,6 +491,18 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::PopPlotColor(5);
         ImGui::PopPlotStyleVar();
         ImGui::RestorePlotPalette();
+    }
+    if (ImGui::CollapsingHeader("Custom Rendering")) {
+        if (ImGui::BeginPlot("##CustomRend",NULL,NULL,{-1,300})) {
+            ImVec2 cntr = ImGui::PlotToPixels({0.5f,  0.5f});
+            ImVec2 rmin = ImGui::PlotToPixels({0.25f, 0.75f});
+            ImVec2 rmax = ImGui::PlotToPixels({0.75f, 0.25f});
+            ImGui::PushPlotClipRect();
+            ImGui::GetWindowDrawList()->AddCircleFilled(cntr,20,IM_COL32(255,255,0,255),20);
+            ImGui::GetWindowDrawList()->AddRect(rmin, rmax, IM_COL32(128,0,255,255));
+            ImGui::PopPlotClipRect();
+            ImGui::EndPlot();
+        }
     }
     //-------------------------------------------------------------------------
     // if (ImGui::CollapsingHeader("Benchmark")) {
