@@ -55,11 +55,20 @@ struct RollingData {
     }
 };
 
+// Put big data here
+struct DemoData {
+    DemoData() {
+
+    }    
+};
+
 }
 
 namespace ImGui {   
     
 void ShowImPlotDemoWindow(bool* p_open) {
+
+    static DemoData data;
 
     ImVec2 main_viewport_pos = ImGui::GetMainViewport()->Pos;
     ImGui::SetNextWindowPos(ImVec2(main_viewport_pos.x + 650, main_viewport_pos.y + 20), ImGuiCond_FirstUseEver);
@@ -389,6 +398,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
 
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag and Drop")) {
+        srand(10000000 * ImGui::GetTime());
         static bool paused = false;
         static bool init = true;
         static ScrollingData data[10];
@@ -396,15 +406,17 @@ void ShowImPlotDemoWindow(bool* p_open) {
         if (init) {
             for (int i = 0; i < 10; ++i) {
                 show[i] = false;
-                data[i].AddPoint(0, 0.25f + 0.5f * (float)rand() / float(RAND_MAX));
             }
             init = false;
         }
         ImGui::BulletText("Drag data items from the left column onto the plot.");
         ImGui::BeginGroup();
         if (ImGui::Button("Clear", {100, 0})) {
-            for (int i = 0; i < 10; ++i)
+            for (int i = 0; i < 10; ++i) {
                 show[i] = false;
+                data[i].Data.shrink(0);
+                data[i].Offset = 0;
+            }
         }
         if (ImGui::Button(paused ? "Resume" : "Pause", {100,0}))
             paused = !paused;
@@ -425,7 +437,10 @@ void ShowImPlotDemoWindow(bool* p_open) {
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;
             for (int i = 0; i < 10; ++i) {
-                data[i].AddPoint(t, data[i].Data.back().y + (0.005f + 0.0002f * (float)rand() / float(RAND_MAX)) * (-1 + 2 * (float)rand() / float(RAND_MAX)));
+                if (show[i])
+                    data[i].AddPoint(t, data[i].Data.empty() ?  
+                                        0.25f + 0.5f * (float)rand() / float(RAND_MAX) :                    
+                                        data[i].Data.back().y + (0.005f + 0.0002f * (float)rand() / float(RAND_MAX)) * (-1 + 2 * (float)rand() / float(RAND_MAX)));
             }
         }
         ImGui::SetNextPlotRangeX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
@@ -478,6 +493,10 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::PopPlotStyleVar();
         ImGui::RestorePlotPalette();
     }
+    //-------------------------------------------------------------------------
+    // if (ImGui::CollapsingHeader("Benchmark")) {
+        
+    // }
     //-------------------------------------------------------------------------
     ImGui::End();
     

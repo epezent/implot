@@ -221,7 +221,7 @@ struct ImPlotAxis {
 /// Holds Plot state information that must persist between frames
 struct ImPlot {
     ImPlot() {
-        Selecting = Querying = Queried = false;
+        Selecting = Querying = Queried = DraggingQuery = false;
         SelectStart =  QueryStart = ImVec2(0,0);
         Flags = ImPlotFlags_Default;
         ColorIdx = 0;
@@ -234,7 +234,8 @@ struct ImPlot {
     bool Querying;
     bool Queried;
     ImVec2 QueryStart;
-    ImRect QueryRect;
+    ImRect QueryRect; // relative to BB_grid!!
+    bool DraggingQuery;
     ImPlotRange QueryRange;
     ImPlotAxis XAxis;
     ImPlotAxis YAxis;
@@ -655,7 +656,57 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const bool   hov_y_axis_region = yAxisRegion_bb.Contains(IO.MousePos);
 
     // legend hovered from last frame
-    const bool hov_legend = HasFlag(plot.Flags, ImPlotFlags_Legend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;
+    const bool hov_legend = HasFlag(plot.Flags, ImPlotFlags_Legend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;   
+
+    bool hov_query = false;
+    if (plot.Queried && !plot.Querying) {
+        ImRect bb_query;
+        if (HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
+            bb_query      = plot.QueryRect;
+            bb_query.Min += gp.BB_Grid.Min;
+            bb_query.Max += gp.BB_Grid.Min;
+        }
+        else {
+            gp.UpdateTransforms();
+            ImVec2 p1 = gp.ToPixels(plot.QueryRange.XMin, plot.QueryRange.YMin); 
+            ImVec2 p2 = gp.ToPixels(plot.QueryRange.XMax, plot.QueryRange.YMax);
+            bb_query.Min = ImVec2(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y));
+            bb_query.Max = ImVec2(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y));
+        }
+        hov_query = bb_query.Contains(IO.MousePos);
+    }
+
+    // QUERY DRAG -------------------------------------------------------------
+    if (plot.DraggingQuery && (IO.MouseReleased[0] || !IO.MouseDown[0])) {
+        plot.DraggingQuery = false;
+    }
+    if (plot.DraggingQuery) {        
+        SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+        if (!HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
+            ImVec2 p1 = gp.ToPixels(plot.QueryRange.XMin, plot.QueryRange.YMin); 
+            ImVec2 p2 = gp.ToPixels(plot.QueryRange.XMax, plot.QueryRange.YMax);
+            plot.QueryRect.Min = ImVec2(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y)) + IO.MouseDelta;
+            plot.QueryRect.Max = ImVec2(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y)) + IO.MouseDelta;
+            p1 = gp.FromPixels(plot.QueryRect.Min);
+            p2 = gp.FromPixels(plot.QueryRect.Max);  
+            plot.QueryRect.Min -= gp.BB_Grid.Min;
+            plot.QueryRect.Max -= gp.BB_Grid.Min;          
+            plot.QueryRange.XMin = ImMin(p1.x, p2.x);
+            plot.QueryRange.XMax = ImMax(p1.x, p2.x);
+            plot.QueryRange.YMin = ImMin(p1.y, p2.y);
+            plot.QueryRange.YMax = ImMax(p1.y, p2.y);
+        }
+        else {
+            plot.QueryRect.Min += IO.MouseDelta;
+            plot.QueryRect.Max += IO.MouseDelta;
+        }
+    }
+    if (gp.Hov_Frame && hov_query && !plot.DraggingQuery && !plot.Selecting && !hov_legend) {
+        SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+        if (IO.MouseDown[0] && !plot.XAxis.Dragging && !plot.YAxis.Dragging) {
+            plot.DraggingQuery = true;
+        }        
+    }    
 
     // DRAG INPUT -------------------------------------------------------------
 
@@ -695,9 +746,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
     }
     // start drag
-    if (gp.Hov_Frame && hov_x_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend)
+    if (gp.Hov_Frame && hov_x_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
         plot.XAxis.Dragging = true;
-    if (gp.Hov_Frame && hov_y_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend)
+    if (gp.Hov_Frame && hov_y_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
         plot.YAxis.Dragging = true;
 
     // SCROLL INPUT -----------------------------------------------------------
@@ -761,12 +812,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // update query
     if (plot.Querying) {
         gp.UpdateTransforms();
-        plot.QueryRect.Min.x = IO.KeyAlt ? gp.BB_Grid.Min.x :  ImMin(plot.QueryStart.x, IO.MousePos.x);
-        plot.QueryRect.Max.x = IO.KeyAlt ? gp.BB_Grid.Max.x :  ImMax(plot.QueryStart.x, IO.MousePos.x);
+        plot.QueryRect.Min.x = IO.KeyAlt ? gp.BB_Grid.Min.x :   ImMin(plot.QueryStart.x, IO.MousePos.x);
+        plot.QueryRect.Max.x = IO.KeyAlt ? gp.BB_Grid.Max.x :   ImMax(plot.QueryStart.x, IO.MousePos.x);
         plot.QueryRect.Min.y = IO.KeyShift ? gp.BB_Grid.Min.y : ImMin(plot.QueryStart.y, IO.MousePos.y);
         plot.QueryRect.Max.y = IO.KeyShift ? gp.BB_Grid.Max.y : ImMax(plot.QueryStart.y, IO.MousePos.y);
         ImVec2 p1 = gp.FromPixels(plot.QueryRect.Min);
         ImVec2 p2 = gp.FromPixels(plot.QueryRect.Max);
+        plot.QueryRect.Min -= gp.BB_Grid.Min;
+        plot.QueryRect.Max -= gp.BB_Grid.Min;
         plot.QueryRange.XMin = ImMin(p1.x, p2.x);
         plot.QueryRange.XMax = ImMax(p1.x, p2.x);
         plot.QueryRange.YMin = ImMin(p1.y, p2.y);
@@ -810,7 +863,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     
     // DOUBLE CLICK -----------------------------------------------------------
 
-    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && gp.Hov_Grid && !hov_legend) 
+    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && gp.Hov_Grid && !hov_legend && !hov_query) 
         gp.FitThisFrame = true;
     else
         gp.FitThisFrame = false;     
@@ -1078,8 +1131,8 @@ void EndPlot() {
 
     if (plot.Querying || (HasFlag(plot.Flags, ImPlotFlags_PixelQuery) && plot.Queried)) {
         if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
-            DrawList.AddRectFilled(plot.QueryRect.Min, plot.QueryRect.Max, gp.Col_QryBg);
-            DrawList.AddRect(      plot.QueryRect.Min, plot.QueryRect.Max, gp.Col_QryBd);
+            DrawList.AddRectFilled(plot.QueryRect.Min + gp.BB_Grid.Min, plot.QueryRect.Max + gp.BB_Grid.Min, gp.Col_QryBg);
+            DrawList.AddRect(      plot.QueryRect.Min + gp.BB_Grid.Min, plot.QueryRect.Max + gp.BB_Grid.Min, gp.Col_QryBd);
         }  
     }
     else if (plot.Queried) {
@@ -1273,8 +1326,8 @@ ImPlotRange GetPlotQuery() {
     ImPlot& plot = *gp.CurrentPlot;
     if (HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
         gp.UpdateTransforms();
-        ImVec2 p1 = gp.FromPixels(plot.QueryRect.Min);
-        ImVec2 p2 = gp.FromPixels(plot.QueryRect.Max);
+        ImVec2 p1 = gp.FromPixels(plot.QueryRect.Min + gp.BB_Grid.Min);
+        ImVec2 p2 = gp.FromPixels(plot.QueryRect.Max + gp.BB_Grid.Min);
         plot.QueryRange.XMin = ImMin(p1.x, p2.x);
         plot.QueryRange.XMax = ImMax(p1.x, p2.x);
         plot.QueryRange.YMin = ImMin(p1.y, p2.y);
