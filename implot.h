@@ -225,7 +225,4 @@ void PopPlotStyleVar(int count = 1);
 // Shows the ImPlot demo. Add implot_demo.cpp to your sources!
 void ShowImPlotDemoWindow(bool* p_open = NULL);
 
-// Shows the ImPlot benchmarking test. Add implot_demo.cpp to your sources!
-void ShowImPlotBenchmarkWindow(bool * p_open = NULL);
-
 }  // namespace ImGui
