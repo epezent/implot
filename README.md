@@ -86,4 +86,5 @@ A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) 
 
 ## See Also
 [ImPlot discussion](https://github.com/ocornut/imgui/issues/3173) - ImPlot discussion issue at the official ImGui repository
+
 [imgui-plot](https://github.com/soulthreads/imgui-plot) - an alternate plotting widget by soulthreads
