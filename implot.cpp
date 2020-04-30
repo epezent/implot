@@ -1701,69 +1701,68 @@ void PlotDigital(const char* label_id, const float* xs, const float* ys, int cou
     PlotDigital(label_id, &ImPlotGetter2D, (void*)&data, count, offset);
 }
 
-void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset)
-{
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotDigital() Needs to be called between BeginPlot() and EndPlot()!");
+void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset) {
+	IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotDigital() Needs to be called between BeginPlot() and EndPlot()!");
 
-    ImPlotItem* item = gp.RegisterItem(label_id);
-    if (!item->Show)
-        return;
+	ImPlotItem* item = gp.RegisterItem(label_id);
+	if (!item->Show)
+		return;
 
-    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+	ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
-    const bool rend_line = gp.Style.Colors[ImPlotCol_Line].w != 0 && gp.Style.LineWeight > 0;
+	const bool rend_line = gp.Style.Colors[ImPlotCol_Line].w != 0 && gp.Style.LineWeight > 0;
 
-    ImU32 col_line = gp.Style.Colors[ImPlotCol_Line].w == -1 ? GetColorU32(item->Color) : GetColorU32(gp.Style.Colors[ImPlotCol_Line]);
+	if (gp.Style.Colors[ImPlotCol_Line].w != -1)
+		item->Color = gp.Style.Colors[ImPlotCol_Line];
 
-    if (gp.Style.Colors[ImPlotCol_Line].w != -1)
-        item->Color = gp.Style.Colors[ImPlotCol_Line];
+	// find data extents
+	if (gp.FitThisFrame) {
+		for (int i = 0; i < count; ++i) {
+			ImVec2 p = getter(data, i);
+			gp.FitPoint(p);
+		}
+	}
 
-    // find data extents
-    if (gp.FitThisFrame) {
-        for (int i = 0; i < count; ++i) {
-            ImVec2 p = getter(data, i);
-            gp.FitPoint(p);
-        }
-    }
+	ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
+	bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
 
-    ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
-    bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
+	const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
 
-    const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
+	// render digital signals as "pixel bases" rectangles
+	if (count > 1 && rend_line) {
+		const int    segments  = count - 1;
+		int    i1 = offset;
+		for (int s = 0; s < segments; ++s) {
+			const int i2 = (i1 + 1) % count;
+			ImVec2 itemData1 = getter(data, i1);
+			ImVec2 itemData2 = getter(data, i2);
+			i1 = i2;
+			const float mx = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / (gp.CurrentPlot->XAxis.Max - gp.CurrentPlot->XAxis.Min);
+			int pixY_0 = line_weight;
+			int pixY_1 = gp.Style.DigitalBitHeight;
+			int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
+			int pixY_chOffset = pixY_1 + 3; //3 pixels between channels
 
-    // render digital signals as "pixel bases" rectangles
-    if (count > 1 && rend_line) {
-        const int    segments  = count - 1;
-        int    i1 = offset;
-        for (int s = 0; s < segments; ++s) {
-            const int i2 = (i1 + 1) % count;
-            ImVec2 itemData1 = getter(data, i1);
-            ImVec2 itemData2 = getter(data, i2);
-            i1 = i2;
-            const float mx = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / (gp.CurrentPlot->XAxis.Max - gp.CurrentPlot->XAxis.Min);
-            int pixY_0 = line_weight;
-            int pixY_1 = gp.Style.DigitalBitHeight;
-            int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
-            int pixY_chOffset = pixY_1 + 3; //3 pixels between channels
+			float y1 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - ((itemData1.y == 0.0) ? pixY_0 : pixY_1) - pixY_Offset);
+			float y2 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
+			float l = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
+			float r = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Min);
+			
+			ImVec2 cl, cr;
+			cl.x = l;
+			cl.y = y1;
+			cr.x = r;
+			cr.y = y2;
+			if (!cull || gp.BB_Grid.Contains(cl) || gp.BB_Grid.Contains(cr)) {
+				auto colAlpha = item->Color;
+				colAlpha.w = item->Highlight ? 1.0 : 0.9;
+				DrawList.AddRectFilled({l, y1}, {r, y2}, GetColorU32(colAlpha));
+			}
+		}
+		gp.DigitalPlotItemCnt++;
+	}   
 
-            float y1 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - ((itemData1.y == 0.0) ? pixY_0 : pixY_1) - pixY_Offset);
-            float y2 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
-            float l = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
-            float r = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Min);
-            
-            ImVec2 cl, cr;
-            cl.x = l;
-            cl.y = y1;
-            cr.x = r;
-            cr.y = y2;
-            if (!cull || gp.BB_Grid.Contains(cl) || gp.BB_Grid.Contains(cr)) {
-                DrawList.AddRectFilled({l, y1}, {r, y2}, col_line);
-            }
-        }
-        gp.DigitalPlotItemCnt++;
-    }   
-
-    ImGui::PopClipRect();
+	ImGui::PopClipRect();
 }
 
 ////////////////////////////////////////////////////////////////
