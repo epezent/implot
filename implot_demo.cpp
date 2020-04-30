@@ -23,9 +23,14 @@
 // ImPlot v0.1 WIP
 
 #include <implot.h>
-#include <iostream>
+#include <math.h>
 
 namespace {
+
+float RandomRange( float min, float max ) {
+    float scale = rand() / (float) RAND_MAX; 
+    return min + scale * ( max - min );
+}
 
 struct ScrollingData {
     int MaxSize = 1000;
@@ -54,11 +59,21 @@ struct RollingData {
     }
 };
 
-// Put big data here
-struct DemoData {
-    DemoData() {
-
-    }    
+struct BenchmarkItem {
+    BenchmarkItem() {
+        float y = RandomRange(0,1);
+        Xs = new float[1000];
+        Ys = new float[1000];
+        for (int i = 0; i < 1000; ++i) {
+            Xs[i] = i*0.001f;
+            Ys[i] = y + RandomRange(-0.01f,0.01f);
+        }
+        Col = ImVec4(RandomRange(0,1),RandomRange(0,1),RandomRange(0,1),1);
+    }
+    ~BenchmarkItem() { delete Xs; delete Ys; }
+    float* Xs;
+    float* Ys;
+    ImVec4 Col;
 };
 
 }
@@ -66,8 +81,6 @@ struct DemoData {
 namespace ImGui {   
     
 void ShowImPlotDemoWindow(bool* p_open) {
-
-    static DemoData data;
 
     ImVec2 main_viewport_pos = ImGui::GetMainViewport()->Pos;
     ImGui::SetNextWindowPos(ImVec2(main_viewport_pos.x + 650, main_viewport_pos.y + 20), ImGuiCond_FirstUseEver);
@@ -77,9 +90,13 @@ void ShowImPlotDemoWindow(bool* p_open) {
     if (ImGui::CollapsingHeader("Help")) {
         ImGui::Text("USER GUIDE:");
         ImGui::BulletText("Left click and drag within the plot area to pan X and Y axes.");
-        ImGui::BulletText("Left click and drag on an axis to pan an individual axis.");
+        ImGui::Indent();
+            ImGui::BulletText("Left click and drag on an axis to pan an individual axis.");
+        ImGui::Unindent();
         ImGui::BulletText("Scroll in the plot area to zoom both X any Y axes.");
-        ImGui::BulletText("Scroll on an axis to zoom an individual axis.");
+        ImGui::Indent();
+            ImGui::BulletText("Scroll on an axis to zoom an individual axis.");
+        ImGui::Unindent();
         ImGui::BulletText("Right click and drag to box select data.");
         ImGui::Indent();
             ImGui::BulletText("Hold Alt to expand box selection horizontally.");
@@ -92,6 +109,9 @@ void ShowImPlotDemoWindow(bool* p_open) {
             ImGui::BulletText("Hold Shift to expand query vertically.");
         ImGui::Unindent();
         ImGui::BulletText("Double left click to fit all visible data.");
+        ImGui::Indent();
+            ImGui::BulletText("Double left click on an axis to fit the individual axis.");
+        ImGui::Unindent();
         ImGui::BulletText("Double right click to open the plot context menu.");
         ImGui::BulletText("Click legend label icons to show/hide plot items.");
     }
@@ -194,6 +214,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Realtime Plots")) {
         ImGui::BulletText("Move your mouse to change the data!");
+        ImGui::BulletText("This example assumes 60 FPS. Higher FPS requires larger buffer size.");
         static bool paused = false;
         static ScrollingData sdata1, sdata2;
         static RollingData   rdata1, rdata2;
@@ -505,9 +526,22 @@ void ShowImPlotDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    // if (ImGui::CollapsingHeader("Benchmark")) {
-        
-    // }
+    if (ImGui::CollapsingHeader("Benchmark")) {
+        static const int n_items = 100;
+        static BenchmarkItem items[n_items];
+        ImGui::BulletText("Make sure VSync is disabled.");
+        ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
+        if (ImGui::BeginPlot("##Bench",NULL,NULL,{-1,300})) {
+            char buff[16];
+            for (int i = 0; i < 100; ++i) {
+                sprintf(buff, "item_%d",i);
+                ImGui::PushPlotColor(ImPlotCol_Line, items[i].Col);
+                ImGui::Plot(buff, items[i].Xs, items[i].Ys, 1000);
+                ImGui::PopPlotColor();
+            }   
+            ImGui::EndPlot();
+        }
+    }
     //-------------------------------------------------------------------------
     ImGui::End();
     
