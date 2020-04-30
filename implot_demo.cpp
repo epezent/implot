@@ -24,6 +24,7 @@
 
 #include <implot.h>
 #include <math.h>
+#include <cstdio>
 
 namespace {
 
