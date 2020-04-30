@@ -222,7 +222,7 @@ struct ImPlotAxis {
 /// Holds Plot state information that must persist between frames
 struct ImPlot {
     ImPlot() {
-        Selecting = Querying = Queried = false;
+        Selecting = Querying = Queried = DraggingQuery = false;
         SelectStart =  QueryStart = ImVec2(0,0);
         Flags = ImPlotFlags_Default;
         ColorIdx = 0;
@@ -235,7 +235,8 @@ struct ImPlot {
     bool Querying;
     bool Queried;
     ImVec2 QueryStart;
-    ImRect QueryRect;
+    ImRect QueryRect; // relative to BB_grid!!
+    bool DraggingQuery;
     ImPlotRange QueryRange;
     ImPlotAxis XAxis;
     ImPlotAxis YAxis;
@@ -656,7 +657,57 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const bool   hov_y_axis_region = yAxisRegion_bb.Contains(IO.MousePos);
 
     // legend hovered from last frame
-    const bool hov_legend = HasFlag(plot.Flags, ImPlotFlags_Legend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;
+    const bool hov_legend = HasFlag(plot.Flags, ImPlotFlags_Legend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;   
+
+    bool hov_query = false;
+    if (plot.Queried && !plot.Querying) {
+        ImRect bb_query;
+        if (HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
+            bb_query      = plot.QueryRect;
+            bb_query.Min += gp.BB_Grid.Min;
+            bb_query.Max += gp.BB_Grid.Min;
+        }
+        else {
+            gp.UpdateTransforms();
+            ImVec2 p1 = gp.ToPixels(plot.QueryRange.XMin, plot.QueryRange.YMin); 
+            ImVec2 p2 = gp.ToPixels(plot.QueryRange.XMax, plot.QueryRange.YMax);
+            bb_query.Min = ImVec2(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y));
+            bb_query.Max = ImVec2(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y));
+        }
+        hov_query = bb_query.Contains(IO.MousePos);
+    }
+
+    // QUERY DRAG -------------------------------------------------------------
+    if (plot.DraggingQuery && (IO.MouseReleased[0] || !IO.MouseDown[0])) {
+        plot.DraggingQuery = false;
+    }
+    if (plot.DraggingQuery) {        
+        SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+        if (!HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
+            ImVec2 p1 = gp.ToPixels(plot.QueryRange.XMin, plot.QueryRange.YMin); 
+            ImVec2 p2 = gp.ToPixels(plot.QueryRange.XMax, plot.QueryRange.YMax);
+            plot.QueryRect.Min = ImVec2(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y)) + IO.MouseDelta;
+            plot.QueryRect.Max = ImVec2(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y)) + IO.MouseDelta;
+            p1 = gp.FromPixels(plot.QueryRect.Min);
+            p2 = gp.FromPixels(plot.QueryRect.Max);  
+            plot.QueryRect.Min -= gp.BB_Grid.Min;
+            plot.QueryRect.Max -= gp.BB_Grid.Min;          
+            plot.QueryRange.XMin = ImMin(p1.x, p2.x);
+            plot.QueryRange.XMax = ImMax(p1.x, p2.x);
+            plot.QueryRange.YMin = ImMin(p1.y, p2.y);
+            plot.QueryRange.YMax = ImMax(p1.y, p2.y);
+        }
+        else {
+            plot.QueryRect.Min += IO.MouseDelta;
+            plot.QueryRect.Max += IO.MouseDelta;
+        }
+    }
+    if (gp.Hov_Frame && hov_query && !plot.DraggingQuery && !plot.Selecting && !hov_legend) {
+        SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+        if (IO.MouseDown[0] && !plot.XAxis.Dragging && !plot.YAxis.Dragging) {
+            plot.DraggingQuery = true;
+        }        
+    }    
 
     // DRAG INPUT -------------------------------------------------------------
 
@@ -696,9 +747,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
     }
     // start drag
-    if (gp.Hov_Frame && hov_x_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend)
+    if (gp.Hov_Frame && hov_x_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
         plot.XAxis.Dragging = true;
-    if (gp.Hov_Frame && hov_y_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend)
+    if (gp.Hov_Frame && hov_y_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
         plot.YAxis.Dragging = true;
 
     // SCROLL INPUT -----------------------------------------------------------
@@ -762,12 +813,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // update query
     if (plot.Querying) {
         gp.UpdateTransforms();
-        plot.QueryRect.Min.x = IO.KeyAlt ? gp.BB_Grid.Min.x :  ImMin(plot.QueryStart.x, IO.MousePos.x);
-        plot.QueryRect.Max.x = IO.KeyAlt ? gp.BB_Grid.Max.x :  ImMax(plot.QueryStart.x, IO.MousePos.x);
+        plot.QueryRect.Min.x = IO.KeyAlt ? gp.BB_Grid.Min.x :   ImMin(plot.QueryStart.x, IO.MousePos.x);
+        plot.QueryRect.Max.x = IO.KeyAlt ? gp.BB_Grid.Max.x :   ImMax(plot.QueryStart.x, IO.MousePos.x);
         plot.QueryRect.Min.y = IO.KeyShift ? gp.BB_Grid.Min.y : ImMin(plot.QueryStart.y, IO.MousePos.y);
         plot.QueryRect.Max.y = IO.KeyShift ? gp.BB_Grid.Max.y : ImMax(plot.QueryStart.y, IO.MousePos.y);
         ImVec2 p1 = gp.FromPixels(plot.QueryRect.Min);
         ImVec2 p2 = gp.FromPixels(plot.QueryRect.Max);
+        plot.QueryRect.Min -= gp.BB_Grid.Min;
+        plot.QueryRect.Max -= gp.BB_Grid.Min;
         plot.QueryRange.XMin = ImMin(p1.x, p2.x);
         plot.QueryRange.XMax = ImMax(p1.x, p2.x);
         plot.QueryRange.YMin = ImMin(p1.y, p2.y);
@@ -811,7 +864,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     
     // DOUBLE CLICK -----------------------------------------------------------
 
-    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && gp.Hov_Grid && !hov_legend) 
+    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && gp.Hov_Grid && !hov_legend && !hov_query) 
         gp.FitThisFrame = true;
     else
         gp.FitThisFrame = false;     
@@ -1081,8 +1134,8 @@ void EndPlot() {
 
     if (plot.Querying || (HasFlag(plot.Flags, ImPlotFlags_PixelQuery) && plot.Queried)) {
         if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
-            DrawList.AddRectFilled(plot.QueryRect.Min, plot.QueryRect.Max, gp.Col_QryBg);
-            DrawList.AddRect(      plot.QueryRect.Min, plot.QueryRect.Max, gp.Col_QryBd);
+            DrawList.AddRectFilled(plot.QueryRect.Min + gp.BB_Grid.Min, plot.QueryRect.Max + gp.BB_Grid.Min, gp.Col_QryBg);
+            DrawList.AddRect(      plot.QueryRect.Min + gp.BB_Grid.Min, plot.QueryRect.Max + gp.BB_Grid.Min, gp.Col_QryBd);
         }  
     }
     else if (plot.Queried) {
@@ -1245,6 +1298,35 @@ void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond) {
     gp.NextPlotData.YMax = y_max;
 }
 
+ImVec2 GetPlotPos() {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotPos() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.BB_Grid.Min;
+}
+
+ImVec2 GetPlotSize() {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotSize() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.BB_Grid.GetSize();
+}
+
+ImVec2 PixelsToPlot(const ImVec2& pix) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.FromPixels(pix);
+}
+
+ImVec2 PlotToPixels(const ImVec2& plt) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() Needs to be called between BeginPlot() and EndPlot()!");
+    return gp.ToPixels(plt);
+}
+
+void PushPlotClipRect() {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PushPlotClipRect() Needs to be called between BeginPlot() and EndPlot()!");
+    PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
+}
+
+void PopPlotClipRect() {
+    PopClipRect();
+}
+
 bool IsPlotHovered() { 
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotHovered() Needs to be called between BeginPlot() and EndPlot()!");
     return gp.Hov_Grid; 
@@ -1276,8 +1358,8 @@ ImPlotRange GetPlotQuery() {
     ImPlot& plot = *gp.CurrentPlot;
     if (HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
         gp.UpdateTransforms();
-        ImVec2 p1 = gp.FromPixels(plot.QueryRect.Min);
-        ImVec2 p2 = gp.FromPixels(plot.QueryRect.Max);
+        ImVec2 p1 = gp.FromPixels(plot.QueryRect.Min + gp.BB_Grid.Min);
+        ImVec2 p2 = gp.FromPixels(plot.QueryRect.Max + gp.BB_Grid.Min);
         plot.QueryRange.XMin = ImMin(p1.x, p2.x);
         plot.QueryRange.XMax = ImMax(p1.x, p2.x);
         plot.QueryRange.YMin = ImMin(p1.y, p2.y);
@@ -1558,8 +1640,7 @@ void Plot(const char* label_id, const float* xs, const float* ys, int count, int
     Plot(label_id, &ImPlotGetter2D, (void*)&data, count, offset);
 }
 
-void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset)
-{
+void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Plot() Needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = gp.RegisterItem(label_id);
@@ -1702,67 +1783,67 @@ void PlotDigital(const char* label_id, const float* xs, const float* ys, int cou
 }
 
 void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset) {
-	IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotDigital() Needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotDigital() Needs to be called between BeginPlot() and EndPlot()!");
 
-	ImPlotItem* item = gp.RegisterItem(label_id);
-	if (!item->Show)
-		return;
+    ImPlotItem* item = gp.RegisterItem(label_id);
+    if (!item->Show)
+        return;
 
-	ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
-	const bool rend_line = gp.Style.Colors[ImPlotCol_Line].w != 0 && gp.Style.LineWeight > 0;
+    const bool rend_line = gp.Style.Colors[ImPlotCol_Line].w != 0 && gp.Style.LineWeight > 0;
 
-	if (gp.Style.Colors[ImPlotCol_Line].w != -1)
-		item->Color = gp.Style.Colors[ImPlotCol_Line];
+    if (gp.Style.Colors[ImPlotCol_Line].w != -1)
+        item->Color = gp.Style.Colors[ImPlotCol_Line];
 
-	// find data extents
-	if (gp.FitThisFrame) {
-		for (int i = 0; i < count; ++i) {
-			ImVec2 p = getter(data, i);
-			gp.FitPoint(p);
-		}
-	}
+    // find data extents
+    if (gp.FitThisFrame) {
+        for (int i = 0; i < count; ++i) {
+            ImVec2 p = getter(data, i);
+            gp.FitPoint(p);
+        }
+    }
 
-	ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
-	bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
+    ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
+    bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
 
-	const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
+    const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
 
-	// render digital signals as "pixel bases" rectangles
-	if (count > 1 && rend_line) {
-		const int    segments  = count - 1;
-		int    i1 = offset;
-		for (int s = 0; s < segments; ++s) {
-			const int i2 = (i1 + 1) % count;
-			ImVec2 itemData1 = getter(data, i1);
-			ImVec2 itemData2 = getter(data, i2);
-			i1 = i2;
-			const float mx = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / (gp.CurrentPlot->XAxis.Max - gp.CurrentPlot->XAxis.Min);
-			int pixY_0 = line_weight;
-			int pixY_1 = gp.Style.DigitalBitHeight;
-			int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
-			int pixY_chOffset = pixY_1 + 3; //3 pixels between channels
+    // render digital signals as "pixel bases" rectangles
+    if (count > 1 && rend_line) {
+        const int    segments  = count - 1;
+        int    i1 = offset;
+        for (int s = 0; s < segments; ++s) {
+            const int i2 = (i1 + 1) % count;
+            ImVec2 itemData1 = getter(data, i1);
+            ImVec2 itemData2 = getter(data, i2);
+            i1 = i2;
+            const float mx = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / (gp.CurrentPlot->XAxis.Max - gp.CurrentPlot->XAxis.Min);
+            int pixY_0 = line_weight;
+            int pixY_1 = gp.Style.DigitalBitHeight;
+            int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
+            int pixY_chOffset = pixY_1 + 3; //3 pixels between channels
 
-			float y1 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - ((itemData1.y == 0.0) ? pixY_0 : pixY_1) - pixY_Offset);
-			float y2 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
-			float l = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
-			float r = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Min);
-			
-			ImVec2 cl, cr;
-			cl.x = l;
-			cl.y = y1;
-			cr.x = r;
-			cr.y = y2;
-			if (!cull || gp.BB_Grid.Contains(cl) || gp.BB_Grid.Contains(cr)) {
-				auto colAlpha = item->Color;
-				colAlpha.w = item->Highlight ? 1.0 : 0.9;
-				DrawList.AddRectFilled({l, y1}, {r, y2}, GetColorU32(colAlpha));
-			}
-		}
-		gp.DigitalPlotItemCnt++;
-	}   
+            float y1 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - ((itemData1.y == 0.0) ? pixY_0 : pixY_1) - pixY_Offset);
+            float y2 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
+            float l = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
+            float r = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Min);
+            
+            ImVec2 cl, cr;
+            cl.x = l;
+            cl.y = y1;
+            cr.x = r;
+            cr.y = y2;
+            if (!cull || gp.BB_Grid.Contains(cl) || gp.BB_Grid.Contains(cr)) {
+                auto colAlpha = item->Color;
+                colAlpha.w = item->Highlight ? 1.0 : 0.9;
+                DrawList.AddRectFilled({l, y1}, {r, y2}, GetColorU32(colAlpha));
+            }
+        }
+        gp.DigitalPlotItemCnt++;
+    }   
 
-	ImGui::PopClipRect();
+    ImGui::PopClipRect();
 }
 
 ////////////////////////////////////////////////////////////////
