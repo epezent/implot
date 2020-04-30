@@ -260,6 +260,7 @@ struct ImNextPlotData {
 struct ImPlotContext {
     ImPlotContext() {
         CurrentPlot = NULL;
+        FitThisFrame = FitX = FitY = false;
         RestorePlotPalette();
     }
     /// ALl Plots    
@@ -388,7 +389,7 @@ struct ImPlotContext {
 
     // Data extents
     ImRect Extents;
-    bool FitThisFrame;
+    bool FitThisFrame; bool FitX; bool FitY;
     int VisibleItemCount;
     // Render flags
     bool RenderX, RenderY;
@@ -864,10 +865,17 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     
     // DOUBLE CLICK -----------------------------------------------------------
 
-    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && gp.Hov_Grid && !hov_legend && !hov_query) 
+
+    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && (hov_x_axis_region || hov_y_axis_region) && !hov_legend && !hov_query) {
         gp.FitThisFrame = true;
-    else
+        gp.FitX = hov_x_axis_region;
+        gp.FitY = hov_y_axis_region;
+    }
+    else {
         gp.FitThisFrame = false;     
+        gp.FitX = false;
+        gp.FitY = false;
+    }
 
     // FOCUS ------------------------------------------------------------------
 
@@ -1241,13 +1249,13 @@ void EndPlot() {
     // FIT DATA --------------------------------------------------------------
 
     if (gp.FitThisFrame && (gp.VisibleItemCount > 0 || plot.Queried)) {
-        if (!HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.Extents.Min.x))
+        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.Extents.Min.x))
             plot.XAxis.Min = gp.Extents.Min.x;
-        if (!HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.x))
+        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.x))
             plot.XAxis.Max = gp.Extents.Max.x;
-        if (!HasFlag(plot.YAxis.Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.Extents.Min.y))
+        if (gp.FitY && !HasFlag(plot.YAxis.Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.Extents.Min.y))
             plot.YAxis.Min = gp.Extents.Min.y;
-        if (!HasFlag(plot.YAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.y))
+        if (gp.FitY && !HasFlag(plot.YAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.y))
             plot.YAxis.Max = gp.Extents.Max.y;        
     }
 

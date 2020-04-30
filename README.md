@@ -1,7 +1,10 @@
 # ImPlot
 ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that will make ImGui users feel right at home. ImPlot is well suited for visualizing program data in real-time and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state managment, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself. 
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/zoom_pan.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="285">
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="285">
+
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/query.gif" width="285"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/views.gif" width="285"> 
 
 ## Features
 
@@ -38,10 +41,6 @@ Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features.
 ## Integration
 
 Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sources. This assumes you already have an ImGui-ready environment. If not, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
-
-## Special Notes
-- By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
-- If you plan to render several thousands lines or points, then you should consider enabling 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file, OR handling the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer (the official OpenGL3 renderer supports this). If you fail to do this, then you may at some point hit the maximum number of indices that can be rendered.
 
 ## FAQ
 
@@ -81,8 +80,6 @@ A: Not currently. Use your OS's screen capturing mechanisms if you need to captu
 
 A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. 
 
-## Gallery
-
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/line_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/scatter_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar_plot.png" width="285"> 
-
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log_plot.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/error_bars.png" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/markers.png" width="285"> 
+## Special Notes
+- By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
+- If you plan to render several thousands lines or points, then you should consider enabling 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file, OR handling the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer (the official OpenGL3 renderer supports this). If you fail to do this, then you may at some point hit the maximum number of indices that can be rendered.
