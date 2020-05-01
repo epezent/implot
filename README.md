@@ -60,7 +60,7 @@ A: Yes. Plot colors, palletes, and various styling variables can be pushed/poppe
 
 A: Yep!
 
-**Q: Does ImPlot support X plot types?**
+**Q: Does ImPlot support [insert plot type]?**
 
 A: Maybe. Check the gallery and demo to see if your desired plot type is shown. If not, consider submitting an issue or better yet, a PR!
 
