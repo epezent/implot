@@ -8,7 +8,13 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 
 ## Features
 
-- multiple plot types: line, scatter, vertical/horizontal bars, error bars, pie charts, with more likely to come
+- multiple plot types: 
+    - line
+    - scatter
+    - vertical/horizontal bars
+    - error bars
+    - pie charts
+    - and more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
 - reversible and lockable axes
