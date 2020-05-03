@@ -1,5 +1,5 @@
 # ImPlot
-ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that will make ImGui users feel right at home. ImPlot is well suited for visualizing program data in real-time and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state managment, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself. 
+ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that will make ImGui users feel right at home. ImPlot is well suited for visualizing program data in real-time and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself. 
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="285">
 
@@ -46,7 +46,7 @@ Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sour
 
 **Q: Why?**
 
-A: ImGui is an incredibly powerful tool for rapid prototyping and development, but provides only limited mechanisms for data visualation. Two dimensional plots are ubiquitous and useful to almost any application. Being able to visualize your data in real-time will give you insight and better understanding of your application.
+A: ImGui is an incredibly powerful tool for rapid prototyping and development, but provides only limited mechanisms for data visualization. Two dimensional plots are ubiquitous and useful to almost any application. Being able to visualize your data in real-time will give you insight and better understanding of your application.
 
 **Q: Is ImPlot suitable for real-time plotting?**
 
@@ -54,7 +54,7 @@ A: Yes, within reason. You can plot tens to hundreds of thousands of points with
 
 **Q: Can plot styles be modified?**
 
-A: Yes. Plot colors, palletes, and various styling variables can be pushed/popped or modified permantly on startup.
+A: Yes. Plot colors, palettes, and various styling variables can be pushed/popped or modified permanently on startup.
 
 **Q: Does ImPlot support logarithmic scaling?**
 
