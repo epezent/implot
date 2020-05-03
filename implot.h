@@ -46,6 +46,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_Crosshairs  = 1 << 6, // the default mouse cursor will be replaced with a crosshair when hovered
     ImPlotFlags_CullData    = 1 << 7, // plot data outside the plot area will be culled from rendering
     ImPlotFlags_AntiAliased = 1 << 8, // lines and fills will be anti-aliased (not recommended)
+    ImPlotFlags_NoChild     = 1 << 9, // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
     ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_Selection | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
 };
 
@@ -154,6 +155,7 @@ void EndPlot();
 // Plots a standard 2D line and/or scatter plot .
 void Plot(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
+void Plot(const char* label_id, const ImVec2* data, int count, int offset = 0);
 void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots vertical bars.
 void PlotBar(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
@@ -167,6 +169,8 @@ void PlotBarH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void*
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+// Plots a pie chart. If the sum of values > 1, each value will be normalized. Center and radius are in plot coordinates.
+void PlotPieChart(char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents = true, float angle0 = 90);
 // Plots a text label at point x,y.
 void PlotLabel(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 

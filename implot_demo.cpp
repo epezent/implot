@@ -63,17 +63,15 @@ struct RollingData {
 struct BenchmarkItem {
     BenchmarkItem() {
         float y = RandomRange(0,1);
-        Xs = new float[1000];
-        Ys = new float[1000];
+        Data = new ImVec2[1000];
         for (int i = 0; i < 1000; ++i) {
-            Xs[i] = i*0.001f;
-            Ys[i] = y + RandomRange(-0.01f,0.01f);
+            Data[i].x = i*0.001f;
+            Data[i].y = y + RandomRange(-0.01f,0.01f);
         }
         Col = ImVec4(RandomRange(0,1),RandomRange(0,1),RandomRange(0,1),1);
     }
-    ~BenchmarkItem() { delete Xs; delete Ys; }
-    float* Xs;
-    float* Ys;
+    ~BenchmarkItem() { delete Data; }
+    ImVec2* Data;
     ImVec4 Col;
 };
 
@@ -84,8 +82,8 @@ namespace ImGui {
 void ShowImPlotDemoWindow(bool* p_open) {
 
     ImVec2 main_viewport_pos = ImGui::GetMainViewport()->Pos;
-    ImGui::SetNextWindowPos(ImVec2(main_viewport_pos.x + 650, main_viewport_pos.y + 20), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(520, 750), ImGuiCond_FirstUseEver);
     ImGui::Begin("ImPlot Demo", p_open);
     ImGui::Text("ImPlot says hello. (0.1 WIP)");
     if (ImGui::CollapsingHeader("Help")) {
@@ -193,8 +191,8 @@ void ShowImPlotDemoWindow(bool* p_open) {
         float xs[5]  = {1,2,3,4,5};
         float lin[5] = {8,8,9,7,8};
         float bar[5] = {1,2,5,3,4};
-        float err1[5] = {0.2, 0.4, 0.2, 0.6, 0.4};
-        float err2[5] = {0.4, 0.2, 0.4, 0.8, 0.6};
+        float err1[5] = {0.2f, 0.4f, 0.2f, 0.6f, 0.4f};
+        float err2[5] = {0.4f, 0.2f, 0.4f, 0.8f, 0.6f};
         ImGui::SetNextPlotRange(0, 6, 0, 10);
         if (ImGui::BeginPlot("##ErrorBars",NULL,NULL,ImVec2(-1,300))) {
 
@@ -212,6 +210,38 @@ void ShowImPlotDemoWindow(bool* p_open) {
             ImGui::EndPlot();
         }
     }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Pie Charts")) {
+        static char* labels1[]   = {"Frogs","Hogs","Dogs","Logs"};
+        static float pre_normalized[] = {0.15f,  0.30f,  0.45f, 0.10f};
+        ImVec2 center(0.5f,0.5f); // in plot units, not pixels
+        float radius = 0.4f;      // in plot units, not pixels
+
+        SetNextPlotRange(0,1,0,1,ImGuiCond_Always);
+        if (ImGui::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
+            ImGui::PlotPieChart(labels1, pre_normalized, 4, center, radius);
+            ImGui::EndPlot();
+        }
+        ImGui::SameLine();
+
+        static ImVec4 YlOrRd[5] = {
+            {1.0000f,    1.0000f,    0.8000f, 1.0f},
+            {0.9961f,    0.8510f,    0.4627f, 1.0f},
+            {0.9961f,    0.6314f,    0.2627f, 1.0f},
+            {0.9882f,    0.3059f,    0.1647f, 1.0f},
+            {0.7412f,       0.0f,    0.1490f, 1.0f},
+        };
+        ImGui::SetPlotPalette(YlOrRd, 5);
+        SetNextPlotRange(0,1,0,1,ImGuiCond_Always);
+        static char* labels2[]   = {"One","Two","Three","Four","Five"};
+        static float not_normalized[] = {1,2,3,4,5};
+        if (ImGui::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
+            ImGui::PlotPieChart(labels2, not_normalized, 5, center, radius);
+            ImGui::EndPlot();
+        }
+        ImGui::RestorePlotPalette();
+    }
+
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Realtime Plots")) {
         ImGui::BulletText("Move your mouse to change the data!");
@@ -532,12 +562,13 @@ void ShowImPlotDemoWindow(bool* p_open) {
         static BenchmarkItem items[n_items];
         ImGui::BulletText("Make sure VSync is disabled.");
         ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
-        if (ImGui::BeginPlot("##Bench",NULL,NULL,{-1,300})) {
-            char buff[16];
+        SetNextPlotRange(0,1,0,1, ImGuiCond_Always);
+        if (ImGui::BeginPlot("##Bench",NULL,NULL,{-1,300},ImPlotFlags_Default | ImPlotFlags_NoChild)) {
+            char buff[16];            
             for (int i = 0; i < 100; ++i) {
                 sprintf(buff, "item_%d",i);
                 ImGui::PushPlotColor(ImPlotCol_Line, items[i].Col);
-                ImGui::Plot(buff, items[i].Xs, items[i].Ys, 1000);
+                ImGui::Plot(buff, items[i].Data, 1000);
                 ImGui::PopPlotColor();
             }   
             ImGui::EndPlot();
