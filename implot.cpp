@@ -1171,12 +1171,10 @@ void EndPlot() {
 
     // AXIS STATES ------------------------------------------------------------
 
-    const bool flip_x     = HasFlag(plot.XAxis.Flags, ImAxisFlags_Invert);
     const bool lock_x_min = HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin);
     const bool lock_x_max = HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax);
     const bool lock_x     = (lock_x_min && lock_x_max) || (gp.NextPlotData.HasXRange && gp.NextPlotData.XRangeCond == ImGuiCond_Always);
 
-    const bool flip_y     = HasFlag(plot.YAxis.Flags, ImAxisFlags_Invert);
     const bool lock_y_min = HasFlag(plot.YAxis.Flags, ImAxisFlags_LockMin);
     const bool lock_y_max = HasFlag(plot.YAxis.Flags, ImAxisFlags_LockMax);
     const bool lock_y     = (lock_y_min && lock_y_max) || (gp.NextPlotData.HasYRange && gp.NextPlotData.YRangeCond == ImGuiCond_Always);
@@ -2151,7 +2149,7 @@ inline void DrawPieSlice(ImDrawList& DrawList, const ImVec2& center, float radiu
 }
 
 
-void PlotPieChart(char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents, float angle0) {
+void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents, float angle0) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotPieChart() Needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *GetWindowDrawList();
 
