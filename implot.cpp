@@ -2333,15 +2333,19 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             pMin.x = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Min);
             pMin.y = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
             pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
-            pMax.y = (itemData1.y == 0.0) ? y0 : y1;
-            while (((s+1) < segments) && (round(pMin.x) == round(pMax.x))) {
+            pMax.y = ((int) itemData1.y == 0) ? y0 : y1;
+            //plot only one rectangle for same digital state
+            while (((s+2) < segments) && ((int) itemData1.y == (int) itemData2.y)) {
                 const int i2 = (i1 + 1) % count;
-                ImVec2 itemData2 = getter(i2);
+                itemData2 = getter(i2);
                 pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
-                pMax.y = (itemData1.y == 0.0) ? y0 : y1;
                 i1 = i2;
                 s++;
-            }   
+            } 
+            //do not extend plot outside plot range
+            if (pMin.x < gp.PixelRange.Min.x) pMin.x = gp.PixelRange.Min.x;
+            if (pMax.x > gp.PixelRange.Max.x) pMax.x = gp.PixelRange.Max.x;
+            //plot a rectangle that extends up to x2 with y1 height
             if (!cull || gp.BB_Grid.Contains(pMin) || gp.BB_Grid.Contains(pMax)) {
                 auto colAlpha = item->Color;
                 colAlpha.w = item->Highlight ? 1.0 : 0.9;
