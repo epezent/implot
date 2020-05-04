@@ -2314,6 +2314,15 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
 
     // render digital signals as "pixel bases" rectangles
     if (count > 1 && rend_line) {
+        //
+        const float mx = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / (gp.CurrentPlot->XAxis.Max - gp.CurrentPlot->XAxis.Min);
+        int pixY_0 = line_weight;
+        int pixY_1 = gp.Style.DigitalBitHeight;
+        int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
+        int pixY_chOffset = pixY_1 + 3; //3 pixels between channels
+        ImVec2 pMin, pMax;
+        float y0 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_0 - pixY_Offset);
+        float y1 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_1 - pixY_Offset);
         const int    segments  = count - 1;
         int    i1 = offset;
         for (int s = 0; s < segments; ++s) {
@@ -2321,26 +2330,22 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             ImVec2 itemData1 = getter(i1);
             ImVec2 itemData2 = getter(i2);
             i1 = i2;
-            const float mx = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / (gp.CurrentPlot->XAxis.Max - gp.CurrentPlot->XAxis.Min);
-            int pixY_0 = line_weight;
-            int pixY_1 = gp.Style.DigitalBitHeight;
-            int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
-            int pixY_chOffset = pixY_1 + 3; //3 pixels between channels
-
-            float y1 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - ((itemData1.y == 0.0) ? pixY_0 : pixY_1) - pixY_Offset);
-            float y2 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
-            float l = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
-            float r = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Min);
-            
-            ImVec2 cl, cr;
-            cl.x = l;
-            cl.y = y1;
-            cr.x = r;
-            cr.y = y2;
-            if (!cull || gp.BB_Grid.Contains(cl) || gp.BB_Grid.Contains(cr)) {
+            pMin.x = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Min);
+            pMin.y = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
+            pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
+            pMax.y = (itemData1.y == 0.0) ? y0 : y1;
+            while (((s+1) < segments) && (round(pMin.x) == round(pMax.x))) {
+                const int i2 = (i1 + 1) % count;
+                ImVec2 itemData2 = getter(i2);
+                pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
+                pMax.y = (itemData1.y == 0.0) ? y0 : y1;
+                i1 = i2;
+                s++;
+            }   
+            if (!cull || gp.BB_Grid.Contains(pMin) || gp.BB_Grid.Contains(pMax)) {
                 auto colAlpha = item->Color;
                 colAlpha.w = item->Highlight ? 1.0 : 0.9;
-                DrawList.AddRectFilled({l, y1}, {r, y2}, GetColorU32(colAlpha));
+                DrawList.AddRectFilled(pMin, pMax, GetColorU32(colAlpha));
             }
         }
         gp.DigitalPlotItemCnt++;
