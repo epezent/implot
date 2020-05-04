@@ -687,7 +687,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
             for (int i = 0; i < 100; ++i) {
                 sprintf(buff, "item_%d",i);
                 ImGui::PushPlotColor(ImPlotCol_Line, items[i].Col);
-                ImGui::PlotP(buff, items[i].Xs, items[i].Ys, 1000, 0);
+                ImGui::Plot(buff, items[i].Xs, items[i].Ys, 1000, 0, 2 * sizeof(float));
                 ImGui::PopPlotColor();
             }   
             ImGui::EndPlot();

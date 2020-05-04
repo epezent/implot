@@ -1766,6 +1766,12 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
                 p1 = gp.ToPixels(getter(data, i1));
                 p2 = gp.ToPixels(getter(data, i2));
                 i1 = i2;
+                while (((s+1) < segments) && (round(p2.x) == round(p1.x))) {
+                    const int i2 = (i1 + 1) % count;
+                    p2 = ImMax(p2, gp.ToPixels(getter(data, i2)));
+                    i1 = i2;
+                    s++;
+                }
                 if (!cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2))
                     DrawList.AddLine(p1, p2, col_line, line_weight);
             }
@@ -1781,6 +1787,13 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
                 p1 = gp.ToPixels(getter(data, i1));
                 p2 = gp.ToPixels(getter(data, i2));
                 i1 = i2;
+                while (((s+1) < segments) && (round(p2.x) == round(p1.x))) {
+                    segments_culled++;
+                    const int i2 = (i1 + 1) % count;
+                    p2 = ImMax(p2, gp.ToPixels(getter(data, i2)));
+                    i1 = i2;
+                    s++;
+                }
                 if (!cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2)) {
                     float dx = p2.x - p1.x;
                     float dy = p2.y - p1.y;
@@ -1828,154 +1841,6 @@ void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* dat
         for (int i = 0; i < count; ++i) {      
             ImVec2 c;
             c = gp.ToPixels(getter(data, idx));
-            idx = (idx + 1) % count;
-            if (!cull || gp.BB_Grid.Contains(c)) {
-                // TODO: Optimize the loop and if statements, this is atrocious
-                if (HasFlag(gp.Style.Marker, ImMarker_Circle)) 
-                    MakerCircle(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);       
-                if (HasFlag(gp.Style.Marker, ImMarker_Square))
-                    MarkerSquare(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);     
-                if (HasFlag(gp.Style.Marker, ImMarker_Diamond)) 
-                    MarkerDiamond(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);
-                if (HasFlag(gp.Style.Marker, ImMarker_Up))
-                    MarkerUp(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);     
-                if (HasFlag(gp.Style.Marker, ImMarker_Down))    
-                    MarkerDown(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);  
-                if (HasFlag(gp.Style.Marker, ImMarker_Left))
-                    MarkerLeft(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);     
-                if (HasFlag(gp.Style.Marker, ImMarker_Right))    
-                    MarkerRight(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);  
-                if (HasFlag(gp.Style.Marker, ImMarker_Cross))
-                    MarkerCross(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight); 
-                if (HasFlag(gp.Style.Marker, ImMarker_Plus))
-                    MarkerPlus(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight); 
-                if (HasFlag(gp.Style.Marker, ImMarker_Asterisk))
-                    MarkerAsterisk(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);  
-            }
-        }    
-    }
-    ImGui::PopClipRect();
-}
-
-void PlotP(const char* label_id, const float* xs, const float* ys, int count, int offset) {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotP() Needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotItem* item = gp.RegisterItem(label_id);
-    if (!item->Show)
-        return;
-
-    ImDrawList &DrawList = *ImGui::GetWindowDrawList();
-
-    const bool rend_line    = gp.Style.Colors[ImPlotCol_Line].w != 0          && gp.Style.LineWeight > 0;
-    const bool rend_mk_line = gp.Style.Colors[ImPlotCol_MarkerOutline].w != 0 && gp.Style.MarkerWeight > 0;
-    const bool rend_mk_fill = gp.Style.Colors[ImPlotCol_MarkerFill].w != 0;
-
-    ImU32 col_line    = gp.Style.Colors[ImPlotCol_Line].w == -1 ? GetColorU32(item->Color) : GetColorU32(gp.Style.Colors[ImPlotCol_Line]);
-    ImU32 col_mk_line = gp.Style.Colors[ImPlotCol_MarkerOutline].w == -1 ? col_line        : GetColorU32(gp.Style.Colors[ImPlotCol_MarkerOutline]);
-    ImU32 col_mk_fill = gp.Style.Colors[ImPlotCol_MarkerFill].w == -1 ?    col_line        : GetColorU32(gp.Style.Colors[ImPlotCol_MarkerFill]);
-
-    if (gp.Style.Colors[ImPlotCol_Line].w != -1)
-        item->Color = gp.Style.Colors[ImPlotCol_Line];
-
-    // find data extents
-    if (gp.FitThisFrame) {
-        for (int i = 0; i < count; ++i) {
-            ImVec2 p = {xs[i], ys[i]};
-            gp.FitPoint(p);
-        }
-    }
-
-    ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
-    bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
-
-    const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
-
-    // render line segments
-    if (count > 1 && rend_line) {
-        const int    segments  = count - 1;
-        int    i1 = offset;
-        ImVec2 p1, p2;
-        if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
-            for (int s = 0; s < segments; ++s) {
-                const int i2 = (i1 + 1) % count;
-                p1 = gp.ToPixels({xs[i1], ys[i1]});
-                p2 = gp.ToPixels({xs[i2], ys[i2]});
-                i1 = i2;
-                while (((s+1) < segments) && (round(p2.x) == round(p1.x))) {
-                    const int i2 = (i1 + 1) % count;
-                    p2 = ImMax(p2, gp.ToPixels({xs[i2], ys[i2]}));
-                    i1 = i2;
-                    s++;
-                }
-                if (!cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2))
-                    DrawList.AddLine(p1, p2, col_line, line_weight);
-            }
-        }
-        else {
-            const int    idx_count = segments * 6;
-            const int    vtx_count = segments * 4;
-            const ImVec2 uv        = DrawList._Data->TexUvWhitePixel;
-            DrawList.PrimReserve(idx_count, vtx_count);
-            int segments_culled = 0;
-            for (int s = 0; s < segments; ++s) {
-                const int i2 = (i1 + 1) % count;
-                p1 = gp.ToPixels({xs[i1], ys[i1]});
-                p2 = gp.ToPixels({xs[i2], ys[i2]});
-                i1 = i2;
-                while (((s+1) < segments) && (round(p2.x) == round(p1.x))) {
-                    segments_culled++;
-                    const int i2 = (i1 + 1) % count;
-                    p2 = ImMax(p2, gp.ToPixels({xs[i2], ys[i2]}));
-                    i1 = i2;
-                    s++;
-                }
-                if (!cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2)) {
-                    float dx = p2.x - p1.x;
-                    float dy = p2.y - p1.y;
-                    IM_NORMALIZE2F_OVER_ZERO(dx, dy);
-                    dx *= (line_weight * 0.5f);
-                    dy *= (line_weight * 0.5f); 
-                    DrawList._VtxWritePtr[0].pos.x = p1.x + dy;
-                    DrawList._VtxWritePtr[0].pos.y = p1.y - dx;
-                    DrawList._VtxWritePtr[0].uv    = uv;
-                    DrawList._VtxWritePtr[0].col   = col_line;
-                    DrawList._VtxWritePtr[1].pos.x = p2.x + dy;
-                    DrawList._VtxWritePtr[1].pos.y = p2.y - dx;
-                    DrawList._VtxWritePtr[1].uv    = uv;
-                    DrawList._VtxWritePtr[1].col   = col_line;
-                    DrawList._VtxWritePtr[2].pos.x = p2.x - dy;
-                    DrawList._VtxWritePtr[2].pos.y = p2.y + dx;
-                    DrawList._VtxWritePtr[2].uv    = uv;
-                    DrawList._VtxWritePtr[2].col   = col_line;
-                    DrawList._VtxWritePtr[3].pos.x = p1.x - dy;
-                    DrawList._VtxWritePtr[3].pos.y = p1.y + dx;
-                    DrawList._VtxWritePtr[3].uv    = uv;
-                    DrawList._VtxWritePtr[3].col   = col_line;
-                    DrawList._VtxWritePtr += 4;
-                    DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-                    DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-                    DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
-                    DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-                    DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
-                    DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
-                    DrawList._IdxWritePtr += 6;
-                    DrawList._VtxCurrentIdx += 4;
-                }
-                else {
-                    segments_culled++;
-                }
-            }
-            if (segments_culled > 0) 
-                DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4); 
-        }
-    }   
-
-    // render markers
-    if (gp.Style.Marker != ImMarker_None) {
-        int idx = offset;
-        for (int i = 0; i < count; ++i) {      
-            ImVec2 c;
-            c = gp.ToPixels({xs[idx], ys[idx]});
             idx = (idx + 1) % count;
             if (!cull || gp.BB_Grid.Contains(c)) {
                 // TODO: Optimize the loop and if statements, this is atrocious

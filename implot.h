@@ -159,10 +159,6 @@ void EndPlot();
 void Plot(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
-void PlotP(const char* label_id, const float* xs, const float* ys, int count, int offset = 0);
-// Plots digital channels.
-void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float) + sizeof(bool));
-void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots vertical bars.
 void PlotBar(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
 void PlotBar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
@@ -177,6 +173,9 @@ void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const
 void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a text label at point x,y.
 void PlotLabel(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
+// Plots digital channels.
+void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float) + sizeof(bool));
+void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 //-----------------------------------------------------------------------------
 // Plot Queries
