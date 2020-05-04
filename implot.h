@@ -23,7 +23,7 @@
 // ImPlot v0.1 WIP
 
 #pragma once
-#include <imgui.h>
+#include "imgui.h"
 
 //-----------------------------------------------------------------------------
 // Basic types and flags
@@ -43,10 +43,11 @@ enum ImPlotFlags_ {
     ImPlotFlags_Selection   = 1 << 3, // the user will be able to box-select with right-mouse
     ImPlotFlags_PixelQuery  = 1 << 4, // query ranges will not change their pixel position if the plot is scrolled/zoomed
     ImPlotFlags_ContextMenu = 1 << 5, // the user will be able to open a context menu with double-right click
-    ImPlotFlags_Crosshairs  = 1 << 6, // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_CullData    = 1 << 7, // plot data outside the plot area will be culled from rendering
-    ImPlotFlags_AntiAliased = 1 << 8, // lines and fills will be anti-aliased (not recommended)
-    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_Selection | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
+    ImPlotFlags_Cursors     = 1 << 6, // show cursors
+    ImPlotFlags_Crosshairs  = 1 << 7, // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_CullData    = 1 << 8, // plot data outside the plot area will be culled from rendering
+    ImPlotFlags_AntiAliased = 1 << 9, // lines and fills will be anti-aliased (not recommended)
+    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_Selection | ImPlotFlags_ContextMenu | ImPlotFlags_Cursors | ImPlotFlags_CullData
 };
 
 // Options for plot axes (X and Y)
@@ -77,6 +78,7 @@ enum ImPlotCol_ {
     ImPlotCol_YAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
     ImPlotCol_Query,         // box-query color (defaults to green)
+    ImPlotCol_Cursors,       // cursor colors (defaults to red)
     ImPlotCol_COUNT
 };
 
@@ -157,6 +159,7 @@ void EndPlot();
 void Plot(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+void PlotP(const char* label_id, const float* xs, const float* ys, int count, int offset = 0);
 // Plots digital channels.
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float) + sizeof(bool));
 void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
@@ -189,6 +192,8 @@ ImPlotRange GetPlotRange();
 bool IsPlotQueried();
 /// Returns the current or most recent plot querey range.
 ImPlotRange GetPlotQuery();
+/// Returns the current cursors range.
+ImPlotRange GetPlotCursors();
 
 //-----------------------------------------------------------------------------
 // Plot Styling

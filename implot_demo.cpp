@@ -22,9 +22,9 @@
 
 // ImPlot v0.1 WIP
 
-#include <implot.h>
-#include <math.h>
-#include <stdio.h>
+#include "implot.h"
+#include "imgui_internal.h"
+#include <iostream>
 
 namespace {
 
@@ -59,7 +59,7 @@ struct RollingData {
     ImVector<ImVec2> Data;
     RollingData() { Data.reserve(1000); }
     void AddPoint(float x, float y) {
-        float xmod = fmodf(x, Span);
+        float xmod = ImFmod(x, Span);
         if (!Data.empty() && xmod < Data.back().x)
             Data.shrink(0);
         Data.push_back(ImVec2(xmod, y));
@@ -89,10 +89,10 @@ namespace ImGui {
     
 void ShowImPlotDemoWindow(bool* p_open) {
 
-    static DemoData data;
+    //static DemoData data;
 
-    ImVec2 main_viewport_pos = ImGui::GetMainViewport()->Pos;
-    ImGui::SetNextWindowPos(ImVec2(main_viewport_pos.x + 650, main_viewport_pos.y + 20), ImGuiCond_FirstUseEver);
+    //ImVec2 main_viewport_pos = ImGui::GetMainViewport()->Pos;
+    //ImGui::SetNextWindowPos(ImVec2(main_viewport_pos.x + 650, main_viewport_pos.y + 20), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
     ImGui::Begin("ImPlot Demo", p_open);
     ImGui::Text("ImPlot says hello. (0.1 WIP)");
@@ -687,7 +687,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
             for (int i = 0; i < 100; ++i) {
                 sprintf(buff, "item_%d",i);
                 ImGui::PushPlotColor(ImPlotCol_Line, items[i].Col);
-                ImGui::Plot(buff, items[i].Xs, items[i].Ys, 1000);
+                ImGui::PlotP(buff, items[i].Xs, items[i].Ys, 1000, 0);
                 ImGui::PopPlotColor();
             }   
             ImGui::EndPlot();
