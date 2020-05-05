@@ -63,7 +63,6 @@ ImPlotStyle::ImPlotStyle() {
     Colors[ImPlotCol_YAxis]         = IM_COL_AUTO;
     Colors[ImPlotCol_Selection]     = ImVec4(1,1,0,1);
     Colors[ImPlotCol_Query]         = ImVec4(0,1,0,1);
-    Colors[ImPlotCol_Cursors]       = ImVec4(1,0,0,1);
 }
 
 ImPlotRange::ImPlotRange() {
@@ -242,9 +241,7 @@ struct ImPlotAxis {
 struct ImPlot {
     ImPlot() {
         Selecting = Querying = Queried = DraggingQuery = false;
-        DraggingCursor[0] = DraggingCursor[1] = false;
         SelectStart =  QueryStart = ImVec2(0,0);
-        CursorsRange = ImPlotRange();
         Flags = ImPlotFlags_Default;
         ColorIdx = 0;
     }
@@ -259,9 +256,7 @@ struct ImPlot {
     ImRect QueryRect; // relative to BB_grid!!
     bool DraggingQuery;
     ImPlotRange QueryRange;
-    bool DraggingCursor[2];
-    ImRect CursorRect[2]; // relative to BB_grid!!
-    ImPlotRange CursorsRange;
+
     ImPlotAxis XAxis;
     ImPlotAxis YAxis;    
     inline ImPlotAxis& Axis(int idx) { return (&XAxis)[idx]; } 
@@ -309,7 +304,6 @@ struct ImPlotContext {
           Col_Txt, Col_TxtDis, 
           Col_SlctBg, Col_SlctBd,
           Col_QryBg, Col_QryBd,
-          Col_Cursors,
           Col_XMajor, Col_XMinor, Col_XTxt,
           Col_YMajor, Col_YMinor, Col_YTxt;  
     // Tick marks  
@@ -693,8 +687,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.Col_QryBg =  GetColorU32(gp.Style.Colors[ImPlotCol_Query] * ImVec4(1,1,1,0.25f));
     gp.Col_QryBd =  GetColorU32(gp.Style.Colors[ImPlotCol_Query]);
 
-    gp.Col_Cursors =  GetColorU32(gp.Style.Colors[ImPlotCol_Cursors]);
-
     // BB AND HOVER -----------------------------------------------------------
 
     // frame
@@ -807,56 +799,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }        
     }    
 
-    //CURSORS
-    bool hov_cursor[2];
-    for (size_t i = 0; i < 2; i++)
-    {
-        hov_cursor[i] = plot.CursorRect[i].Contains(IO.MousePos);
-        //x limits
-        bool xAtMax = false;
-        if (plot.CursorRect[i].Min.x <= gp.BB_Grid.Min.x) {
-            plot.CursorRect[i].Min.x = gp.BB_Grid.Min.x;
-        }
-        if (plot.CursorRect[i].Max.x >= (gp.BB_Grid.Max.x)) {
-            plot.CursorRect[i].Max.x = gp.BB_Grid.Max.x;
-            xAtMax = true;
-        }
-        //min cursor "line" width
-        if ((plot.CursorRect[i].Max.x - plot.CursorRect[i].Min.x) < 2) {
-            if (xAtMax)
-                plot.CursorRect[i].Min.x = plot.CursorRect[i].Max.x - 2;
-            else
-                plot.CursorRect[i].Max.x = plot.CursorRect[i].Min.x + 2;
-        }
-        //y locked to min max grid
-        plot.CursorRect[i].Min.y = gp.BB_Grid.Min.y;
-        plot.CursorRect[i].Max.y = gp.BB_Grid.Max.y;
-        // CURSOR1 DRAG -------------------------------------------------------------
-        if (plot.DraggingCursor[i] && (IO.MouseReleased[0] || !IO.MouseDown[0])) {
-            plot.DraggingCursor[i] = false;
-        }
-        if (plot.DraggingCursor[i]) {        
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-            plot.CursorRect[i].Min += IO.MouseDelta;
-            plot.CursorRect[i].Max += IO.MouseDelta;
-            //x limits
-            //if (plot.CursorRect[i].Min.x < gp.BB_Grid.Min.x) plot.CursorRect[i].Min.x = gp.BB_Grid.Min.x;
-            //if (plot.CursorRect[i].Max.x > (gp.BB_Grid.Max.x - 10)) plot.CursorRect[i].Max.x = gp.BB_Grid.Max.x - 10;
-        }
-        if (gp.Hov_Frame && hov_cursor[i] && !plot.DraggingCursor[i] && !plot.Selecting && !plot.DraggingQuery && !hov_legend) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-            if (IO.MouseDown[0] && !plot.XAxis.Dragging && !plot.YAxis.Dragging) {
-                //allow only one cursor dragging per time
-                if (i==0)
-                    plot.DraggingCursor[i] = !plot.DraggingCursor[1];
-                else
-                    plot.DraggingCursor[i] = !plot.DraggingCursor[0];
-            }        
-        }    
-    }
-    plot.CursorsRange.XMin = PixelsToPlot(plot.CursorRect[0].Min).x;
-    plot.CursorsRange.XMax = PixelsToPlot(plot.CursorRect[1].Max).x;
-
     // DRAG INPUT -------------------------------------------------------------
 
     // end drags
@@ -895,9 +837,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
     }
     // start drag
-    if (gp.Hov_Frame && hov_x_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery && !hov_cursor[0] && !plot.DraggingCursor[0] && !hov_cursor[1] && !plot.DraggingCursor[1])
+    if (gp.Hov_Frame && hov_x_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
         plot.XAxis.Dragging = true;
-    if (gp.Hov_Frame && hov_y_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery && !hov_cursor[0] && !plot.DraggingCursor[0] && !hov_cursor[1] && !plot.DraggingCursor[1])
+    if (gp.Hov_Frame && hov_y_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
         plot.YAxis.Dragging = true;
 
     // SCROLL INPUT -----------------------------------------------------------
@@ -1012,7 +954,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     
     // DOUBLE CLICK -----------------------------------------------------------
 
-    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && (hov_x_axis_region || hov_y_axis_region) && !hov_legend && !hov_query && !hov_cursor[0] && !hov_cursor[1]) {
+    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && (hov_x_axis_region || hov_y_axis_region) && !hov_legend && !hov_query) {
         gp.FitThisFrame = true;
         gp.FitX = hov_x_axis_region;
         gp.FitY = hov_y_axis_region;
@@ -1188,9 +1130,6 @@ void PlotContextMenu(ImPlot& plot) {
         if (ImGui::MenuItem("Pixel Query",NULL,HasFlag(plot.Flags, ImPlotFlags_PixelQuery))) {
             FlipFlag(plot.Flags, ImPlotFlags_PixelQuery);
         }        
-        if (ImGui::MenuItem("Show cursors",NULL,HasFlag(plot.Flags, ImPlotFlags_Cursors))) {
-            FlipFlag(plot.Flags, ImPlotFlags_Cursors);
-        }
         if (ImGui::MenuItem("Crosshairs",NULL,HasFlag(plot.Flags, ImPlotFlags_Crosshairs))) {
             FlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
         }
@@ -1237,12 +1176,10 @@ void EndPlot() {
 
     // AXIS STATES ------------------------------------------------------------
 
-    const bool flip_x     = HasFlag(plot.XAxis.Flags, ImAxisFlags_Invert);
     const bool lock_x_min = HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin);
     const bool lock_x_max = HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax);
     const bool lock_x     = (lock_x_min && lock_x_max) || (gp.NextPlotData.HasXRange && gp.NextPlotData.XRangeCond == ImGuiCond_Always);
 
-    const bool flip_y     = HasFlag(plot.YAxis.Flags, ImAxisFlags_Invert);
     const bool lock_y_min = HasFlag(plot.YAxis.Flags, ImAxisFlags_LockMin);
     const bool lock_y_max = HasFlag(plot.YAxis.Flags, ImAxisFlags_LockMax);
     const bool lock_y     = (lock_y_min && lock_y_max) || (gp.NextPlotData.HasYRange && gp.NextPlotData.YRangeCond == ImGuiCond_Always);
@@ -1299,12 +1236,6 @@ void EndPlot() {
         ImVec2 Max(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y));
         DrawList.AddRectFilled(Min, Max, gp.Col_QryBg);
         DrawList.AddRect(      Min, Max, gp.Col_QryBd);
-    }
-
-    //render cursors
-    if (HasFlag(plot.Flags, ImPlotFlags_Cursors)) {
-        DrawList.AddRectFilled(plot.CursorRect[0].Min, plot.CursorRect[0].Max, gp.Col_Cursors);
-        DrawList.AddRectFilled(plot.CursorRect[1].Min, plot.CursorRect[1].Max, gp.Col_Cursors);
     }
 
     // render legend
@@ -1517,12 +1448,6 @@ ImPlotRange GetPlotQuery() {
         plot.QueryRange.YMax = ImMax(p1.y, p2.y);
     }    
     return plot.QueryRange;
-}
-
-ImPlotRange GetPlotCursors() {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotCursors() Needs to be called between BeginPlot() and EndPlot()!");
-    ImPlot& plot = *gp.CurrentPlot;
-    return plot.CursorsRange;
 }
 
 //-----------------------------------------------------------------------------
@@ -2230,7 +2155,7 @@ inline void DrawPieSlice(ImDrawList& DrawList, const ImVec2& center, float radiu
 }
 
 
-void PlotPieChart(char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents, float angle0) {
+void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents, float angle0) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotPieChart() Needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *GetWindowDrawList();
 
