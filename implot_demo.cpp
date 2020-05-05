@@ -218,7 +218,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Pie Charts")) {
-        static char* labels1[]   = {"Frogs","Hogs","Dogs","Logs"};
+        static const char* labels1[]   = {"Frogs","Hogs","Dogs","Logs"};
         static float pre_normalized[] = {0.15f,  0.30f,  0.45f, 0.10f};
         ImVec2 center(0.5f,0.5f); // in plot units, not pixels
         float radius = 0.4f;      // in plot units, not pixels
@@ -239,7 +239,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         };
         ImGui::SetPlotPalette(YlOrRd, 5);
         SetNextPlotRange(0,1,0,1,ImGuiCond_Always);
-        static char* labels2[]   = {"One","Two","Three","Four","Five"};
+        static const char* labels2[]   = {"One","Two","Three","Four","Five"};
         static float not_normalized[] = {1,2,3,4,5};
         if (ImGui::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
             ImGui::PlotPieChart(labels2, not_normalized, 5, center, radius);
@@ -550,7 +550,6 @@ void ShowImPlotDemoWindow(bool* p_open) {
             char label[32];
             sprintf(label, "digital_data_%d", i);
             ImGui::Checkbox(label, &showDigital[i]);
-            //ImGui::Selectable(label, false, 0, {100, 0});
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 ImGui::SetDragDropPayload("DND_DIGITAL_PLOT", &i, sizeof(int));
                 ImGui::TextUnformatted(label);
@@ -561,7 +560,6 @@ void ShowImPlotDemoWindow(bool* p_open) {
             char label[32];
             sprintf(label, "analog_data_%d", i);
             ImGui::Checkbox(label, &showAnalog[i]);
-            //ImGui::Selectable(label, false, 0, {100, 0});
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 ImGui::SetDragDropPayload("DND_ANALOG_PLOT", &i, sizeof(int));
                 ImGui::TextUnformatted(label);
