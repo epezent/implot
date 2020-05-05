@@ -2269,6 +2269,8 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             } 
             //do not extend plot outside plot range
             if (pMin.x < gp.PixelRange.Min.x) pMin.x = gp.PixelRange.Min.x;
+            if (pMax.x < gp.PixelRange.Min.x) pMax.x = gp.PixelRange.Min.x;
+            if (pMin.x > gp.PixelRange.Max.x) pMin.x = gp.PixelRange.Max.x;
             if (pMax.x > gp.PixelRange.Max.x) pMax.x = gp.PixelRange.Max.x;
             //plot a rectangle that extends up to x2 with y1 height
             if (!cull || gp.BB_Grid.Contains(pMin) || gp.BB_Grid.Contains(pMax)) {
