@@ -2181,8 +2181,8 @@ void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2
                 ImVec2 size = CalcTextSize(buffer);
                 float angle = a0 + (a1 - a0) * 0.5f;
                 ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
-                DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), gp.Col_Bg, buffer);
-                DrawList.AddText(pos - size * 0.5f, GetColorU32(ImGuiCol_Text), buffer);
+                DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), IM_COL32(0,0,0,255), buffer);
+                DrawList.AddText(pos - size * 0.5f, IM_COL32(255,255,255,255), buffer);
             }
         }
         a0 = a1;
