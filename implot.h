@@ -176,7 +176,7 @@ void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2
 // Plots a text label at point x,y.
 void PlotLabel(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 // Plots digital channels.
-void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float) + sizeof(bool));
+void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 //-----------------------------------------------------------------------------
