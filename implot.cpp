@@ -2273,7 +2273,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             if (pMin.x > gp.PixelRange.Max.x) pMin.x = gp.PixelRange.Max.x;
             if (pMax.x > gp.PixelRange.Max.x) pMax.x = gp.PixelRange.Max.x;
             //plot a rectangle that extends up to x2 with y1 height
-            if (!cull || gp.BB_Grid.Contains(pMin) || gp.BB_Grid.Contains(pMax)) {
+            if ((pMax.x > pMin.x) && (!cull || gp.BB_Grid.Contains(pMin) || gp.BB_Grid.Contains(pMax))) {
                 auto colAlpha = item->Color;
                 colAlpha.w = item->Highlight ? 1.0 : 0.9;
                 DrawList.AddRectFilled(pMin, pMax, GetColorU32(colAlpha));
