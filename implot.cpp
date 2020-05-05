@@ -49,6 +49,7 @@ ImPlotStyle::ImPlotStyle() {
     MarkerWeight = 1;
     ErrorBarSize = 5;
     ErrorBarWeight = 1.5;
+    DigitalBitHeight = 7;
 
     Colors[ImPlotCol_Line]          = IM_COL_AUTO;
     Colors[ImPlotCol_Fill]          = IM_COL_AUTO;
@@ -61,7 +62,7 @@ ImPlotStyle::ImPlotStyle() {
     Colors[ImPlotCol_XAxis]         = IM_COL_AUTO;
     Colors[ImPlotCol_YAxis]         = IM_COL_AUTO;
     Colors[ImPlotCol_Selection]     = ImVec4(1,1,0,1);
-    Colors[ImPlotCol_Query]        = ImVec4(0,1,0,1);
+    Colors[ImPlotCol_Query]         = ImVec4(0,1,0,1);
 }
 
 ImPlotRange::ImPlotRange() {
@@ -327,6 +328,8 @@ struct ImPlotContext {
     ImVector<ImGuiColorMod> ColorModifiers;  // Stack for PushStyleColor()/PopStyleColor()
     ImVector<ImGuiStyleMod> StyleModifiers;  // Stack for PushStyleVar()/PopStyleVar()
     ImNextPlotData NextPlotData;        
+    // Digital plot item count
+    int DigitalPlotItemCnt;
 };
 
 /// Global plot context
@@ -1051,6 +1054,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.Extents.Max.y = -INFINITY;
     // clear item names
     gp.LegendLabels.Buf.resize(0);
+    // reset digital plot items count
+    gp.DigitalPlotItemCnt = 0;
     return true;
 }
 
@@ -1458,12 +1463,13 @@ struct ImPlotStyleVarInfo {
 
 static const ImPlotStyleVarInfo GPlotStyleVarInfo[] = 
 {
-    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, LineWeight)     }, // ImPlotStyleVar_LineWeight
-    { ImGuiDataType_S32,   1, (ImU32)IM_OFFSETOF(ImPlotStyle, Marker)         }, // ImPlotStyleVar_Marker
-    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, MarkerSize)     }, // ImPlotStyleVar_MarkerSize
-    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, MarkerWeight)   }, // ImPlotStyleVar_MarkerWeight
-    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, ErrorBarSize)   }, // ImPlotStyleVar_ErrorBarSize
-    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, ErrorBarWeight) }  // ImPlotStyleVar_ErrorBarWeight
+    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, LineWeight)         }, // ImPlotStyleVar_LineWeight
+    { ImGuiDataType_S32,   1, (ImU32)IM_OFFSETOF(ImPlotStyle, Marker)             }, // ImPlotStyleVar_Marker
+    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, MarkerSize)         }, // ImPlotStyleVar_MarkerSize
+    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, MarkerWeight)       }, // ImPlotStyleVar_MarkerWeight
+    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, ErrorBarSize)       }, // ImPlotStyleVar_ErrorBarSize
+    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, ErrorBarWeight)     }, // ImPlotStyleVar_ErrorBarWeight
+    { ImGuiDataType_S32,   1, (ImU32)IM_OFFSETOF(ImPlotStyle, DigitalBitHeight)   }  // ImPlotStyleVar_DigitalBitHeight
 };
 
 static const ImPlotStyleVarInfo* GetPlotStyleVarInfo(ImPlotStyleVar idx)
@@ -2200,6 +2206,93 @@ void PlotLabel(const char* text, float x, float y, bool vertical, const ImVec2& 
     else
         DrawList.AddText(pos, gp.Col_Txt, text);
     PopPlotClipRect();
+}
+
+template <typename Getter>
+inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int offset)
+{
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Plot() Needs to be called between BeginPlot() and EndPlot()!");
+
+    ImPlotItem* item = RegisterItem(label_id);
+    if (!item->Show)
+        return;
+
+    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+
+    const bool rend_line = gp.Style.Colors[ImPlotCol_Line].w != 0 && gp.Style.LineWeight > 0;
+
+    if (gp.Style.Colors[ImPlotCol_Line].w != -1)
+        item->Color = gp.Style.Colors[ImPlotCol_Line];
+
+    // find data extents
+    if (gp.FitThisFrame) {
+        for (int i = 0; i < count; ++i) {
+            ImVec2 p = getter(i);
+            FitPoint(p);
+        }
+    }
+
+    ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
+    bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
+
+    const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
+
+    // render digital signals as "pixel bases" rectangles
+    if (count > 1 && rend_line) {
+        //
+        const float mx = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / (gp.CurrentPlot->XAxis.Max - gp.CurrentPlot->XAxis.Min);
+        int pixY_0 = line_weight;
+        int pixY_1 = gp.Style.DigitalBitHeight;
+        int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
+        int pixY_chOffset = pixY_1 + 3; //3 pixels between channels
+        ImVec2 pMin, pMax;
+        float y0 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_0 - pixY_Offset);
+        float y1 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_1 - pixY_Offset);
+        const int    segments  = count - 1;
+        int    i1 = offset;
+        for (int s = 0; s < segments; ++s) {
+            const int i2 = (i1 + 1) % count;
+            ImVec2 itemData1 = getter(i1);
+            ImVec2 itemData2 = getter(i2);
+            i1 = i2;
+            pMin.x = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Min);
+            pMin.y = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
+            pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
+            pMax.y = ((int) itemData1.y == 0) ? y0 : y1;
+            //plot only one rectangle for same digital state
+            while (((s+2) < segments) && ((int) itemData1.y == (int) itemData2.y)) {
+                const int i2 = (i1 + 1) % count;
+                itemData2 = getter(i2);
+                pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
+                i1 = i2;
+                s++;
+            } 
+            //do not extend plot outside plot range
+            if (pMin.x < gp.PixelRange.Min.x) pMin.x = gp.PixelRange.Min.x;
+            if (pMax.x < gp.PixelRange.Min.x) pMax.x = gp.PixelRange.Min.x;
+            if (pMin.x > gp.PixelRange.Max.x) pMin.x = gp.PixelRange.Max.x;
+            if (pMax.x > gp.PixelRange.Max.x) pMax.x = gp.PixelRange.Max.x;
+            //plot a rectangle that extends up to x2 with y1 height
+            if ((pMax.x > pMin.x) && (!cull || gp.BB_Grid.Contains(pMin) || gp.BB_Grid.Contains(pMax))) {
+                auto colAlpha = item->Color;
+                colAlpha.w = item->Highlight ? 1.0 : 0.9;
+                DrawList.AddRectFilled(pMin, pMax, GetColorU32(colAlpha));
+            }
+        }
+        gp.DigitalPlotItemCnt++;
+    }   
+
+    ImGui::PopClipRect();
+}
+
+void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
+    Getter2D getter(xs,ys,stride);
+    return PlotDigitalEx(label_id, getter, count, offset);
+}
+
+void PlotDigital(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
+    GetterFuncPtrImVec2 getter(getter_func,data);
+    return PlotDigitalEx(label_id, getter, count, offset);
 }
 
 }  // namespace ImGui
