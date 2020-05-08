@@ -158,26 +158,26 @@ void EndPlot();
 void Plot(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, const ImVec2* data, int count, int offset = 0);
-void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+void Plot(const char* label_id, ImVec2 (*getter)(const void* data, int idx), const void* data, int count, int offset = 0);
 // Plots vertical bars.
 void PlotBar(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
 void PlotBar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
-void PlotBar(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float width, int offset = 0);
+void PlotBar(const char* label_id, ImVec2 (*getter)(const void* data, int idx), const void* data, int count, float width, int offset = 0);
 // Plots horizontal bars.
 void PlotBarH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
 void PlotBarH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
-void PlotBarH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float height,  int offset = 0);
+void PlotBarH(const char* label_id, ImVec2 (*getter)(const void* data, int idx), const void* data, int count, float height,  int offset = 0);
 // Plots vertical error bars.
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+void PlotErrorBars(const char* label_id, ImVec4 (*getter)(const void* data, int idx), const void* data, int count, int offset = 0);
 // Plots a pie chart. If the sum of values > 1, each value will be normalized. Center and radius are in plot coordinates.
 void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents = true, float angle0 = 90);
 // Plots a text label at point x,y.
 void PlotLabel(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 // Plots digital channels.
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+void PlotDigital(const char* label_id, ImVec2 (*getter)(const void* data, int idx), const void* data, int count, int offset = 0);
 
 //-----------------------------------------------------------------------------
 // Plot Queries

@@ -21,6 +21,9 @@
 // SOFTWARE.
 
 // ImPlot v0.1 WIP
+#ifdef _MSC_VER
+#pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
+#endif
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -1812,10 +1815,10 @@ struct GetterImVec2 {
 };
 
 struct GetterFuncPtrImVec2 {
-    GetterFuncPtrImVec2(ImVec2 (*g)(void* data, int idx), void* d) { getter = g; data = d;}
+    GetterFuncPtrImVec2(ImVec2 (*g)(const void* data, int idx), const void* d) { getter = g; data = d;}
     ImVec2 operator()(int idx) { return getter(data, idx); }
-    ImVec2 (*getter)(void* data, int idx);
-    void* data;
+    ImVec2 (*getter)(const void* data, int idx);
+    const void* data;
 };
 
 struct GetterFuncPtrImVec4 {
@@ -1902,7 +1905,7 @@ void Plot(const char* label_id, const ImVec2* data, int count, int offset) {
     return PlotEx(label_id, getter, count, offset);
 }
 
-void Plot(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
+void Plot(const char* label_id, ImVec2 (*getter_func)(const void* data, int idx), const void* data, int count, int offset) {
     GetterFuncPtrImVec2 getter(getter_func,data);
     return PlotEx(label_id, getter, count, offset);
 }
@@ -1987,7 +1990,7 @@ void PlotBar(const char* label_id, const float* xs, const float* ys, int count, 
     PlotBarEx(label_id, getter, count, width, offset);
 }
 
-void PlotBar(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float width, int offset) {
+void PlotBar(const char* label_id, ImVec2 (*getter_func)(const void* data, int idx), const void* data, int count, float width, int offset) {
     GetterFuncPtrImVec2 getter(getter_func, data);
     PlotBarEx(label_id, getter, count, width, offset);
 }
@@ -2057,7 +2060,7 @@ void PlotBarH(const char* label_id, const float* xs, const float* ys, int count,
     PlotBarHEx(label_id, getter, count, height, offset);
 }
 
-void PlotBarH(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float height,  int offset) {
+void PlotBarH(const char* label_id, ImVec2 (*getter_func)(const void* data, int idx), const void* data, int count, float height,  int offset) {
     GetterFuncPtrImVec2 getter(getter_func, data);
     PlotBarHEx(label_id, getter, count, height, offset);
 }
@@ -2183,7 +2186,7 @@ void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2
             }
             if (show_percents) {
                 static char buffer[8];
-                sprintf(buffer, "%.0f%%", percent * 100);
+			    sprintf(buffer, "%.0f%%", percent * 100);
                 ImVec2 size = CalcTextSize(buffer);
                 float angle = a0 + (a1 - a0) * 0.5f;
                 ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
@@ -2290,7 +2293,7 @@ void PlotDigital(const char* label_id, const float* xs, const float* ys, int cou
     return PlotDigitalEx(label_id, getter, count, offset);
 }
 
-void PlotDigital(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
+void PlotDigital(const char* label_id, ImVec2 (*getter_func)(const void* data, int idx), const void* data, int count, int offset) {
     GetterFuncPtrImVec2 getter(getter_func,data);
     return PlotDigitalEx(label_id, getter, count, offset);
 }

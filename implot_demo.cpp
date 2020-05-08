@@ -21,10 +21,13 @@
 // SOFTWARE.
 
 // ImPlot v0.1 WIP
+#ifdef _MSC_VER
+#pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
+#endif
 
 #include <implot.h>
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 
 namespace {
 
