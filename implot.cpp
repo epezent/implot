@@ -924,7 +924,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // start drag
     if (gp.Hov_Frame && hov_x_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
         plot.XAxis.Dragging = true;
-    for (int i = 0; i < MaxYAxes; i++) {
+    for (int i = 0; i < 1; i++) {  // Only drag first axis for now
         // TODO(jpieper): Provide for separate scroll regions for each y axis?
         if (gp.Hov_Frame && hov_y_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
             plot.YAxis[i].Dragging = true;
