@@ -379,6 +379,27 @@ void ShowImPlotDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Multiple Y Axes")) {
+        static float xs[1001], ys1[1001], ys2[1001];
+        for (int i = 0; i < 1001; ++i) {
+            xs[i] = (float)(i*0.1f);
+            ys1[i] = sin(xs[i]) * 3 + 1;
+            ys2[i] = cos(xs[i]) * 0.2 + 0.5;
+        }
+        ImGui::SetNextPlotRange(0.1f, 100, 0, 10);
+        ImGui::SetNextPlotRangeY(0, 1, ImGuiCond_Once, 1);
+        if (ImGui::BeginPlot("Multi-Axis Plot", NULL, NULL, ImVec2(-1,-1),
+                             ImPlotFlags_Default | ImPlotFlags_Y2Axis)) {
+            ImGui::Plot("f(x) = x", xs, xs, 1001);
+            ImGui::Plot("f(x) = sin(x)*3+1", xs, ys1, 1001);
+
+            ImGui::SetPlotYAxis(1);
+            ImGui::Plot("f(x) = cos(x)*.2+.5", xs, ys2, 1001);
+
+            ImGui::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
         ImGui::BulletText("Ctrl + click in the plot area to draw points.");
         ImGui::BulletText("Middle click (or Ctrl + right click) and drag to query points.");
