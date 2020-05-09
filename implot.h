@@ -78,6 +78,8 @@ enum ImPlotCol_ {
     ImPlotCol_PlotBorder,    // plot area border color (defaults to ImGuiCol_Text)
     ImPlotCol_XAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
     ImPlotCol_YAxis,         // y-axis grid/label color (defaults to ImGuiCol_Text)
+    ImPlotCol_Y2Axis,        // y2-axis grid/label color (defaults to ImGuiCol_Text)
+    ImPlotCol_Y3Axis,        // y3-axis grid/label color (defaults to ImGuiCol_Text)
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
     ImPlotCol_Query,         // box-query color (defaults to green)
     ImPlotCol_COUNT

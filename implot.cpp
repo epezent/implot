@@ -65,6 +65,8 @@ ImPlotStyle::ImPlotStyle() {
     Colors[ImPlotCol_PlotBorder]    = IM_COL_AUTO;
     Colors[ImPlotCol_XAxis]         = IM_COL_AUTO;
     Colors[ImPlotCol_YAxis]         = IM_COL_AUTO;
+    Colors[ImPlotCol_Y2Axis]        = IM_COL_AUTO;
+    Colors[ImPlotCol_Y3Axis]        = IM_COL_AUTO;
     Colors[ImPlotCol_Selection]     = ImVec4(1,1,0,1);
     Colors[ImPlotCol_Query]         = ImVec4(0,1,0,1);
 }
@@ -257,6 +259,7 @@ struct ImPlot {
         SelectStart =  QueryStart = ImVec2(0,0);
         Flags = ImPlotFlags_Default;
         ColorIdx = 0;
+        NextPlotYAxis = 0;
     }
     ImPool<ImPlotItem> Items;
 
@@ -275,6 +278,7 @@ struct ImPlot {
 
     ImPlotFlags Flags;
     int ColorIdx;
+    int NextPlotYAxis;
 };
 
 struct ImNextPlotData {
@@ -313,9 +317,12 @@ struct ImPlotContext {
     ImU32 Col_Frame, Col_Bg, Col_Border, 
           Col_Txt, Col_TxtDis, 
           Col_SlctBg, Col_SlctBd,
-          Col_QryBg, Col_QryBd,
-          Col_XMajor, Col_XMinor, Col_XTxt,
-          Col_YMajor, Col_YMinor, Col_YTxt;  
+          Col_QryBg, Col_QryBd;
+    struct AxisColor {
+        ImU32 Major = {}, Minor = {}, Txt = {};
+    };
+    AxisColor Col_X;
+    AxisColor Col_Y[MaxYAxes];
     // Tick marks  
     ImVector<ImTick> XTicks,  YTicks;
     ImGuiTextBuffer XTickLabels, YTickLabels;
@@ -569,6 +576,21 @@ inline void LabelTicks(ImVector<ImTick> &ticks, bool scientific, ImGuiTextBuffer
     }
 }
 
+namespace {
+struct AxisState {
+    const ImPlotAxis& axis;
+    const bool has_range;
+    const ImGuiCond range_cond;
+    const bool flip = HasFlag(axis.Flags, ImAxisFlags_Invert);
+    const bool lock_min = HasFlag(axis.Flags, ImAxisFlags_LockMin);
+    const bool lock_max = HasFlag(axis.Flags, ImAxisFlags_LockMax);
+    const bool lock = (lock_min && lock_max) || (has_range && range_cond == ImGuiCond_Always);
+
+    AxisState(const ImPlotAxis& axis_in, bool has_range_in, ImGuiCond range_cond_in)
+            : axis(axis_in), has_range(has_range_in), range_cond(range_cond_in) {}
+};
+}  // namespace
+
 //-----------------------------------------------------------------------------
 // BeginPlot()
 //-----------------------------------------------------------------------------
@@ -593,6 +615,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     bool just_created = gp.Plots.GetByKey(ID) == NULL;    
     gp.CurrentPlot = gp.Plots.GetOrAddByKey(ID);
     ImPlot &plot = *gp.CurrentPlot;
+
+    plot.NextPlotYAxis = 0;
 
     if (just_created) {
         plot.Flags       = flags;
@@ -630,39 +654,37 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // AXIS STATES ------------------------------------------------------------
+    AxisState x(plot.XAxis, gp.NextPlotData.HasXRange, gp.NextPlotData.XRangeCond);
+    AxisState y(plot.YAxis[0], gp.NextPlotData.HasYRange[0], gp.NextPlotData.YRangeCond[0]);
 
-    const bool flip_x     = HasFlag(plot.XAxis.Flags, ImAxisFlags_Invert);
-    const bool lock_x_min = HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin);
-    const bool lock_x_max = HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax);
-    const bool lock_x     = (lock_x_min && lock_x_max) || (gp.NextPlotData.HasXRange && gp.NextPlotData.XRangeCond == ImGuiCond_Always);
-
-    const bool flip_y     = HasFlag(plot.YAxis[0].Flags, ImAxisFlags_Invert);
-    const bool lock_y_min = HasFlag(plot.YAxis[0].Flags, ImAxisFlags_LockMin);
-    const bool lock_y_max = HasFlag(plot.YAxis[0].Flags, ImAxisFlags_LockMax);
-    const bool lock_y     = (lock_y_min && lock_y_max) || (gp.NextPlotData.HasYRange[0] && gp.NextPlotData.YRangeCond[0] == ImGuiCond_Always);
-
-    const bool lock_plot  = lock_x && lock_y;
+    const bool lock_plot  = x.lock && y.lock;
     
     // CONSTRAINTS ------------------------------------------------------------
 
     plot.XAxis.Bounds.Min = ConstrainNan(ConstrainInf(plot.XAxis.Bounds.Min));
     plot.XAxis.Bounds.Max = ConstrainNan(ConstrainInf(plot.XAxis.Bounds.Max));
-    plot.YAxis[0].Bounds.Min = ConstrainNan(ConstrainInf(plot.YAxis[0].Bounds.Min));
-    plot.YAxis[0].Bounds.Max = ConstrainNan(ConstrainInf(plot.YAxis[0].Bounds.Max));
+    for (int i = 0; i < MaxYAxes; i++) {
+        plot.YAxis[i].Bounds.Min = ConstrainNan(ConstrainInf(plot.YAxis[i].Bounds.Min));
+        plot.YAxis[i].Bounds.Max = ConstrainNan(ConstrainInf(plot.YAxis[i].Bounds.Max));
+    }
 
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale))
         plot.XAxis.Bounds.Min = ConstrainLog(plot.XAxis.Bounds.Min);
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale))
         plot.XAxis.Bounds.Max = ConstrainLog(plot.XAxis.Bounds.Max);
-    if (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_LogScale))
-        plot.YAxis[0].Bounds.Min = ConstrainLog(plot.YAxis[0].Bounds.Min);
-    if (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_LogScale))
-        plot.YAxis[0].Bounds.Max = ConstrainLog(plot.YAxis[0].Bounds.Max);
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale))
+            plot.YAxis[i].Bounds.Min = ConstrainLog(plot.YAxis[i].Bounds.Min);
+        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale))
+            plot.YAxis[i].Bounds.Max = ConstrainLog(plot.YAxis[i].Bounds.Max);
+    }
 
     if (plot.XAxis.Bounds.Max <= plot.XAxis.Bounds.Min)
         plot.XAxis.Bounds.Max = plot.XAxis.Bounds.Min + FLT_EPSILON;
-    if (plot.YAxis[0].Bounds.Max <= plot.YAxis[0].Bounds.Min)
-        plot.YAxis[0].Bounds.Max = plot.YAxis[0].Bounds.Min + FLT_EPSILON;
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (plot.YAxis[i].Bounds.Max <= plot.YAxis[i].Bounds.Min)
+            plot.YAxis[i].Bounds.Max = plot.YAxis[i].Bounds.Min + FLT_EPSILON;
+    }
 
     // adaptive divisions
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_Adaptive)) {
@@ -670,10 +692,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         if (plot.XAxis.Divisions < 2)
             plot.XAxis.Divisions = 2; 
     }
-    if (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_Adaptive)) {
-        plot.YAxis[0].Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight());
-        if (plot.YAxis[0].Divisions < 2)
-            plot.YAxis[0].Divisions = 2;
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_Adaptive)) {
+            plot.YAxis[i].Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight());
+            if (plot.YAxis[i].Divisions < 2)
+                plot.YAxis[i].Divisions = 2;
+        }
     }
 
     // COLORS -----------------------------------------------------------------
@@ -682,15 +706,17 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.Col_Bg     = gp.Style.Colors[ImPlotCol_PlotBg].w      == -1 ? GetColorU32(ImGuiCol_WindowBg)   : GetColorU32(gp.Style.Colors[ImPlotCol_PlotBg]);
     gp.Col_Border = gp.Style.Colors[ImPlotCol_PlotBorder].w  == -1 ? GetColorU32(ImGuiCol_Text, 0.5f) : GetColorU32(gp.Style.Colors[ImPlotCol_PlotBorder]);
 
-    const ImVec4 col_xAxis = gp.Style.Colors[ImPlotCol_XAxis].w == -1 ? ImGui::GetStyle().Colors[ImGuiCol_Text] * ImVec4(1, 1, 1, 0.25f) : gp.Style.Colors[ImPlotCol_XAxis];
-    gp.Col_XMajor = GetColorU32(col_xAxis);
-    gp.Col_XMinor = GetColorU32(col_xAxis * ImVec4(1, 1, 1, 0.25f));
-    gp.Col_XTxt   = GetColorU32({col_xAxis.x, col_xAxis.y, col_xAxis.z, 1});
+    auto update_axis_color = [&](auto axis_flag, auto* col) {
+        const ImVec4 col_Axis = gp.Style.Colors[axis_flag].w == -1 ? ImGui::GetStyle().Colors[ImGuiCol_Text] * ImVec4(1, 1, 1, 0.25f) : gp.Style.Colors[axis_flag];
+        col->Major = GetColorU32(col_Axis);
+        col->Minor = GetColorU32(col_Axis * ImVec4(1, 1, 1, 0.25f));
+        col->Txt   = GetColorU32({col_Axis.x, col_Axis.y, col_Axis.z, 1});
+    };
 
-    const ImVec4 col_yAxis = gp.Style.Colors[ImPlotCol_YAxis].w == -1 ? ImGui::GetStyle().Colors[ImGuiCol_Text] * ImVec4(1, 1, 1, 0.25f) : gp.Style.Colors[ImPlotCol_YAxis];
-    gp.Col_YMajor = GetColorU32(col_yAxis);
-    gp.Col_YMinor = GetColorU32(col_yAxis * ImVec4(1, 1, 1, 0.25f));
-    gp.Col_YTxt   = GetColorU32({col_yAxis.x, col_yAxis.y, col_yAxis.z, 1});
+    update_axis_color(ImPlotCol_XAxis, &gp.Col_X);
+    update_axis_color(ImPlotCol_YAxis, &gp.Col_Y[0]);
+    update_axis_color(ImPlotCol_Y2Axis, &gp.Col_Y[1]);
+    update_axis_color(ImPlotCol_Y3Axis, &gp.Col_Y[2]);
 
     gp.Col_Txt    = GetColorU32(ImGuiCol_Text);
     gp.Col_TxtDis = GetColorU32(ImGuiCol_TextDisabled);
@@ -736,15 +762,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         LabelTicks(gp.XTicks, HasFlag(plot.XAxis.Flags, ImAxisFlags_Scientific), gp.XTickLabels);
 
     float max_label_width = 0;
-<<<<<<< HEAD
-    if (HasFlag(plot.YAxis.Flags, ImAxisFlags_TickLabels)) {
-        LabelTicks(gp.YTicks, HasFlag(plot.YAxis.Flags, ImAxisFlags_Scientific), gp.YTickLabels);
-        for (ImTick &yt : gp.YTicks)
-=======
     if (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_TickLabels)) {
         LabelTicks(gp.YTicks, HasFlag(plot.YAxis[0].Flags, ImAxisFlags_Scientific), gp.YTickLabels);
-        for (auto &yt : gp.YTicks)
->>>>>>> Make ImPlot and ImNextPlotData contain multiple axes
+        for (ImTick &yt : gp.YTicks)
             max_label_width = yt.Size.x > max_label_width ? yt.Size.x : max_label_width;
     }
 
@@ -833,23 +853,23 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         UpdateTransformCache();
         ImVec2 plot_tl = PixelsToPlot(gp.BB_Grid.Min - IO.MouseDelta);
         ImVec2 plot_br = PixelsToPlot(gp.BB_Grid.Max - IO.MouseDelta);
-        if (!lock_x && plot.XAxis.Dragging) {
-            if (!lock_x_min)
-                plot.XAxis.Bounds.Min = flip_x ? plot_br.x : plot_tl.x;
-            if (!lock_x_max)
-                plot.XAxis.Bounds.Max = flip_x ? plot_tl.x : plot_br.x;
+        if (!x.lock && plot.XAxis.Dragging) {
+            if (!x.lock_min)
+                plot.XAxis.Bounds.Min = x.flip ? plot_br.x : plot_tl.x;
+            if (!x.lock_max)
+                plot.XAxis.Bounds.Max = x.flip ? plot_tl.x : plot_br.x;
         }
-        if (!lock_y && plot.YAxis[0].Dragging) {
-            if (!lock_y_min)
-                plot.YAxis[0].Bounds.Min = flip_y ? plot_tl.y : plot_br.y;
-            if (!lock_y_max)
-                plot.YAxis[0].Bounds.Max = flip_y ? plot_br.y : plot_tl.y;
+        if (!y.lock && plot.YAxis[0].Dragging) {
+            if (!y.lock_min)
+                plot.YAxis[0].Bounds.Min = y.flip ? plot_tl.y : plot_br.y;
+            if (!y.lock_max)
+                plot.YAxis[0].Bounds.Max = y.flip ? plot_br.y : plot_tl.y;
         }
-        if ((lock_x && lock_y) || (lock_x && plot.XAxis.Dragging && !plot.YAxis[0].Dragging) || (lock_y && plot.YAxis[0].Dragging && !plot.XAxis.Dragging))
+        if ((x.lock && y.lock) || (x.lock && plot.XAxis.Dragging && !plot.YAxis[0].Dragging) || (y.lock && plot.YAxis[0].Dragging && !plot.XAxis.Dragging))
             ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
-        else if (lock_x || (!plot.XAxis.Dragging && plot.YAxis[0].Dragging))
+        else if (x.lock || (!plot.XAxis.Dragging && plot.YAxis[0].Dragging))
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-        else if (lock_y || (!plot.YAxis[0].Dragging && plot.XAxis.Dragging))
+        else if (y.lock || (!plot.YAxis[0].Dragging && plot.XAxis.Dragging))
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
         else
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
@@ -871,17 +891,17 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         float ty = Remap(IO.MousePos.y, gp.BB_Grid.Min.y, gp.BB_Grid.Max.y, 0, 1);
         ImVec2 plot_tl = PixelsToPlot(gp.BB_Grid.Min - gp.BB_Grid.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate));
         ImVec2 plot_br = PixelsToPlot(gp.BB_Grid.Max + gp.BB_Grid.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate));
-        if (hov_x_axis_region && !lock_x) {
-            if (!lock_x_min)
-                plot.XAxis.Bounds.Min = flip_x ? plot_br.x : plot_tl.x;
-            if (!lock_x_max)
-                plot.XAxis.Bounds.Max = flip_x ? plot_tl.x : plot_br.x;
+        if (hov_x_axis_region && !x.lock) {
+            if (!x.lock_min)
+                plot.XAxis.Bounds.Min = x.flip ? plot_br.x : plot_tl.x;
+            if (!x.lock_max)
+                plot.XAxis.Bounds.Max = x.flip ? plot_tl.x : plot_br.x;
         } 
-        if (hov_y_axis_region && !lock_y) {
-            if (!lock_y_min)
-                plot.YAxis[0].Bounds.Min = flip_y ? plot_tl.y : plot_br.y;
-            if (!lock_y_max)
-                plot.YAxis[0].Bounds.Max = flip_y ? plot_br.y : plot_tl.y;
+        if (hov_y_axis_region && !y.lock) {
+            if (!y.lock_min)
+                plot.YAxis[0].Bounds.Min = y.flip ? plot_tl.y : plot_br.y;
+            if (!y.lock_max)
+                plot.YAxis[0].Bounds.Max = y.flip ? plot_br.y : plot_tl.y;
         }        
     }
 
@@ -894,13 +914,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         if (HasFlag(plot.Flags, ImPlotFlags_Selection) && ImFabs(select_size.x) > 2 && ImFabs(select_size.y) > 2) {
             ImVec2 p1 = PixelsToPlot(plot.SelectStart);
             ImVec2 p2 = PixelsToPlot(IO.MousePos);
-            if (!lock_x_min && !IO.KeyAlt) 
+            if (!x.lock_min && !IO.KeyAlt)
                 plot.XAxis.Bounds.Min = ImMin(p1.x, p2.x);
-            if (!lock_x_max && !IO.KeyAlt)
+            if (!x.lock_max && !IO.KeyAlt)
                 plot.XAxis.Bounds.Max = ImMax(p1.x, p2.x);
-            if (!lock_y_min && !IO.KeyShift) 
+            if (!y.lock_min && !IO.KeyShift)
                 plot.YAxis[0].Bounds.Min = ImMin(p1.y, p2.y);
-            if (!lock_y_max && !IO.KeyShift)
+            if (!y.lock_max && !IO.KeyShift)
                 plot.YAxis[0].Bounds.Max = ImMax(p1.y, p2.y);
         }        
         plot.Selecting = false;
@@ -1015,12 +1035,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // render grid
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_GridLines)) {
         for (ImTick &xt : gp.XTicks)
-            DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Min.y}, {xt.PixelPos, gp.BB_Grid.Max.y}, xt.Major ? gp.Col_XMajor : gp.Col_XMinor, 1);
+            DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Min.y}, {xt.PixelPos, gp.BB_Grid.Max.y}, xt.Major ? gp.Col_X.Major : gp.Col_X.Minor, 1);
     }
 
     if (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_GridLines)) {
         for (ImTick &yt : gp.YTicks)
-            DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Max.x, yt.PixelPos}, yt.Major ? gp.Col_YMajor : gp.Col_YMinor, 1);
+            DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Max.x, yt.PixelPos}, yt.Major ? gp.Col_Y[0].Major : gp.Col_Y[0].Minor, 1);
     }
 
     PopPlotClipRect();
@@ -1035,7 +1055,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
         for (ImTick &xt : gp.XTicks) {
             if (xt.RenderLabel && xt.PixelPos >= gp.BB_Grid.Min.x - 1 && xt.PixelPos <= gp.BB_Grid.Max.x + 1)
-                DrawList.AddText({xt.PixelPos - xt.Size.x * 0.5f, gp.BB_Grid.Max.y + txt_off}, gp.Col_XTxt, gp.XTickLabels.Buf.Data + xt.TextOffset);
+                DrawList.AddText({xt.PixelPos - xt.Size.x * 0.5f, gp.BB_Grid.Max.y + txt_off}, gp.Col_X.Txt, gp.XTickLabels.Buf.Data + xt.TextOffset);
         }
         ImGui::PopClipRect();
     }
@@ -1043,20 +1063,20 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         const ImVec2 xLabel_size = CalcTextSize(x_label);
         const ImVec2 xLabel_pos(gp.BB_Grid.GetCenter().x - xLabel_size.x * 0.5f,
                                 gp.BB_Canvas.Max.y - txt_height);
-        DrawList.AddText(xLabel_pos, gp.Col_XTxt, x_label);
+        DrawList.AddText(xLabel_pos, gp.Col_X.Txt, x_label);
     }
     if (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_TickLabels)) {
         PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
         for (ImTick &yt : gp.YTicks) {
             if (yt.RenderLabel && yt.PixelPos >= gp.BB_Grid.Min.y - 1 && yt.PixelPos <= gp.BB_Grid.Max.y + 1)
-                DrawList.AddText({gp.BB_Grid.Min.x - txt_off - yt.Size.x, yt.PixelPos - 0.5f * yt.Size.y}, gp.Col_YTxt, gp.YTickLabels.Buf.Data + yt.TextOffset);
+                DrawList.AddText({gp.BB_Grid.Min.x - txt_off - yt.Size.x, yt.PixelPos - 0.5f * yt.Size.y}, gp.Col_Y[0].Txt, gp.YTickLabels.Buf.Data + yt.TextOffset);
         }
         ImGui::PopClipRect();
     }
     if (y_label) {
         const ImVec2 yLabel_size = CalcTextSizeVertical(y_label);
         const ImVec2 yLabel_pos(gp.BB_Canvas.Min.x, gp.BB_Grid.GetCenter().y + yLabel_size.y * 0.5f);
-        AddTextVertical(&DrawList, y_label, yLabel_pos, gp.Col_YTxt);
+        AddTextVertical(&DrawList, y_label, yLabel_pos, gp.Col_Y[0].Txt);
     }
 
     // PREP -------------------------------------------------------------------
@@ -1194,15 +1214,9 @@ void EndPlot() {
 
     // AXIS STATES ------------------------------------------------------------
 
-    const bool lock_x_min = HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin);
-    const bool lock_x_max = HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax);
-    const bool lock_x     = (lock_x_min && lock_x_max) || (gp.NextPlotData.HasXRange && gp.NextPlotData.XRangeCond == ImGuiCond_Always);
-
-    const bool lock_y_min = HasFlag(plot.YAxis[0].Flags, ImAxisFlags_LockMin);
-    const bool lock_y_max = HasFlag(plot.YAxis[0].Flags, ImAxisFlags_LockMax);
-    const bool lock_y     = (lock_y_min && lock_y_max) || (gp.NextPlotData.HasYRange[0] && gp.NextPlotData.YRangeCond[0] == ImGuiCond_Always);
-
-    const bool lock_plot  = lock_x && lock_y;
+    AxisState x(plot.XAxis, gp.NextPlotData.HasXRange, gp.NextPlotData.XRangeCond);
+    AxisState y(plot.YAxis[0], gp.NextPlotData.HasYRange[0], gp.NextPlotData.YRangeCond[0]);
+    const bool lock_plot  = x.lock && y.lock;
 
     // FINAL RENDER -----------------------------------------------------------
 
@@ -1226,11 +1240,11 @@ void EndPlot() {
                 DrawList.AddRectFilled(gp.BB_Grid.Min, gp.BB_Grid.Max, gp.Col_SlctBg);
                 DrawList.AddRect(      gp.BB_Grid.Min, gp.BB_Grid.Max, gp.Col_SlctBd);
             }
-            else if ((lock_x || IO.KeyAlt) && select_bb.GetHeight() > 2) {
+            else if ((x.lock || IO.KeyAlt) && select_bb.GetHeight() > 2) {
                 DrawList.AddRectFilled(ImVec2(gp.BB_Grid.Min.x, select_bb.Min.y), ImVec2(gp.BB_Grid.Max.x, select_bb.Max.y), gp.Col_SlctBg);
                 DrawList.AddRect(      ImVec2(gp.BB_Grid.Min.x, select_bb.Min.y), ImVec2(gp.BB_Grid.Max.x, select_bb.Max.y), gp.Col_SlctBd);
             }
-            else if ((lock_y || IO.KeyShift) && select_bb.GetWidth() > 2) {
+            else if ((y.lock || IO.KeyShift) && select_bb.GetWidth() > 2) {
                 DrawList.AddRectFilled(ImVec2(select_bb.Min.x, gp.BB_Grid.Min.y), ImVec2(select_bb.Max.x, gp.BB_Grid.Max.y), gp.Col_SlctBg);
                 DrawList.AddRect(      ImVec2(select_bb.Min.x, gp.BB_Grid.Min.y), ImVec2(select_bb.Max.x, gp.BB_Grid.Max.y), gp.Col_SlctBd);
             }
@@ -1410,6 +1424,9 @@ void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond, int y_axis) {
 }
 
 void SetPlotYAxis(int y_axis) {
+    IM_ASSERT(y_axis >= 0 && y_axis < MaxYAxes);
+    IM_ASSERT_USER_ERROR(gp.CurrentPLot != NULL, "SetPlotYAxis() Needs to be called between BeginPlot() and EndPlot()!");
+    gp.CurrentPlot->NextPlotYAxis = y_axis;
 }
 
 ImVec2 GetPlotPos() {
