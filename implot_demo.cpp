@@ -48,7 +48,7 @@ struct ScrollingData {
     }
     void Erase() {
         if (Data.size() > 0) {
-            Data.clear();
+            Data.shrink(0);
             Offset  = 0;
         }
     }    
@@ -520,22 +520,22 @@ void ShowImPlotDemoWindow(bool* p_open) {
         }
     }
 
-    if (ImGui::CollapsingHeader("Digital")) {
+    if (ImGui::CollapsingHeader("Digital and Analog Signals")) {
 
-        static int bitHeight = 7;
-        ImGui::SetNextItemWidth(100);
-        ImGui::DragInt("Bit Hieght", &bitHeight, 0.2, 5, 50);
-        /// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
-        //void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
+
         static bool paused = false;
-        #define K_PLOT_DIGITAL_CH_COUNT 8
-        #define K_PLOT_ANALOG_CH_COUNT  8
+        #define K_PLOT_DIGITAL_CH_COUNT 4
+        #define K_PLOT_ANALOG_CH_COUNT  4
         static ScrollingData dataDigital[K_PLOT_DIGITAL_CH_COUNT];
         static ScrollingData dataAnalog[K_PLOT_ANALOG_CH_COUNT];
         static bool showDigital[K_PLOT_DIGITAL_CH_COUNT];
         static bool showAnalog[K_PLOT_ANALOG_CH_COUNT];
 
-        ImGui::BulletText("Drag data items from the left column onto the plot.");
+        ImGui::BulletText("You can plot digital and analog signals on the same plot.");
+        ImGui::BulletText("Digital signals do not respond to Y drag and zoom, so that");
+        ImGui::Indent();
+        ImGui::Text("you can drag analog signals over the rising/falling digital edge.");
+        ImGui::Unindent();
         ImGui::BeginGroup();
         if (ImGui::Button("Clear", {100, 0})) {
             for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i)
@@ -545,10 +545,16 @@ void ShowImPlotDemoWindow(bool* p_open) {
         }
         if (ImGui::Button(paused ? "Resume" : "Pause", {100,0}))
             paused = !paused;
+        ImGui::SetNextItemWidth(100);
+        static float bitHeight = 8;
+        ImGui::DragFloat("##Bit Height", &bitHeight, 1, 5, 25, "%.0f px");
+        ImGui::SetNextItemWidth(100);
+        static float bitGap = 4;
+        ImGui::DragFloat("##Bit Gap", &bitGap, 1, 2, 20, "%.0f px");
         ImGui::Separator();
         for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
             char label[32];
-            sprintf(label, "digital_data_%d", i);
+            sprintf(label, "digital_%d", i);
             ImGui::Checkbox(label, &showDigital[i]);
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 ImGui::SetDragDropPayload("DND_DIGITAL_PLOT", &i, sizeof(int));
@@ -558,7 +564,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         }
         for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
             char label[32];
-            sprintf(label, "analog_data_%d", i);
+            sprintf(label, "analog_%d", i);
             ImGui::Checkbox(label, &showAnalog[i]);
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 ImGui::SetDragDropPayload("DND_ANALOG_PLOT", &i, sizeof(int));
@@ -569,78 +575,52 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::EndGroup();
         ImGui::SameLine();
         static float t = 0;
-        if (true) {
+        if (!paused) {
             t += ImGui::GetIO().DeltaTime;
-
             //digital signal values
             int i = 0;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, sin(t) > 0.45);
+                dataDigital[i].AddPoint(t, sin(2*t) > 0.45);
             i++;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, sin(t) < 0.45);
+                dataDigital[i].AddPoint(t, sin(2*t) < 0.45);
             i++;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, sin(t) > 0.83);
+                dataDigital[i].AddPoint(t, (int)t % 5);
             i++;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, sin(t) < 0.17);
-            i++;
-            if (showDigital[i])
-                dataDigital[i].AddPoint(t, cos(t) > 0.45);
-            i++;
-            if (showDigital[i])
-                dataDigital[i].AddPoint(t, cos(t) < 0.45);
-            i++;
-            if (showDigital[i])
-                dataDigital[i].AddPoint(t, cos(t) > 0.83);
-            i++;
-            if (showDigital[i])
-                dataDigital[i].AddPoint(t, cos(t) < 0.17);
-
+                dataDigital[i].AddPoint(t, sin(2*t) < 0.17);
             //Analog signal values
             i = 0;
             if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, sin(t));
+                dataAnalog[i].AddPoint(t, sin(2*t));
             i++;
             if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, cos(t));
+                dataAnalog[i].AddPoint(t, cos(2*t));
             i++;
             if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, sin(t) * cos(t));
+                dataAnalog[i].AddPoint(t, sin(2*t) * cos(2*t));
             i++;
             if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, sin(t) - cos(t));
-            i++;
-            if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, cos(t) - sin(t));
-            i++;
-            if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, sin(t) + cos(t));
-            i++;
-            if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, (sin(t) + cos(t)) / (sin(t) * cos(t)));
-            i++;
-            if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, (cos(t) + cos(t)) / (cos(t) * cos(t)));
-            i++;
-
+                dataAnalog[i].AddPoint(t, sin(2*t) - cos(2*t));
         }
-        ImGui::SetNextPlotRangeX(t - 60.0f, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
-        if (ImGui::BeginPlot("##DND", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default)) {
+        ImGui::SetNextPlotRangeY(-1, 1);
+        ImGui::SetNextPlotRangeX(t - 10.0f, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
+        if (ImGui::BeginPlot("##Digital", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default)) {
             for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
                 if (showDigital[i]) {
                     char label[32];
-                    sprintf(label, "digital_data_%d", i);
+                    sprintf(label, "digital_%d", i);
                     ImGui::PushPlotStyleVar(ImPlotStyleVar_DigitalBitHeight, bitHeight);
+                    ImGui::PushPlotStyleVar(ImPlotStyleVar_DigitalBitGap, bitGap);
                     ImGui::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), dataDigital[i].Offset, 2 * sizeof(float));
-                    ImGui::PopPlotStyleVar();
+                    ImGui::PopPlotStyleVar(2);
                 }
             }
             for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
                 if (showAnalog[i]) {
                     char label[32];
-                    sprintf(label, "analog_data_%d", i);
+                    sprintf(label, "analog_%d", i);
                     if (dataAnalog[i].Data.size() > 0)
                         ImGui::Plot(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), dataAnalog[i].Offset, 2 * sizeof(float));
                 }

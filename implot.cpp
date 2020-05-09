@@ -49,7 +49,8 @@ ImPlotStyle::ImPlotStyle() {
     MarkerWeight = 1;
     ErrorBarSize = 5;
     ErrorBarWeight = 1.5;
-    DigitalBitHeight = 7;
+    DigitalBitHeight = 8;
+    DigitalBitGap = 4;
 
     Colors[ImPlotCol_Line]          = IM_COL_AUTO;
     Colors[ImPlotCol_Fill]          = IM_COL_AUTO;
@@ -330,6 +331,7 @@ struct ImPlotContext {
     ImNextPlotData NextPlotData;        
     // Digital plot item count
     int DigitalPlotItemCnt;
+    int DigitalPlotOffset;
 };
 
 /// Global plot context
@@ -1056,6 +1058,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.LegendLabels.Buf.resize(0);
     // reset digital plot items count
     gp.DigitalPlotItemCnt = 0;
+    gp.DigitalPlotOffset = 0;
     return true;
 }
 
@@ -1469,7 +1472,8 @@ static const ImPlotStyleVarInfo GPlotStyleVarInfo[] =
     { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, MarkerWeight)       }, // ImPlotStyleVar_MarkerWeight
     { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, ErrorBarSize)       }, // ImPlotStyleVar_ErrorBarSize
     { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, ErrorBarWeight)     }, // ImPlotStyleVar_ErrorBarWeight
-    { ImGuiDataType_S32,   1, (ImU32)IM_OFFSETOF(ImPlotStyle, DigitalBitHeight)   }  // ImPlotStyleVar_DigitalBitHeight
+    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, DigitalBitHeight)   }, // ImPlotStyleVar_DigitalBitHeight
+    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, DigitalBitGap)      }  // ImPlotStyleVar_DigitalBitGap
 };
 
 static const ImPlotStyleVarInfo* GetPlotStyleVarInfo(ImPlotStyleVar idx)
@@ -2187,8 +2191,8 @@ void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2
                 ImVec2 size = CalcTextSize(buffer);
                 float angle = a0 + (a1 - a0) * 0.5f;
                 ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
-                DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), gp.Col_Bg, buffer);
-                DrawList.AddText(pos - size * 0.5f, GetColorU32(ImGuiCol_Text), buffer);
+                DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), IM_COL32(0,0,0,255), buffer);
+                DrawList.AddText(pos - size * 0.5f, IM_COL32(255,255,255,255), buffer);
             }
         }
         a0 = a1;
@@ -2236,31 +2240,30 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
     bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
 
     const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
-
     // render digital signals as "pixel bases" rectangles
     if (count > 1 && rend_line) {
         //
         const float mx = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / (gp.CurrentPlot->XAxis.Max - gp.CurrentPlot->XAxis.Min);
-        int pixY_0 = line_weight;
-        int pixY_1 = gp.Style.DigitalBitHeight;
-        int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
-        int pixY_chOffset = pixY_1 + 3; //3 pixels between channels
-        ImVec2 pMin, pMax;
-        float y0 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_0 - pixY_Offset);
-        float y1 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_1 - pixY_Offset);
         const int    segments  = count - 1;
         int    i1 = offset;
+        int pixYMax = 0;
         for (int s = 0; s < segments; ++s) {
             const int i2 = (i1 + 1) % count;
             ImVec2 itemData1 = getter(i1);
             ImVec2 itemData2 = getter(i2);
             i1 = i2;
+            int pixY_0 = line_weight;
+            int pixY_1 = gp.Style.DigitalBitHeight * ImMax(0.0f, itemData1.y); //allow only positive values
+            int pixY_chPosOffset = ImMax((int)gp.Style.DigitalBitHeight, pixY_1) + gp.Style.DigitalBitGap;
+            pixYMax = ImMax(pixYMax, pixY_chPosOffset);
+            ImVec2 pMin, pMax;
             pMin.x = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Min);
-            pMin.y = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
             pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
-            pMax.y = ((int) itemData1.y == 0) ? y0 : y1;
+            int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
+            pMin.y = (gp.PixelRange.Min.y) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
+            pMax.y = (gp.PixelRange.Min.y) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
             //plot only one rectangle for same digital state
-            while (((s+2) < segments) && ((int) itemData1.y == (int) itemData2.y)) {
+            while (((s+2) < segments) && (itemData1.y == itemData2.y)) {
                 const int i2 = (i1 + 1) % count;
                 itemData2 = getter(i2);
                 pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Min);
@@ -2280,6 +2283,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             }
         }
         gp.DigitalPlotItemCnt++;
+        gp.DigitalPlotOffset += pixYMax;
     }   
 
     ImGui::PopClipRect();
