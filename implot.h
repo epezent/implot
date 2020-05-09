@@ -228,7 +228,7 @@ void PopPlotStyleVar(int count = 1);
 void SetNextPlotRange(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
 /// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
 void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
+/// Set the Y axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
 void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
 
 // Get the current Plot position (top-left) in pixels.
