@@ -37,16 +37,18 @@ typedef int ImMarker;
 
 // Options for plots
 enum ImPlotFlags_ {
-    ImPlotFlags_MousePos    = 1 << 0, // the mouse position, in plot coordinates, will be displayed in the bottom-right
-    ImPlotFlags_Legend      = 1 << 1, // a legend will be displayed in the top-left
-    ImPlotFlags_Highlight   = 1 << 2, // plot items will be highlighted when their legend entry is hovered
-    ImPlotFlags_Selection   = 1 << 3, // the user will be able to box-select with right-mouse
-    ImPlotFlags_PixelQuery  = 1 << 4, // query ranges will not change their pixel position if the plot is scrolled/zoomed
-    ImPlotFlags_ContextMenu = 1 << 5, // the user will be able to open a context menu with double-right click
-    ImPlotFlags_Crosshairs  = 1 << 6, // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_CullData    = 1 << 7, // plot data outside the plot area will be culled from rendering
-    ImPlotFlags_AntiAliased = 1 << 8, // lines and fills will be anti-aliased (not recommended)
-    ImPlotFlags_NoChild     = 1 << 9, // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_MousePos    = 1 << 0,  // the mouse position, in plot coordinates, will be displayed in the bottom-right
+    ImPlotFlags_Legend      = 1 << 1,  // a legend will be displayed in the top-left
+    ImPlotFlags_Highlight   = 1 << 2,  // plot items will be highlighted when their legend entry is hovered
+    ImPlotFlags_Selection   = 1 << 3,  // the user will be able to box-select with right-mouse
+    ImPlotFlags_PixelQuery  = 1 << 4,  // query ranges will not change their pixel position if the plot is scrolled/zoomed
+    ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open a context menu with double-right click
+    ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_CullData    = 1 << 7,  // plot data outside the plot area will be culled from rendering
+    ImPlotFlags_AntiAliased = 1 << 8,  // lines and fills will be anti-aliased (not recommended)
+    ImPlotFlags_NoChild     = 1 << 9,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_Y2Axis      = 1 << 10, // enable a second y axis
+    ImPlotFlags_Y3Axis      = 1 << 11, // enable a third y axis
     ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_Selection | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
 };
 
@@ -152,7 +154,9 @@ bool BeginPlot(const char* title_id,
                const ImVec2& size  = ImVec2(-1,-1), 
                ImPlotFlags flags   = ImPlotFlags_Default, 
                ImAxisFlags x_flags = ImAxisFlags_Default, 
-               ImAxisFlags y_flags = ImAxisFlags_Default);
+               ImAxisFlags y_flags = ImAxisFlags_Default,
+               ImAxisFlags y2_flags = ImAxisFlags_Default,
+               ImAxisFlags y3_flags = ImAxisFlags_Default);
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().
 void EndPlot();
@@ -236,7 +240,10 @@ void SetNextPlotRange(float x_min, float x_max, float y_min, float y_max, ImGuiC
 /// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
 void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
 /// Set the Y axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
-void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+
+/// Select which Y axis will be used for subsequent plot elements.  The default is '0', or the first Y axis.
+void SetPlotYAxis(int);
 
 // Get the current Plot position (top-left) in pixels.
 ImVec2 GetPlotPos();

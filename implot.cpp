@@ -574,7 +574,7 @@ inline void LabelTicks(ImVector<ImTick> &ticks, bool scientific, ImGuiTextBuffer
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
-bool BeginPlot(const char* title, const char* x_label, const char* y_label, const ImVec2& size, ImPlotFlags flags, ImAxisFlags x_flags, ImAxisFlags y_flags) {
+bool BeginPlot(const char* title, const char* x_label, const char* y_label, const ImVec2& size, ImPlotFlags flags, ImAxisFlags x_flags, ImAxisFlags y_flags, ImAxisFlags y2_flags, ImAxisFlags y3_flags) {
 
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "Mismatched BeginPlot()/EndPlot()!");
 
@@ -1391,12 +1391,18 @@ void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond) {
     gp.NextPlotData.X.Max = x_max;
 }
 
-void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond) {
+void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond, int y_axis) {
+    // TODO
+    if (y_axis != 0) { return; }
+
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
     gp.NextPlotData.HasYRange = true;
     gp.NextPlotData.YRangeCond = cond;
     gp.NextPlotData.Y.Min = y_min;
     gp.NextPlotData.Y.Max = y_max;
+}
+
+void SetPlotYAxis(int y_axis) {
 }
 
 ImVec2 GetPlotPos() {
