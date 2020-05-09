@@ -75,7 +75,7 @@ enum ImPlotCol_ {
     ImPlotCol_PlotBg,        // plot area background color (defaults to ImGuiCol_WindowBg)
     ImPlotCol_PlotBorder,    // plot area border color (defaults to ImGuiCol_Text)
     ImPlotCol_XAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
-    ImPlotCol_YAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
+    ImPlotCol_YAxis,         // y-axis grid/label color (defaults to ImGuiCol_Text)
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
     ImPlotCol_Query,         // box-query color (defaults to green)
     ImPlotCol_COUNT
@@ -107,11 +107,18 @@ enum ImMarker_ {
     ImMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
+struct ImPlotBounds {
+    float Min, Max;
+    ImPlotBounds();
+    bool Contains(float) const;
+    float Range() const;
+};
+
 /// Plot range utility struct
 struct ImPlotRange {
-    float XMin, XMax, YMin, YMax;
+    ImPlotBounds X, Y;
     ImPlotRange();
-    bool Contains(const ImVec2& p);
+    bool Contains(const ImVec2& p) const;
 };
 
 // Plot style structure

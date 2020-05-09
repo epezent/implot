@@ -414,8 +414,8 @@ void ShowImPlotDemoWindow(bool* p_open) {
             query = ImGui::GetPlotQuery();
             ImGui::EndPlot();
         }
-        ImGui::Text("The current plot range is:  [%g,%g,%g,%g]", range.XMin, range.XMax, range.YMin, range.YMax);
-        ImGui::Text("The current query range is: [%g,%g,%g,%g]", query.XMin, query.XMax, query.YMin, query.YMax);
+        ImGui::Text("The current plot range is:  [%g,%g,%g,%g]", range.X.Min, range.X.Max, range.Y.Min, range.Y.Max);
+        ImGui::Text("The current query range is: [%g,%g,%g,%g]", query.X.Min, query.X.Max, query.Y.Min, query.Y.Max);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Views")) {
@@ -446,7 +446,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
             query = ImGui::GetPlotQuery();
             ImGui::EndPlot();
         }
-        ImGui::SetNextPlotRange(query.XMin, query.XMax, query.YMin, query.YMax, ImGuiCond_Always);
+        ImGui::SetNextPlotRange(query.X.Min, query.X.Max, query.Y.Min, query.Y.Max, ImGuiCond_Always);
         if (ImGui::BeginPlot("##View2",NULL,NULL,ImVec2(-1,150), 0, 0, 0)) {
             ImGui::Plot("Signal 1", x_data, y_data1, 512);
             ImGui::Plot("Signal 2", x_data, y_data2, 512);
