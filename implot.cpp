@@ -281,11 +281,11 @@ struct ImPlot {
 };
 
 struct ImNextPlotData {
-    ImNextPlotData() : HasXRange{}, HasYRange{} {}
-    ImGuiCond XRangeCond;
-    ImGuiCond YRangeCond[MAX_Y_AXES];
-    bool HasXRange;
-    bool HasYRange[MAX_Y_AXES];
+    ImNextPlotData() : HasXBounds{}, HasYBounds{} {}
+    ImGuiCond XBoundsCond;
+    ImGuiCond YBoundsCond[MAX_Y_AXES];
+    bool HasXBounds;
+    bool HasYBounds[MAX_Y_AXES];
     ImPlotRange X;
     ImPlotRange Y[MAX_Y_AXES];
 };
@@ -692,16 +692,16 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // NextPlotData -----------------------------------------------------------
 
-    if (gp.NextPlotData.HasXRange) {
-        if (just_created || gp.NextPlotData.XRangeCond == ImGuiCond_Always)
+    if (gp.NextPlotData.HasXBounds) {
+        if (just_created || gp.NextPlotData.XBoundsCond == ImGuiCond_Always)
         {
             plot.XAxis.Range = gp.NextPlotData.X;
         }
     }
 
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        if (gp.NextPlotData.HasYRange[i]) {
-            if (just_created || gp.NextPlotData.YRangeCond[i] == ImGuiCond_Always)
+        if (gp.NextPlotData.HasYBounds[i]) {
+            if (just_created || gp.NextPlotData.YBoundsCond[i] == ImGuiCond_Always)
             {
                 plot.YAxis[i].Range = gp.NextPlotData.Y[i];
             }
@@ -709,13 +709,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // AXIS STATES ------------------------------------------------------------
-    AxisState x(plot.XAxis, gp.NextPlotData.HasXRange, gp.NextPlotData.XRangeCond, true);
+    AxisState x(plot.XAxis, gp.NextPlotData.HasXBounds, gp.NextPlotData.XBoundsCond, true);
     AxisState y[MAX_Y_AXES] = {
-        {plot.YAxis[0], gp.NextPlotData.HasYRange[0], gp.NextPlotData.YRangeCond[0],
+        {plot.YAxis[0], gp.NextPlotData.HasYBounds[0], gp.NextPlotData.YBoundsCond[0],
          true},
-        {plot.YAxis[1], gp.NextPlotData.HasYRange[1], gp.NextPlotData.YRangeCond[1],
+        {plot.YAxis[1], gp.NextPlotData.HasYBounds[1], gp.NextPlotData.YBoundsCond[1],
          HasFlag(plot.Flags, ImPlotFlags_Y2Axis)},
-        {plot.YAxis[2], gp.NextPlotData.HasYRange[2], gp.NextPlotData.YRangeCond[2],
+        {plot.YAxis[2], gp.NextPlotData.HasYBounds[2], gp.NextPlotData.YBoundsCond[2],
          HasFlag(plot.Flags, ImPlotFlags_Y3Axis)},
     };
 
@@ -1397,12 +1397,12 @@ void EndPlot() {
 
     // AXIS STATES ------------------------------------------------------------
 
-    AxisState x(plot.XAxis, gp.NextPlotData.HasXRange, gp.NextPlotData.XRangeCond, true);
+    AxisState x(plot.XAxis, gp.NextPlotData.HasXBounds, gp.NextPlotData.XBoundsCond, true);
     AxisState y[MAX_Y_AXES] = {
-        {plot.YAxis[0], gp.NextPlotData.HasYRange[0], gp.NextPlotData.YRangeCond[0], true},
-        {plot.YAxis[1], gp.NextPlotData.HasYRange[1], gp.NextPlotData.YRangeCond[1],
+        {plot.YAxis[0], gp.NextPlotData.HasYBounds[0], gp.NextPlotData.YBoundsCond[0], true},
+        {plot.YAxis[1], gp.NextPlotData.HasYBounds[1], gp.NextPlotData.YBoundsCond[1],
          HasFlag(plot.Flags, ImPlotFlags_Y2Axis)},
-        {plot.YAxis[2], gp.NextPlotData.HasYRange[2], gp.NextPlotData.YRangeCond[2],
+        {plot.YAxis[2], gp.NextPlotData.HasYBounds[2], gp.NextPlotData.YBoundsCond[2],
          HasFlag(plot.Flags, ImPlotFlags_Y3Axis)}
     };
 
@@ -1622,24 +1622,24 @@ void EndPlot() {
 // MISC API
 //-----------------------------------------------------------------------------
 
-void SetNextPlotRange(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond) {
-    SetNextPlotRangeX(x_min, x_max, cond);
-    SetNextPlotRangeY(y_min, y_max, cond);
+void SetNextPlotBounds(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond) {
+    SetNextPlotBoundsX(x_min, x_max, cond);
+    SetNextPlotBoundsY(y_min, y_max, cond);
 }
 
-void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond) {
+void SetNextPlotBoundsX(float x_min, float x_max, ImGuiCond cond) {
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
-    gp.NextPlotData.HasXRange = true;
-    gp.NextPlotData.XRangeCond = cond;
+    gp.NextPlotData.HasXBounds = true;
+    gp.NextPlotData.XBoundsCond = cond;
     gp.NextPlotData.X.Min = x_min;
     gp.NextPlotData.X.Max = x_max;
 }
 
-void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond, int y_axis) {
+void SetNextPlotBoundsY(float y_min, float y_max, ImGuiCond cond, int y_axis) {
     IM_ASSERT(y_axis >= 0 && y_axis < MAX_Y_AXES);
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
-    gp.NextPlotData.HasYRange[y_axis] = true;
-    gp.NextPlotData.YRangeCond[y_axis] = cond;
+    gp.NextPlotData.HasYBounds[y_axis] = true;
+    gp.NextPlotData.YBoundsCond[y_axis] = cond;
     gp.NextPlotData.Y[y_axis].Min = y_min;
     gp.NextPlotData.Y[y_axis].Max = y_max;
 }

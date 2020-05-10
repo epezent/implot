@@ -239,11 +239,11 @@ void PopPlotStyleVar(int count = 1);
 //-----------------------------------------------------------------------------
 
 /// Set the axes ranges of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes will be locked.
-void SetNextPlotRange(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotBounds(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
 /// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
-void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotBoundsX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
 /// Set the Y axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
-void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+void SetNextPlotBoundsY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
 
 /// Select which Y axis will be used for subsequent plot elements.  The default is '0', or the first Y axis.
 void SetPlotYAxis(int);
