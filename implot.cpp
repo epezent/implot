@@ -801,9 +801,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                     HasFlag(plot.XAxis.Flags, ImAxisFlags_TickMarks) ||
                     HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels)) &&  plot.XAxis.Divisions > 1;
     for (int i = 0; i < MaxYAxes; i++) {
-        gp.RenderY[i] = (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_GridLines) || 
-                         HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks) || 
-                         HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) &&  plot.YAxis[0].Divisions > 1;
+        gp.RenderY[i] =
+                y[i].present &&
+                (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_GridLines) || 
+                 HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks) || 
+                 HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) &&  plot.YAxis[i].Divisions > 1;
     }
 
     // get ticks
@@ -821,7 +823,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     float max_label_width[MaxYAxes] = {};
     for (int i = 0; i < MaxYAxes; i++) {
-        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) {
+        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) {
             LabelTicks(gp.YTicks[i], HasFlag(plot.YAxis[i].Flags, ImAxisFlags_Scientific), gp.YTickLabels[i]);
             for (ImTick &yt : gp.YTicks[i]) {
                 max_label_width[i] = yt.Size.x > max_label_width[i] ? yt.Size.x : max_label_width[i];
@@ -847,7 +849,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     ImRect yAxisRegion_bb[MaxYAxes];
     yAxisRegion_bb[0] = ImRect({gp.BB_Frame.Min.x, gp.BB_Grid.Min.y}, gp.BB_Grid.Max - ImVec2(0, 10));
     // The auxiliary y axes are off to the right of the BB grid.
-    yAxisRegion_bb[1] = ImRect({gp.BB_Frame.Max.x, gp.BB_Grid.Min.y}, yAxisRegion_bb[0].Max + ImVec2(0, y_axis_pad(1)));
+    yAxisRegion_bb[1] = ImRect({gp.BB_Grid.Max.x, gp.BB_Grid.Min.y}, yAxisRegion_bb[0].Max + ImVec2(0, y_axis_pad(1)));
     yAxisRegion_bb[2] = ImRect({yAxisRegion_bb[1].Max.x, gp.BB_Grid.Min.y},
                                yAxisRegion_bb[1].Max + ImVec2(y_axis_pad(2), 0));
     
@@ -1167,7 +1169,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     for (int i = 0; i < MaxYAxes; i++) {
-        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_GridLines)) {
+        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImAxisFlags_GridLines)) {
             for (ImTick &yt : gp.YTicks[i])
                 DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Max.x, yt.PixelPos}, yt.Major ? gp.Col_Y[i].Major : gp.Col_Y[i].Minor, 1);
         }
@@ -1195,23 +1197,24 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                                 gp.BB_Canvas.Max.y - txt_height);
         DrawList.AddText(xLabel_pos, gp.Col_X.Txt, x_label);
     }
+    PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
     for (int i = 0; i < MaxYAxes; i++) {
-        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) {
-            PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
-            const auto x_pad = y_axis_pad(i);
+        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) {
+            const auto x_pad = y_axis_pad(i) +
+                               ((i == 0 && y_label) ? (txt_height + txt_off) : 0.0);
             for (ImTick &yt : gp.YTicks[i]) {
                 if (yt.RenderLabel && yt.PixelPos >= gp.BB_Grid.Min.y - 1 && yt.PixelPos <= gp.BB_Grid.Max.y + 1) {
                     const int x_start =
                             yAxisRegion_bb[i].Min.x +
                             ((i == 0) ?
-                             (x_pad - txt_off - yt.Size.x) : 0);
+                             (x_pad - yt.Size.x) : txt_off);
                     ImVec2 start(x_start, yt.PixelPos - 0.5f * yt.Size.y);
                     DrawList.AddText(start, gp.Col_Y[i].Txt, gp.YTickLabels[i].Buf.Data + yt.TextOffset);
                 }
             }
-            ImGui::PopClipRect();
         }
     }
+    ImGui::PopClipRect();
     if (y_label) {
         const ImVec2 yLabel_size = CalcTextSizeVertical(y_label);
         const ImVec2 yLabel_pos(gp.BB_Canvas.Min.x, gp.BB_Grid.GetCenter().y + yLabel_size.y * 0.5f);
@@ -1412,7 +1415,7 @@ void EndPlot() {
     }
     // TODO(jpieper): Render ticks from more Y axes.
     for (int i = 0; i < 1; i++) {
-        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks)) {
+        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks)) {
             for (ImTick &yt : gp.YTicks[i])
                 DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Min.x + (yt.Major ? 10.0f : 5.0f), yt.PixelPos}, gp.Col_Border, 1);
         }
