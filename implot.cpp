@@ -713,9 +713,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         {plot.YAxis[0], gp.NextPlotData.HasYRange[0], gp.NextPlotData.YRangeCond[0],
          true},
         {plot.YAxis[1], gp.NextPlotData.HasYRange[1], gp.NextPlotData.YRangeCond[1],
-         (flags & ImPlotFlags_Y2Axis) != 0},
+         HasFlag(plot.Flags, ImPlotFlags_Y2Axis)},
         {plot.YAxis[2], gp.NextPlotData.HasYRange[2], gp.NextPlotData.YRangeCond[2],
-         (flags & ImPlotFlags_Y3Axis) != 0},
+         HasFlag(plot.Flags, ImPlotFlags_Y3Axis)},
     };
 
     const bool lock_plot  = x.lock && y[0].lock && y[1].lock && y[2].lock;
@@ -1397,8 +1397,10 @@ void EndPlot() {
     AxisState x(plot.XAxis, gp.NextPlotData.HasXRange, gp.NextPlotData.XRangeCond, true);
     AxisState y[MaxYAxes] = {
         {plot.YAxis[0], gp.NextPlotData.HasYRange[0], gp.NextPlotData.YRangeCond[0], true},
-        {plot.YAxis[1], gp.NextPlotData.HasYRange[1], gp.NextPlotData.YRangeCond[1], true},
-        {plot.YAxis[2], gp.NextPlotData.HasYRange[2], gp.NextPlotData.YRangeCond[2], true}
+        {plot.YAxis[1], gp.NextPlotData.HasYRange[1], gp.NextPlotData.YRangeCond[1],
+         HasFlag(plot.Flags, ImPlotFlags_Y2Axis)},
+        {plot.YAxis[2], gp.NextPlotData.HasYRange[2], gp.NextPlotData.YRangeCond[2],
+         HasFlag(plot.Flags, ImPlotFlags_Y3Axis)}
     };
 
     const bool lock_plot  = x.lock && y[0].lock && y[1].lock && y[2].lock;
@@ -1412,11 +1414,25 @@ void EndPlot() {
         for (ImTick &xt : gp.XTicks)
             DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Max.y},{xt.PixelPos, gp.BB_Grid.Max.y - (xt.Major ? 10.0f : 5.0f)}, gp.Col_Border, 1);
     }
-    // TODO(jpieper): Render ticks from more Y axes.
-    for (int i = 0; i < 1; i++) {
-        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks)) {
-            for (ImTick &yt : gp.YTicks[i])
-                DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Min.x + (yt.Major ? 10.0f : 5.0f), yt.PixelPos}, gp.Col_Border, 1);
+    int axis_tick_count = 0;
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (!y[i].present) { continue; }
+
+        axis_tick_count++;
+        // We render ticks from at most the first two enabled Y
+        // axes, whether or not their ticks are enabled.
+        if (axis_tick_count > 2) { break; }
+
+        if (!HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks)) { continue; }
+
+        for (ImTick &yt : gp.YTicks[i]) {
+            ImVec2 start = (
+                    (i == 0) ? ImVec2(gp.BB_Grid.Min.x, yt.PixelPos) :
+                    ImVec2(gp.BB_Grid.Max.x, yt.PixelPos));
+
+            float direction = (i == 0) ? 1.0 : -1.0;
+
+            DrawList.AddLine(start, start + ImVec2(direction * (yt.Major ? 10.0f : 5.0f), 0), gp.Col_Border, 1);
         }
     }
 
