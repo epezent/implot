@@ -295,7 +295,7 @@ struct ImNextPlotData {
 struct ImPlotContext {
     ImPlotContext() {
         CurrentPlot = NULL;
-        FitThisFrame = FitX = FitY = false;
+        FitThisFrame = FitX = false;
         RestorePlotPalette();
     }
 
@@ -325,8 +325,8 @@ struct ImPlotContext {
     AxisColor Col_Y[MaxYAxes];
     // Tick marks
     // TODO(jpieper): Support multiple yticks
-    ImVector<ImTick> XTicks,  YTicks;
-    ImGuiTextBuffer XTickLabels, YTickLabels;
+    ImVector<ImTick> XTicks,  YTicks[MaxYAxes];
+    ImGuiTextBuffer XTickLabels, YTickLabels[MaxYAxes];
     // Transformation cache
     ImRect PixelRange;
     // linear scale (slope)
@@ -339,12 +339,13 @@ struct ImPlotContext {
     // Data extents
     // TODO(jpieper): This needs to have separate Y extents for each y axis.
     ImRect Extents;
-    bool FitThisFrame; bool FitX; bool FitY;
+    bool FitThisFrame; bool FitX;
+    bool FitY[MaxYAxes] = {};
     int VisibleItemCount;
     // Render flags
-    bool RenderX, RenderY;
+    bool RenderX = {}, RenderY[MaxYAxes] = {};
     // Mouse pos
-    ImVec2 LastMousePos;
+    ImVec2 LastMousePos[MaxYAxes];
     // Style
     ImVector<ImVec4> ColorMap;
     ImPlotStyle Style;
@@ -401,9 +402,9 @@ inline void UpdateTransformCache() {
     }
 }
 
-inline ImVec2 PixelsToPlot(float x, float y) {
+inline ImVec2 PixelsToPlot(float x, float y, int y_axis_in = -1) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() Needs to be called between BeginPlot() and EndPlot()!");
-    const int y_axis = gp.CurrentPlot->CurrentYAxis;
+    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 plt;
     plt.x = (x - gp.PixelRange.Min.x) / gp.Mx + gp.CurrentPlot->XAxis.Bounds.Min;
     plt.y = (y - gp.PixelRange.Min.y) / gp.My[y_axis] + gp.CurrentPlot->YAxis[y_axis].Bounds.Min;
@@ -418,9 +419,9 @@ inline ImVec2 PixelsToPlot(float x, float y) {
     return plt;
 }
 
-inline ImVec2 PlotToPixels(float x, float y) {
+inline ImVec2 PlotToPixels(float x, float y, int y_axis_in = -1) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() Needs to be called between BeginPlot() and EndPlot()!");
-    const auto y_axis = gp.CurrentPlot->CurrentYAxis;
+    const auto y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 pix;
     if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_LogScale)) {
         float t = log10(x / gp.CurrentPlot->XAxis.Bounds.Min) / gp.LogDenX;
@@ -435,12 +436,12 @@ inline ImVec2 PlotToPixels(float x, float y) {
     return pix;
 }
 
-ImVec2 PixelsToPlot(const ImVec2& pix) {
-    return PixelsToPlot(pix.x, pix.y);
+ImVec2 PixelsToPlot(const ImVec2& pix, int y_axis) {
+    return PixelsToPlot(pix.x, pix.y, y_axis);
 }
 
-ImVec2 PlotToPixels(const ImVec2& plt) {
-    return PlotToPixels(plt.x, plt.y);
+ImVec2 PlotToPixels(const ImVec2& plt, int y_axis) {
+    return PlotToPixels(plt.x, plt.y, y_axis);
 }
 
 struct Plt2PixLinLin {
@@ -767,26 +768,33 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.RenderX = (HasFlag(plot.XAxis.Flags, ImAxisFlags_GridLines) ||
                     HasFlag(plot.XAxis.Flags, ImAxisFlags_TickMarks) ||
                     HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels)) &&  plot.XAxis.Divisions > 1;
-    // TODO(jpieper): Render more y axes.
-    gp.RenderY = (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_GridLines) || 
-                    HasFlag(plot.YAxis[0].Flags, ImAxisFlags_TickMarks) || 
-                    HasFlag(plot.YAxis[0].Flags, ImAxisFlags_TickLabels)) &&  plot.YAxis[0].Divisions > 1;
+    for (int i = 0; i < MaxYAxes; i++) {
+        gp.RenderY[i] = (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_GridLines) || 
+                         HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks) || 
+                         HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) &&  plot.YAxis[0].Divisions > 1;
+    }
 
     // get ticks
     if (gp.RenderX)
         GetTicks(plot.XAxis.Bounds, plot.XAxis.Divisions, plot.XAxis.Subdivisions, HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale), gp.XTicks);
-    if (gp.RenderY)
-        GetTicks(plot.YAxis[0].Bounds, plot.YAxis[0].Divisions, plot.YAxis[0].Subdivisions, HasFlag(plot.YAxis[0].Flags, ImAxisFlags_LogScale), gp.YTicks);
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (gp.RenderY[i]) {
+            GetTicks(plot.YAxis[i].Bounds, plot.YAxis[i].Divisions, plot.YAxis[i].Subdivisions, HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale), gp.YTicks[i]);
+        }
+    }
 
     // label ticks
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels))
         LabelTicks(gp.XTicks, HasFlag(plot.XAxis.Flags, ImAxisFlags_Scientific), gp.XTickLabels);
 
-    float max_label_width = 0;
-    if (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_TickLabels)) {
-        LabelTicks(gp.YTicks, HasFlag(plot.YAxis[0].Flags, ImAxisFlags_Scientific), gp.YTickLabels);
-        for (ImTick &yt : gp.YTicks)
-            max_label_width = yt.Size.x > max_label_width ? yt.Size.x : max_label_width;
+    float max_label_width[MaxYAxes] = {};
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) {
+            LabelTicks(gp.YTicks[i], HasFlag(plot.YAxis[i].Flags, ImAxisFlags_Scientific), gp.YTickLabels[i]);
+            for (ImTick &yt : gp.YTicks[i]) {
+                max_label_width[i] = yt.Size.x > max_label_width[i] ? yt.Size.x : max_label_width[i];
+            }
+        }
     }
 
     // grid bb
@@ -795,15 +803,33 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const float txt_height  = GetTextLineHeight();
     const float pad_top     = title_size.x > 0.0f ? txt_height + txt_off : 0;
     const float pad_bot     = (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels) ? txt_height + txt_off : 0) + (x_label ? txt_height + txt_off : 0);
-    const float pad_left    = (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_TickLabels) ? max_label_width + txt_off : 0) + (y_label ? txt_height + txt_off : 0);
-    gp.BB_Grid            = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(0, pad_bot));
+    auto y_axis_pad = [&](int axis) -> float {
+        if (!y[axis].present) { return 0; }
+        if (!HasFlag(plot.YAxis[axis].Flags, ImAxisFlags_TickLabels)) { return 0; }
+        return max_label_width[axis] + txt_off;
+    };
+    const float pad_left    = y_axis_pad(0) + (y_label ? txt_height + txt_off : 0);
+    const float pad_right   = y_axis_pad(1) + y_axis_pad(2);
+    gp.BB_Grid            = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(pad_right, pad_bot));
     gp.Hov_Grid           = gp.BB_Grid.Contains(IO.MousePos);
 
     // axis region bbs
     const ImRect xAxisRegion_bb(gp.BB_Grid.Min + ImVec2(10, 0), {gp.BB_Grid.Max.x, gp.BB_Frame.Max.y});
     const bool   hov_x_axis_region = xAxisRegion_bb.Contains(IO.MousePos);
-    const ImRect yAxisRegion_bb({gp.BB_Frame.Min.x, gp.BB_Grid.Min.y}, gp.BB_Grid.Max - ImVec2(0, 10));
-    const bool   hov_y_axis_region = yAxisRegion_bb.Contains(IO.MousePos);
+    ImRect yAxisRegion_bb[MaxYAxes];
+    yAxisRegion_bb[0] = ImRect({gp.BB_Frame.Min.x, gp.BB_Grid.Min.y}, gp.BB_Grid.Max - ImVec2(0, 10));
+    // The auxiliary y axes are off to the right of the BB grid.
+    yAxisRegion_bb[1] = ImRect({gp.BB_Frame.Max.x, gp.BB_Grid.Min.y}, yAxisRegion_bb[0].Max + ImVec2(0, y_axis_pad(1)));
+    yAxisRegion_bb[2] = ImRect({yAxisRegion_bb[1].Max.x, gp.BB_Grid.Min.y},
+                               yAxisRegion_bb[1].Max + ImVec2(y_axis_pad(2), 0));
+    
+    const bool hov_y_axis_region[MaxYAxes] = {
+        yAxisRegion_bb[0].Contains(IO.MousePos),
+        yAxisRegion_bb[1].Contains(IO.MousePos),
+        yAxisRegion_bb[2].Contains(IO.MousePos),
+    };
+    const bool any_hov_y_axis_region =
+            hov_y_axis_region[0] || hov_y_axis_region[1] || hov_y_axis_region[2];
 
     // legend hovered from last frame
     const bool hov_legend = HasFlag(plot.Flags, ImPlotFlags_Legend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;   
@@ -867,9 +893,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.XAxis.Dragging             = false;
         G.IO.MouseDragMaxDistanceSqr[0] = 0; 
     }
-    if (plot.YAxis[0].Dragging && (IO.MouseReleased[0] || !IO.MouseDown[0])) {
-        plot.YAxis[0].Dragging             = false;
-        G.IO.MouseDragMaxDistanceSqr[0] = 0;
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (plot.YAxis[i].Dragging && (IO.MouseReleased[0] || !IO.MouseDown[0])) {
+            plot.YAxis[i].Dragging             = false;
+            G.IO.MouseDragMaxDistanceSqr[0] = 0;
+        }
     }
     // do drag
     const bool any_y_dragging = [&]() {
@@ -878,6 +906,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
         return false;
     }();
+
+    // TODO(jpieper): Re-evaluate this.
     if (plot.XAxis.Dragging || any_y_dragging) {
         UpdateTransformCache();
         ImVec2 plot_tl = PixelsToPlot(gp.BB_Grid.Min - IO.MouseDelta);
@@ -922,33 +952,46 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     // start drag
-    if (gp.Hov_Frame && hov_x_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
-        plot.XAxis.Dragging = true;
-    for (int i = 0; i < 1; i++) {  // Only drag first axis for now
-        // TODO(jpieper): Provide for separate scroll regions for each y axis?
-        if (gp.Hov_Frame && hov_y_axis_region && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery)
-            plot.YAxis[i].Dragging = true;
+    if (gp.Hov_Frame && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
+        if (hov_x_axis_region) {
+            plot.XAxis.Dragging = true;
+        }
+        for (int i = 0; i < MaxYAxes; i++) {
+            if (hov_y_axis_region[i]) {
+                plot.YAxis[i].Dragging = true;
+            }
+        }
     }
 
     // SCROLL INPUT -----------------------------------------------------------
 
-    if (gp.Hov_Frame && (hov_x_axis_region || hov_y_axis_region) && IO.MouseWheel != 0) {
+    if (gp.Hov_Frame && (hov_x_axis_region || any_hov_y_axis_region) && IO.MouseWheel != 0) {
         UpdateTransformCache();
         float zoom_rate = 0.1f;
         if (IO.MouseWheel > 0) 
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));  
         float tx = Remap(IO.MousePos.x, gp.BB_Grid.Min.x, gp.BB_Grid.Max.x, 0, 1);
         float ty = Remap(IO.MousePos.y, gp.BB_Grid.Min.y, gp.BB_Grid.Max.y, 0, 1);
-        ImVec2 plot_tl = PixelsToPlot(gp.BB_Grid.Min - gp.BB_Grid.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate));
-        ImVec2 plot_br = PixelsToPlot(gp.BB_Grid.Max + gp.BB_Grid.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate));
+        struct PlotResult {
+            ImVec2 first;
+            ImVec2 second;
+        };
+        auto make_plot = [&](int axis) -> PlotResult {
+            return {
+                PixelsToPlot(gp.BB_Grid.Min - gp.BB_Grid.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), axis),
+                PixelsToPlot(gp.BB_Grid.Max + gp.BB_Grid.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), axis),
+            };
+        };
         if (hov_x_axis_region && !x.lock) {
+            auto [plot_tl, plot_br] = make_plot(0); 
             if (!x.lock_min)
                 plot.XAxis.Bounds.Min = x.flip ? plot_br.x : plot_tl.x;
             if (!x.lock_max)
                 plot.XAxis.Bounds.Max = x.flip ? plot_tl.x : plot_br.x;
         }
         for (int i = 0; i < MaxYAxes; i++) {
-            if (hov_y_axis_region && !y[i].lock) {
+            if (hov_y_axis_region[i] && !y[i].lock) {
+                auto [plot_tl, plot_br] = make_plot(i);
                 if (!y[i].lock_min)
                     plot.YAxis[i].Bounds.Min = y[i].flip ? plot_tl.y : plot_br.y;
                 if (!y[i].lock_max)
@@ -1046,15 +1089,19 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     
     // DOUBLE CLICK -----------------------------------------------------------
 
-    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && (hov_x_axis_region || hov_y_axis_region) && !hov_legend && !hov_query) {
+    if ( IO.MouseDoubleClicked[0] && gp.Hov_Frame && (hov_x_axis_region || any_hov_y_axis_region) && !hov_legend && !hov_query) {
         gp.FitThisFrame = true;
         gp.FitX = hov_x_axis_region;
-        gp.FitY = hov_y_axis_region;
+        for (int i = 0; i < MaxYAxes; i++) {
+            gp.FitY[i] = hov_y_axis_region[i];
+        }
     }
     else {
         gp.FitThisFrame = false;     
         gp.FitX = false;
-        gp.FitY = false;
+        for (int i = 0; i < MaxYAxes; i++) {
+            gp.FitY[i] = false;
+        }
     }
 
     // FOCUS ------------------------------------------------------------------
@@ -1066,7 +1113,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     UpdateTransformCache();
 
     // set mouse position
-    gp.LastMousePos = PixelsToPlot(IO.MousePos);
+    for (int i = 0; i < MaxYAxes; i++) {
+        gp.LastMousePos[i] = PixelsToPlot(IO.MousePos, i);
+    }
 
     // RENDER -----------------------------------------------------------------
 
@@ -1077,14 +1126,15 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     PushPlotClipRect();
 
     // transform ticks
-    // TODO(jpieper): Support multiple Y axes ticks
     if (gp.RenderX) {
         for (ImTick& xt : gp.XTicks)
-            xt.PixelPos = PlotToPixels((float)xt.PlotPos, 0).x;
+            xt.PixelPos = PlotToPixels((float)xt.PlotPos, 0, 0).x;
     }
-    if (gp.RenderY) {
-        for (ImTick& yt : gp.YTicks)
-            yt.PixelPos = PlotToPixels(0, (float)yt.PlotPos).y;
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (gp.RenderY[i]) {
+            for (ImTick& yt : gp.YTicks[i])
+                yt.PixelPos = PlotToPixels(0, (float)yt.PlotPos, i).y;
+        }
     }
 
     // render grid
@@ -1095,7 +1145,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     for (int i = 0; i < MaxYAxes; i++) {
         if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_GridLines)) {
-            for (ImTick &yt : gp.YTicks)
+            for (ImTick &yt : gp.YTicks[i])
                 DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Max.x, yt.PixelPos}, yt.Major ? gp.Col_Y[i].Major : gp.Col_Y[i].Minor, 1);
         }
     }
@@ -1122,13 +1172,22 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                                 gp.BB_Canvas.Max.y - txt_height);
         DrawList.AddText(xLabel_pos, gp.Col_X.Txt, x_label);
     }
-    if (HasFlag(plot.YAxis[0].Flags, ImAxisFlags_TickLabels)) {
-        PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
-        for (ImTick &yt : gp.YTicks) {
-            if (yt.RenderLabel && yt.PixelPos >= gp.BB_Grid.Min.y - 1 && yt.PixelPos <= gp.BB_Grid.Max.y + 1)
-                DrawList.AddText({gp.BB_Grid.Min.x - txt_off - yt.Size.x, yt.PixelPos - 0.5f * yt.Size.y}, gp.Col_Y[0].Txt, gp.YTickLabels.Buf.Data + yt.TextOffset);
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) {
+            PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
+            const auto x_pad = y_axis_pad(i);
+            for (ImTick &yt : gp.YTicks[i]) {
+                if (yt.RenderLabel && yt.PixelPos >= gp.BB_Grid.Min.y - 1 && yt.PixelPos <= gp.BB_Grid.Max.y + 1) {
+                    const int x_start =
+                            yAxisRegion_bb[i].Min.x +
+                            ((i == 0) ?
+                             (x_pad - txt_off - yt.Size.x) : 0);
+                    ImVec2 start(x_start, yt.PixelPos - 0.5f * yt.Size.y);
+                    DrawList.AddText(start, gp.Col_Y[i].Txt, gp.YTickLabels[i].Buf.Data + yt.TextOffset);
+                }
+            }
+            ImGui::PopClipRect();
         }
-        ImGui::PopClipRect();
     }
     if (y_label) {
         const ImVec2 yLabel_size = CalcTextSizeVertical(y_label);
@@ -1211,12 +1270,27 @@ void PlotContextMenu(ImPlot& plot) {
         PopID();
         ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu("Y-Axis")) {
-        PushID("Y");      
-        AxisMenu(plot.YAxis[0]);
-        PopID();
-        ImGui::EndMenu();
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (i == 1 && !HasFlag(plot.Flags, ImPlotFlags_Y2Axis)) {
+            continue;
+        }
+        if (i == 2 && !HasFlag(plot.Flags, ImPlotFlags_Y3Axis)) {
+            continue;
+        }
+        char buf[10] = {};
+        if (i == 0) {
+            snprintf(buf, sizeof(buf) - 1, "Y-Axis");
+        } else {
+            snprintf(buf, sizeof(buf) - 1, "Y-Axis %d", i + 1);
+        }
+        if (ImGui::BeginMenu(buf)) {
+            PushID(i);      
+            AxisMenu(plot.YAxis[i]);
+            PopID();
+            ImGui::EndMenu();
+        }
     }
+    
     ImGui::Separator();
     if ((ImGui::BeginMenu("Settings"))) {
         if (ImGui::MenuItem("Box Select",NULL,HasFlag(plot.Flags, ImPlotFlags_Selection))) {
@@ -1289,9 +1363,10 @@ void EndPlot() {
         for (ImTick &xt : gp.XTicks)
             DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Max.y},{xt.PixelPos, gp.BB_Grid.Max.y - (xt.Major ? 10.0f : 5.0f)}, gp.Col_Border, 1);
     }
-    for (int i = 0; i < MaxYAxes; i++) {
+    // TODO(jpieper): Render ticks from more Y axes.
+    for (int i = 0; i < 1; i++) {
         if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks)) {
-            for (ImTick &yt : gp.YTicks)
+            for (ImTick &yt : gp.YTicks[i])
                 DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Min.x + (yt.Major ? 10.0f : 5.0f), yt.PixelPos}, gp.Col_Border, 1);
         }
     }
@@ -1413,10 +1488,18 @@ void EndPlot() {
 
     // render mouse pos
     if (HasFlag(plot.Flags, ImPlotFlags_MousePos) && gp.Hov_Grid) {
-        // TODO(jpieper): Fix unsafe sprintf
-        // TODO(jpieper): Support multiplex y axes.
-        static char buffer[128];
-        sprintf(buffer, "%.2f,%.2f", gp.LastMousePos.x, gp.LastMousePos.y);
+        static char buffer[128] = {};
+        int offset = 0;
+        auto write = [&](auto ...args) {
+            offset += snprintf(&buffer[offset], sizeof(buffer) - offset - 1, args...);
+        };
+        write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
+        if (HasFlag(plot.Flags, ImPlotFlags_Y2Axis)) {
+            write(",%.2f", gp.LastMousePos[1].y);
+        }
+        if (HasFlag(plot.Flags, ImPlotFlags_Y3Axis)) {
+            write(",%.2f", gp.LastMousePos[2].y);
+        }
         ImVec2 size = CalcTextSize(buffer);
         ImVec2 pos  = gp.BB_Grid.Max - size - ImVec2(5, 5);
         DrawList.AddText(pos, gp.Col_Txt, buffer);
@@ -1435,9 +1518,9 @@ void EndPlot() {
         if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.x))
             plot.XAxis.Bounds.Max = gp.Extents.Max.x;
         for (int i = 0; i < MaxYAxes; i++) {
-            if (gp.FitY && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.Extents.Min.y))
+            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.Extents.Min.y))
                 plot.YAxis[i].Bounds.Min = gp.Extents.Min.y;
-            if (gp.FitY && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.y))
+            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.y))
                 plot.YAxis[i].Bounds.Max = gp.Extents.Max.y;
         }
     }
@@ -1520,19 +1603,22 @@ bool IsPlotHovered() {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotHovered() Needs to be called between BeginPlot() and EndPlot()!");
     return gp.Hov_Grid; 
 }
-ImVec2 GetPlotMousePos() { 
+ImVec2 GetPlotMousePos(int y_axis_in) { 
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotMousePos() Needs to be called between BeginPlot() and EndPlot()!");
-    return gp.LastMousePos; 
+    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+    return gp.LastMousePos[y_axis]; 
 }
 
 
-ImPlotRange GetPlotRange() {
+ImPlotRange GetPlotRange(int y_axis_in) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotRange() Needs to be called between BeginPlot() and EndPlot()!");
+    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+
     ImPlot& plot = *gp.CurrentPlot;
     ImPlotRange range;
     range.X = plot.XAxis.Bounds;
     // TODO(jpieper): Needs to support multiple y axes.
-    range.Y = plot.YAxis[0].Bounds;
+    range.Y = plot.YAxis[y_axis].Bounds;
     return range;
 }
 
@@ -1712,7 +1798,7 @@ inline void MarkerGeneral(ImDrawList& DrawList, ImVec2* points, int n, const ImV
     }
 }
 
-inline void MakerCircle(ImDrawList& DrawList, const ImVec2& c, float s, bool outline, ImU32 col_outline, bool fill, ImU32 col_fill, float weight) {
+inline void MarkerCircle(ImDrawList& DrawList, const ImVec2& c, float s, bool outline, ImU32 col_outline, bool fill, ImU32 col_fill, float weight) {
     ImVec2 marker[10] = {{1.0f, 0.0f},
                          {0.809017f, 0.58778524f},
                          {0.30901697f, 0.95105654f},
@@ -1788,7 +1874,7 @@ int idx = offset;
         if (!cull || gp.BB_Grid.Contains(c)) {
             // TODO: Optimize the loop and if statements, this is atrocious
             if (HasFlag(gp.Style.Marker, ImMarker_Circle)) 
-                MakerCircle(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);       
+                MarkerCircle(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);
             if (HasFlag(gp.Style.Marker, ImMarker_Square))
                 MarkerSquare(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);     
             if (HasFlag(gp.Style.Marker, ImMarker_Diamond)) 
