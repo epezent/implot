@@ -104,7 +104,7 @@ inline float Remap(float x, float x0, float x1, float y0, float y1) {
 
 /// Turns NANs to 0s
 inline float ConstrainNan(float val) {
-    return val == NAN || val == -NAN ? 0 : val;
+    return isnan(val) ? 0 : val;
 }
 
 /// Turns INFINITYs to FLT_MAXs
@@ -119,7 +119,7 @@ inline float ConstrainLog(float val) {
 
 /// Returns true if val is NAN or INFINITY
 inline bool NanOrInf(float val) {
-    return val == INFINITY || val == NAN || val == -INFINITY  || val == -NAN;
+    return val == INFINITY || val == -INFINITY || isnan(val);
 }
 
 /// Utility function to that rounds x to powers of 2,5 and 10 for generating axis labels
