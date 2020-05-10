@@ -1561,10 +1561,10 @@ void EndPlot() {
 
         writer.Write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
         if (HasFlag(plot.Flags, ImPlotFlags_Y2Axis)) {
-            writer.Write(",%.2f", gp.LastMousePos[1].y);
+            writer.Write(", (%.2f)", gp.LastMousePos[1].y);
         }
         if (HasFlag(plot.Flags, ImPlotFlags_Y3Axis)) {
-            writer.Write(",%.2f", gp.LastMousePos[2].y);
+            writer.Write(", (%.2f)", gp.LastMousePos[2].y);
         }
         ImVec2 size = CalcTextSize(buffer);
         ImVec2 pos  = gp.BB_Grid.Max - size - ImVec2(5, 5);
