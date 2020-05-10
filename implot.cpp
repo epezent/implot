@@ -325,7 +325,6 @@ struct ImPlotContext {
     AxisColor Col_X;
     AxisColor Col_Y[MaxYAxes];
     // Tick marks
-    // TODO(jpieper): Support multiple yticks
     ImVector<ImTick> XTicks,  YTicks[MaxYAxes];
     ImGuiTextBuffer XTickLabels, YTickLabels[MaxYAxes];
     // Transformation cache
@@ -1680,7 +1679,6 @@ ImPlotRange GetPlotRange(int y_axis_in) {
     ImPlot& plot = *gp.CurrentPlot;
     ImPlotRange range;
     range.X = plot.XAxis.Bounds;
-    // TODO(jpieper): Needs to support multiple y axes.
     range.Y = plot.YAxis[y_axis].Bounds;
     return range;
 }
