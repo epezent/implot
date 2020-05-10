@@ -402,12 +402,12 @@ void ShowImPlotDemoWindow(bool* p_open) {
 
             if (y2_axis) {
                 ImGui::SetPlotYAxis(1);
-                ImGui::Plot("f(x) = cos(x)*.2+.5", xs, ys2, 1001);
+                ImGui::Plot("f(x) = cos(x)*.2+.5 (Y2)", xs, ys2, 1001);
             }
 
             if (y3_axis) {
                 ImGui::SetPlotYAxis(2);
-                ImGui::Plot("f(x) = sin(x+.5)*100+200", xs, ys3, 1001);
+                ImGui::Plot("f(x) = sin(x+.5)*100+200 (Y3)", xs, ys3, 1001);
             }
 
             ImGui::EndPlot();
