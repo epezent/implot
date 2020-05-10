@@ -148,7 +148,8 @@ namespace ImGui {
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }"". #title_id must
 // be unique. If you need to avoid ID collisions or don't want to display a
 // title in the plot, use double hashes (e.g. "MyPlot##Hidden"). If #x_label
-// and/or #y_label are provided, axes labels will be displayed.
+// and/or #y_label are provided, axes labels will be displayed. Axis flags are
+// only set ONCE during the first call to BeginPlot.
 bool BeginPlot(const char* title_id, 
                const char* x_label = NULL, 
                const char* y_label = NULL, 
