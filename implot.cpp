@@ -727,7 +727,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.Col_Bg     = gp.Style.Colors[ImPlotCol_PlotBg].w      == -1 ? GetColorU32(ImGuiCol_WindowBg)   : GetColorU32(gp.Style.Colors[ImPlotCol_PlotBg]);
     gp.Col_Border = gp.Style.Colors[ImPlotCol_PlotBorder].w  == -1 ? GetColorU32(ImGuiCol_Text, 0.5f) : GetColorU32(gp.Style.Colors[ImPlotCol_PlotBorder]);
 
-    auto update_axis_color = [&](auto axis_flag, auto* col) {
+    auto update_axis_color = [&](int axis_flag, ImPlotContext::AxisColor* col) {
         const ImVec4 col_Axis = gp.Style.Colors[axis_flag].w == -1 ? ImGui::GetStyle().Colors[ImGuiCol_Text] * ImVec4(1, 1, 1, 0.25f) : gp.Style.Colors[axis_flag];
         col->Major = GetColorU32(col_Axis);
         col->Minor = GetColorU32(col_Axis * ImVec4(1, 1, 1, 0.25f));
