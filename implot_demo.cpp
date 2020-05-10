@@ -394,7 +394,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::SetNextPlotBounds(0.1f, 100, 0, 10);
         ImGui::SetNextPlotBoundsY(0, 1, ImGuiCond_Once, 1);
         ImGui::SetNextPlotBoundsY(0, 300, ImGuiCond_Once, 2);
-        if (ImGui::BeginPlot("Multi-Axis Plot", NULL, NULL, ImVec2(-1,-1),
+        if (ImGui::BeginPlot("Multi-Axis Plot", NULL, NULL, ImVec2(-1,300),
                              ImPlotFlags_Default |
                              (y2_axis ? ImPlotFlags_Y2Axis : 0) |
                              (y3_axis ? ImPlotFlags_Y3Axis : 0))) {
