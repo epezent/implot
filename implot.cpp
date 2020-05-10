@@ -671,13 +671,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     plot.CurrentYAxis = 0;
 
-    if (just_created) {
-        plot.Flags       = flags;
-        plot.XAxis.Flags = x_flags;
-        plot.YAxis[0].Flags = y_flags;
-        plot.YAxis[1].Flags = y2_flags;
-        plot.YAxis[2].Flags = y3_flags;
-    }
+    plot.Flags       = flags;
+    plot.XAxis.Flags = x_flags;
+    plot.YAxis[0].Flags = y_flags;
+    plot.YAxis[1].Flags = y2_flags;
+    plot.YAxis[2].Flags = y3_flags;
 
     // capture scroll with a child region
     if (!HasFlag(plot.Flags, ImPlotFlags_NoChild)) {

@@ -380,24 +380,41 @@ void ShowImPlotDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Multiple Y Axes")) {
-        static float xs[1001], ys1[1001], ys2[1001];
+        static float xs[1001], ys1[1001], ys2[1001], ys3[1001];
+        static bool y2_axis = true;
+        static bool y3_axis = false;
+        
         for (int i = 0; i < 1001; ++i) {
             xs[i] = (float)(i*0.1f);
             ys1[i] = sin(xs[i]) * 3 + 1;
             ys2[i] = cos(xs[i]) * 0.2 + 0.5;
+            ys3[i] = sin(xs[i]+.5) * 100 + 200;
         }
         ImGui::SetNextPlotRange(0.1f, 100, 0, 10);
         ImGui::SetNextPlotRangeY(0, 1, ImGuiCond_Once, 1);
+        ImGui::SetNextPlotRangeY(0, 300, ImGuiCond_Once, 2);
         if (ImGui::BeginPlot("Multi-Axis Plot", NULL, NULL, ImVec2(-1,-1),
-                             ImPlotFlags_Default | ImPlotFlags_Y2Axis)) {
+                             ImPlotFlags_Default |
+                             (y2_axis ? ImPlotFlags_Y2Axis : 0) |
+                             (y3_axis ? ImPlotFlags_Y3Axis : 0))) {
             ImGui::Plot("f(x) = x", xs, xs, 1001);
             ImGui::Plot("f(x) = sin(x)*3+1", xs, ys1, 1001);
 
-            ImGui::SetPlotYAxis(1);
-            ImGui::Plot("f(x) = cos(x)*.2+.5", xs, ys2, 1001);
+            if (y2_axis) {
+                ImGui::SetPlotYAxis(1);
+                ImGui::Plot("f(x) = cos(x)*.2+.5", xs, ys2, 1001);
+            }
+
+            if (y3_axis) {
+                ImGui::SetPlotYAxis(2);
+                ImGui::Plot("f(x) = sin(x+.5)*100+200", xs, ys3, 1001);
+            }
 
             ImGui::EndPlot();
         }
+        ImGui::Checkbox("Y2 Axis", &y2_axis);
+        ImGui::SameLine();
+        ImGui::Checkbox("Y3 Axis", &y3_axis);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
