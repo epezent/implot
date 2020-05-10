@@ -71,19 +71,19 @@ ImPlotStyle::ImPlotStyle() {
     Colors[ImPlotCol_Query]         = ImVec4(0,1,0,1);
 }
 
-ImPlotBounds::ImPlotBounds() : Min(NAN), Max(NAN) {}
+ImPlotRange::ImPlotRange() : Min(NAN), Max(NAN) {}
 
-bool ImPlotBounds::Contains(float v) const {
+bool ImPlotRange::Contains(float v) const {
     return v >= Min && v <= Max;
 }
 
-float ImPlotBounds::Range() const {
+float ImPlotRange::Range() const {
     return Max - Min;
 }
 
-ImPlotRange::ImPlotRange() {}
+ImPlotBounds::ImPlotBounds() {}
 
-bool ImPlotRange::Contains(const ImVec2& p) const {
+bool ImPlotBounds::Contains(const ImVec2& p) const {
     return X.Contains(p.x) && Y.Contains(p.y);
 }
 
@@ -246,7 +246,7 @@ struct ImPlotAxis {
     }
     float Range() { return Bounds.Range(); }
     bool Dragging;
-    ImPlotBounds Bounds;
+    ImPlotRange Bounds;
     int Divisions;
     int Subdivisions;
     ImAxisFlags Flags;
@@ -271,7 +271,7 @@ struct ImPlot {
     ImVec2 QueryStart;
     ImRect QueryRect; // relative to BB_grid!!
     bool DraggingQuery;
-    ImPlotRange QueryRange;
+    ImPlotBounds QueryRange;
 
     ImPlotAxis XAxis;
     ImPlotAxis YAxis[MAX_Y_AXES];
@@ -287,8 +287,8 @@ struct ImNextPlotData {
     ImGuiCond YRangeCond[MAX_Y_AXES];
     bool HasXRange;
     bool HasYRange[MAX_Y_AXES];
-    ImPlotBounds X;
-    ImPlotBounds Y[MAX_Y_AXES];
+    ImPlotRange X;
+    ImPlotRange Y[MAX_Y_AXES];
 };
 
 /// Holds Plot state information that must persist only between calls to BeginPlot()/EndPlot()
@@ -337,8 +337,8 @@ struct ImPlotContext {
     float LogDenY[MAX_Y_AXES];
 
     // Data extents
-    ImPlotBounds ExtentsX;
-    ImPlotBounds ExtentsY[MAX_Y_AXES];
+    ImPlotRange ExtentsX;
+    ImPlotRange ExtentsY[MAX_Y_AXES];
 
     bool FitThisFrame; bool FitX;
     bool FitY[MAX_Y_AXES] = {};
@@ -372,8 +372,8 @@ ImVec4 NextColor() {
 }
 
 inline void FitPoint(const ImVec2& p) {
-    ImPlotBounds* extents_x = &gp.ExtentsX;
-    ImPlotBounds* extents_y = &gp.ExtentsY[gp.CurrentPlot->CurrentYAxis];
+    ImPlotRange* extents_x = &gp.ExtentsX;
+    ImPlotRange* extents_y = &gp.ExtentsY[gp.CurrentPlot->CurrentYAxis];
     if (!NanOrInf(p.x)) {
         extents_x->Min = p.x < extents_x->Min ? p.x : extents_x->Min;
         extents_x->Max = p.x > extents_x->Max ? p.x : extents_x->Max;
@@ -539,7 +539,7 @@ const char* GetLegendLabel(int i) {
 // Tick Utils
 //-----------------------------------------------------------------------------
 
-inline void GetTicks(const ImPlotBounds& scale, int nMajor, int nMinor, bool logscale, ImVector<ImTick> &out) {
+inline void GetTicks(const ImPlotRange& scale, int nMajor, int nMinor, bool logscale, ImVector<ImTick> &out) {
     out.shrink(0);
     if (logscale) {
         if (scale.Min <= 0 || scale.Max <= 0)
@@ -1085,13 +1085,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
         else {
             plot.Queried = false;
-            plot.QueryRange = ImPlotRange();
+            plot.QueryRange = ImPlotBounds();
         }
     }
     // begin query
     if ((gp.Hov_Frame && gp.Hov_Grid && IO.MouseClicked[2])) {
         plot.QueryRect = ImRect(0,0,0,0);
-        plot.QueryRange = ImPlotRange();
+        plot.QueryRange = ImPlotBounds();
         plot.Querying = true;
         plot.Queried  = true;
         plot.QueryStart = IO.MousePos;
@@ -1100,7 +1100,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (plot.Selecting && IO.KeyCtrl) {
         plot.Selecting = false;
         plot.QueryRect = ImRect(0,0,0,0);
-        plot.QueryRange = ImPlotRange();
+        plot.QueryRange = ImPlotBounds();
         plot.Querying = true;
         plot.Queried  = true;
         plot.QueryStart = plot.SelectStart;
@@ -1110,7 +1110,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.Querying = false;
         plot.Queried = false;
         plot.QueryRect = ImRect(0,0,0,0);
-        plot.QueryRange = ImPlotRange();
+        plot.QueryRange = ImPlotBounds();
     }
     
     // DOUBLE CLICK -----------------------------------------------------------
@@ -1681,12 +1681,12 @@ ImVec2 GetPlotMousePos(int y_axis_in) {
 }
 
 
-ImPlotRange GetPlotRange(int y_axis_in) {
+ImPlotBounds GetPlotRange(int y_axis_in) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotRange() Needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
 
     ImPlot& plot = *gp.CurrentPlot;
-    ImPlotRange range;
+    ImPlotBounds range;
     range.X = plot.XAxis.Bounds;
     range.Y = plot.YAxis[y_axis].Bounds;
     return range;
@@ -1697,7 +1697,7 @@ bool IsPlotQueried() {
     return gp.CurrentPlot->Queried;
 }
 
-ImPlotRange GetPlotQuery() {
+ImPlotBounds GetPlotQuery() {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() Needs to be called between BeginPlot() and EndPlot()!");
     ImPlot& plot = *gp.CurrentPlot;
     if (HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {

@@ -112,17 +112,17 @@ enum ImMarker_ {
     ImMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
-struct ImPlotBounds {
+struct ImPlotRange {
     float Min, Max;
-    ImPlotBounds();
+    ImPlotRange();
     bool Contains(float) const;
     float Range() const;
 };
 
 /// Plot range utility struct
-struct ImPlotRange {
-    ImPlotBounds X, Y;
-    ImPlotRange();
+struct ImPlotBounds {
+    ImPlotRange X, Y;
+    ImPlotBounds();
     bool Contains(const ImVec2& p) const;
 };
 
@@ -202,11 +202,11 @@ bool IsPlotHovered();
 /// Returns the mouse position in x,y coordinates of the current or most recent plot.
 ImVec2 GetPlotMousePos(int y_axis = -1);
 /// Returns the current or most recent plot axis range.
-ImPlotRange GetPlotRange(int y_axis = -1);
+ImPlotBounds GetPlotRange(int y_axis = -1);
 /// Returns true if the current or most recent plot is being queried.
 bool IsPlotQueried();
 /// Returns the current or most recent plot querey range.
-ImPlotRange GetPlotQuery();
+ImPlotBounds GetPlotQuery();
 
 //-----------------------------------------------------------------------------
 // Plot Styling

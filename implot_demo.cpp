@@ -423,7 +423,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::BulletText("Middle click (or Ctrl + right click) and drag to query points.");
         ImGui::BulletText("Hold the Alt and/or Shift keys to expand the query range.");
         static ImVector<ImVec2> data;
-        ImPlotRange range, query;
+        ImPlotBounds range, query;
         if (ImGui::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default, ImAxisFlags_GridLines, ImAxisFlags_GridLines)) {
             if (ImGui::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) 
                 data.push_back(ImGui::GetPlotMousePos());
@@ -432,7 +432,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
             if (data.size() > 0)
                 ImGui::Plot("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(float));
             if (ImGui::IsPlotQueried() && data.size() > 0) {
-                ImPlotRange range = ImGui::GetPlotQuery();
+                ImPlotBounds range = ImGui::GetPlotQuery();
                 int cnt = 0;
                 ImVec2 avg;
                 for (int i = 0; i < data.size(); ++i) {
@@ -477,7 +477,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::BulletText("Toggle \"Pixel Query\" in the context menu and then pan the plot.");
         ImGui::SetNextPlotRange(0,0.01f,-1,1);
         ImAxisFlags flgs = ImAxisFlags_Default & ~ImAxisFlags_TickLabels;
-        ImPlotRange query;
+        ImPlotBounds query;
         if (ImGui::BeginPlot("##View1",NULL,NULL,ImVec2(-1,150), ImPlotFlags_Default, flgs, flgs)) {
             ImGui::Plot("Signal 1", x_data, y_data1, 512);
             ImGui::Plot("Signal 2", x_data, y_data2, 512);
