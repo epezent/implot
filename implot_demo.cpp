@@ -380,7 +380,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Multiple Y Axes")) {
-        static float xs[1001], ys1[1001], ys2[1001], ys3[1001];
+        static float xs[1001], xs2[1001], ys1[1001], ys2[1001], ys3[1001];
         static bool y2_axis = true;
         static bool y3_axis = false;
         
@@ -389,6 +389,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
             ys1[i] = sin(xs[i]) * 3 + 1;
             ys2[i] = cos(xs[i]) * 0.2 + 0.5;
             ys3[i] = sin(xs[i]+.5) * 100 + 200;
+            xs2[i] = xs[i] + 10.0;
         }
         ImGui::SetNextPlotRange(0.1f, 100, 0, 10);
         ImGui::SetNextPlotRangeY(0, 1, ImGuiCond_Once, 1);
@@ -407,7 +408,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
 
             if (y3_axis) {
                 ImGui::SetPlotYAxis(2);
-                ImGui::Plot("f(x) = sin(x+.5)*100+200 (Y3)", xs, ys3, 1001);
+                ImGui::Plot("f(x) = sin(x+.5)*100+200 (Y3)", xs2, ys3, 1001);
             }
 
             ImGui::EndPlot();

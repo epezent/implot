@@ -337,8 +337,9 @@ struct ImPlotContext {
     float LogDenY[MaxYAxes];
 
     // Data extents
-    // TODO(jpieper): This needs to have separate Y extents for each y axis.
-    ImRect Extents;
+    ImPlotBounds ExtentsX;
+    ImPlotBounds ExtentsY[MaxYAxes];
+
     bool FitThisFrame; bool FitX;
     bool FitY[MaxYAxes] = {};
     int VisibleItemCount;
@@ -371,13 +372,15 @@ ImVec4 NextColor() {
 }
 
 inline void FitPoint(const ImVec2& p) {
+    ImPlotBounds* extents_x = &gp.ExtentsX;
+    ImPlotBounds* extents_y = &gp.ExtentsY[gp.CurrentPlot->CurrentYAxis];
     if (!NanOrInf(p.x)) {
-        gp.Extents.Min.x = p.x < gp.Extents.Min.x ? p.x : gp.Extents.Min.x;
-        gp.Extents.Max.x = p.x > gp.Extents.Max.x ? p.x : gp.Extents.Max.x;
+        extents_x->Min = p.x < extents_x->Min ? p.x : extents_x->Min;
+        extents_x->Max = p.x > extents_x->Max ? p.x : extents_x->Max;
     }
     if (!NanOrInf(p.y)) {
-        gp.Extents.Min.y = p.y < gp.Extents.Min.y ? p.y : gp.Extents.Min.y;
-        gp.Extents.Max.y = p.y > gp.Extents.Max.y ? p.y : gp.Extents.Max.y;
+        extents_y->Min = p.y < extents_y->Min ? p.y : extents_y->Min;
+        extents_y->Max = p.y > extents_y->Max ? p.y : extents_y->Max;
     }
 }
 
@@ -1226,10 +1229,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // reset items count
     gp.VisibleItemCount = 0;
     // reset extents
-    gp.Extents.Min.x = INFINITY;
-    gp.Extents.Min.y = INFINITY;
-    gp.Extents.Max.x = -INFINITY;
-    gp.Extents.Max.y = -INFINITY;
+    gp.ExtentsX.Min = INFINITY;
+    gp.ExtentsX.Max = -INFINITY;
+    for (int i = 0; i < MaxYAxes; i++) {
+        gp.ExtentsY[i].Min = INFINITY;
+        gp.ExtentsY[i].Max = -INFINITY;
+    }
     // clear item names
     gp.LegendLabels.Buf.resize(0);
     // reset digital plot items count
@@ -1575,15 +1580,19 @@ void EndPlot() {
     // FIT DATA --------------------------------------------------------------
 
     if (gp.FitThisFrame && (gp.VisibleItemCount > 0 || plot.Queried)) {
-        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.Extents.Min.x))
-            plot.XAxis.Bounds.Min = gp.Extents.Min.x;
-        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.x))
-            plot.XAxis.Bounds.Max = gp.Extents.Max.x;
+        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.ExtentsX.Min)) {
+            plot.XAxis.Bounds.Min = gp.ExtentsX.Min;
+        }
+        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.ExtentsX.Max)) {
+            plot.XAxis.Bounds.Max = gp.ExtentsX.Max;
+        }
         for (int i = 0; i < MaxYAxes; i++) {
-            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.Extents.Min.y))
-                plot.YAxis[i].Bounds.Min = gp.Extents.Min.y;
-            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.Extents.Max.y))
-                plot.YAxis[i].Bounds.Max = gp.Extents.Max.y;
+            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.ExtentsY[i].Min)) {
+                plot.YAxis[i].Bounds.Min = gp.ExtentsY[i].Min;
+            }
+            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.ExtentsY[i].Max)) {
+                plot.YAxis[i].Bounds.Max = gp.ExtentsY[i].Max;
+            }
         }
     }
 
