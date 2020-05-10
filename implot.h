@@ -63,7 +63,8 @@ enum ImAxisFlags_ {
     ImAxisFlags_Adaptive   = 1 << 6, // grid divisions will adapt to the current pixel size the axis
     ImAxisFlags_LogScale   = 1 << 7, // a logartithmic (base 10) axis scale will be used
     ImAxisFlags_Scientific = 1 << 8, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
-    ImAxisFlags_Default    = ImAxisFlags_GridLines | ImAxisFlags_TickMarks | ImAxisFlags_TickLabels | ImAxisFlags_Adaptive
+    ImAxisFlags_Default    = ImAxisFlags_GridLines | ImAxisFlags_TickMarks | ImAxisFlags_TickLabels | ImAxisFlags_Adaptive,
+    ImAxisFlags_Auxiliary_Default = ImAxisFlags_Default & ~ImAxisFlags_GridLines,
 };
 
 // Plot styling colors 
@@ -157,8 +158,8 @@ bool BeginPlot(const char* title_id,
                ImPlotFlags flags   = ImPlotFlags_Default, 
                ImAxisFlags x_flags = ImAxisFlags_Default, 
                ImAxisFlags y_flags = ImAxisFlags_Default,
-               ImAxisFlags y2_flags = ImAxisFlags_Default,
-               ImAxisFlags y3_flags = ImAxisFlags_Default);
+               ImAxisFlags y2_flags = ImAxisFlags_Auxiliary_Default,
+               ImAxisFlags y3_flags = ImAxisFlags_Auxiliary_Default);
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().
 void EndPlot();
