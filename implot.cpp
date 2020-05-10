@@ -329,7 +329,7 @@ struct ImPlotContext {
     ImVector<ImTick> XTicks,  YTicks[MaxYAxes];
     ImGuiTextBuffer XTickLabels, YTickLabels[MaxYAxes];
     // Transformation cache
-    ImRect PixelRange;
+    ImRect PixelRange[MaxYAxes];
     // linear scale (slope)
     float Mx;
     float My[MaxYAxes];
@@ -388,27 +388,28 @@ inline void FitPoint(const ImVec2& p) {
 
 inline void UpdateTransformCache() {
     // get pixels for transforms
-    gp.PixelRange = ImRect(HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Max.x : gp.BB_Grid.Min.x,
-                           HasFlag(gp.CurrentPlot->YAxis[0].Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Min.y : gp.BB_Grid.Max.y,
-                           HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Min.x : gp.BB_Grid.Max.x,
-                           HasFlag(gp.CurrentPlot->YAxis[0].Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Max.y : gp.BB_Grid.Min.y);
 
-    gp.Mx       = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / gp.CurrentPlot->XAxis.Bounds.Range();
     for (int i = 0; i < MaxYAxes; i++) {
-        gp.My[i]       = (gp.PixelRange.Max.y - gp.PixelRange.Min.y) / gp.CurrentPlot->YAxis[i].Bounds.Range();
+        gp.PixelRange[i] = ImRect(HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Max.x : gp.BB_Grid.Min.x,
+                                  HasFlag(gp.CurrentPlot->YAxis[i].Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Min.y : gp.BB_Grid.Max.y,
+                                  HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Min.x : gp.BB_Grid.Max.x,
+                                  HasFlag(gp.CurrentPlot->YAxis[i].Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Max.y : gp.BB_Grid.Min.y);
+
+        gp.My[i]       = (gp.PixelRange[i].Max.y - gp.PixelRange[i].Min.y) / gp.CurrentPlot->YAxis[i].Bounds.Range();
     }
     gp.LogDenX  = log10(gp.CurrentPlot->XAxis.Bounds.Max / gp.CurrentPlot->XAxis.Bounds.Min);
     for (int i = 0; i < MaxYAxes; i++) {
         gp.LogDenY[i]  = log10(gp.CurrentPlot->YAxis[i].Bounds.Max / gp.CurrentPlot->YAxis[i].Bounds.Min);
     }
+    gp.Mx       = (gp.PixelRange[0].Max.x - gp.PixelRange[0].Min.x) / gp.CurrentPlot->XAxis.Bounds.Range();
 }
 
 inline ImVec2 PixelsToPlot(float x, float y, int y_axis_in = -1) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() Needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 plt;
-    plt.x = (x - gp.PixelRange.Min.x) / gp.Mx + gp.CurrentPlot->XAxis.Bounds.Min;
-    plt.y = (y - gp.PixelRange.Min.y) / gp.My[y_axis] + gp.CurrentPlot->YAxis[y_axis].Bounds.Min;
+    plt.x = (x - gp.PixelRange[y_axis].Min.x) / gp.Mx + gp.CurrentPlot->XAxis.Bounds.Min;
+    plt.y = (y - gp.PixelRange[y_axis].Min.y) / gp.My[y_axis] + gp.CurrentPlot->YAxis[y_axis].Bounds.Min;
     if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_LogScale)) {
         float t = (plt.x - gp.CurrentPlot->XAxis.Bounds.Min) / gp.CurrentPlot->XAxis.Bounds.Range();
         plt.x = pow(10.0f, t * gp.LogDenX) * gp.CurrentPlot->XAxis.Bounds.Min;
@@ -432,8 +433,8 @@ inline ImVec2 PlotToPixels(float x, float y, int y_axis_in = -1) {
         float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Bounds.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Bounds.Min, gp.CurrentPlot->YAxis[y_axis].Bounds.Max, t);
     }
-    pix.x = gp.PixelRange.Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min);
-    pix.y = gp.PixelRange.Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min);
+    pix.x = gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min);
+    pix.y = gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min);
     return pix;
 }
 
@@ -450,8 +451,8 @@ struct Plt2PixLinLin {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        return { gp.PixelRange.Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
-                 gp.PixelRange.Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
+        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
+                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
     }
 
     int y_axis;
@@ -464,8 +465,8 @@ struct Plt2PixLogLin {
     ImVec2 operator()(float x, float y) {
         float t = log10(x / gp.CurrentPlot->XAxis.Bounds.Min) / gp.LogDenX;
         x       = ImLerp(gp.CurrentPlot->XAxis.Bounds.Min, gp.CurrentPlot->XAxis.Bounds.Max, t);
-        return { gp.PixelRange.Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
-                 gp.PixelRange.Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
+        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
+                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
     }
 
     int y_axis;
@@ -478,8 +479,8 @@ struct Plt2PixLinLog {
     ImVec2 operator()(float x, float y) {
         float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Bounds.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Bounds.Min, gp.CurrentPlot->YAxis[y_axis].Bounds.Max, t);
-        return { gp.PixelRange.Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
-                 gp.PixelRange.Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
+        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
+                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
     }
 
     int y_axis;
@@ -494,8 +495,8 @@ struct Plt2PixLogLog {
         x       = ImLerp(gp.CurrentPlot->XAxis.Bounds.Min, gp.CurrentPlot->XAxis.Bounds.Max, t);
         t       = log10(y / gp.CurrentPlot->YAxis[y_axis].Bounds.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Bounds.Min, gp.CurrentPlot->YAxis[y_axis].Bounds.Max, t);
-        return { gp.PixelRange.Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
-                 gp.PixelRange.Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
+        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
+                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
     }
 
     int y_axis;
@@ -2477,17 +2478,19 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
 
     const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
 
+    const int ax = gp.CurrentPlot->CurrentYAxis;
+
     // render digital signals as "pixel bases" rectangles
     if (count > 1 && rend_line) {
         //
-        const float mx = (gp.PixelRange.Max.x - gp.PixelRange.Min.x) / gp.CurrentPlot->XAxis.Bounds.Range();
+        const float mx = (gp.PixelRange[ax].Max.x - gp.PixelRange[ax].Min.x) / gp.CurrentPlot->XAxis.Bounds.Range();
         int pixY_0 = line_weight;
         int pixY_1 = gp.Style.DigitalBitHeight;
         int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
         int pixY_chOffset = pixY_1 + 3; //3 pixels between channels
         ImVec2 pMin, pMax;
-        float y0 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_0 - pixY_Offset);
-        float y1 = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_1 - pixY_Offset);
+        float y0 = (gp.PixelRange[ax].Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_0 - pixY_Offset);
+        float y1 = (gp.PixelRange[ax].Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_1 - pixY_Offset);
         const int    segments  = count - 1;
         int    i1 = offset;
         for (int s = 0; s < segments; ++s) {
@@ -2495,23 +2498,23 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             ImVec2 itemData1 = getter(i1);
             ImVec2 itemData2 = getter(i2);
             i1 = i2;
-            pMin.x = gp.PixelRange.Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Bounds.Min);
-            pMin.y = (gp.PixelRange.Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
-            pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Bounds.Min);
+            pMin.x = gp.PixelRange[ax].Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Bounds.Min);
+            pMin.y = (gp.PixelRange[ax].Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
+            pMax.x = gp.PixelRange[ax].Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Bounds.Min);
             pMax.y = ((int) itemData1.y == 0) ? y0 : y1;
             //plot only one rectangle for same digital state
             while (((s+2) < segments) && ((int) itemData1.y == (int) itemData2.y)) {
                 const int i2 = (i1 + 1) % count;
                 itemData2 = getter(i2);
-                pMax.x = gp.PixelRange.Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Bounds.Min);
+                pMax.x = gp.PixelRange[ax].Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Bounds.Min);
                 i1 = i2;
                 s++;
             } 
             //do not extend plot outside plot range
-            if (pMin.x < gp.PixelRange.Min.x) pMin.x = gp.PixelRange.Min.x;
-            if (pMax.x < gp.PixelRange.Min.x) pMax.x = gp.PixelRange.Min.x;
-            if (pMin.x > gp.PixelRange.Max.x) pMin.x = gp.PixelRange.Max.x;
-            if (pMax.x > gp.PixelRange.Max.x) pMax.x = gp.PixelRange.Max.x;
+            if (pMin.x < gp.PixelRange[ax].Min.x) pMin.x = gp.PixelRange[ax].Min.x;
+            if (pMax.x < gp.PixelRange[ax].Min.x) pMax.x = gp.PixelRange[ax].Min.x;
+            if (pMin.x > gp.PixelRange[ax].Max.x) pMin.x = gp.PixelRange[ax].Max.x;
+            if (pMax.x > gp.PixelRange[ax].Max.x) pMax.x = gp.PixelRange[ax].Max.x;
             //plot a rectangle that extends up to x2 with y1 height
             if ((pMax.x > pMin.x) && (!cull || gp.BB_Grid.Contains(pMin) || gp.BB_Grid.Contains(pMax))) {
                 ImVec4 colAlpha = item->Color;
