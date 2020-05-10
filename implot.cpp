@@ -293,7 +293,7 @@ struct ImNextPlotData {
 
 /// Holds Plot state information that must persist only between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
-    ImPlotContext() {
+    ImPlotContext() : RenderX(), RenderY() {
         CurrentPlot = NULL;
         FitThisFrame = FitX = false;
         RestorePlotPalette();
@@ -319,7 +319,8 @@ struct ImPlotContext {
           Col_SlctBg, Col_SlctBd,
           Col_QryBg, Col_QryBd;
     struct AxisColor {
-        ImU32 Major = {}, Minor = {}, Txt = {};
+        AxisColor() : Major(), Minor(), Txt() {}
+        ImU32 Major, Minor, Txt;
     };
     AxisColor Col_X;
     AxisColor Col_Y[MaxYAxes];
@@ -343,7 +344,7 @@ struct ImPlotContext {
     bool FitY[MaxYAxes] = {};
     int VisibleItemCount;
     // Render flags
-    bool RenderX = {}, RenderY[MaxYAxes] = {};
+    bool RenderX, RenderY[MaxYAxes];
     // Mouse pos
     ImVec2 LastMousePos[MaxYAxes];
     // Style
@@ -594,14 +595,21 @@ struct AxisState {
     const bool has_range;
     const ImGuiCond range_cond;
     const bool present;
-    const bool flip = HasFlag(axis.Flags, ImAxisFlags_Invert);
-    const bool lock_min = HasFlag(axis.Flags, ImAxisFlags_LockMin);
-    const bool lock_max = HasFlag(axis.Flags, ImAxisFlags_LockMax);
-    const bool lock = present && ((lock_min && lock_max) || (has_range && range_cond == ImGuiCond_Always));
+    const bool flip;
+    const bool lock_min;
+    const bool lock_max;
+    const bool lock;
 
     AxisState(const ImPlotAxis& axis_in, bool has_range_in, ImGuiCond range_cond_in,
               bool present_in)
-            : axis(axis_in), has_range(has_range_in), range_cond(range_cond_in), present(present_in) {}
+            : axis(axis_in),
+              has_range(has_range_in),
+              range_cond(range_cond_in),
+              present(present_in),
+              flip(HasFlag(axis.Flags, ImAxisFlags_Invert)),
+              lock_min(HasFlag(axis.Flags, ImAxisFlags_LockMin)),
+              lock_max(HasFlag(axis.Flags, ImAxisFlags_LockMax)),
+              lock(present && ((lock_min && lock_max) || (has_range && range_cond == ImGuiCond_Always))) {}
 };
 
 void UpdateAxisColor(int axis_flag, ImPlotContext::AxisColor* col) {
