@@ -847,16 +847,17 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const ImRect xAxisRegion_bb(gp.BB_Grid.Min + ImVec2(10, 0), {gp.BB_Grid.Max.x, gp.BB_Frame.Max.y});
     const bool   hov_x_axis_region = xAxisRegion_bb.Contains(IO.MousePos);
     ImRect yAxisRegion_bb[MaxYAxes];
-    yAxisRegion_bb[0] = ImRect({gp.BB_Frame.Min.x, gp.BB_Grid.Min.y}, gp.BB_Grid.Max - ImVec2(0, 10));
+    yAxisRegion_bb[0] = ImRect({gp.BB_Frame.Min.x, gp.BB_Grid.Min.y}, {gp.BB_Grid.Min.x, gp.BB_Grid.Max.y - 10});
     // The auxiliary y axes are off to the right of the BB grid.
-    yAxisRegion_bb[1] = ImRect({gp.BB_Grid.Max.x, gp.BB_Grid.Min.y}, yAxisRegion_bb[0].Max + ImVec2(0, y_axis_pad(1)));
+    yAxisRegion_bb[1] = ImRect({gp.BB_Grid.Max.x, gp.BB_Grid.Min.y},
+                               gp.BB_Grid.Max + ImVec2(y_axis_pad(1), 0));
     yAxisRegion_bb[2] = ImRect({yAxisRegion_bb[1].Max.x, gp.BB_Grid.Min.y},
                                yAxisRegion_bb[1].Max + ImVec2(y_axis_pad(2), 0));
     
     const bool hov_y_axis_region[MaxYAxes] = {
-        yAxisRegion_bb[0].Contains(IO.MousePos),
-        yAxisRegion_bb[1].Contains(IO.MousePos),
-        yAxisRegion_bb[2].Contains(IO.MousePos),
+        y[0].present && (yAxisRegion_bb[0].Contains(IO.MousePos) || gp.BB_Grid.Contains(IO.MousePos)),
+        y[1].present && (yAxisRegion_bb[1].Contains(IO.MousePos) || gp.BB_Grid.Contains(IO.MousePos)),
+        y[2].present && (yAxisRegion_bb[2].Contains(IO.MousePos) || gp.BB_Grid.Contains(IO.MousePos)),
     };
     const bool any_hov_y_axis_region =
             hov_y_axis_region[0] || hov_y_axis_region[1] || hov_y_axis_region[2];
@@ -930,20 +931,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     // do drag
-    bool any_y_dragging = false;
-    for (int i = 0; i < MaxYAxes; i++) {
-        if (plot.YAxis[i].Dragging) {
-            any_y_dragging = true;
-            break;
-        }
-    }
+    const bool any_y_dragging =
+            plot.YAxis[0].Dragging || plot.YAxis[1].Dragging || plot.YAxis[2].Dragging;
 
-    // TODO(jpieper): Re-evaluate this.
     if (plot.XAxis.Dragging || any_y_dragging) {
         UpdateTransformCache();
-        ImVec2 plot_tl = PixelsToPlot(gp.BB_Grid.Min - IO.MouseDelta);
-        ImVec2 plot_br = PixelsToPlot(gp.BB_Grid.Max - IO.MouseDelta);
         if (!x.lock && plot.XAxis.Dragging) {
+            ImVec2 plot_tl = PixelsToPlot(gp.BB_Grid.Min - IO.MouseDelta, 0);
+            ImVec2 plot_br = PixelsToPlot(gp.BB_Grid.Max - IO.MouseDelta, 0);
             if (!x.lock_min)
                 plot.XAxis.Bounds.Min = x.flip ? plot_br.x : plot_tl.x;
             if (!x.lock_max)
@@ -951,6 +946,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
         for (int i = 0; i < MaxYAxes; i++) {
             if (!y[i].lock && plot.YAxis[i].Dragging) {
+                ImVec2 plot_tl = PixelsToPlot(gp.BB_Grid.Min - IO.MouseDelta, i);
+                ImVec2 plot_br = PixelsToPlot(gp.BB_Grid.Max - IO.MouseDelta, i);
+
                 if (!y[i].lock_min)
                     plot.YAxis[i].Bounds.Min = y[i].flip ? plot_tl.y : plot_br.y;
                 if (!y[i].lock_max)
