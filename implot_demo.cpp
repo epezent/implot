@@ -22,6 +22,10 @@
 
 // ImPlot v0.1 WIP
 
+#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #ifdef _MSC_VER
 #pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
 #endif
