@@ -603,6 +603,37 @@ struct AxisState {
               bool present_in)
             : axis(axis_in), has_range(has_range_in), range_cond(range_cond_in), present(present_in) {}
 };
+
+void UpdateAxisColor(int axis_flag, ImPlotContext::AxisColor* col) {
+    const ImVec4 col_Axis = gp.Style.Colors[axis_flag].w == -1 ? ImGui::GetStyle().Colors[ImGuiCol_Text] * ImVec4(1, 1, 1, 0.25f) : gp.Style.Colors[axis_flag];
+    col->Major = GetColorU32(col_Axis);
+    col->Minor = GetColorU32(col_Axis * ImVec4(1, 1, 1, 0.25f));
+    col->Txt   = GetColorU32({col_Axis.x, col_Axis.y, col_Axis.z, 1});
+}
+
+ImRect GetAxisScale(int y_axis, float tx, float ty, float zoom_rate) {
+    return ImRect(
+            PixelsToPlot(gp.BB_Grid.Min - gp.BB_Grid.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), y_axis),
+            PixelsToPlot(gp.BB_Grid.Max + gp.BB_Grid.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), y_axis));
+}
+
+class YPadCalculator {
+  public:
+    YPadCalculator(const AxisState* axis_states, const float* max_label_widths, int txt_off)
+            : AxisStates(axis_states), MaxLabelWidths(max_label_widths), TxtOff(txt_off) {}
+
+    float operator()(int y_axis) {
+        ImPlot& plot = *gp.CurrentPlot;
+        if (!AxisStates[y_axis].present) { return 0; }
+        if (!HasFlag(plot.YAxis[y_axis].Flags, ImAxisFlags_TickLabels)) { return 0; }
+        return MaxLabelWidths[y_axis] + TxtOff;
+    }
+
+  private:
+    const AxisState* const AxisStates;
+    const float* const MaxLabelWidths;
+    const int TxtOff;
+};
 }  // namespace
 
 //-----------------------------------------------------------------------------
@@ -727,17 +758,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.Col_Bg     = gp.Style.Colors[ImPlotCol_PlotBg].w      == -1 ? GetColorU32(ImGuiCol_WindowBg)   : GetColorU32(gp.Style.Colors[ImPlotCol_PlotBg]);
     gp.Col_Border = gp.Style.Colors[ImPlotCol_PlotBorder].w  == -1 ? GetColorU32(ImGuiCol_Text, 0.5f) : GetColorU32(gp.Style.Colors[ImPlotCol_PlotBorder]);
 
-    auto update_axis_color = [&](int axis_flag, ImPlotContext::AxisColor* col) {
-        const ImVec4 col_Axis = gp.Style.Colors[axis_flag].w == -1 ? ImGui::GetStyle().Colors[ImGuiCol_Text] * ImVec4(1, 1, 1, 0.25f) : gp.Style.Colors[axis_flag];
-        col->Major = GetColorU32(col_Axis);
-        col->Minor = GetColorU32(col_Axis * ImVec4(1, 1, 1, 0.25f));
-        col->Txt   = GetColorU32({col_Axis.x, col_Axis.y, col_Axis.z, 1});
-    };
-
-    update_axis_color(ImPlotCol_XAxis, &gp.Col_X);
-    update_axis_color(ImPlotCol_YAxis, &gp.Col_Y[0]);
-    update_axis_color(ImPlotCol_Y2Axis, &gp.Col_Y[1]);
-    update_axis_color(ImPlotCol_Y3Axis, &gp.Col_Y[2]);
+    UpdateAxisColor(ImPlotCol_XAxis, &gp.Col_X);
+    UpdateAxisColor(ImPlotCol_YAxis, &gp.Col_Y[0]);
+    UpdateAxisColor(ImPlotCol_Y2Axis, &gp.Col_Y[1]);
+    UpdateAxisColor(ImPlotCol_Y3Axis, &gp.Col_Y[2]);
 
     gp.Col_Txt    = GetColorU32(ImGuiCol_Text);
     gp.Col_TxtDis = GetColorU32(ImGuiCol_TextDisabled);
@@ -803,11 +827,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const float txt_height  = GetTextLineHeight();
     const float pad_top     = title_size.x > 0.0f ? txt_height + txt_off : 0;
     const float pad_bot     = (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels) ? txt_height + txt_off : 0) + (x_label ? txt_height + txt_off : 0);
-    auto y_axis_pad = [&](int axis) -> float {
-        if (!y[axis].present) { return 0; }
-        if (!HasFlag(plot.YAxis[axis].Flags, ImAxisFlags_TickLabels)) { return 0; }
-        return max_label_width[axis] + txt_off;
-    };
+    YPadCalculator y_axis_pad(y, max_label_width, txt_off);
     const float pad_left    = y_axis_pad(0) + (y_label ? txt_height + txt_off : 0);
     const float pad_right   = y_axis_pad(1) + y_axis_pad(2);
     gp.BB_Grid            = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(pad_right, pad_bot));
@@ -900,12 +920,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     // do drag
-    const bool any_y_dragging = [&]() {
-        for (const auto& axis : plot.YAxis) {
-            if (axis.Dragging) { return true; }
+    bool any_y_dragging = false;
+    for (int i = 0; i < MaxYAxes; i++) {
+        if (plot.YAxis[i].Dragging) {
+            any_y_dragging = true;
+            break;
         }
-        return false;
-    }();
+    }
 
     // TODO(jpieper): Re-evaluate this.
     if (plot.XAxis.Dragging || any_y_dragging) {
@@ -927,20 +948,18 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             }
         }
         // Set the mouse cursor based on which axes are moving.
-        const int direction = [&]() {
-            int result = 0;  // 0, (1<<1), (1 << 2)
-            if (!x.lock && plot.XAxis.Dragging) {
-                result |= (1 << 1);
+        int direction = 0;
+        if (!x.lock && plot.XAxis.Dragging) {
+            direction |= (1 << 1);
+        }
+        for (int i = 0; i < MaxYAxes; i++) {
+            if (!y[i].present) { continue; }
+            if (!y[i].lock && plot.YAxis[i].Dragging) {
+                direction |= (1 << 2);
+                break;
             }
-            for (int i = 0; i < MaxYAxes; i++) {
-                if (!y[i].present) { continue; }
-                if (!y[i].lock && plot.YAxis[i].Dragging) {
-                    result |= (1 << 2);
-                    break;
-                }
-            }
-            return result;
-        }();
+        }
+
         if (direction == 0) {
             ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
         } else if (direction == (1 << 1)) {
@@ -972,18 +991,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));  
         float tx = Remap(IO.MousePos.x, gp.BB_Grid.Min.x, gp.BB_Grid.Max.x, 0, 1);
         float ty = Remap(IO.MousePos.y, gp.BB_Grid.Min.y, gp.BB_Grid.Max.y, 0, 1);
-        struct PlotResult {
-            ImVec2 first;
-            ImVec2 second;
-        };
-        auto make_plot = [&](int axis) -> PlotResult {
-            return {
-                PixelsToPlot(gp.BB_Grid.Min - gp.BB_Grid.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), axis),
-                PixelsToPlot(gp.BB_Grid.Max + gp.BB_Grid.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), axis),
-            };
-        };
         if (hov_x_axis_region && !x.lock) {
-            auto [plot_tl, plot_br] = make_plot(0); 
+            ImRect axis_scale = GetAxisScale(0, tx, ty, zoom_rate);
+            const ImVec2& plot_tl = axis_scale.Min;
+            const ImVec2& plot_br = axis_scale.Max;
+
             if (!x.lock_min)
                 plot.XAxis.Bounds.Min = x.flip ? plot_br.x : plot_tl.x;
             if (!x.lock_max)
@@ -991,7 +1003,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
         for (int i = 0; i < MaxYAxes; i++) {
             if (hov_y_axis_region[i] && !y[i].lock) {
-                auto [plot_tl, plot_br] = make_plot(i);
+                ImRect axis_scale = GetAxisScale(i, tx, ty, zoom_rate);
+                const ImVec2& plot_tl = axis_scale.Min;
+                const ImVec2& plot_br = axis_scale.Max;
+
                 if (!y[i].lock_min)
                     plot.YAxis[i].Bounds.Min = y[i].flip ? plot_tl.y : plot_br.y;
                 if (!y[i].lock_max)
@@ -1329,6 +1344,30 @@ void PlotContextMenu(ImPlot& plot) {
 
 }
 
+namespace {
+class BufferWriter {
+  public:
+    BufferWriter(char* buffer, size_t size) : Buffer(buffer), Pos(0), Size(size) {}
+
+    void Write(const char* fmt, ...) IM_FMTARGS(2) {
+        va_list argp;
+        va_start(argp, fmt);
+        VWrite(fmt, argp);
+        va_end(argp);
+    }
+
+  private:
+    void VWrite(const char* fmt, va_list argp) {
+        const int written = ::vsnprintf(&Buffer[Pos], Size - Pos - 1, fmt, argp);
+        Pos += written;
+    }
+
+    char* const Buffer;
+    size_t Pos;
+    const size_t Size;
+};
+}
+
 //-----------------------------------------------------------------------------
 // EndPlot()
 //-----------------------------------------------------------------------------
@@ -1489,16 +1528,14 @@ void EndPlot() {
     // render mouse pos
     if (HasFlag(plot.Flags, ImPlotFlags_MousePos) && gp.Hov_Grid) {
         static char buffer[128] = {};
-        int offset = 0;
-        auto write = [&](auto ...args) {
-            offset += snprintf(&buffer[offset], sizeof(buffer) - offset - 1, args...);
-        };
-        write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
+        BufferWriter writer(buffer, sizeof(buffer));
+
+        writer.Write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
         if (HasFlag(plot.Flags, ImPlotFlags_Y2Axis)) {
-            write(",%.2f", gp.LastMousePos[1].y);
+            writer.Write(",%.2f", gp.LastMousePos[1].y);
         }
         if (HasFlag(plot.Flags, ImPlotFlags_Y3Axis)) {
-            write(",%.2f", gp.LastMousePos[2].y);
+            writer.Write(",%.2f", gp.LastMousePos[2].y);
         }
         ImVec2 size = CalcTextSize(buffer);
         ImVec2 pos  = gp.BB_Grid.Max - size - ImVec2(5, 5);
