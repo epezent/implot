@@ -345,7 +345,7 @@ static ImPlotContext gp;
 
 /// Returns the next unused default plot color
 ImVec4 NextColor() {
-    auto col  = gp.ColorMap[gp.CurrentPlot->ColorIdx % gp.ColorMap.size()];
+    ImVec4 col  = gp.ColorMap[gp.CurrentPlot->ColorIdx % gp.ColorMap.size()];
     gp.CurrentPlot->ColorIdx++;
     return col;
 }
@@ -550,7 +550,7 @@ inline void GetTicks(float tMin, float tMax, int nMajor, int nMinor, bool logsca
 inline void LabelTicks(ImVector<ImTick> &ticks, bool scientific, ImGuiTextBuffer& buffer) {
     buffer.Buf.resize(0);
     char temp[32];
-    for (auto &tk : ticks) {
+    for (ImTick &tk : ticks) {
         if (tk.RenderLabel) {
             tk.TextOffset = buffer.size();
             if (scientific)
@@ -730,7 +730,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     float max_label_width = 0;
     if (HasFlag(plot.YAxis.Flags, ImAxisFlags_TickLabels)) {
         LabelTicks(gp.YTicks, HasFlag(plot.YAxis.Flags, ImAxisFlags_Scientific), gp.YTickLabels);
-        for (auto &yt : gp.YTicks)
+        for (ImTick &yt : gp.YTicks)
             max_label_width = yt.Size.x > max_label_width ? yt.Size.x : max_label_width;
     }
 
@@ -990,22 +990,22 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // transform ticks
     if (gp.RenderX) {
-        for (auto& xt : gp.XTicks)
+        for (ImTick& xt : gp.XTicks)
             xt.PixelPos = PlotToPixels((float)xt.PlotPos, 0).x;
     }
     if (gp.RenderY) {
-        for (auto& yt : gp.YTicks)
+        for (ImTick& yt : gp.YTicks)
             yt.PixelPos = PlotToPixels(0, (float)yt.PlotPos).y;
     }
 
     // render grid
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_GridLines)) {
-        for (auto &xt : gp.XTicks)
+        for (ImTick &xt : gp.XTicks)
             DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Min.y}, {xt.PixelPos, gp.BB_Grid.Max.y}, xt.Major ? gp.Col_XMajor : gp.Col_XMinor, 1);
     }
 
     if (HasFlag(plot.YAxis.Flags, ImAxisFlags_GridLines)) {
-        for (auto &yt : gp.YTicks)
+        for (ImTick &yt : gp.YTicks)
             DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Max.x, yt.PixelPos}, yt.Major ? gp.Col_YMajor : gp.Col_YMinor, 1);
     }
 
@@ -1019,7 +1019,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // render labels
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels)) {
         PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
-        for (auto &xt : gp.XTicks) {
+        for (ImTick &xt : gp.XTicks) {
             if (xt.RenderLabel && xt.PixelPos >= gp.BB_Grid.Min.x - 1 && xt.PixelPos <= gp.BB_Grid.Max.x + 1)
                 DrawList.AddText({xt.PixelPos - xt.Size.x * 0.5f, gp.BB_Grid.Max.y + txt_off}, gp.Col_XTxt, gp.XTickLabels.Buf.Data + xt.TextOffset);
         }
@@ -1033,7 +1033,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
     if (HasFlag(plot.YAxis.Flags, ImAxisFlags_TickLabels)) {
         PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
-        for (auto &yt : gp.YTicks) {
+        for (ImTick &yt : gp.YTicks) {
             if (yt.RenderLabel && yt.PixelPos >= gp.BB_Grid.Min.y - 1 && yt.PixelPos <= gp.BB_Grid.Max.y + 1)
                 DrawList.AddText({gp.BB_Grid.Min.x - txt_off - yt.Size.x, yt.PixelPos - 0.5f * yt.Size.y}, gp.Col_YTxt, gp.YTickLabels.Buf.Data + yt.TextOffset);
         }
@@ -1196,11 +1196,11 @@ void EndPlot() {
 
     // render ticks
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickMarks)) {
-        for (auto &xt : gp.XTicks)
+        for (ImTick &xt : gp.XTicks)
             DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Max.y},{xt.PixelPos, gp.BB_Grid.Max.y - (xt.Major ? 10.0f : 5.0f)}, gp.Col_Border, 1);
     }
     if (HasFlag(plot.YAxis.Flags, ImAxisFlags_TickMarks)) {
-        for (auto &yt : gp.YTicks)
+        for (ImTick &yt : gp.YTicks)
             DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Min.x + (yt.Major ? 10.0f : 5.0f), yt.PixelPos}, gp.Col_Border, 1);
     }
 
@@ -1255,7 +1255,7 @@ void EndPlot() {
         float max_label_width = 0;
         for (int i = 0; i < nItems; ++i) {
             const char* label = GetLegendLabel(i);
-            auto labelWidth = CalcTextSize(label, NULL, true);
+            ImVec2 labelWidth = CalcTextSize(label, NULL, true);
             max_label_width   = labelWidth.x > max_label_width ? labelWidth.x : max_label_width;
         }
         legend_content_bb = ImRect(gp.BB_Grid.Min + legend_offset, gp.BB_Grid.Min + legend_offset + ImVec2(max_label_width, nItems * txt_ht));
@@ -1282,7 +1282,7 @@ void EndPlot() {
                 item->Highlight = false;
             ImU32 iconColor;
             if (hov_legend && icon_bb.Contains(IO.MousePos)) {
-                auto colAlpha = item->Color;
+                ImVec4 colAlpha = item->Color;
                 colAlpha.w    = 0.5f;
                 iconColor     = item->Show ? GetColorU32(colAlpha)
                                           : GetColorU32(ImGuiCol_TextDisabled, 0.5f);
@@ -2278,7 +2278,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             if (pMax.x > gp.PixelRange.Max.x) pMax.x = gp.PixelRange.Max.x;
             //plot a rectangle that extends up to x2 with y1 height
             if ((pMax.x > pMin.x) && (!cull || gp.BB_Grid.Contains(pMin) || gp.BB_Grid.Contains(pMax))) {
-                auto colAlpha = item->Color;
+                ImVec4 colAlpha = item->Color;
                 colAlpha.w = item->Highlight ? 1.0 : 0.9;
                 DrawList.AddRectFilled(pMin, pMax, GetColorU32(colAlpha));
             }
