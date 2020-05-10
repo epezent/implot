@@ -199,9 +199,9 @@ void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), vo
 
 /// Returns true if the plot area in the current or most recent plot is hovered.
 bool IsPlotHovered();
-/// Returns the mouse position in x,y coordinates of the current or most recent plot.
+/// Returns the mouse position in x,y coordinates of the current or most recent plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImVec2 GetPlotMousePos(int y_axis = -1);
-/// Returns the current or most recent plot axis range.
+/// Returns the current or most recent plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImPlotBounds GetPlotBounds(int y_axis = -1);
 /// Returns true if the current or most recent plot is being queried.
 bool IsPlotQueried();
@@ -253,9 +253,9 @@ ImVec2 GetPlotPos();
 // Get the curent Plot size in pixels.
 ImVec2 GetPlotSize();
 
-// Convert pixels to a position in the current plot's coordinate system.
+// Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImVec2 PixelsToPlot(const ImVec2& pix, int y_axis = -1);
-// Convert a position in the current plot's coordinate system to pixels.
+// Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImVec2 PlotToPixels(const ImVec2& plt, int y_axis = -1);
 
 // Push clip rect for rendering to current plot area
