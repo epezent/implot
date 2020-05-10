@@ -116,7 +116,7 @@ struct ImPlotRange {
     float Min, Max;
     ImPlotRange();
     bool Contains(float) const;
-    float Range() const;
+    float Size() const;
 };
 
 /// Plot range utility struct
@@ -202,7 +202,7 @@ bool IsPlotHovered();
 /// Returns the mouse position in x,y coordinates of the current or most recent plot.
 ImVec2 GetPlotMousePos(int y_axis = -1);
 /// Returns the current or most recent plot axis range.
-ImPlotBounds GetPlotRange(int y_axis = -1);
+ImPlotBounds GetPlotBounds(int y_axis = -1);
 /// Returns true if the current or most recent plot is being queried.
 bool IsPlotQueried();
 /// Returns the current or most recent plot querey range.

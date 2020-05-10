@@ -449,7 +449,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
                 }
             }
             ImGui::PopPlotStyleVar(2);
-            range = ImGui::GetPlotRange();
+            range = ImGui::GetPlotBounds();
             query = ImGui::GetPlotQuery();
             ImGui::EndPlot();
         }

@@ -77,7 +77,7 @@ bool ImPlotRange::Contains(float v) const {
     return v >= Min && v <= Max;
 }
 
-float ImPlotRange::Range() const {
+float ImPlotRange::Size() const {
     return Max - Min;
 }
 
@@ -238,15 +238,14 @@ struct ImPlotItem {
 struct ImPlotAxis {
     ImPlotAxis() { 
         Dragging = false;
-        Bounds.Min = 0;
-        Bounds.Max = 1;
+        Range.Min = 0;
+        Range.Max = 1;
         Divisions = 3; 
         Subdivisions = 10; 
         Flags = ImAxisFlags_Default; 
     }
-    float Range() { return Bounds.Range(); }
     bool Dragging;
-    ImPlotRange Bounds;
+    ImPlotRange Range;
     int Divisions;
     int Subdivisions;
     ImAxisFlags Flags;
@@ -271,7 +270,7 @@ struct ImPlot {
     ImVec2 QueryStart;
     ImRect QueryRect; // relative to BB_grid!!
     bool DraggingQuery;
-    ImPlotBounds QueryRange;
+    ImPlotBounds QueryBounds;
 
     ImPlotAxis XAxis;
     ImPlotAxis YAxis[MAX_Y_AXES];
@@ -397,28 +396,28 @@ inline void UpdateTransformCache() {
                                   HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Min.x : gp.BB_Grid.Max.x,
                                   HasFlag(gp.CurrentPlot->YAxis[i].Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Max.y : gp.BB_Grid.Min.y);
 
-        gp.My[i]       = (gp.PixelRange[i].Max.y - gp.PixelRange[i].Min.y) / gp.CurrentPlot->YAxis[i].Bounds.Range();
+        gp.My[i]       = (gp.PixelRange[i].Max.y - gp.PixelRange[i].Min.y) / gp.CurrentPlot->YAxis[i].Range.Size();
     }
-    gp.LogDenX  = log10(gp.CurrentPlot->XAxis.Bounds.Max / gp.CurrentPlot->XAxis.Bounds.Min);
+    gp.LogDenX  = log10(gp.CurrentPlot->XAxis.Range.Max / gp.CurrentPlot->XAxis.Range.Min);
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        gp.LogDenY[i]  = log10(gp.CurrentPlot->YAxis[i].Bounds.Max / gp.CurrentPlot->YAxis[i].Bounds.Min);
+        gp.LogDenY[i]  = log10(gp.CurrentPlot->YAxis[i].Range.Max / gp.CurrentPlot->YAxis[i].Range.Min);
     }
-    gp.Mx       = (gp.PixelRange[0].Max.x - gp.PixelRange[0].Min.x) / gp.CurrentPlot->XAxis.Bounds.Range();
+    gp.Mx       = (gp.PixelRange[0].Max.x - gp.PixelRange[0].Min.x) / gp.CurrentPlot->XAxis.Range.Size();
 }
 
 inline ImVec2 PixelsToPlot(float x, float y, int y_axis_in = -1) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() Needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 plt;
-    plt.x = (x - gp.PixelRange[y_axis].Min.x) / gp.Mx + gp.CurrentPlot->XAxis.Bounds.Min;
-    plt.y = (y - gp.PixelRange[y_axis].Min.y) / gp.My[y_axis] + gp.CurrentPlot->YAxis[y_axis].Bounds.Min;
+    plt.x = (x - gp.PixelRange[y_axis].Min.x) / gp.Mx + gp.CurrentPlot->XAxis.Range.Min;
+    plt.y = (y - gp.PixelRange[y_axis].Min.y) / gp.My[y_axis] + gp.CurrentPlot->YAxis[y_axis].Range.Min;
     if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_LogScale)) {
-        float t = (plt.x - gp.CurrentPlot->XAxis.Bounds.Min) / gp.CurrentPlot->XAxis.Bounds.Range();
-        plt.x = pow(10.0f, t * gp.LogDenX) * gp.CurrentPlot->XAxis.Bounds.Min;
+        float t = (plt.x - gp.CurrentPlot->XAxis.Range.Min) / gp.CurrentPlot->XAxis.Range.Size();
+        plt.x = pow(10.0f, t * gp.LogDenX) * gp.CurrentPlot->XAxis.Range.Min;
     }
     if (HasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImAxisFlags_LogScale)) {
-        float t = (plt.y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) / gp.CurrentPlot->YAxis[y_axis].Bounds.Range();
-        plt.y = pow(10.0f, t * gp.LogDenY[y_axis]) * gp.CurrentPlot->YAxis[y_axis].Bounds.Min;
+        float t = (plt.y - gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.CurrentPlot->YAxis[y_axis].Range.Size();
+        plt.y = pow(10.0f, t * gp.LogDenY[y_axis]) * gp.CurrentPlot->YAxis[y_axis].Range.Min;
     }
     return plt;
 }
@@ -428,15 +427,15 @@ inline ImVec2 PlotToPixels(float x, float y, int y_axis_in = -1) {
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 pix;
     if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_LogScale)) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Bounds.Min) / gp.LogDenX;
-        x       = ImLerp(gp.CurrentPlot->XAxis.Bounds.Min, gp.CurrentPlot->XAxis.Bounds.Max, t);
+        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
     }             
     if (HasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImAxisFlags_LogScale)) {
-        float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Bounds.Min) / gp.LogDenY[y_axis];
-        y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Bounds.Min, gp.CurrentPlot->YAxis[y_axis].Bounds.Max, t);
+        float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
     }
-    pix.x = gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min);
-    pix.y = gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min);
+    pix.x = gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min);
+    pix.y = gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min);
     return pix;
 }
 
@@ -453,8 +452,8 @@ struct Plt2PixLinLin {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
-                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
+        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
+                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) };
     }
 
     int y_axis;
@@ -465,10 +464,10 @@ struct Plt2PixLogLin {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Bounds.Min) / gp.LogDenX;
-        x       = ImLerp(gp.CurrentPlot->XAxis.Bounds.Min, gp.CurrentPlot->XAxis.Bounds.Max, t);
-        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
-                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
+        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
+        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
+                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) };
     }
 
     int y_axis;
@@ -479,10 +478,10 @@ struct Plt2PixLinLog {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Bounds.Min) / gp.LogDenY[y_axis];
-        y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Bounds.Min, gp.CurrentPlot->YAxis[y_axis].Bounds.Max, t);
-        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
-                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
+        float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
+        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
+                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) };
     }
 
     int y_axis;
@@ -493,12 +492,12 @@ struct Plt2PixLogLog {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Bounds.Min) / gp.LogDenX;
-        x       = ImLerp(gp.CurrentPlot->XAxis.Bounds.Min, gp.CurrentPlot->XAxis.Bounds.Max, t);
-        t       = log10(y / gp.CurrentPlot->YAxis[y_axis].Bounds.Min) / gp.LogDenY[y_axis];
-        y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Bounds.Min, gp.CurrentPlot->YAxis[y_axis].Bounds.Max, t);
-        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Bounds.Min),
-                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Bounds.Min) };
+        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
+        t       = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
+        return { gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
+                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) };
     }
 
     int y_axis;
@@ -696,7 +695,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (gp.NextPlotData.HasXRange) {
         if (just_created || gp.NextPlotData.XRangeCond == ImGuiCond_Always)
         {
-            plot.XAxis.Bounds = gp.NextPlotData.X;
+            plot.XAxis.Range = gp.NextPlotData.X;
         }
     }
 
@@ -704,7 +703,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         if (gp.NextPlotData.HasYRange[i]) {
             if (just_created || gp.NextPlotData.YRangeCond[i] == ImGuiCond_Always)
             {
-                plot.YAxis[i].Bounds = gp.NextPlotData.Y[i];
+                plot.YAxis[i].Range = gp.NextPlotData.Y[i];
             }
         }
     }
@@ -724,29 +723,29 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // CONSTRAINTS ------------------------------------------------------------
 
-    plot.XAxis.Bounds.Min = ConstrainNan(ConstrainInf(plot.XAxis.Bounds.Min));
-    plot.XAxis.Bounds.Max = ConstrainNan(ConstrainInf(plot.XAxis.Bounds.Max));
+    plot.XAxis.Range.Min = ConstrainNan(ConstrainInf(plot.XAxis.Range.Min));
+    plot.XAxis.Range.Max = ConstrainNan(ConstrainInf(plot.XAxis.Range.Max));
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        plot.YAxis[i].Bounds.Min = ConstrainNan(ConstrainInf(plot.YAxis[i].Bounds.Min));
-        plot.YAxis[i].Bounds.Max = ConstrainNan(ConstrainInf(plot.YAxis[i].Bounds.Max));
+        plot.YAxis[i].Range.Min = ConstrainNan(ConstrainInf(plot.YAxis[i].Range.Min));
+        plot.YAxis[i].Range.Max = ConstrainNan(ConstrainInf(plot.YAxis[i].Range.Max));
     }
 
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale))
-        plot.XAxis.Bounds.Min = ConstrainLog(plot.XAxis.Bounds.Min);
+        plot.XAxis.Range.Min = ConstrainLog(plot.XAxis.Range.Min);
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale))
-        plot.XAxis.Bounds.Max = ConstrainLog(plot.XAxis.Bounds.Max);
+        plot.XAxis.Range.Max = ConstrainLog(plot.XAxis.Range.Max);
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale))
-            plot.YAxis[i].Bounds.Min = ConstrainLog(plot.YAxis[i].Bounds.Min);
+            plot.YAxis[i].Range.Min = ConstrainLog(plot.YAxis[i].Range.Min);
         if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale))
-            plot.YAxis[i].Bounds.Max = ConstrainLog(plot.YAxis[i].Bounds.Max);
+            plot.YAxis[i].Range.Max = ConstrainLog(plot.YAxis[i].Range.Max);
     }
 
-    if (plot.XAxis.Bounds.Max <= plot.XAxis.Bounds.Min)
-        plot.XAxis.Bounds.Max = plot.XAxis.Bounds.Min + FLT_EPSILON;
+    if (plot.XAxis.Range.Max <= plot.XAxis.Range.Min)
+        plot.XAxis.Range.Max = plot.XAxis.Range.Min + FLT_EPSILON;
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        if (plot.YAxis[i].Bounds.Max <= plot.YAxis[i].Bounds.Min)
-            plot.YAxis[i].Bounds.Max = plot.YAxis[i].Bounds.Min + FLT_EPSILON;
+        if (plot.YAxis[i].Range.Max <= plot.YAxis[i].Range.Min)
+            plot.YAxis[i].Range.Max = plot.YAxis[i].Range.Min + FLT_EPSILON;
     }
 
     // adaptive divisions
@@ -813,10 +812,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // get ticks
     if (gp.RenderX)
-        GetTicks(plot.XAxis.Bounds, plot.XAxis.Divisions, plot.XAxis.Subdivisions, HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale), gp.XTicks);
+        GetTicks(plot.XAxis.Range, plot.XAxis.Divisions, plot.XAxis.Subdivisions, HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale), gp.XTicks);
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (gp.RenderY[i]) {
-            GetTicks(plot.YAxis[i].Bounds, plot.YAxis[i].Divisions, plot.YAxis[i].Subdivisions, HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale), gp.YTicks[i]);
+            GetTicks(plot.YAxis[i].Range, plot.YAxis[i].Divisions, plot.YAxis[i].Subdivisions, HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale), gp.YTicks[i]);
         }
     }
 
@@ -879,8 +878,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         else {
             UpdateTransformCache();
             // TODO(jpieper): Support querying multiple Y axes.
-            ImVec2 p1 = PlotToPixels(plot.QueryRange.X.Min, plot.QueryRange.Y.Min);
-            ImVec2 p2 = PlotToPixels(plot.QueryRange.X.Max, plot.QueryRange.Y.Max);
+            ImVec2 p1 = PlotToPixels(plot.QueryBounds.X.Min, plot.QueryBounds.Y.Min);
+            ImVec2 p2 = PlotToPixels(plot.QueryBounds.X.Max, plot.QueryBounds.Y.Max);
             bb_query.Min = ImVec2(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y));
             bb_query.Max = ImVec2(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y));
         }
@@ -895,18 +894,18 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         SetMouseCursor(ImGuiMouseCursor_ResizeAll);
         if (!HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
             // TODO(jpieper): How do these select which axes?
-            ImVec2 p1 = PlotToPixels(plot.QueryRange.X.Min, plot.QueryRange.Y.Min);
-            ImVec2 p2 = PlotToPixels(plot.QueryRange.X.Max, plot.QueryRange.Y.Max);
+            ImVec2 p1 = PlotToPixels(plot.QueryBounds.X.Min, plot.QueryBounds.Y.Min);
+            ImVec2 p2 = PlotToPixels(plot.QueryBounds.X.Max, plot.QueryBounds.Y.Max);
             plot.QueryRect.Min = ImVec2(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y)) + IO.MouseDelta;
             plot.QueryRect.Max = ImVec2(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y)) + IO.MouseDelta;
             p1 = PixelsToPlot(plot.QueryRect.Min);
             p2 = PixelsToPlot(plot.QueryRect.Max);  
             plot.QueryRect.Min -= gp.BB_Grid.Min;
             plot.QueryRect.Max -= gp.BB_Grid.Min;          
-            plot.QueryRange.X.Min = ImMin(p1.x, p2.x);
-            plot.QueryRange.X.Max = ImMax(p1.x, p2.x);
-            plot.QueryRange.Y.Min = ImMin(p1.y, p2.y);
-            plot.QueryRange.Y.Max = ImMax(p1.y, p2.y);
+            plot.QueryBounds.X.Min = ImMin(p1.x, p2.x);
+            plot.QueryBounds.X.Max = ImMax(p1.x, p2.x);
+            plot.QueryBounds.Y.Min = ImMin(p1.y, p2.y);
+            plot.QueryBounds.Y.Max = ImMax(p1.y, p2.y);
         }
         else {
             plot.QueryRect.Min += IO.MouseDelta;
@@ -943,9 +942,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             ImVec2 plot_tl = PixelsToPlot(gp.BB_Grid.Min - IO.MouseDelta, 0);
             ImVec2 plot_br = PixelsToPlot(gp.BB_Grid.Max - IO.MouseDelta, 0);
             if (!x.lock_min)
-                plot.XAxis.Bounds.Min = x.flip ? plot_br.x : plot_tl.x;
+                plot.XAxis.Range.Min = x.flip ? plot_br.x : plot_tl.x;
             if (!x.lock_max)
-                plot.XAxis.Bounds.Max = x.flip ? plot_tl.x : plot_br.x;
+                plot.XAxis.Range.Max = x.flip ? plot_tl.x : plot_br.x;
         }
         for (int i = 0; i < MAX_Y_AXES; i++) {
             if (!y[i].lock && plot.YAxis[i].Dragging) {
@@ -953,9 +952,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 ImVec2 plot_br = PixelsToPlot(gp.BB_Grid.Max - IO.MouseDelta, i);
 
                 if (!y[i].lock_min)
-                    plot.YAxis[i].Bounds.Min = y[i].flip ? plot_tl.y : plot_br.y;
+                    plot.YAxis[i].Range.Min = y[i].flip ? plot_tl.y : plot_br.y;
                 if (!y[i].lock_max)
-                    plot.YAxis[i].Bounds.Max = y[i].flip ? plot_br.y : plot_tl.y;
+                    plot.YAxis[i].Range.Max = y[i].flip ? plot_br.y : plot_tl.y;
             }
         }
         // Set the mouse cursor based on which axes are moving.
@@ -1008,9 +1007,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             const ImVec2& plot_br = axis_scale.Max;
 
             if (!x.lock_min)
-                plot.XAxis.Bounds.Min = x.flip ? plot_br.x : plot_tl.x;
+                plot.XAxis.Range.Min = x.flip ? plot_br.x : plot_tl.x;
             if (!x.lock_max)
-                plot.XAxis.Bounds.Max = x.flip ? plot_tl.x : plot_br.x;
+                plot.XAxis.Range.Max = x.flip ? plot_tl.x : plot_br.x;
         }
         for (int i = 0; i < MAX_Y_AXES; i++) {
             if (hov_y_axis_region[i] && !y[i].lock) {
@@ -1019,9 +1018,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 const ImVec2& plot_br = axis_scale.Max;
 
                 if (!y[i].lock_min)
-                    plot.YAxis[i].Bounds.Min = y[i].flip ? plot_tl.y : plot_br.y;
+                    plot.YAxis[i].Range.Min = y[i].flip ? plot_tl.y : plot_br.y;
                 if (!y[i].lock_max)
-                    plot.YAxis[i].Bounds.Max = y[i].flip ? plot_br.y : plot_tl.y;
+                    plot.YAxis[i].Range.Max = y[i].flip ? plot_br.y : plot_tl.y;
             }
         }        
     }
@@ -1036,14 +1035,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             ImVec2 p1 = PixelsToPlot(plot.SelectStart);
             ImVec2 p2 = PixelsToPlot(IO.MousePos);
             if (!x.lock_min && !IO.KeyAlt)
-                plot.XAxis.Bounds.Min = ImMin(p1.x, p2.x);
+                plot.XAxis.Range.Min = ImMin(p1.x, p2.x);
             if (!x.lock_max && !IO.KeyAlt)
-                plot.XAxis.Bounds.Max = ImMax(p1.x, p2.x);
+                plot.XAxis.Range.Max = ImMax(p1.x, p2.x);
             for (int i = 0; i < MAX_Y_AXES; i++) {
                 if (!y[i].lock_min && !IO.KeyShift)
-                    plot.YAxis[i].Bounds.Min = ImMin(p1.y, p2.y);
+                    plot.YAxis[i].Range.Min = ImMin(p1.y, p2.y);
                 if (!y[i].lock_max && !IO.KeyShift)
-                    plot.YAxis[i].Bounds.Max = ImMax(p1.y, p2.y);
+                    plot.YAxis[i].Range.Max = ImMax(p1.y, p2.y);
             }
         }        
         plot.Selecting = false;
@@ -1072,10 +1071,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         ImVec2 p2 = PixelsToPlot(plot.QueryRect.Max);
         plot.QueryRect.Min -= gp.BB_Grid.Min;
         plot.QueryRect.Max -= gp.BB_Grid.Min;
-        plot.QueryRange.X.Min = ImMin(p1.x, p2.x);
-        plot.QueryRange.X.Max = ImMax(p1.x, p2.x);
-        plot.QueryRange.Y.Min = ImMin(p1.y, p2.y);
-        plot.QueryRange.Y.Max = ImMax(p1.y, p2.y);
+        plot.QueryBounds.X.Min = ImMin(p1.x, p2.x);
+        plot.QueryBounds.X.Max = ImMax(p1.x, p2.x);
+        plot.QueryBounds.Y.Min = ImMin(p1.y, p2.y);
+        plot.QueryBounds.Y.Max = ImMax(p1.y, p2.y);
     }
     // end query
     if (plot.Querying && (IO.MouseReleased[2] || IO.MouseReleased[1])) {
@@ -1085,13 +1084,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
         else {
             plot.Queried = false;
-            plot.QueryRange = ImPlotBounds();
+            plot.QueryBounds = ImPlotBounds();
         }
     }
     // begin query
     if ((gp.Hov_Frame && gp.Hov_Grid && IO.MouseClicked[2])) {
         plot.QueryRect = ImRect(0,0,0,0);
-        plot.QueryRange = ImPlotBounds();
+        plot.QueryBounds = ImPlotBounds();
         plot.Querying = true;
         plot.Queried  = true;
         plot.QueryStart = IO.MousePos;
@@ -1100,7 +1099,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (plot.Selecting && IO.KeyCtrl) {
         plot.Selecting = false;
         plot.QueryRect = ImRect(0,0,0,0);
-        plot.QueryRange = ImPlotBounds();
+        plot.QueryBounds = ImPlotBounds();
         plot.Querying = true;
         plot.Queried  = true;
         plot.QueryStart = plot.SelectStart;
@@ -1110,7 +1109,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.Querying = false;
         plot.Queried = false;
         plot.QueryRect = ImRect(0,0,0,0);
-        plot.QueryRange = ImPlotBounds();
+        plot.QueryBounds = ImPlotBounds();
     }
     
     // DOUBLE CLICK -----------------------------------------------------------
@@ -1262,7 +1261,7 @@ inline void AxisMenu(ImPlotAxis& Axis) {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);
     }
-    ImGui::DragFloat("Min", &Axis.Bounds.Min, 0.01f + 0.01f * (Axis.Bounds.Range()), -INFINITY, Axis.Bounds.Max - FLT_EPSILON);
+    ImGui::DragFloat("Min", &Axis.Range.Min, 0.01f + 0.01f * (Axis.Range.Size()), -INFINITY, Axis.Range.Max - FLT_EPSILON);
     if (lock_min) {
         ImGui::PopItemFlag();
         ImGui::PopStyleVar();    }
@@ -1273,7 +1272,7 @@ inline void AxisMenu(ImPlotAxis& Axis) {
     if (lock_max) {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);    }
-    ImGui::DragFloat("Max", &Axis.Bounds.Max, 0.01f + 0.01f * (Axis.Bounds.Range()), Axis.Bounds.Min + FLT_EPSILON, INFINITY);
+    ImGui::DragFloat("Max", &Axis.Range.Max, 0.01f + 0.01f * (Axis.Range.Size()), Axis.Range.Min + FLT_EPSILON, INFINITY);
     if (lock_max) {
         ImGui::PopItemFlag();
         ImGui::PopStyleVar();
@@ -1470,8 +1469,8 @@ void EndPlot() {
         }  
     }
     else if (plot.Queried) {
-        ImVec2 p1 = PlotToPixels(plot.QueryRange.X.Min, plot.QueryRange.Y.Min);
-        ImVec2 p2 = PlotToPixels(plot.QueryRange.X.Max, plot.QueryRange.Y.Max);
+        ImVec2 p1 = PlotToPixels(plot.QueryBounds.X.Min, plot.QueryBounds.Y.Min);
+        ImVec2 p2 = PlotToPixels(plot.QueryBounds.X.Max, plot.QueryBounds.Y.Max);
         ImVec2 Min(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y));
         ImVec2 Max(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y));
         DrawList.AddRectFilled(Min, Max, gp.Col_QryBg);
@@ -1581,17 +1580,17 @@ void EndPlot() {
 
     if (gp.FitThisFrame && (gp.VisibleItemCount > 0 || plot.Queried)) {
         if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.ExtentsX.Min)) {
-            plot.XAxis.Bounds.Min = gp.ExtentsX.Min;
+            plot.XAxis.Range.Min = gp.ExtentsX.Min;
         }
         if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.ExtentsX.Max)) {
-            plot.XAxis.Bounds.Max = gp.ExtentsX.Max;
+            plot.XAxis.Range.Max = gp.ExtentsX.Max;
         }
         for (int i = 0; i < MAX_Y_AXES; i++) {
             if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.ExtentsY[i].Min)) {
-                plot.YAxis[i].Bounds.Min = gp.ExtentsY[i].Min;
+                plot.YAxis[i].Range.Min = gp.ExtentsY[i].Min;
             }
             if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.ExtentsY[i].Max)) {
-                plot.YAxis[i].Bounds.Max = gp.ExtentsY[i].Max;
+                plot.YAxis[i].Range.Max = gp.ExtentsY[i].Max;
             }
         }
     }
@@ -1681,15 +1680,15 @@ ImVec2 GetPlotMousePos(int y_axis_in) {
 }
 
 
-ImPlotBounds GetPlotRange(int y_axis_in) {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotRange() Needs to be called between BeginPlot() and EndPlot()!");
+ImPlotBounds GetPlotBounds(int y_axis_in) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotBounds() Needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
 
     ImPlot& plot = *gp.CurrentPlot;
-    ImPlotBounds range;
-    range.X = plot.XAxis.Bounds;
-    range.Y = plot.YAxis[y_axis].Bounds;
-    return range;
+    ImPlotBounds bounds;
+    bounds.X = plot.XAxis.Range;
+    bounds.Y = plot.YAxis[y_axis].Range;
+    return bounds;
 }
 
 bool IsPlotQueried() {
@@ -1704,12 +1703,12 @@ ImPlotBounds GetPlotQuery() {
         UpdateTransformCache();
         ImVec2 p1 = PixelsToPlot(plot.QueryRect.Min + gp.BB_Grid.Min);
         ImVec2 p2 = PixelsToPlot(plot.QueryRect.Max + gp.BB_Grid.Min);
-        plot.QueryRange.X.Min = ImMin(p1.x, p2.x);
-        plot.QueryRange.X.Max = ImMax(p1.x, p2.x);
-        plot.QueryRange.Y.Min = ImMin(p1.y, p2.y);
-        plot.QueryRange.Y.Max = ImMax(p1.y, p2.y);
+        plot.QueryBounds.X.Min = ImMin(p1.x, p2.x);
+        plot.QueryBounds.X.Max = ImMax(p1.x, p2.x);
+        plot.QueryBounds.Y.Min = ImMin(p1.y, p2.y);
+        plot.QueryBounds.Y.Max = ImMax(p1.y, p2.y);
     }    
-    return plot.QueryRange;
+    return plot.QueryBounds;
 }
 
 //-----------------------------------------------------------------------------
@@ -2506,7 +2505,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
     // render digital signals as "pixel bases" rectangles
     if (count > 1 && rend_line) {
         //
-        const float mx = (gp.PixelRange[ax].Max.x - gp.PixelRange[ax].Min.x) / gp.CurrentPlot->XAxis.Bounds.Range();
+        const float mx = (gp.PixelRange[ax].Max.x - gp.PixelRange[ax].Min.x) / gp.CurrentPlot->XAxis.Range.Size();
         int pixY_0 = line_weight;
         int pixY_1 = gp.Style.DigitalBitHeight;
         int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
@@ -2521,15 +2520,15 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             ImVec2 itemData1 = getter(i1);
             ImVec2 itemData2 = getter(i2);
             i1 = i2;
-            pMin.x = gp.PixelRange[ax].Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Bounds.Min);
+            pMin.x = gp.PixelRange[ax].Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Range.Min);
             pMin.y = (gp.PixelRange[ax].Min.y) + ((-pixY_chOffset * gp.DigitalPlotItemCnt) - pixY_Offset);
-            pMax.x = gp.PixelRange[ax].Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Bounds.Min);
+            pMax.x = gp.PixelRange[ax].Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Range.Min);
             pMax.y = ((int) itemData1.y == 0) ? y0 : y1;
             //plot only one rectangle for same digital state
             while (((s+2) < segments) && ((int) itemData1.y == (int) itemData2.y)) {
                 const int i2 = (i1 + 1) % count;
                 itemData2 = getter(i2);
-                pMax.x = gp.PixelRange[ax].Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Bounds.Min);
+                pMax.x = gp.PixelRange[ax].Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Range.Min);
                 i1 = i2;
                 s++;
             } 
