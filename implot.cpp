@@ -904,8 +904,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     YPadCalculator y_axis_pad(y, max_label_width, txt_off);
     const float pad_left    = y_axis_pad(0) + (y_label ? txt_height + txt_off : 0);
     const float pad_right   = y_axis_pad(1) + y_axis_pad(2);
-    gp.BB_Grid            = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(pad_right, pad_bot));
-    gp.Hov_Grid           = gp.BB_Grid.Contains(IO.MousePos);
+    gp.BB_Grid              = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(pad_right, pad_bot));
+    gp.Hov_Grid             = gp.BB_Grid.Contains(IO.MousePos);
 
     // axis region bbs
     const ImRect xAxisRegion_bb(gp.BB_Grid.Min + ImVec2(10, 0), ImVec2(gp.BB_Grid.Max.x, gp.BB_Frame.Max.y) - ImVec2(10, 0));
@@ -1234,7 +1234,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             if (xt.RenderLabel && xt.PixelPos >= gp.BB_Grid.Min.x - 1 && xt.PixelPos <= gp.BB_Grid.Max.x + 1)
                 DrawList.AddText({xt.PixelPos - xt.Size.x * 0.5f, gp.BB_Grid.Max.y + txt_off}, gp.Col_X.Txt, gp.XTickLabels.Buf.Data + xt.TextOffset);
         }
-        ImGui::PopClipRect();
+        PopClipRect();
     }
     if (x_label) {
         const ImVec2 xLabel_size = CalcTextSize(x_label);
@@ -1258,7 +1258,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             }
         }
     }
-    ImGui::PopClipRect();
+    PopClipRect();
     if (y_label) {
         const ImVec2 yLabel_size = CalcTextSizeVertical(y_label);
         const ImVec2 yLabel_pos(gp.BB_Canvas.Min.x, gp.BB_Grid.GetCenter().y + yLabel_size.y * 0.5f);
@@ -1451,8 +1451,6 @@ void EndPlot() {
     const bool any_y_dragging = plot.YAxis[0].Dragging || plot.YAxis[1].Dragging || plot.YAxis[2].Dragging;
 
     // FINAL RENDER -----------------------------------------------------------
-
-    PushClipRect(gp.BB_Grid.Min, gp.BB_Frame.Max, true);
 
     // render ticks
     PushPlotClipRect();
