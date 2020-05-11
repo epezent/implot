@@ -50,8 +50,8 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #endif
 
 
-#include "implot.h"
-#include "imgui_internal.h"
+#include <implot.h>
+#include <imgui_internal.h>
 
 #define IM_NORMALIZE2F_OVER_ZERO(VX, VY)                                                           \
     {                                                                                              \
