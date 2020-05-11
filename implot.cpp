@@ -41,6 +41,10 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 */
 
+#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #ifdef _MSC_VER
 #pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
 #endif
@@ -91,7 +95,6 @@ ImPlotStyle::ImPlotStyle() {
     Colors[ImPlotCol_YAxis3]        = IM_COL_AUTO;
     Colors[ImPlotCol_Selection]     = ImVec4(1,1,0,1);
     Colors[ImPlotCol_Query]         = ImVec4(0,1,0,1);
-    Colors[ImPlotCol_QueryX]        = ImVec4(1,0,0,1);
 }
 
 ImPlotRange::ImPlotRange() : Min(NAN), Max(NAN) {}
@@ -278,7 +281,6 @@ struct ImPlot {
         Selecting = Querying = Queried = DraggingQuery = false;
         SelectStart =  QueryStart = ImVec2(0,0);
         Flags = PreviousFlags = ImPlotFlags_Default;
-        DraggingQueryX[0] = DraggingQueryX[1] = false;
         ColorIdx = 0;
         CurrentYAxis = 0;
     }
@@ -293,13 +295,8 @@ struct ImPlot {
     ImRect QueryRect; // relative to BB_grid!!
     bool DraggingQuery;
 
-    bool DraggingQueryX[2];
-    ImRect QueryRectX[2]; // relative to BB_grid!!
-    ImPlotLimits QueryRangeX;
-
     ImPlotAxis XAxis;
     ImPlotAxis YAxis[MAX_Y_AXES];
-
 
     ImPlotFlags Flags, PreviousFlags;
     int ColorIdx;
@@ -342,8 +339,7 @@ struct ImPlotContext {
     ImU32 Col_Frame, Col_Bg, Col_Border, 
           Col_Txt, Col_TxtDis, 
           Col_SlctBg, Col_SlctBd,
-          Col_QryBg, Col_QryBd,
-          Col_QryX;
+          Col_QryBg, Col_QryBd;
     struct AxisColor {
         AxisColor() : Major(), Minor(), Txt() {}
         ImU32 Major, Minor, Txt;
@@ -847,8 +843,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.Col_QryBg =  GetColorU32(gp.Style.Colors[ImPlotCol_Query] * ImVec4(1,1,1,0.25f));
     gp.Col_QryBd =  GetColorU32(gp.Style.Colors[ImPlotCol_Query]);
 
-    gp.Col_QryX =  GetColorU32(gp.Style.Colors[ImPlotCol_QueryX]);
-
     // BB AND HOVER -----------------------------------------------------------
 
     // frame
@@ -911,8 +905,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     YPadCalculator y_axis_pad(y, max_label_width, txt_off);
     const float pad_left    = y_axis_pad(0) + (y_label ? txt_height + txt_off : 0);
     const float pad_right   = y_axis_pad(1) + y_axis_pad(2);
-    gp.BB_Grid            = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(pad_right, pad_bot));
-    gp.Hov_Grid           = gp.BB_Grid.Contains(IO.MousePos);
+    gp.BB_Grid              = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(pad_right, pad_bot));
+    gp.Hov_Grid             = gp.BB_Grid.Contains(IO.MousePos);
 
     // axis region bbs
     const ImRect xAxisRegion_bb(gp.BB_Grid.Min + ImVec2(10, 0), ImVec2(gp.BB_Grid.Max.x, gp.BB_Frame.Max.y) - ImVec2(10, 0));
@@ -978,50 +972,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }        
     }    
 
-    //QUERY X
-    bool hov_queryX[2];
-    for (size_t i = 0; i < 2; i++)
-    {
-        hov_queryX[i] = plot.QueryRectX[i].Contains(IO.MousePos);
-        //x limits
-        bool xAtMax = false;
-        if (plot.QueryRectX[i].Min.x <= gp.BB_Grid.Min.x) {
-            plot.QueryRectX[i].Min.x = gp.BB_Grid.Min.x;
-        }
-        if (plot.QueryRectX[i].Max.x >= (gp.BB_Grid.Max.x)) {
-            plot.QueryRectX[i].Max.x = gp.BB_Grid.Max.x;
-            xAtMax = true;
-        }
-        //min cursor "line" width
-        if ((plot.QueryRectX[i].Max.x - plot.QueryRectX[i].Min.x) < 3) {
-            if (xAtMax)
-                plot.QueryRectX[i].Min.x = plot.QueryRectX[i].Max.x - 3;
-            else
-                plot.QueryRectX[i].Max.x = plot.QueryRectX[i].Min.x + 3;
-        }
-        //y locked to min max grid
-        plot.QueryRectX[i].Min.y = gp.BB_Grid.Min.y;
-        plot.QueryRectX[i].Max.y = gp.BB_Grid.Max.y;
-        // CURSOR1 DRAG -------------------------------------------------------------
-        if (plot.DraggingQueryX[i] && (IO.MouseReleased[0] || !IO.MouseDown[0])) {
-            plot.DraggingQueryX[i] = false;
-        }
-        if (plot.DraggingQueryX[i]) {        
-            plot.QueryRectX[i].Min += IO.MouseDelta;
-            plot.QueryRectX[i].Max += IO.MouseDelta;
-        }
-        if (gp.Hov_Frame && hov_queryX[i] && !plot.DraggingQueryX[i] && !plot.Selecting && !plot.DraggingQuery && !hov_legend) {
-            SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-            if (IO.MouseDown[0] && !plot.XAxis.Dragging && !(plot.YAxis[0].Dragging || plot.YAxis[1].Dragging || plot.YAxis[2].Dragging)) {
-                //allow only one cursor dragging per time
-                if (i==0)
-                    plot.DraggingQueryX[i] = !plot.DraggingQueryX[1];
-                else
-                    plot.DraggingQueryX[i] = !plot.DraggingQueryX[0];
-            }        
-        }    
-    }
-
     // DRAG INPUT -------------------------------------------------------------
 
 
@@ -1037,8 +987,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     const bool any_y_dragging = plot.YAxis[0].Dragging || plot.YAxis[1].Dragging || plot.YAxis[2].Dragging;
-    const bool any_queryX_dragging = plot.DraggingQueryX[0] || plot.DraggingQueryX[1];
-    bool drag_in_progress = plot.XAxis.Dragging || any_y_dragging || any_queryX_dragging;
+    bool drag_in_progress = plot.XAxis.Dragging || any_y_dragging;
     // do drag
     if (drag_in_progress) {
         UpdateTransformCache();
@@ -1063,7 +1012,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
         // Set the mouse cursor based on which axes are moving.
         int direction = 0;
-        if ((!x.lock && plot.XAxis.Dragging) || any_queryX_dragging) {
+        if (!x.lock && plot.XAxis.Dragging) {
             direction |= (1 << 1);
         }
         for (int i = 0; i < MAX_Y_AXES; i++) {
@@ -1286,7 +1235,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             if (xt.RenderLabel && xt.PixelPos >= gp.BB_Grid.Min.x - 1 && xt.PixelPos <= gp.BB_Grid.Max.x + 1)
                 DrawList.AddText({xt.PixelPos - xt.Size.x * 0.5f, gp.BB_Grid.Max.y + txt_off}, gp.Col_X.Txt, gp.XTickLabels.Buf.Data + xt.TextOffset);
         }
-        ImGui::PopClipRect();
+        PopClipRect();
     }
     if (x_label) {
         const ImVec2 xLabel_size = CalcTextSize(x_label);
@@ -1310,7 +1259,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             }
         }
     }
-    ImGui::PopClipRect();
+    PopClipRect();
     if (y_label) {
         const ImVec2 yLabel_size = CalcTextSizeVertical(y_label);
         const ImVec2 yLabel_pos(gp.BB_Canvas.Min.x, gp.BB_Grid.GetCenter().y + yLabel_size.y * 0.5f);
@@ -1505,8 +1454,6 @@ void EndPlot() {
 
     // FINAL RENDER -----------------------------------------------------------
 
-    PushClipRect(gp.BB_Grid.Min, gp.BB_Frame.Max, true);
-
     // render ticks
     PushPlotClipRect();
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickMarks)) {
@@ -1585,45 +1532,6 @@ void EndPlot() {
 
         DrawList.AddRectFilled(bb_query.Min, bb_query.Max, gp.Col_QryBg);
         DrawList.AddRect(      bb_query.Min, bb_query.Max, gp.Col_QryBd);
-    }
-
-    //render query x-axis
-    if (HasFlag(plot.Flags, ImPlotFlags_QueryX)) {
-        //render x1
-        const int lineOffset = -1;
-        ImVec2 p1, p2;
-        p1.x = plot.QueryRectX[0].Min.x;
-        p1.y = plot.QueryRectX[0].Min.y;
-        p2 = p1 + ImVec2(3,10);
-        DrawList.AddRectFilled(p1, p2, gp.Col_QryX);//upper rectangle
-        p1.x = plot.QueryRectX[0].Min.x;
-        p1.y = plot.QueryRectX[0].Max.y;
-        p2 = p1 + ImVec2(3,-10);
-        DrawList.AddRectFilled(p1, p2, gp.Col_QryX);//lower rectangle
-        p1.x = plot.QueryRectX[0].Min.x;
-        p1.y = plot.QueryRectX[0].Min.y;
-        p1 += ImVec2(1, 10  -lineOffset);
-        p2.x = plot.QueryRectX[0].Min.x;
-        p2.y = plot.QueryRectX[0].Max.y;
-        p2 += ImVec2(1, -10 +lineOffset);
-        DrawList.AddLine(p1, p2, gp.Col_QryX);//line
-
-        //render x2
-        p1.x = plot.QueryRectX[1].Min.x;
-        p1.y = plot.QueryRectX[1].Min.y;
-        p2 = p1 + ImVec2(3,10);
-        DrawList.AddRectFilled(p1, p2, gp.Col_QryX);//upper rectangle
-        p1.x = plot.QueryRectX[1].Min.x;
-        p1.y = plot.QueryRectX[1].Max.y;
-        p2 = p1 + ImVec2(3,-10);
-        DrawList.AddRectFilled(p1, p2, gp.Col_QryX);//lower rectangle
-        p1.x = plot.QueryRectX[1].Min.x;
-        p1.y = plot.QueryRectX[1].Min.y;
-        p1 += ImVec2(1, 10  -lineOffset);
-        p2.x = plot.QueryRectX[1].Min.x;
-        p2.y = plot.QueryRectX[1].Max.y;
-        p2 += ImVec2(1, -10 +lineOffset);
-        DrawList.AddLine(p1, p2, gp.Col_QryX);//line
     }
 
     // render legend
@@ -1865,17 +1773,6 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
     return result;
 }
 
-ImPlotLimits GetPlotQueryX() {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQueryX() Needs to be called between BeginPlot() and EndPlot()!");
-    ImPlot& plot = *gp.CurrentPlot;
-    ImVec2 x1 = plot.QueryRectX[0].Min;
-    ImVec2 x2 = plot.QueryRectX[1].Min;
-    x1.x += 1;
-    x2.x += 1;
-    plot.QueryRangeX.X.Min = PixelsToPlot(x1).x;
-    plot.QueryRangeX.X.Max = PixelsToPlot(x2).x;
-    return plot.QueryRangeX;
-}
 //-----------------------------------------------------------------------------
 // STYLING
 //-----------------------------------------------------------------------------
