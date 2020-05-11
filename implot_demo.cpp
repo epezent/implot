@@ -755,7 +755,6 @@ void ShowImPlotDemoWindow(bool* p_open) {
             }   
             ImGui::EndPlot();
         }
-        ImGui::Text("Test");
     }
     //-------------------------------------------------------------------------
     ImGui::End();
