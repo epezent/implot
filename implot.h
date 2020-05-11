@@ -49,7 +49,6 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoChild     = 1 << 9,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
     ImPlotFlags_YAxis2      = 1 << 10, // enable a 2nd y axis
     ImPlotFlags_YAxis3      = 1 << 11, // enable a 3rd y axis
-    ImPlotFlags_QueryX      = 1 << 12,// show x-axis query
     ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_Selection | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
 };
 
@@ -84,7 +83,6 @@ enum ImPlotCol_ {
     ImPlotCol_YAxis3,        // 3rd y-axis grid/label color (defaults to 25% ImGuiCol_Text)
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
     ImPlotCol_Query,         // box-query color (defaults to green)
-    ImPlotCol_QueryX,        // x-axis query color (defaults to red)
     ImPlotCol_COUNT
 };
 
@@ -212,8 +210,7 @@ ImPlotLimits GetPlotLimits(int y_axis = -1);
 bool IsPlotQueried();
 /// Returns the current or most recent plot query bounds.
 ImPlotLimits GetPlotQuery(int y_axis = -1);
-/// Returns the current x-axis query range.
-ImPlotLimits GetPlotQueryX();
+
 //-----------------------------------------------------------------------------
 // Plot Styling
 //-----------------------------------------------------------------------------
