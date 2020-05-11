@@ -48,21 +48,18 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 */
 
-#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
-#define _CRT_SECURE_NO_WARNINGS
-#endif
-
-#ifdef _MSC_VER
-#pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
-#endif
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 
+#include "implot.h"
+#include "imgui_internal.h"
+#include <cmath>
 
-#include <implot.h>
-#include <imgui_internal.h>
+#ifdef _MSC_VER
+#define sprintf sprintf_s
+#endif
 
 #define IM_NORMALIZE2F_OVER_ZERO(VX, VY)                                                           \
     {                                                                                              \
@@ -202,8 +199,7 @@ inline void AddTextVertical(ImDrawList *DrawList, const char *text, ImVec2 pos, 
     pos.y                   = IM_ROUND(pos.y);
     ImFont *           font = GImGui->Font;
     const ImFontGlyph *glyph;
-    char               c;
-    while ((c = *text++)) {
+    for (char c = *text++; c; c = *text++) {
         glyph = font->FindGlyph(c);
         if (!glyph)
             continue;
@@ -1585,7 +1581,10 @@ void EndPlot() {
                 col_hl_txt = ImGui::GetColorU32(ImLerp(G.Style.Colors[ImGuiCol_Text], item->Color, 0.25f));
             }
             else
-                item->Highlight = false;
+            {
+               item->Highlight = false;
+               col_hl_txt = gp.Col_Txt;
+            }
             ImU32 iconColor;
             if (hov_legend && icon_bb.Contains(IO.MousePos)) {
                 ImVec4 colAlpha = item->Color;
@@ -1601,8 +1600,7 @@ void EndPlot() {
             const char* label = GetLegendLabel(i);
             const char* text_display_end = ImGui::FindRenderedTextEnd(label, NULL);
             if (label != text_display_end)
-                DrawList.AddText(legend_content_bb.Min + legend_padding + ImVec2(legend_icon_size, i * txt_ht),
-                                 item->Show ? (item->Highlight ? col_hl_txt : gp.Col_Txt) : gp.Col_TxtDis, label, text_display_end);
+                DrawList.AddText(legend_content_bb.Min + legend_padding + ImVec2(legend_icon_size, i * txt_ht), item->Show ? col_hl_txt  : gp.Col_TxtDis, label, text_display_end);
         }
     }
 
@@ -1627,7 +1625,7 @@ void EndPlot() {
 
     // render mouse pos
     if (HasFlag(plot.Flags, ImPlotFlags_MousePos) && gp.Hov_Grid) {
-        static char buffer[128] = {};
+        char buffer[128] = {};
         BufferWriter writer(buffer, sizeof(buffer));
 
         writer.Write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
@@ -1988,7 +1986,7 @@ inline void MarkerRight(ImDrawList& DrawList, const ImVec2& c, float s, bool out
     MarkerGeneral(DrawList, marker, 3, c, s, outline, col_outline, fill, col_fill, weight);
 }
 
-inline void MarkerAsterisk(ImDrawList& DrawList, const ImVec2& c, float s, bool outline, ImU32 col_outline, bool fill, ImU32 col_fill, float weight) {
+inline void MarkerAsterisk(ImDrawList& DrawList, const ImVec2& c, float s, bool /*outline*/, ImU32 col_outline, bool /*fill*/, ImU32 /*col_fill*/, float weight) {
     ImVec2 marker[6] = {{SQRT_3_2, 0.5f}, {0, -1}, {-SQRT_3_2, 0.5f}, {SQRT_3_2, -0.5f}, {0, 1},  {-SQRT_3_2, -0.5f}};
     TransformMarker(marker, 6, c, s);
     DrawList.AddLine(marker[0], marker[5], col_outline, weight);
@@ -1996,14 +1994,14 @@ inline void MarkerAsterisk(ImDrawList& DrawList, const ImVec2& c, float s, bool 
     DrawList.AddLine(marker[2], marker[3], col_outline, weight);
 }
 
-inline void MarkerPlus(ImDrawList& DrawList, const ImVec2& c, float s, bool outline, ImU32 col_outline, bool fill, ImU32 col_fill, float weight) {
+inline void MarkerPlus(ImDrawList& DrawList, const ImVec2& c, float s, bool /*outline*/, ImU32 col_outline, bool /*fill*/, ImU32 /*col_fill*/, float weight) {
     ImVec2 marker[4] = {{1, 0}, {0, -1}, {-1, 0}, {0, 1}};
     TransformMarker(marker, 4, c, s);
     DrawList.AddLine(marker[0], marker[2], col_outline, weight);
     DrawList.AddLine(marker[1], marker[3], col_outline, weight);
 }
 
-inline void MarkerCross(ImDrawList& DrawList, const ImVec2& c, float s, bool outline, ImU32 col_outline, bool fill, ImU32 col_fill, float weight) {
+inline void MarkerCross(ImDrawList& DrawList, const ImVec2& c, float s, bool /*outline*/, ImU32 col_outline, bool /*fill*/, ImU32 /*col_fill*/, float weight) {
     ImVec2 marker[4] = {{SQRT_1_2,SQRT_1_2},{SQRT_1_2,-SQRT_1_2},{-SQRT_1_2,-SQRT_1_2},{-SQRT_1_2,SQRT_1_2}};
     TransformMarker(marker, 4, c, s);
     DrawList.AddLine(marker[0], marker[2], col_outline, weight);
@@ -2531,7 +2529,7 @@ void PieChart(const char** label_ids, float* values, int count, const ImVec2& ce
                 DrawPieSlice(DrawList, center, radius, a0 + (a1 - a0) * 0.5f, a1, col);
             }
             if (show_percents) {
-                static char buffer[8];
+                char buffer[8];
                 sprintf(buffer, "%.0f%%", percent * 100);
                 ImVec2 size = ImGui::CalcTextSize(buffer);
                 float angle = a0 + (a1 - a0) * 0.5f;
@@ -2600,9 +2598,10 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             ImVec2 itemData1 = getter(i1);
             ImVec2 itemData2 = getter(i2);
             i1 = i2;
-            int pixY_0 = line_weight;
-            int pixY_1 = gp.Style.DigitalBitHeight * ImMax(0.0f, itemData1.y); //allow only positive values
-            int pixY_chPosOffset = ImMax((int)gp.Style.DigitalBitHeight, pixY_1) + gp.Style.DigitalBitGap;
+            int pixY_0 = (int)(line_weight);
+            float pixY_1_float = gp.Style.DigitalBitHeight * ImMax(0.0f, itemData1.y);
+            int pixY_1 = (int)(pixY_1_float); //allow only positive values
+            int pixY_chPosOffset = (int)(ImMax(gp.Style.DigitalBitHeight, pixY_1_float) + gp.Style.DigitalBitGap);
             pixYMax = ImMax(pixYMax, pixY_chPosOffset);
             ImVec2 pMin, pMax;
             pMin.x = gp.PixelRange[ax].Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Range.Min);
@@ -2612,10 +2611,10 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             pMax.y = (gp.PixelRange[ax].Min.y) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
             //plot only one rectangle for same digital state
             while (((s+2) < segments) && (itemData1.y == itemData2.y)) {
-                const int i2 = (i1 + 1) % count;
-                itemData2 = getter(i2);
+                const int i3 = (i1 + 1) % count;
+                itemData2 = getter(i3);
                 pMax.x = gp.PixelRange[ax].Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Range.Min);
-                i1 = i2;
+                i1 = i3;
                 s++;
             }
             //do not extend plot outside plot range
