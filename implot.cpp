@@ -270,7 +270,6 @@ struct ImPlot {
     ImVec2 QueryStart;
     ImRect QueryRect; // relative to BB_grid!!
     bool DraggingQuery;
-    ImPlotBounds QueryBounds;
 
     ImPlotAxis XAxis;
     ImPlotAxis YAxis[MAX_Y_AXES];
@@ -326,6 +325,7 @@ struct ImPlotContext {
     // Tick marks
     ImVector<ImTick> XTicks,  YTicks[MAX_Y_AXES];
     ImGuiTextBuffer XTickLabels, YTickLabels[MAX_Y_AXES];
+    float AxisLabelReference[MAX_Y_AXES];
     // Transformation cache
     ImRect PixelRange[MAX_Y_AXES];
     // linear scale (slope)
@@ -593,25 +593,38 @@ inline void LabelTicks(ImVector<ImTick> &ticks, bool scientific, ImGuiTextBuffer
 
 namespace {
 struct AxisState {
-    const ImPlotAxis& axis;
-    const bool has_range;
-    const ImGuiCond range_cond;
-    const bool present;
-    const bool flip;
-    const bool lock_min;
-    const bool lock_max;
-    const bool lock;
+    ImPlotAxis* axis;
+    bool has_range;
+    ImGuiCond range_cond;
+    bool present;
+    int present_so_far;
+    bool flip;
+    bool lock_min;
+    bool lock_max;
+    bool lock;
 
-    AxisState(const ImPlotAxis& axis_in, bool has_range_in, ImGuiCond range_cond_in,
-              bool present_in)
-            : axis(axis_in),
+    AxisState(ImPlotAxis& axis_in, bool has_range_in, ImGuiCond range_cond_in,
+              bool present_in, int previous_present)
+            : axis(&axis_in),
               has_range(has_range_in),
               range_cond(range_cond_in),
               present(present_in),
-              flip(HasFlag(axis.Flags, ImAxisFlags_Invert)),
-              lock_min(HasFlag(axis.Flags, ImAxisFlags_LockMin)),
-              lock_max(HasFlag(axis.Flags, ImAxisFlags_LockMax)),
+              present_so_far(previous_present + (present ? 1 : 0)),
+              flip(HasFlag(axis->Flags, ImAxisFlags_Invert)),
+              lock_min(HasFlag(axis->Flags, ImAxisFlags_LockMin)),
+              lock_max(HasFlag(axis->Flags, ImAxisFlags_LockMax)),
               lock(present && ((lock_min && lock_max) || (has_range && range_cond == ImGuiCond_Always))) {}
+
+    AxisState()
+            : axis(),
+              has_range(),
+              range_cond(),
+              present(),
+              present_so_far(),
+              flip(),
+              lock_min(),
+              lock_max(),
+              lock() {}
 };
 
 void UpdateAxisColor(int axis_flag, ImPlotContext::AxisColor* col) {
@@ -635,8 +648,17 @@ class YPadCalculator {
     float operator()(int y_axis) {
         ImPlot& plot = *gp.CurrentPlot;
         if (!AxisStates[y_axis].present) { return 0; }
-        if (!HasFlag(plot.YAxis[y_axis].Flags, ImAxisFlags_TickLabels)) { return 0; }
-        return MaxLabelWidths[y_axis] + TxtOff;
+        // If we have more than 1 axis present before us, then we need
+        // extra space to account for our tick bar.
+        int pad_result = 0;
+        if (AxisStates[y_axis].present_so_far >= 3) {
+            pad_result += 6;
+        }
+        if (!HasFlag(plot.YAxis[y_axis].Flags, ImAxisFlags_TickLabels)) {
+            return pad_result;
+        }
+        pad_result += MaxLabelWidths[y_axis] + TxtOff;
+        return pad_result;
     }
 
   private:
@@ -709,15 +731,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // AXIS STATES ------------------------------------------------------------
-    AxisState x(plot.XAxis, gp.NextPlotData.HasXBounds, gp.NextPlotData.XBoundsCond, true);
-    AxisState y[MAX_Y_AXES] = {
-        {plot.YAxis[0], gp.NextPlotData.HasYBounds[0], gp.NextPlotData.YBoundsCond[0],
-         true},
-        {plot.YAxis[1], gp.NextPlotData.HasYBounds[1], gp.NextPlotData.YBoundsCond[1],
-         HasFlag(plot.Flags, ImPlotFlags_Y2Axis)},
-        {plot.YAxis[2], gp.NextPlotData.HasYBounds[2], gp.NextPlotData.YBoundsCond[2],
-         HasFlag(plot.Flags, ImPlotFlags_Y3Axis)},
-    };
+    AxisState x(plot.XAxis, gp.NextPlotData.HasXBounds, gp.NextPlotData.XBoundsCond, true, 0);
+    AxisState y[MAX_Y_AXES];
+    y[0] = AxisState(plot.YAxis[0], gp.NextPlotData.HasYBounds[0], gp.NextPlotData.YBoundsCond[0], true, 0);
+    y[1] = AxisState(plot.YAxis[1], gp.NextPlotData.HasYBounds[1], gp.NextPlotData.YBoundsCond[1],
+                     HasFlag(plot.Flags, ImPlotFlags_Y2Axis), y[0].present_so_far);
+    y[2] = AxisState(plot.YAxis[2], gp.NextPlotData.HasYBounds[2], gp.NextPlotData.YBoundsCond[2],
+                     HasFlag(plot.Flags, ImPlotFlags_Y3Axis), y[1].present_so_far);
 
     const bool lock_plot  = x.lock && y[0].lock && y[1].lock && y[2].lock;
 
@@ -848,18 +868,34 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // axis region bbs
     const ImRect xAxisRegion_bb(gp.BB_Grid.Min + ImVec2(10, 0), {gp.BB_Grid.Max.x, gp.BB_Frame.Max.y});
     const bool   hov_x_axis_region = xAxisRegion_bb.Contains(IO.MousePos);
+
+    // The left labels are referenced to the left of the bounding box.
+    gp.AxisLabelReference[0] = gp.BB_Grid.Min.x;
+    // If Y axis 1 is present, its labels will be referenced to the
+    // right of the bounding box.
+    gp.AxisLabelReference[1] = gp.BB_Grid.Max.x;
+    // The third axis may be either referenced to the right of the
+    // bounding box, or 6 pixels further past the end of the 2nd axis.
+    gp.AxisLabelReference[2] =
+            !y[1].present ?
+            gp.BB_Grid.Max.x :
+            (gp.AxisLabelReference[1] + y_axis_pad(1) + 6);
+
     ImRect yAxisRegion_bb[MAX_Y_AXES];
-    yAxisRegion_bb[0] = ImRect({gp.BB_Frame.Min.x, gp.BB_Grid.Min.y}, {gp.BB_Grid.Min.x, gp.BB_Grid.Max.y - 10});
+    yAxisRegion_bb[0] = ImRect({gp.BB_Frame.Min.x, gp.BB_Grid.Min.y}, {gp.BB_Grid.Min.x + 6, gp.BB_Grid.Max.y - 10});
     // The auxiliary y axes are off to the right of the BB grid.
-    yAxisRegion_bb[1] = ImRect({gp.BB_Grid.Max.x, gp.BB_Grid.Min.y},
+    yAxisRegion_bb[1] = ImRect({gp.BB_Grid.Max.x - 6, gp.BB_Grid.Min.y},
                                gp.BB_Grid.Max + ImVec2(y_axis_pad(1), 0));
-    yAxisRegion_bb[2] = ImRect({yAxisRegion_bb[1].Max.x, gp.BB_Grid.Min.y},
+    yAxisRegion_bb[2] = ImRect({gp.AxisLabelReference[2] - 6, gp.BB_Grid.Min.y},
                                yAxisRegion_bb[1].Max + ImVec2(y_axis_pad(2), 0));
+
+    ImRect centralRegion({gp.BB_Grid.Min.x + 6, gp.BB_Grid.Min.y},
+                         {gp.BB_Grid.Max.x - 6, gp.BB_Grid.Max.y});
     
     const bool hov_y_axis_region[MAX_Y_AXES] = {
-        y[0].present && (yAxisRegion_bb[0].Contains(IO.MousePos) || gp.BB_Grid.Contains(IO.MousePos)),
-        y[1].present && (yAxisRegion_bb[1].Contains(IO.MousePos) || gp.BB_Grid.Contains(IO.MousePos)),
-        y[2].present && (yAxisRegion_bb[2].Contains(IO.MousePos) || gp.BB_Grid.Contains(IO.MousePos)),
+        y[0].present && (yAxisRegion_bb[0].Contains(IO.MousePos) || centralRegion.Contains(IO.MousePos)),
+        y[1].present && (yAxisRegion_bb[1].Contains(IO.MousePos) || centralRegion.Contains(IO.MousePos)),
+        y[2].present && (yAxisRegion_bb[2].Contains(IO.MousePos) || centralRegion.Contains(IO.MousePos)),
     };
     const bool any_hov_y_axis_region =
             hov_y_axis_region[0] || hov_y_axis_region[1] || hov_y_axis_region[2];
@@ -869,20 +905,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     bool hov_query = false;
     if (plot.Queried && !plot.Querying) {
-        ImRect bb_query;
-        if (HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
-            bb_query      = plot.QueryRect;
-            bb_query.Min += gp.BB_Grid.Min;
-            bb_query.Max += gp.BB_Grid.Min;
-        }
-        else {
-            UpdateTransformCache();
-            // TODO(jpieper): Support querying multiple Y axes.
-            ImVec2 p1 = PlotToPixels(plot.QueryBounds.X.Min, plot.QueryBounds.Y.Min);
-            ImVec2 p2 = PlotToPixels(plot.QueryBounds.X.Max, plot.QueryBounds.Y.Max);
-            bb_query.Min = ImVec2(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y));
-            bb_query.Max = ImVec2(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y));
-        }
+        ImRect bb_query = plot.QueryRect;
+
+        bb_query.Min += gp.BB_Grid.Min;
+        bb_query.Max += gp.BB_Grid.Min;
+
         hov_query = bb_query.Contains(IO.MousePos);
     }
 
@@ -892,25 +919,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
     if (plot.DraggingQuery) {        
         SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-        if (!HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
-            // TODO(jpieper): How do these select which axes?
-            ImVec2 p1 = PlotToPixels(plot.QueryBounds.X.Min, plot.QueryBounds.Y.Min);
-            ImVec2 p2 = PlotToPixels(plot.QueryBounds.X.Max, plot.QueryBounds.Y.Max);
-            plot.QueryRect.Min = ImVec2(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y)) + IO.MouseDelta;
-            plot.QueryRect.Max = ImVec2(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y)) + IO.MouseDelta;
-            p1 = PixelsToPlot(plot.QueryRect.Min);
-            p2 = PixelsToPlot(plot.QueryRect.Max);  
-            plot.QueryRect.Min -= gp.BB_Grid.Min;
-            plot.QueryRect.Max -= gp.BB_Grid.Min;          
-            plot.QueryBounds.X.Min = ImMin(p1.x, p2.x);
-            plot.QueryBounds.X.Max = ImMax(p1.x, p2.x);
-            plot.QueryBounds.Y.Min = ImMin(p1.y, p2.y);
-            plot.QueryBounds.Y.Max = ImMax(p1.y, p2.y);
-        }
-        else {
-            plot.QueryRect.Min += IO.MouseDelta;
-            plot.QueryRect.Max += IO.MouseDelta;
-        }
+        plot.QueryRect.Min += IO.MouseDelta;
+        plot.QueryRect.Max += IO.MouseDelta;
     }
     if (gp.Hov_Frame && hov_query && !plot.DraggingQuery && !plot.Selecting && !hov_legend) {
         SetMouseCursor(ImGuiMouseCursor_ResizeAll);
@@ -1067,14 +1077,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.QueryRect.Max.x = IO.KeyAlt ? gp.BB_Grid.Max.x :   ImMax(plot.QueryStart.x, IO.MousePos.x);
         plot.QueryRect.Min.y = IO.KeyShift ? gp.BB_Grid.Min.y : ImMin(plot.QueryStart.y, IO.MousePos.y);
         plot.QueryRect.Max.y = IO.KeyShift ? gp.BB_Grid.Max.y : ImMax(plot.QueryStart.y, IO.MousePos.y);
-        ImVec2 p1 = PixelsToPlot(plot.QueryRect.Min);
-        ImVec2 p2 = PixelsToPlot(plot.QueryRect.Max);
+
         plot.QueryRect.Min -= gp.BB_Grid.Min;
         plot.QueryRect.Max -= gp.BB_Grid.Min;
-        plot.QueryBounds.X.Min = ImMin(p1.x, p2.x);
-        plot.QueryBounds.X.Max = ImMax(p1.x, p2.x);
-        plot.QueryBounds.Y.Min = ImMin(p1.y, p2.y);
-        plot.QueryBounds.Y.Max = ImMax(p1.y, p2.y);
     }
     // end query
     if (plot.Querying && (IO.MouseReleased[2] || IO.MouseReleased[1])) {
@@ -1084,13 +1089,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
         else {
             plot.Queried = false;
-            plot.QueryBounds = ImPlotBounds();
         }
     }
     // begin query
     if ((gp.Hov_Frame && gp.Hov_Grid && IO.MouseClicked[2])) {
         plot.QueryRect = ImRect(0,0,0,0);
-        plot.QueryBounds = ImPlotBounds();
         plot.Querying = true;
         plot.Queried  = true;
         plot.QueryStart = IO.MousePos;
@@ -1099,7 +1102,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (plot.Selecting && IO.KeyCtrl) {
         plot.Selecting = false;
         plot.QueryRect = ImRect(0,0,0,0);
-        plot.QueryBounds = ImPlotBounds();
         plot.Querying = true;
         plot.Queried  = true;
         plot.QueryStart = plot.SelectStart;
@@ -1109,7 +1111,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.Querying = false;
         plot.Queried = false;
         plot.QueryRect = ImRect(0,0,0,0);
-        plot.QueryBounds = ImPlotBounds();
     }
     
     // DOUBLE CLICK -----------------------------------------------------------
@@ -1200,14 +1201,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) {
-            const int x_pad = y_axis_pad(i) +
-                              ((i == 0 && y_label) ? (txt_height + txt_off) : 0.0);
+            const int x_start =
+                    gp.AxisLabelReference[i] +
+                    ((i == 0) ?
+                     (-txt_off - max_label_width[0]) :
+                     txt_off);
             for (ImTick &yt : gp.YTicks[i]) {
                 if (yt.RenderLabel && yt.PixelPos >= gp.BB_Grid.Min.y - 1 && yt.PixelPos <= gp.BB_Grid.Max.y + 1) {
-                    const int x_start =
-                            yAxisRegion_bb[i].Min.x +
-                            ((i == 0) ?
-                             (x_pad - yt.Size.x) : txt_off);
                     ImVec2 start(x_start, yt.PixelPos - 0.5f * yt.Size.y);
                     DrawList.AddText(start, gp.Col_Y[i].Txt, gp.YTickLabels[i].Buf.Data + yt.TextOffset);
                 }
@@ -1324,9 +1324,6 @@ void PlotContextMenu(ImPlot& plot) {
         if (ImGui::MenuItem("Box Select",NULL,HasFlag(plot.Flags, ImPlotFlags_Selection))) {
             FlipFlag(plot.Flags, ImPlotFlags_Selection);
         }
-        if (ImGui::MenuItem("Pixel Query",NULL,HasFlag(plot.Flags, ImPlotFlags_PixelQuery))) {
-            FlipFlag(plot.Flags, ImPlotFlags_PixelQuery);
-        }        
         if (ImGui::MenuItem("Crosshairs",NULL,HasFlag(plot.Flags, ImPlotFlags_Crosshairs))) {
             FlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
         }
@@ -1397,45 +1394,51 @@ void EndPlot() {
 
     // AXIS STATES ------------------------------------------------------------
 
-    AxisState x(plot.XAxis, gp.NextPlotData.HasXBounds, gp.NextPlotData.XBoundsCond, true);
-    AxisState y[MAX_Y_AXES] = {
-        {plot.YAxis[0], gp.NextPlotData.HasYBounds[0], gp.NextPlotData.YBoundsCond[0], true},
-        {plot.YAxis[1], gp.NextPlotData.HasYBounds[1], gp.NextPlotData.YBoundsCond[1],
-         HasFlag(plot.Flags, ImPlotFlags_Y2Axis)},
-        {plot.YAxis[2], gp.NextPlotData.HasYBounds[2], gp.NextPlotData.YBoundsCond[2],
-         HasFlag(plot.Flags, ImPlotFlags_Y3Axis)}
-    };
+    AxisState x(plot.XAxis, gp.NextPlotData.HasXBounds, gp.NextPlotData.XBoundsCond, true, 0);
+    AxisState y[MAX_Y_AXES];
+    y[0] = AxisState(plot.YAxis[0], gp.NextPlotData.HasYBounds[0], gp.NextPlotData.YBoundsCond[0], true, 0);
+    y[1] = AxisState(plot.YAxis[1], gp.NextPlotData.HasYBounds[1], gp.NextPlotData.YBoundsCond[1],
+                     HasFlag(plot.Flags, ImPlotFlags_Y2Axis), y[0].present_so_far);
+    y[2] = AxisState(plot.YAxis[2], gp.NextPlotData.HasYBounds[2], gp.NextPlotData.YBoundsCond[2],
+                     HasFlag(plot.Flags, ImPlotFlags_Y3Axis), y[1].present_so_far);
 
     const bool lock_plot  = x.lock && y[0].lock && y[1].lock && y[2].lock;
 
     // FINAL RENDER -----------------------------------------------------------
 
-    PushPlotClipRect();
+    PushClipRect(gp.BB_Grid.Min, gp.BB_Frame.Max, true);
 
     // render ticks
     if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickMarks)) {
         for (ImTick &xt : gp.XTicks)
             DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Max.y},{xt.PixelPos, gp.BB_Grid.Max.y - (xt.Major ? 10.0f : 5.0f)}, gp.Col_Border, 1);
     }
-    int axis_tick_count = 0;
+    int axis_count = 0;
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (!y[i].present) { continue; }
-
-        axis_tick_count++;
-        // We render ticks from at most the first two enabled Y
-        // axes, whether or not their ticks are enabled.
-        if (axis_tick_count > 2) { break; }
+        axis_count++;
 
         if (!HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks)) { continue; }
 
+        float x_start = gp.AxisLabelReference[i];
+        float direction = (i == 0) ? 1.0 : -1.0;
+        bool no_major = axis_count >= 3;
+
         for (ImTick &yt : gp.YTicks[i]) {
-            ImVec2 start = (
-                    (i == 0) ? ImVec2(gp.BB_Grid.Min.x, yt.PixelPos) :
-                    ImVec2(gp.BB_Grid.Max.x, yt.PixelPos));
+            ImVec2 start = ImVec2(x_start, yt.PixelPos);
 
-            float direction = (i == 0) ? 1.0 : -1.0;
+            DrawList.AddLine(
+                    start,
+                    start + ImVec2(direction * ((!no_major && yt.Major) ? 10.0f : 5.0f), 0),
+                    gp.Col_Border, 1);
+        }
 
-            DrawList.AddLine(start, start + ImVec2(direction * (yt.Major ? 10.0f : 5.0f), 0), gp.Col_Border, 1);
+        if (axis_count >= 3) {
+            // Draw a bar next to the ticks to act as a visual separator.
+            DrawList.AddLine(
+                    ImVec2(x_start, gp.BB_Grid.Min.y),
+                    ImVec2(x_start, gp.BB_Grid.Max.y),
+                    gp.Col_Border, 1);
         }
     }
 
@@ -1462,19 +1465,20 @@ void EndPlot() {
         }
     }
 
-    if (plot.Querying || (HasFlag(plot.Flags, ImPlotFlags_PixelQuery) && plot.Queried)) {
+    if (plot.Querying || plot.Queried) {
         if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
             DrawList.AddRectFilled(plot.QueryRect.Min + gp.BB_Grid.Min, plot.QueryRect.Max + gp.BB_Grid.Min, gp.Col_QryBg);
             DrawList.AddRect(      plot.QueryRect.Min + gp.BB_Grid.Min, plot.QueryRect.Max + gp.BB_Grid.Min, gp.Col_QryBd);
         }  
     }
     else if (plot.Queried) {
-        ImVec2 p1 = PlotToPixels(plot.QueryBounds.X.Min, plot.QueryBounds.Y.Min);
-        ImVec2 p2 = PlotToPixels(plot.QueryBounds.X.Max, plot.QueryBounds.Y.Max);
-        ImVec2 Min(ImMin(p1.x,p2.x), ImMin(p1.y,p2.y));
-        ImVec2 Max(ImMax(p1.x,p2.x), ImMax(p1.y,p2.y));
-        DrawList.AddRectFilled(Min, Max, gp.Col_QryBg);
-        DrawList.AddRect(      Min, Max, gp.Col_QryBd);
+        ImRect bb_query = plot.QueryRect;
+
+        bb_query.Min += gp.BB_Grid.Min;
+        bb_query.Max += gp.BB_Grid.Min;
+
+        DrawList.AddRectFilled(bb_query.Min, bb_query.Max, gp.Col_QryBg);
+        DrawList.AddRect(      bb_query.Min, bb_query.Max, gp.Col_QryBd);
     }
 
     // render legend
@@ -1571,7 +1575,7 @@ void EndPlot() {
         DrawList.AddText(pos, gp.Col_Txt, buffer);
     }
 
-    PopPlotClipRect();
+    PopClipRect();
 
     // render border
     DrawList.AddRect(gp.BB_Grid.Min, gp.BB_Grid.Max, gp.Col_Border);
@@ -1696,19 +1700,22 @@ bool IsPlotQueried() {
     return gp.CurrentPlot->Queried;
 }
 
-ImPlotBounds GetPlotQuery() {
+ImPlotBounds GetPlotQuery(int y_axis_in) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() Needs to be called between BeginPlot() and EndPlot()!");
     ImPlot& plot = *gp.CurrentPlot;
-    if (HasFlag(plot.Flags, ImPlotFlags_PixelQuery)) {
-        UpdateTransformCache();
-        ImVec2 p1 = PixelsToPlot(plot.QueryRect.Min + gp.BB_Grid.Min);
-        ImVec2 p2 = PixelsToPlot(plot.QueryRect.Max + gp.BB_Grid.Min);
-        plot.QueryBounds.X.Min = ImMin(p1.x, p2.x);
-        plot.QueryBounds.X.Max = ImMax(p1.x, p2.x);
-        plot.QueryBounds.Y.Min = ImMin(p1.y, p2.y);
-        plot.QueryBounds.Y.Max = ImMax(p1.y, p2.y);
-    }    
-    return plot.QueryBounds;
+    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+
+    UpdateTransformCache();
+    ImVec2 p1 = PixelsToPlot(plot.QueryRect.Min + gp.BB_Grid.Min, y_axis);
+    ImVec2 p2 = PixelsToPlot(plot.QueryRect.Max + gp.BB_Grid.Min, y_axis);
+
+    ImPlotBounds result;
+    result.X.Min = ImMin(p1.x, p2.x);
+    result.X.Max = ImMax(p1.x, p2.x);
+    result.Y.Min = ImMin(p1.y, p2.y);
+    result.Y.Max = ImMax(p1.y, p2.y);
+
+    return result;
 }
 
 //-----------------------------------------------------------------------------
