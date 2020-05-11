@@ -176,9 +176,9 @@ void ShowImPlotDemoWindow(bool* p_open) {
         static bool horz = false;
         ImGui::Checkbox("Horizontal",&horz);
         if (horz)
-            ImGui::SetNextPlotRange(0, 110, -0.5f, 9.5f, ImGuiCond_Always);
+            ImGui::SetNextPlotBounds(0, 110, -0.5f, 9.5f, ImGuiCond_Always);
         else
-            ImGui::SetNextPlotRange(-0.5f, 9.5f, 0, 110, ImGuiCond_Always);
+            ImGui::SetNextPlotBounds(-0.5f, 9.5f, 0, 110, ImGuiCond_Always);
         if (ImGui::BeginPlot("Bar Plot", horz ? "Score":  "Student", horz ? "Student" : "Score", {-1, 300})) {
             static float midtm[10] = {83, 67, 23, 89, 83, 78, 91, 82, 85, 90};
             static float final[10] = {80, 62, 56, 99, 55, 78, 88, 78, 90, 100};
@@ -203,7 +203,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         float bar[5] = {1,2,5,3,4};
         float err1[5] = {0.2f, 0.4f, 0.2f, 0.6f, 0.4f};
         float err2[5] = {0.4f, 0.2f, 0.4f, 0.8f, 0.6f};
-        ImGui::SetNextPlotRange(0, 6, 0, 10);
+        ImGui::SetNextPlotBounds(0, 6, 0, 10);
         if (ImGui::BeginPlot("##ErrorBars",NULL,NULL,ImVec2(-1,300))) {
 
             ImGui::PlotBar("Bar", xs, bar, 5, 0.5f);
@@ -227,7 +227,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImVec2 center(0.5f,0.5f); // in plot units, not pixels
         float radius = 0.4f;      // in plot units, not pixels
 
-        SetNextPlotRange(0,1,0,1,ImGuiCond_Always);
+        SetNextPlotBounds(0,1,0,1,ImGuiCond_Always);
         if (ImGui::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
             ImGui::PlotPieChart(labels1, pre_normalized, 4, center, radius);
             ImGui::EndPlot();
@@ -242,7 +242,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
             {0.7412f,       0.0f,    0.1490f, 1.0f},
         };
         ImGui::SetPlotPalette(YlOrRd, 5);
-        SetNextPlotRange(0,1,0,1,ImGuiCond_Always);
+        SetNextPlotBounds(0,1,0,1,ImGuiCond_Always);
         static const char* labels2[]   = {"One","Two","Three","Four","Five"};
         static float not_normalized[] = {1,2,3,4,5};
         if (ImGui::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
@@ -268,14 +268,14 @@ void ShowImPlotDemoWindow(bool* p_open) {
             sdata2.AddPoint(t, mouse.y * 0.0005f);
             rdata2.AddPoint(t, mouse.y * 0.0005f);
         }
-        ImGui::SetNextPlotRangeX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
+        ImGui::SetNextPlotBoundsX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         static int rt_axis = ImAxisFlags_Default & ~ImAxisFlags_TickLabels;
         if (ImGui::BeginPlot("##Scrolling", NULL, NULL, {-1,150}, ImPlotFlags_Default, rt_axis, rt_axis)) {
             ImGui::Plot("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), sdata1.Offset, 2 * sizeof(float));
             ImGui::Plot("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2 * sizeof(float));
             ImGui::EndPlot();
         }
-        ImGui::SetNextPlotRangeX(0, 10, ImGuiCond_Always);
+        ImGui::SetNextPlotBoundsX(0, 10, ImGuiCond_Always);
         if (ImGui::BeginPlot("##Rolling", NULL, NULL, {-1,150}, ImPlotFlags_Default, rt_axis, rt_axis)) {
             ImGui::Plot("Data 1", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 2 * sizeof(float));
             ImGui::Plot("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(float));
@@ -285,7 +285,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
 
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Markers and Labels")) {
-        ImGui::SetNextPlotRange(0, 10, 0, 12);
+        ImGui::SetNextPlotBounds(0, 10, 0, 12);
         if (ImGui::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,300), 0, 0, 0)) {
             float xs[2] = {1,4};
             float ys[2] = {10,11};
@@ -369,7 +369,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
             ys2[i] = log(xs[i]);
             ys3[i] = pow(10.0f, xs[i]);
         }
-        ImGui::SetNextPlotRange(0.1f, 100, 0, 10);
+        ImGui::SetNextPlotBounds(0.1f, 100, 0, 10);
         if (ImGui::BeginPlot("Log Plot", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default, ImAxisFlags_Default | ImAxisFlags_LogScale )) {
             ImGui::Plot("f(x) = x",      xs, xs,  1001);
             ImGui::Plot("f(x) = sin(x)+1", xs, ys1, 1001);
@@ -379,12 +379,51 @@ void ShowImPlotDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Multiple Y Axes")) {
+        static float xs[1001], xs2[1001], ys1[1001], ys2[1001], ys3[1001];
+        static bool y2_axis = true;
+        static bool y3_axis = false;
+        
+        for (int i = 0; i < 1001; ++i) {
+            xs[i] = (float)(i*0.1f);
+            ys1[i] = sin(xs[i]) * 3 + 1;
+            ys2[i] = cos(xs[i]) * 0.2 + 0.5;
+            ys3[i] = sin(xs[i]+.5) * 100 + 200;
+            xs2[i] = xs[i] + 10.0;
+        }
+        ImGui::SetNextPlotBounds(0.1f, 100, 0, 10);
+        ImGui::SetNextPlotBoundsY(0, 1, ImGuiCond_Once, 1);
+        ImGui::SetNextPlotBoundsY(0, 300, ImGuiCond_Once, 2);
+        if (ImGui::BeginPlot("Multi-Axis Plot", NULL, NULL, ImVec2(-1,300),
+                             ImPlotFlags_Default |
+                             (y2_axis ? ImPlotFlags_Y2Axis : 0) |
+                             (y3_axis ? ImPlotFlags_Y3Axis : 0))) {
+            ImGui::Plot("f(x) = x", xs, xs, 1001);
+            ImGui::Plot("f(x) = sin(x)*3+1", xs, ys1, 1001);
+
+            if (y2_axis) {
+                ImGui::SetPlotYAxis(1);
+                ImGui::Plot("f(x) = cos(x)*.2+.5 (Y2)", xs, ys2, 1001);
+            }
+
+            if (y3_axis) {
+                ImGui::SetPlotYAxis(2);
+                ImGui::Plot("f(x) = sin(x+.5)*100+200 (Y3)", xs2, ys3, 1001);
+            }
+
+            ImGui::EndPlot();
+        }
+        ImGui::Checkbox("Y2 Axis", &y2_axis);
+        ImGui::SameLine();
+        ImGui::Checkbox("Y3 Axis", &y3_axis);
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
         ImGui::BulletText("Ctrl + click in the plot area to draw points.");
         ImGui::BulletText("Middle click (or Ctrl + right click) and drag to query points.");
         ImGui::BulletText("Hold the Alt and/or Shift keys to expand the query range.");
         static ImVector<ImVec2> data;
-        ImPlotRange range, query;
+        ImPlotBounds range, query;
         if (ImGui::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default, ImAxisFlags_GridLines, ImAxisFlags_GridLines)) {
             if (ImGui::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) 
                 data.push_back(ImGui::GetPlotMousePos());
@@ -393,7 +432,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
             if (data.size() > 0)
                 ImGui::Plot("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(float));
             if (ImGui::IsPlotQueried() && data.size() > 0) {
-                ImPlotRange range = ImGui::GetPlotQuery();
+                ImPlotBounds range = ImGui::GetPlotQuery();
                 int cnt = 0;
                 ImVec2 avg;
                 for (int i = 0; i < data.size(); ++i) {
@@ -410,12 +449,12 @@ void ShowImPlotDemoWindow(bool* p_open) {
                 }
             }
             ImGui::PopPlotStyleVar(2);
-            range = ImGui::GetPlotRange();
+            range = ImGui::GetPlotBounds();
             query = ImGui::GetPlotQuery();
             ImGui::EndPlot();
         }
-        ImGui::Text("The current plot range is:  [%g,%g,%g,%g]", range.XMin, range.XMax, range.YMin, range.YMax);
-        ImGui::Text("The current query range is: [%g,%g,%g,%g]", query.XMin, query.XMax, query.YMin, query.YMax);
+        ImGui::Text("The current plot range is:  [%g,%g,%g,%g]", range.X.Min, range.X.Max, range.Y.Min, range.Y.Max);
+        ImGui::Text("The current query range is: [%g,%g,%g,%g]", query.X.Min, query.X.Max, query.Y.Min, query.Y.Max);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Views")) {
@@ -436,9 +475,9 @@ void ShowImPlotDemoWindow(bool* p_open) {
         }
         ImGui::BulletText("Query the first plot to render a subview in the second plot.");
         ImGui::BulletText("Toggle \"Pixel Query\" in the context menu and then pan the plot.");
-        ImGui::SetNextPlotRange(0,0.01f,-1,1);
+        ImGui::SetNextPlotBounds(0,0.01f,-1,1);
         ImAxisFlags flgs = ImAxisFlags_Default & ~ImAxisFlags_TickLabels;
-        ImPlotRange query;
+        ImPlotBounds query;
         if (ImGui::BeginPlot("##View1",NULL,NULL,ImVec2(-1,150), ImPlotFlags_Default, flgs, flgs)) {
             ImGui::Plot("Signal 1", x_data, y_data1, 512);
             ImGui::Plot("Signal 2", x_data, y_data2, 512);
@@ -446,7 +485,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
             query = ImGui::GetPlotQuery();
             ImGui::EndPlot();
         }
-        ImGui::SetNextPlotRange(query.XMin, query.XMax, query.YMin, query.YMax, ImGuiCond_Always);
+        ImGui::SetNextPlotBounds(query.X.Min, query.X.Max, query.Y.Min, query.Y.Max, ImGuiCond_Always);
         if (ImGui::BeginPlot("##View2",NULL,NULL,ImVec2(-1,150), 0, 0, 0)) {
             ImGui::Plot("Signal 1", x_data, y_data1, 512);
             ImGui::Plot("Signal 2", x_data, y_data2, 512);
@@ -504,7 +543,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
                                         data[i].Data.back().y + (0.005f + 0.0002f * (float)rand() / float(RAND_MAX)) * (-1 + 2 * (float)rand() / float(RAND_MAX)));
             }
         }
-        ImGui::SetNextPlotRangeX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
+        ImGui::SetNextPlotBoundsX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         if (ImGui::BeginPlot("##DND", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default)) {
             for (int i = 0; i < 10; ++i) {
                 if (show[i]) {
@@ -605,8 +644,8 @@ void ShowImPlotDemoWindow(bool* p_open) {
             if (showAnalog[i])
                 dataAnalog[i].AddPoint(t, sin(2*t) - cos(2*t));
         }
-        ImGui::SetNextPlotRangeY(-1, 1);
-        ImGui::SetNextPlotRangeX(t - 10.0f, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
+        ImGui::SetNextPlotBoundsY(-1, 1);
+        ImGui::SetNextPlotBoundsX(t - 10.0f, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         if (ImGui::BeginPlot("##Digital", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default)) {
             for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
                 if (showDigital[i]) {
@@ -653,7 +692,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         ImGui::PushPlotColor(ImPlotCol_XAxis, IM_COL32(192, 192, 192, 192));
         ImGui::PushPlotColor(ImPlotCol_YAxis, IM_COL32(192, 192, 192, 192));
         ImGui::PushPlotStyleVar(ImPlotStyleVar_LineWeight, 2);
-        ImGui::SetNextPlotRange(-0.5f, 9.5f, -0.5f, 9.5f);
+        ImGui::SetNextPlotBounds(-0.5f, 9.5f, -0.5f, 9.5f);
         if (ImGui::BeginPlot("##Custom", NULL, NULL, {-1,300}, ImPlotFlags_Default & ~ImPlotFlags_Legend, 0)) {
             float lin[10] = {8,8,9,7,8,8,8,9,7,8};
             float bar[10] = {1,2,5,3,4,1,2,5,3,4};       
@@ -688,7 +727,7 @@ void ShowImPlotDemoWindow(bool* p_open) {
         static BenchmarkItem items[n_items];
         ImGui::BulletText("Make sure VSync is disabled.");
         ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
-        SetNextPlotRange(0,1,0,1, ImGuiCond_Always);
+        SetNextPlotBounds(0,1,0,1, ImGuiCond_Always);
         if (ImGui::BeginPlot("##Bench",NULL,NULL,{-1,300},ImPlotFlags_Default | ImPlotFlags_NoChild)) {
             char buff[16];            
             for (int i = 0; i < 100; ++i) {
