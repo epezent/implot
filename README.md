@@ -18,6 +18,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
 - reversible and lockable axes
+- support for up to three independent y-axes
 - controls for zooming, panning, box selection, and auto-fitting data
 - controls for creating persistent query ranges (see demo)
 - several plot styling options: 10 marker types, adjustable marker sizes, line weights, outline colors, fill colors, etc.
@@ -65,6 +66,10 @@ A: Yes. Plot colors, palettes, and various styling variables can be pushed/poppe
 **Q: Does ImPlot support logarithmic scaling?**
 
 A: Yep!
+
+**Q: Does ImPlot support multiple y-axes? x-axes?**
+
+A: Yes to y-axes (up to three), "not yet" to x-axes.
 
 **Q: Does ImPlot support [insert plot type]?**
 
