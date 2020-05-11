@@ -20,10 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.1 WIP
+// ImPlot v0.2 WIP
 
 #pragma once
-#include <imgui.h>
+#include "imgui.h"
 
 //-----------------------------------------------------------------------------
 // Basic types and flags
@@ -37,16 +37,19 @@ typedef int ImMarker;
 
 // Options for plots
 enum ImPlotFlags_ {
-    ImPlotFlags_MousePos    = 1 << 0, // the mouse position, in plot coordinates, will be displayed in the bottom-right
-    ImPlotFlags_Legend      = 1 << 1, // a legend will be displayed in the top-left
-    ImPlotFlags_Highlight   = 1 << 2, // plot items will be highlighted when their legend entry is hovered
-    ImPlotFlags_Selection   = 1 << 3, // the user will be able to box-select with right-mouse
-    ImPlotFlags_PixelQuery  = 1 << 4, // query ranges will not change their pixel position if the plot is scrolled/zoomed
-    ImPlotFlags_ContextMenu = 1 << 5, // the user will be able to open a context menu with double-right click
-    ImPlotFlags_Crosshairs  = 1 << 6, // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_CullData    = 1 << 7, // plot data outside the plot area will be culled from rendering
-    ImPlotFlags_AntiAliased = 1 << 8, // lines and fills will be anti-aliased (not recommended)
-    ImPlotFlags_NoChild     = 1 << 9, // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_MousePos    = 1 << 0,  // the mouse position, in plot coordinates, will be displayed in the bottom-right
+    ImPlotFlags_Legend      = 1 << 1,  // a legend will be displayed in the top-left
+    ImPlotFlags_Highlight   = 1 << 2,  // plot items will be highlighted when their legend entry is hovered
+    ImPlotFlags_Selection   = 1 << 3,  // the user will be able to box-select with right-mouse
+    ImPlotFlags_Query       = 1 << 4,  // the user will be able to draw query rects with middle-mouse
+    ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open a context menu with double-right click
+    ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_CullData    = 1 << 7,  // plot data outside the plot area will be culled from rendering
+    ImPlotFlags_AntiAliased = 1 << 8,  // lines and fills will be anti-aliased (not recommended)
+    ImPlotFlags_NoChild     = 1 << 9,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_YAxis2      = 1 << 10, // enable a 2nd y axis
+    ImPlotFlags_YAxis3      = 1 << 11, // enable a 3rd y axis
+    ImPlotFlags_QueryX      = 1 << 12,// show x-axis query
     ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_Selection | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
 };
 
@@ -61,7 +64,8 @@ enum ImAxisFlags_ {
     ImAxisFlags_Adaptive   = 1 << 6, // grid divisions will adapt to the current pixel size the axis
     ImAxisFlags_LogScale   = 1 << 7, // a logartithmic (base 10) axis scale will be used
     ImAxisFlags_Scientific = 1 << 8, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
-    ImAxisFlags_Default    = ImAxisFlags_GridLines | ImAxisFlags_TickMarks | ImAxisFlags_TickLabels | ImAxisFlags_Adaptive
+    ImAxisFlags_Default    = ImAxisFlags_GridLines | ImAxisFlags_TickMarks | ImAxisFlags_TickLabels | ImAxisFlags_Adaptive,
+    ImAxisFlags_Auxiliary  = ImAxisFlags_Default & ~ImAxisFlags_GridLines,
 };
 
 // Plot styling colors 
@@ -74,13 +78,17 @@ enum ImPlotCol_ {
     ImPlotCol_FrameBg,       // plot frame background color (defaults to ImGuiCol_FrameBg)
     ImPlotCol_PlotBg,        // plot area background color (defaults to ImGuiCol_WindowBg)
     ImPlotCol_PlotBorder,    // plot area border color (defaults to ImGuiCol_Text)
-    ImPlotCol_XAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
-    ImPlotCol_YAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
+    ImPlotCol_XAxis,         // x-axis grid/label color (defaults to 25% ImGuiCol_Text)
+    ImPlotCol_YAxis,         // y-axis grid/label color (defaults to 25% ImGuiCol_Text)
+    ImPlotCol_YAxis2,        // 2nd y-axis grid/label color (defaults to 25% ImGuiCol_Text)
+    ImPlotCol_YAxis3,        // 3rd y-axis grid/label color (defaults to 25% ImGuiCol_Text)
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
     ImPlotCol_Query,         // box-query color (defaults to green)
+    ImPlotCol_QueryX,        // x-axis query color (defaults to red)
     ImPlotCol_COUNT
 };
 
+// Plot styling variables
 enum ImPlotStyleVar_ {
     ImPlotStyleVar_LineWeight,       // float, line weight in pixels
     ImPlotStyleVar_Marker,           // int,   marker specification
@@ -108,11 +116,19 @@ enum ImMarker_ {
     ImMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
-/// Plot range utility struct
+// A range defined by a min/max value. Used for plot axes ranges.
 struct ImPlotRange {
-    float XMin, XMax, YMin, YMax;
+    float Min, Max;
     ImPlotRange();
-    bool Contains(const ImVec2& p);
+    bool Contains(float value) const;
+    float Size() const;
+};
+
+// Combination of two ranges for X and Y axes.
+struct ImPlotLimits {
+    ImPlotRange X, Y;
+    ImPlotLimits();
+    bool Contains(const ImVec2& p) const;
 };
 
 // Plot style structure
@@ -139,15 +155,16 @@ namespace ImGui {
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }"". #title_id must
 // be unique. If you need to avoid ID collisions or don't want to display a
 // title in the plot, use double hashes (e.g. "MyPlot##Hidden"). If #x_label
-// and/or #y_label are provided, axes labels will be displayed. Flags are only
-// set ONCE during the first call to BeginPlot. 
+// and/or #y_label are provided, axes labels will be displayed. 
 bool BeginPlot(const char* title_id, 
-               const char* x_label = NULL, 
-               const char* y_label = NULL, 
-               const ImVec2& size  = ImVec2(-1,-1), 
-               ImPlotFlags flags   = ImPlotFlags_Default, 
-               ImAxisFlags x_flags = ImAxisFlags_Default, 
-               ImAxisFlags y_flags = ImAxisFlags_Default);
+               const char* x_label  = NULL, 
+               const char* y_label  = NULL, 
+               const ImVec2& size   = ImVec2(-1,-1), 
+               ImPlotFlags flags    = ImPlotFlags_Default, 
+               ImAxisFlags x_flags  = ImAxisFlags_Default, 
+               ImAxisFlags y_flags  = ImAxisFlags_Default,
+               ImAxisFlags y2_flags = ImAxisFlags_Auxiliary,
+               ImAxisFlags y3_flags = ImAxisFlags_Auxiliary);
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().
 void EndPlot();
@@ -156,7 +173,7 @@ void EndPlot();
 // Plot Items
 //-----------------------------------------------------------------------------
 
-// Plots a standard 2D line and/or scatter plot .
+// Plots a standard 2D line and/or scatter plot.
 void Plot(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void Plot(const char* label_id, const ImVec2* data, int count, int offset = 0);
@@ -187,15 +204,16 @@ void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), vo
 
 /// Returns true if the plot area in the current or most recent plot is hovered.
 bool IsPlotHovered();
-/// Returns the mouse position in x,y coordinates of the current or most recent plot.
-ImVec2 GetPlotMousePos();
-/// Returns the current or most recent plot axis range.
-ImPlotRange GetPlotRange();
+/// Returns the mouse position in x,y coordinates of the current or most recent plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+ImVec2 GetPlotMousePos(int y_axis = -1);
+/// Returns the current or most recent plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+ImPlotLimits GetPlotLimits(int y_axis = -1);
 /// Returns true if the current or most recent plot is being queried.
 bool IsPlotQueried();
-/// Returns the current or most recent plot querey range.
-ImPlotRange GetPlotQuery();
-
+/// Returns the current or most recent plot query bounds.
+ImPlotLimits GetPlotQuery(int y_axis = -1);
+/// Returns the current x-axis query range.
+ImPlotLimits GetPlotQueryX();
 //-----------------------------------------------------------------------------
 // Plot Styling
 //-----------------------------------------------------------------------------
@@ -226,22 +244,25 @@ void PopPlotStyleVar(int count = 1);
 // Plot Utils
 //-----------------------------------------------------------------------------
 
-/// Set the axes ranges of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes will be locked.
-void SetNextPlotRange(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
-void SetNextPlotRangeX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the X axis range of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis will be locked.
-void SetNextPlotRangeY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
+/// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
+void SetNextPlotLimits(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
+/// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis limits will be locked.
+void SetNextPlotLimitsX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
+/// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis limits will be locked.
+void SetNextPlotLimitsY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+
+/// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first Y axis.
+void SetPlotYAxis(int y_axis);
 
 // Get the current Plot position (top-left) in pixels.
 ImVec2 GetPlotPos();
 // Get the curent Plot size in pixels.
 ImVec2 GetPlotSize();
 
-// Convert pixels to a position in the current plot's coordinate system.
-ImVec2 PixelsToPlot(const ImVec2& pix);
-// Convert a position in the current plot's coordinate system to pixels.
-ImVec2 PlotToPixels(const ImVec2& plt);
+// Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+ImVec2 PixelsToPlot(const ImVec2& pix, int y_axis = -1);
+// Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+ImVec2 PlotToPixels(const ImVec2& plt, int y_axis = -1);
 
 // Push clip rect for rendering to current plot area
 void PushPlotClipRect();
