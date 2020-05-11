@@ -1007,15 +1007,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             plot.DraggingQueryX[i] = false;
         }
         if (plot.DraggingQueryX[i]) {        
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
             plot.QueryRectX[i].Min += IO.MouseDelta;
             plot.QueryRectX[i].Max += IO.MouseDelta;
-            //x limits
-            //if (plot.QueryRectX[i].Min.x < gp.BB_Grid.Min.x) plot.QueryRectX[i].Min.x = gp.BB_Grid.Min.x;
-            //if (plot.QueryRectX[i].Max.x > (gp.BB_Grid.Max.x - 10)) plot.QueryRectX[i].Max.x = gp.BB_Grid.Max.x - 10;
         }
         if (gp.Hov_Frame && hov_queryX[i] && !plot.DraggingQueryX[i] && !plot.Selecting && !plot.DraggingQuery && !hov_legend) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+            SetMouseCursor(ImGuiMouseCursor_ResizeEW);
             if (IO.MouseDown[0] && !plot.XAxis.Dragging && !(plot.YAxis[0].Dragging || plot.YAxis[1].Dragging || plot.YAxis[2].Dragging)) {
                 //allow only one cursor dragging per time
                 if (i==0)
@@ -1067,7 +1063,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
         // Set the mouse cursor based on which axes are moving.
         int direction = 0;
-        if (!x.lock && plot.XAxis.Dragging) {
+        if ((!x.lock && plot.XAxis.Dragging) || any_queryX_dragging) {
             direction |= (1 << 1);
         }
         for (int i = 0; i < MAX_Y_AXES; i++) {
