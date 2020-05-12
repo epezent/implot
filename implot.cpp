@@ -1425,7 +1425,8 @@ class BufferWriter {
   private:
     void VWrite(const char* fmt, va_list argp) {
         const int written = ::vsnprintf(&Buffer[Pos], Size - Pos - 1, fmt, argp);
-        Pos += written;
+        if (written > 0)
+          Pos += ImMin(size_t(written), Size-Pos-1);
     }
 
     char* const Buffer;
