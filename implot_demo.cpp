@@ -23,15 +23,15 @@
 // ImPlot v0.2 WIP
 
 
-#ifdef _MSC_VER
-#pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
-#endif
-
 #include "implot.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <cmath> // for 'float' overloads of elementary functions (sin,cos,etc)
+
+#ifdef _MSC_VER
+#define sprintf sprintf_s
+#endif
 
 namespace {
 
