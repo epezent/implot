@@ -2563,14 +2563,6 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
     if (gp.Style.Colors[ImPlotCol_Line].w != -1)
         item->Color = gp.Style.Colors[ImPlotCol_Line];
 
-    // find data extents
-    if (gp.FitThisFrame) {
-        for (int i = 0; i < count; ++i) {
-            ImVec2 p = getter(i);
-            FitPoint(p);
-        }
-    }
-
     ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
     bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
 
