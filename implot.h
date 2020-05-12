@@ -40,7 +40,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_MousePos    = 1 << 0,  // the mouse position, in plot coordinates, will be displayed in the bottom-right
     ImPlotFlags_Legend      = 1 << 1,  // a legend will be displayed in the top-left
     ImPlotFlags_Highlight   = 1 << 2,  // plot items will be highlighted when their legend entry is hovered
-    ImPlotFlags_Selection   = 1 << 3,  // the user will be able to box-select with right-mouse
+    ImPlotFlags_BoxSelect   = 1 << 3,  // the user will be able to box-select with right-mouse
     ImPlotFlags_Query       = 1 << 4,  // the user will be able to draw query rects with middle-mouse
     ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open a context menu with double-right click
     ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
@@ -49,7 +49,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoChild     = 1 << 9,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
     ImPlotFlags_YAxis2      = 1 << 10, // enable a 2nd y axis
     ImPlotFlags_YAxis3      = 1 << 11, // enable a 3rd y axis
-    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_Selection | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
+    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
 };
 
 // Options for plot axes (X and Y)
@@ -127,6 +127,7 @@ struct ImPlotLimits {
     ImPlotRange X, Y;
     ImPlotLimits();
     bool Contains(const ImVec2& p) const;
+    ImVec2 Size() const;
 };
 
 // Plot style structure
@@ -147,7 +148,7 @@ struct ImPlotStyle {
 // Core API
 //-----------------------------------------------------------------------------
 
-namespace ImGui {
+namespace ImPlot {
 
 // Starts a 2D plotting context. If this function returns true, EndPlot() must
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }"". #title_id must
@@ -177,24 +178,24 @@ void Plot(const char* label_id, const float* xs, const float* ys, int count, int
 void Plot(const char* label_id, const ImVec2* data, int count, int offset = 0);
 void Plot(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots vertical bars.
-void PlotBar(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
-void PlotBar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
-void PlotBar(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float width, int offset = 0);
+void Bar(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
+void Bar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
+void Bar(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float width, int offset = 0);
 // Plots horizontal bars.
-void PlotBarH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
-void PlotBarH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
-void PlotBarH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float height,  int offset = 0);
+void BarH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
+void BarH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
+void BarH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float height,  int offset = 0);
 // Plots vertical error bars.
-void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+void ErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
+void ErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
+void ErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a pie chart. If the sum of values > 1, each value will be normalized. Center and radius are in plot coordinates.
-void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents = true, float angle0 = 90);
-// Plots a text label at point x,y.
-void PlotLabel(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
+void PieChart(const char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents = true, float angle0 = 90);
 // Plots digital channels.
-void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+void Digital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
+void Digital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+// Plots a text label at point x,y.
+void Text(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 
 //-----------------------------------------------------------------------------
 // Plot Queries
@@ -216,26 +217,26 @@ ImPlotLimits GetPlotQuery(int y_axis = -1);
 //-----------------------------------------------------------------------------
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
-ImPlotStyle& GetPlotStyle();
+ImPlotStyle& GetStyle();
 
 // Sets the color palette to be used for plot items.
-void SetPlotPalette(const ImVec4* colors, int num_colors);
+void SetPalette(const ImVec4* colors, int num_colors);
 // Restores the default ImPlot color map.
-void RestorePlotPalette();
+void RestorePalette();
 
 // Temporarily modify a plot color.
-void PushPlotColor(ImPlotCol idx, ImU32 col);
+void PushStyleColor(ImPlotCol idx, ImU32 col);
 // Temporarily modify a plot color.
-void PushPlotColor(ImPlotCol idx, const ImVec4& col);
+void PushStyleColor(ImPlotCol idx, const ImVec4& col);
 // Undo temporary color modification. 
-void PopPlotColor(int count = 1);
+void PopStyleColor(int count = 1);
 
 // Temporarily modify a style variable of float type.
-void PushPlotStyleVar(ImPlotStyleVar idx, float val);
+void PushStyleVar(ImPlotStyleVar idx, float val);
 // Temporarily modify a style variable of int type.
-void PushPlotStyleVar(ImPlotStyleVar idx, int val);
+void PushStyleVar(ImPlotStyleVar idx, int val);
 // Undo temporary style modification.
-void PopPlotStyleVar(int count = 1);
+void PopStyleVar(int count = 1);
 
 //-----------------------------------------------------------------------------
 // Plot Utils
@@ -271,6 +272,6 @@ void PopPlotClipRect();
 //-----------------------------------------------------------------------------
 
 // Shows the ImPlot demo. Add implot_demo.cpp to your sources!
-void ShowImPlotDemoWindow(bool* p_open = NULL);
+void ShowDemoWindow(bool* p_open = NULL);
 
-}  // namespace ImGui
+}  // namespace ImPlot
