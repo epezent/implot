@@ -55,7 +55,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 #include "implot.h"
 #include "imgui_internal.h"
-#include <cmath>
+#include <cmath> // for 'float' overloads of elementary functions (sin,cos,etc)
 
 #ifdef _MSC_VER
 #define sprintf sprintf_s
