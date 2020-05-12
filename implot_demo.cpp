@@ -602,7 +602,6 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Indent();
         ImGui::Text("you can drag analog signals over the rising/falling digital edge.");
         ImGui::Unindent();
-        static float bitHeight = 8;
         ImGui::BeginGroup();
         if (ImGui::Button("Clear", {100, 0})) {
             for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i)
@@ -613,7 +612,11 @@ void ShowDemoWindow(bool* p_open) {
         if (ImGui::Button(paused ? "Resume" : "Pause", {100,0}))
             paused = !paused;
         ImGui::SetNextItemWidth(100);
+        static float bitHeight = 8;
         ImGui::DragFloat("##Bit Height", &bitHeight, 1, 5, 25, "%.0f px");
+        ImGui::SetNextItemWidth(100);
+        static float bitGap = 4;
+        ImGui::DragFloat("##Bit Gap", &bitGap, 1, 2, 20, "%.0f px");
         ImGui::Separator();
         for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
             char label[32];
@@ -649,7 +652,7 @@ void ShowDemoWindow(bool* p_open) {
                 dataDigital[i].AddPoint(t, sin(2*t) < 0.45);
             i++;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, sin(2*t) > 0.83);
+                dataDigital[i].AddPoint(t, (int)t % 5);
             i++;
             if (showDigital[i])
                 dataDigital[i].AddPoint(t, sin(2*t) < 0.17);
@@ -675,8 +678,9 @@ void ShowDemoWindow(bool* p_open) {
                     char label[32];
                     sprintf(label, "digital_%d", i);
                     ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitHeight, bitHeight);
+                    ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitGap, bitGap);
                     ImPlot::Digital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), dataDigital[i].Offset, 2 * sizeof(float));
-                    ImPlot::PopStyleVar();
+                    ImPlot::PopStyleVar(2);
                 }
             }
             for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
@@ -767,4 +771,4 @@ void ShowDemoWindow(bool* p_open) {
     ImGui::End();    
 }
 
-} // namespace ImGui
+} // namespace ImPlot

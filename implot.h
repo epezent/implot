@@ -94,7 +94,8 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_MarkerWeight,     // float, outline weight of markers in pixels
     ImPlotStyleVar_ErrorBarSize,     // float, error bar whisker width in pixels
     ImPlotStyleVar_ErrorBarWeight,   // float, error bar whisker weight in pixels
-    ImPlotStyleVar_DigitalBitHeight, // float, digital channels bit height (at 1)
+    ImPlotStyleVar_DigitalBitHeight, // float, digital channels bit height (at 1) in pixels
+    ImPlotStyleVar_DigitalBitGap,    // float, digital channels bit padding gap in pixels
     ImPlotStyleVar_COUNT
 };
 
@@ -137,7 +138,8 @@ struct ImPlotStyle {
     float    MarkerWeight;            // = 1, outline weight of markers in pixels
     float    ErrorBarSize;            // = 5, error bar whisker width in pixels
     float    ErrorBarWeight;          // = 1.5, error bar whisker weight in pixels
-    float    DigitalBitHeight;        // = 8, digital channels bit height (at y = 1.0f)
+    float    DigitalBitHeight;        // = 8, digital channels bit height (at y = 1.0f) in pixels
+    float    DigitalBitGap;           // = 4, digital channels bit padding gap in pixels
     ImVec4   Colors[ImPlotCol_COUNT]; // array of plot specific colors
     ImPlotStyle();
 };
