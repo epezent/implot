@@ -243,10 +243,10 @@ struct ImTick {
     }
     double PlotPos;
     float  PixelPos;
-    bool   Major;
     ImVec2 Size;
-    int    TextOffset;
-    bool   RenderLabel;
+    int    TextOffset;    
+    bool   Major;
+    bool   RenderLabel;    
 };
 
 struct ImPlotItem {
@@ -294,13 +294,13 @@ struct ImPlotState {
     ImPool<ImPlotItem> Items;
 
     ImRect BB_Legend;
-    bool Selecting;
     ImVec2 SelectStart;
+    bool Selecting;
     bool Querying;
     bool Queried;
+    bool DraggingQuery;
     ImVec2 QueryStart;
     ImRect QueryRect; // relative to BB_grid!!
-    bool DraggingQuery;
 
     ImPlotAxis XAxis;
     ImPlotAxis YAxis[MAX_Y_AXES];
@@ -339,9 +339,6 @@ struct ImPlotContext {
     ImRect BB_Frame;
     ImRect BB_Canvas;
     ImRect BB_Grid;
-    // Hover states
-    bool Hov_Frame;
-    bool Hov_Grid;
     // Cached Colors
     ImU32 Col_Frame, Col_Bg, Col_Border,
           Col_Txt, Col_TxtDis,
@@ -359,6 +356,7 @@ struct ImPlotContext {
     float AxisLabelReference[MAX_Y_AXES];
     // Transformation cache
     ImRect PixelRange[MAX_Y_AXES];
+
     // linear scale (slope)
     float Mx;
     float My[MAX_Y_AXES];
@@ -369,10 +367,15 @@ struct ImPlotContext {
     // Data extents
     ImPlotRange ExtentsX;
     ImPlotRange ExtentsY[MAX_Y_AXES];
+    int VisibleItemCount;
 
     bool FitThisFrame; bool FitX;
     bool FitY[MAX_Y_AXES] = {};
-    int VisibleItemCount;
+
+    // Hover states
+    bool Hov_Frame;
+    bool Hov_Grid;
+    
     // Render flags
     bool RenderX, RenderY[MAX_Y_AXES];
     // Mouse pos
