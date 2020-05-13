@@ -706,6 +706,20 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Offset Data")) {
+        float xs[50], ys[50];
+        for (int i = 0; i < 50; ++i) {
+            xs[i] = 0.5 + 0.4 * cos(i/50.f * 6.28);
+            ys[i] = 0.5 + 0.4 * sin(i/50.f * 6.28);
+        }
+        static int offset = 0;
+        ImGui::SliderInt("Offset", &offset, -100, 100);
+        if (ImPlot::BeginPlot("##offset")) {
+            ImPlot::Plot("circle", xs, ys, 50, offset);
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Styles")) {
         static ImVec4 my_palette[3] = {
             {0.000f, 0.980f, 0.604f, 1.0f},

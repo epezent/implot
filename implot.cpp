@@ -2081,34 +2081,43 @@ inline void RenderLineAA(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p
 }
 
 template <typename Transformer, typename Getter>
-inline void RenderLines(Transformer transformer, ImDrawList& DrawList, Getter getter, int count, int offset, float line_weight, ImU32 col_line, bool cull) {
+inline void RenderLineStrip(Transformer transformer, ImDrawList& DrawList, Getter getter, int count, int offset, float line_weight, ImU32 col_line, bool cull) {
 // render line segments
+   offset %= count; 
+   if (offset < 0) offset += count; // shift negative offset to positive range
+   int i_start = offset + 1;
+   if (i_start >= count ) i_start -= count;
+   int i_end = offset + count;
+   if (i_end >= count) i_end -= count;
+   
     const int    segments  = count - 1;
-    int    i1 = offset;
-    ImVec2 p1, p2;
+    ImVec2 p1 = transformer(getter(offset));
+    bool test1 = !cull || gp.BB_Grid.Contains(p1);
     if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
-        for (int s = 0; s < segments; ++s) {
-            const int i2 = (i1 + 1) % count;
-            p1 = transformer(getter(i1));
-            p2 = transformer(getter(i2));
-            i1 = i2;
-            if (!cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2))
+        for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count)
+        {
+            ImVec2 p2 = transformer(getter(i1));
+            bool test2 = !cull || gp.BB_Grid.Contains(p2);            
+            if (test1 | test2)
                 RenderLineAA(DrawList, p1, p2, line_weight, col_line);
+            p1 = p2;
+            test1 = test2;
         }
     }
     else {
         const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
         DrawList.PrimReserve(segments * 6, segments * 4);
         int segments_culled = 0;
-        for (int s = 0; s < segments; ++s) {
-            const int i2 = (i1 + 1) % count;
-            p1 = transformer(getter(i1));
-            p2 = transformer(getter(i2));
-            i1 = i2;
-            if (!cull || gp.BB_Grid.Contains(p1) || gp.BB_Grid.Contains(p2)) 
-                RenderLine(DrawList, p1, p2, line_weight, col_line, uv);                
-            else 
-                segments_culled++;                
+        for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count)
+        {
+           ImVec2 p2 = transformer(getter(i1));
+           bool test2 = !cull || gp.BB_Grid.Contains(p2);
+           if (test1 | test2)
+               RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
+           else 
+               segments_culled++;
+           p1 = p2;
+           test1 = test2;
         }
         if (segments_culled > 0) 
             DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4); 
@@ -2204,13 +2213,13 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
     PushPlotClipRect();
     if (count > 1 && rend_line) {
         if (HasFlag(plot->XAxis.Flags, ImAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImAxisFlags_LogScale))
-            RenderLines(Plt2PixLogLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
+            RenderLineStrip(Plt2PixLogLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
         else if (HasFlag(plot->XAxis.Flags, ImAxisFlags_LogScale))
-            RenderLines(Plt2PixLogLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
+            RenderLineStrip(Plt2PixLogLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
         else if (HasFlag(plot->YAxis[y_axis].Flags, ImAxisFlags_LogScale))
-            RenderLines(Plt2PixLinLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
+            RenderLineStrip(Plt2PixLinLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
         else
-            RenderLines(Plt2PixLinLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
+            RenderLineStrip(Plt2PixLinLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
     }
     // render markers
     if (gp.Style.Marker != ImMarker_None) {
