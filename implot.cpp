@@ -349,8 +349,7 @@ struct ImPlotContext {
     ImU32 Col_Frame, Col_Bg, Col_Border, 
           Col_Txt, Col_TxtDis, 
           Col_SlctBg, Col_SlctBd,
-          Col_QryBg, Col_QryBd,
-          Col_QryX;
+          Col_QryBg, Col_QryBd;
     struct AxisColor {
         AxisColor() : Major(), Minor(), Txt() {}
         ImU32 Major, Minor, Txt;
