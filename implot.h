@@ -30,10 +30,10 @@
 //-----------------------------------------------------------------------------
 
 typedef int ImPlotFlags;
-typedef int ImAxisFlags;
+typedef int ImPlotAxisFlags;
 typedef int ImPlotCol;
 typedef int ImPlotStyleVar;
-typedef int ImMarker;
+typedef int ImPlotMarker;
 
 // Options for plots
 enum ImPlotFlags_ {
@@ -53,18 +53,18 @@ enum ImPlotFlags_ {
 };
 
 // Options for plot axes (X and Y)
-enum ImAxisFlags_ {
-    ImAxisFlags_GridLines  = 1 << 0, // grid lines will be displayed
-    ImAxisFlags_TickMarks  = 1 << 1, // tick marks will be displayed for each grid line
-    ImAxisFlags_TickLabels = 1 << 2, // text labels will be displayed for each grid line
-    ImAxisFlags_Invert     = 1 << 3, // the axis will be inverted
-    ImAxisFlags_LockMin    = 1 << 4, // the axis minimum value will be locked when panning/zooming
-    ImAxisFlags_LockMax    = 1 << 5, // the axis maximum value will be locked when panning/zooming
-    ImAxisFlags_Adaptive   = 1 << 6, // grid divisions will adapt to the current pixel size the axis
-    ImAxisFlags_LogScale   = 1 << 7, // a logartithmic (base 10) axis scale will be used
-    ImAxisFlags_Scientific = 1 << 8, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
-    ImAxisFlags_Default    = ImAxisFlags_GridLines | ImAxisFlags_TickMarks | ImAxisFlags_TickLabels | ImAxisFlags_Adaptive,
-    ImAxisFlags_Auxiliary  = ImAxisFlags_Default & ~ImAxisFlags_GridLines,
+enum ImPlotAxisFlags_ {
+    ImPlotAxisFlags_GridLines  = 1 << 0, // grid lines will be displayed
+    ImPlotAxisFlags_TickMarks  = 1 << 1, // tick marks will be displayed for each grid line
+    ImPlotAxisFlags_TickLabels = 1 << 2, // text labels will be displayed for each grid line
+    ImPlotAxisFlags_Invert     = 1 << 3, // the axis will be inverted
+    ImPlotAxisFlags_LockMin    = 1 << 4, // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax    = 1 << 5, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_Adaptive   = 1 << 6, // grid divisions will adapt to the current pixel size the axis
+    ImPlotAxisFlags_LogScale   = 1 << 7, // a logartithmic (base 10) axis scale will be used
+    ImPlotAxisFlags_Scientific = 1 << 8, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
+    ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels | ImPlotAxisFlags_Adaptive,
+    ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_GridLines,
 };
 
 // Plot styling colors
@@ -100,18 +100,18 @@ enum ImPlotStyleVar_ {
 };
 
 // Marker specification
-enum ImMarker_ {
-    ImMarker_None        = 1 << 0,  // no marker
-    ImMarker_Circle      = 1 << 1,  // a circle marker will be rendered at each point
-    ImMarker_Square      = 1 << 2,  // a square maker will be rendered at each point
-    ImMarker_Diamond     = 1 << 3,  // a diamond marker will be rendered at each point
-    ImMarker_Up          = 1 << 4,  // an upward-pointing triangle marker will up rendered at each point
-    ImMarker_Down        = 1 << 5,  // an downward-pointing triangle marker will up rendered at each point
-    ImMarker_Left        = 1 << 6,  // an leftward-pointing triangle marker will up rendered at each point
-    ImMarker_Right       = 1 << 7,  // an rightward-pointing triangle marker will up rendered at each point
-    ImMarker_Cross       = 1 << 8,  // a cross marker will be rendered at each point (not filled)
-    ImMarker_Plus        = 1 << 9,  // a plus marker will be rendered at each point (not filled)
-    ImMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
+enum ImPlotMarker_ {
+    ImPlotMarker_None        = 1 << 0,  // no marker
+    ImPlotMarker_Circle      = 1 << 1,  // a circle marker will be rendered at each point
+    ImPlotMarker_Square      = 1 << 2,  // a square maker will be rendered at each point
+    ImPlotMarker_Diamond     = 1 << 3,  // a diamond marker will be rendered at each point
+    ImPlotMarker_Up          = 1 << 4,  // an upward-pointing triangle marker will up rendered at each point
+    ImPlotMarker_Down        = 1 << 5,  // an downward-pointing triangle marker will up rendered at each point
+    ImPlotMarker_Left        = 1 << 6,  // an leftward-pointing triangle marker will up rendered at each point
+    ImPlotMarker_Right       = 1 << 7,  // an rightward-pointing triangle marker will up rendered at each point
+    ImPlotMarker_Cross       = 1 << 8,  // a cross marker will be rendered at each point (not filled)
+    ImPlotMarker_Plus        = 1 << 9,  // a plus marker will be rendered at each point (not filled)
+    ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
 // A range defined by a min/max value. Used for plot axes ranges.
@@ -133,7 +133,7 @@ struct ImPlotLimits {
 // Plot style structure
 struct ImPlotStyle {
     float    LineWeight;              // = 1, line weight in pixels
-    ImMarker Marker;                  // = ImMarker_None, marker specification
+    ImPlotMarker Marker;                  // = ImPlotMarker_None, marker specification
     float    MarkerSize;              // = 5, marker size in pixels (roughly the marker's "radius")
     float    MarkerWeight;            // = 1, outline weight of markers in pixels
     float    ErrorBarSize;            // = 5, error bar whisker width in pixels
@@ -160,10 +160,10 @@ bool BeginPlot(const char* title_id,
                const char* y_label  = NULL,
                const ImVec2& size   = ImVec2(-1,-1),
                ImPlotFlags flags    = ImPlotFlags_Default,
-               ImAxisFlags x_flags  = ImAxisFlags_Default,
-               ImAxisFlags y_flags  = ImAxisFlags_Default,
-               ImAxisFlags y2_flags = ImAxisFlags_Auxiliary,
-               ImAxisFlags y3_flags = ImAxisFlags_Auxiliary);
+               ImPlotAxisFlags x_flags  = ImPlotAxisFlags_Default,
+               ImPlotAxisFlags y_flags  = ImPlotAxisFlags_Default,
+               ImPlotAxisFlags y2_flags = ImPlotAxisFlags_Auxiliary,
+               ImPlotAxisFlags y3_flags = ImPlotAxisFlags_Auxiliary);
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().
 void EndPlot();
