@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2020/05/13 (0.2) - ImMarker was change to ImPlotMarker and ImAxisFlags was changed to ImPlotAxisFlags
 - 2020/05/11 (0.2) - ImPlotFlags_Selection was changed to ImPlotFlags_BoxSelect
 - 2020/05/11 (0.2) - The namespace ImGui:: was replaced with ImPlot::. As a result, the following additional changes were made:
                      - Functions that were prefixed or decorated with the word "Plot" have been truncated. E.g., `ImGui::PlotBar` is now just `ImPlot::Bar`. 
@@ -80,7 +81,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 ImPlotStyle::ImPlotStyle() {
     LineWeight = 1;
-    Marker = ImMarker_None;
+    Marker = ImPlotMarker_None;
     MarkerSize = 5;
     MarkerWeight = 1;
     ErrorBarSize = 5;
@@ -276,13 +277,13 @@ struct ImPlotAxis {
         Range.Max = 1;
         Divisions = 3; 
         Subdivisions = 10; 
-        Flags = PreviousFlags = ImAxisFlags_Default; 
+        Flags = PreviousFlags = ImPlotAxisFlags_Default; 
     }
     bool Dragging;
     ImPlotRange Range;
     int Divisions;
     int Subdivisions;
-    ImAxisFlags Flags, PreviousFlags;
+    ImPlotAxisFlags Flags, PreviousFlags;
 };
 
 /// Holds Plot state information that must persist between frames
@@ -426,10 +427,10 @@ inline void UpdateTransformCache() {
     // get pixels for transforms
 
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        gp.PixelRange[i] = ImRect(HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Max.x : gp.BB_Grid.Min.x,
-                                  HasFlag(gp.CurrentPlot->YAxis[i].Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Min.y : gp.BB_Grid.Max.y,
-                                  HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Min.x : gp.BB_Grid.Max.x,
-                                  HasFlag(gp.CurrentPlot->YAxis[i].Flags, ImAxisFlags_Invert) ? gp.BB_Grid.Max.y : gp.BB_Grid.Min.y);
+        gp.PixelRange[i] = ImRect(HasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_Invert) ? gp.BB_Grid.Max.x : gp.BB_Grid.Min.x,
+                                  HasFlag(gp.CurrentPlot->YAxis[i].Flags, ImPlotAxisFlags_Invert) ? gp.BB_Grid.Min.y : gp.BB_Grid.Max.y,
+                                  HasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_Invert) ? gp.BB_Grid.Min.x : gp.BB_Grid.Max.x,
+                                  HasFlag(gp.CurrentPlot->YAxis[i].Flags, ImPlotAxisFlags_Invert) ? gp.BB_Grid.Max.y : gp.BB_Grid.Min.y);
 
         gp.My[i] = (gp.PixelRange[i].Max.y - gp.PixelRange[i].Min.y) / gp.CurrentPlot->YAxis[i].Range.Size();
     }
@@ -446,11 +447,11 @@ inline ImVec2 PixelsToPlot(float x, float y, int y_axis_in = -1) {
     ImVec2 plt;
     plt.x = (x - gp.PixelRange[y_axis].Min.x) / gp.Mx + gp.CurrentPlot->XAxis.Range.Min;
     plt.y = (y - gp.PixelRange[y_axis].Min.y) / gp.My[y_axis] + gp.CurrentPlot->YAxis[y_axis].Range.Min;
-    if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_LogScale)) {
+    if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale)) {
         float t = (plt.x - gp.CurrentPlot->XAxis.Range.Min) / gp.CurrentPlot->XAxis.Range.Size();
         plt.x = pow(10.0f, t * gp.LogDenX) * gp.CurrentPlot->XAxis.Range.Min;
     }
-    if (HasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImAxisFlags_LogScale)) {
+    if (HasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale)) {
         float t = (plt.y - gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.CurrentPlot->YAxis[y_axis].Range.Size();
         plt.y = pow(10.0f, t * gp.LogDenY[y_axis]) * gp.CurrentPlot->YAxis[y_axis].Range.Min;
     }
@@ -461,11 +462,11 @@ inline ImVec2 PlotToPixels(float x, float y, int y_axis_in = -1) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() Needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 pix;
-    if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImAxisFlags_LogScale)) {
+    if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale)) {
         float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
     }             
-    if (HasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImAxisFlags_LogScale)) {
+    if (HasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale)) {
         float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
     }
@@ -645,9 +646,9 @@ struct AxisState {
               range_cond(range_cond_in),
               present(present_in),
               present_so_far(previous_present + (present ? 1 : 0)),
-              flip(HasFlag(axis->Flags, ImAxisFlags_Invert)),
-              lock_min(HasFlag(axis->Flags, ImAxisFlags_LockMin)),
-              lock_max(HasFlag(axis->Flags, ImAxisFlags_LockMax)),
+              flip(HasFlag(axis->Flags, ImPlotAxisFlags_Invert)),
+              lock_min(HasFlag(axis->Flags, ImPlotAxisFlags_LockMin)),
+              lock_max(HasFlag(axis->Flags, ImPlotAxisFlags_LockMax)),
               lock(present && ((lock_min && lock_max) || (has_range && range_cond == ImGuiCond_Always))) {}
 
     AxisState()
@@ -689,7 +690,7 @@ class YPadCalculator {
         if (AxisStates[y_axis].present_so_far >= 3) {
             pad_result += 6.0f;
         }
-        if (!HasFlag(plot.YAxis[y_axis].Flags, ImAxisFlags_TickLabels)) {
+        if (!HasFlag(plot.YAxis[y_axis].Flags, ImPlotAxisFlags_TickLabels)) {
             return pad_result;
         }
         pad_result += MaxLabelWidths[y_axis] + TxtOff;
@@ -707,7 +708,7 @@ class YPadCalculator {
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
-bool BeginPlot(const char* title, const char* x_label, const char* y_label, const ImVec2& size, ImPlotFlags flags, ImAxisFlags x_flags, ImAxisFlags y_flags, ImAxisFlags y2_flags, ImAxisFlags y3_flags) {
+bool BeginPlot(const char* title, const char* x_label, const char* y_label, const ImVec2& size, ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags) {
 
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "Mismatched BeginPlot()/EndPlot()!");
 
@@ -803,14 +804,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.YAxis[i].Range.Max = ConstrainNan(ConstrainInf(plot.YAxis[i].Range.Max));
     }
 
-    if (HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale))
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale))
         plot.XAxis.Range.Min = ConstrainLog(plot.XAxis.Range.Min);
-    if (HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale))
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale))
         plot.XAxis.Range.Max = ConstrainLog(plot.XAxis.Range.Max);
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale))
+        if (HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale))
             plot.YAxis[i].Range.Min = ConstrainLog(plot.YAxis[i].Range.Min);
-        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale))
+        if (HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale))
             plot.YAxis[i].Range.Max = ConstrainLog(plot.YAxis[i].Range.Max);
     }
 
@@ -822,13 +823,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // adaptive divisions
-    if (HasFlag(plot.XAxis.Flags, ImAxisFlags_Adaptive)) {
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Adaptive)) {
         plot.XAxis.Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetWidth());
         if (plot.XAxis.Divisions < 2)
             plot.XAxis.Divisions = 2; 
     }
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        if (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_Adaptive)) {
+        if (HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Adaptive)) {
             plot.YAxis[i].Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight());
             if (plot.YAxis[i].Divisions < 2)
                 plot.YAxis[i].Divisions = 2;
@@ -872,34 +873,34 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // canvas bb
     gp.BB_Canvas = ImRect(gp.BB_Frame.Min + Style.WindowPadding, gp.BB_Frame.Max - Style.WindowPadding);     
 
-    gp.RenderX = (HasFlag(plot.XAxis.Flags, ImAxisFlags_GridLines) ||
-                    HasFlag(plot.XAxis.Flags, ImAxisFlags_TickMarks) ||
-                    HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels)) &&  plot.XAxis.Divisions > 1;
+    gp.RenderX = (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_GridLines) ||
+                    HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickMarks) ||
+                    HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels)) &&  plot.XAxis.Divisions > 1;
     for (int i = 0; i < MAX_Y_AXES; i++) {
         gp.RenderY[i] =
                 y[i].present &&
-                (HasFlag(plot.YAxis[i].Flags, ImAxisFlags_GridLines) || 
-                 HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks) || 
-                 HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) &&  plot.YAxis[i].Divisions > 1;
+                (HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_GridLines) || 
+                 HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks) || 
+                 HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) &&  plot.YAxis[i].Divisions > 1;
     }
 
     // get ticks
     if (gp.RenderX)
-        GetTicks(plot.XAxis.Range, plot.XAxis.Divisions, plot.XAxis.Subdivisions, HasFlag(plot.XAxis.Flags, ImAxisFlags_LogScale), gp.XTicks);
+        GetTicks(plot.XAxis.Range, plot.XAxis.Divisions, plot.XAxis.Subdivisions, HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale), gp.XTicks);
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (gp.RenderY[i]) {
-            GetTicks(plot.YAxis[i].Range, plot.YAxis[i].Divisions, plot.YAxis[i].Subdivisions, HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LogScale), gp.YTicks[i]);
+            GetTicks(plot.YAxis[i].Range, plot.YAxis[i].Divisions, plot.YAxis[i].Subdivisions, HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale), gp.YTicks[i]);
         }
     }
 
     // label ticks
-    if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels))
-        LabelTicks(gp.XTicks, HasFlag(plot.XAxis.Flags, ImAxisFlags_Scientific), gp.XTickLabels);
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels))
+        LabelTicks(gp.XTicks, HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Scientific), gp.XTickLabels);
 
     float max_label_width[MAX_Y_AXES] = {};
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) {
-            LabelTicks(gp.YTicks[i], HasFlag(plot.YAxis[i].Flags, ImAxisFlags_Scientific), gp.YTickLabels[i]);
+        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) {
+            LabelTicks(gp.YTicks[i], HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Scientific), gp.YTickLabels[i]);
             for (ImTick &yt : gp.YTicks[i]) {
                 max_label_width[i] = yt.Size.x > max_label_width[i] ? yt.Size.x : max_label_width[i];
             }
@@ -911,7 +912,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const float txt_off     = 5;
     const float txt_height  = ImGui::GetTextLineHeight();
     const float pad_top     = title_size.x > 0.0f ? txt_height + txt_off : 0;
-    const float pad_bot     = (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels) ? txt_height + txt_off : 0) + (x_label ? txt_height + txt_off : 0);
+    const float pad_bot     = (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels) ? txt_height + txt_off : 0) + (x_label ? txt_height + txt_off : 0);
     YPadCalculator y_axis_pad(y, max_label_width, txt_off);
     const float pad_left    = y_axis_pad(0) + (y_label ? txt_height + txt_off : 0);
     const float pad_right   = y_axis_pad(1) + y_axis_pad(2);
@@ -1219,13 +1220,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // render grid
-    if (HasFlag(plot.XAxis.Flags, ImAxisFlags_GridLines)) {
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_GridLines)) {
         for (ImTick &xt : gp.XTicks)
             DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Min.y}, {xt.PixelPos, gp.BB_Grid.Max.y}, xt.Major ? gp.Col_X.Major : gp.Col_X.Minor, 1);
     }
 
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImAxisFlags_GridLines)) {
+        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_GridLines)) {
             for (ImTick &yt : gp.YTicks[i])
                 DrawList.AddLine({gp.BB_Grid.Min.x, yt.PixelPos}, {gp.BB_Grid.Max.x, yt.PixelPos}, yt.Major ? gp.Col_Y[i].Major : gp.Col_Y[i].Minor, 1);
         }
@@ -1239,7 +1240,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // render labels
-    if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickLabels)) {
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels)) {
         ImGui::PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
         for (ImTick &xt : gp.XTicks) {
             if (xt.RenderLabel && xt.PixelPos >= gp.BB_Grid.Min.x - 1 && xt.PixelPos <= gp.BB_Grid.Max.x + 1)
@@ -1255,7 +1256,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
     ImGui::PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickLabels)) {
+        if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) {
             const float x_start =
                     gp.AxisLabelReference[i] +
                     ((i == 0) ?
@@ -1303,15 +1304,15 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
 inline void AxisMenu(ImPlotAxis& Axis) {
      ImGui::PushItemWidth(75);
-    bool lock_min = HasFlag(Axis.Flags, ImAxisFlags_LockMin);
-    bool lock_max = HasFlag(Axis.Flags, ImAxisFlags_LockMax);
-    bool invert   = HasFlag(Axis.Flags, ImAxisFlags_Invert);
-    bool logscale = HasFlag(Axis.Flags, ImAxisFlags_LogScale);
-    bool grid     = HasFlag(Axis.Flags, ImAxisFlags_GridLines);
-    bool ticks    = HasFlag(Axis.Flags, ImAxisFlags_TickMarks);
-    bool labels   = HasFlag(Axis.Flags, ImAxisFlags_TickLabels);
+    bool lock_min = HasFlag(Axis.Flags, ImPlotAxisFlags_LockMin);
+    bool lock_max = HasFlag(Axis.Flags, ImPlotAxisFlags_LockMax);
+    bool invert   = HasFlag(Axis.Flags, ImPlotAxisFlags_Invert);
+    bool logscale = HasFlag(Axis.Flags, ImPlotAxisFlags_LogScale);
+    bool grid     = HasFlag(Axis.Flags, ImPlotAxisFlags_GridLines);
+    bool ticks    = HasFlag(Axis.Flags, ImPlotAxisFlags_TickMarks);
+    bool labels   = HasFlag(Axis.Flags, ImPlotAxisFlags_TickLabels);
     if (ImGui::Checkbox("##LockMin", &lock_min)) 
-        FlipFlag(Axis.Flags, ImAxisFlags_LockMin);
+        FlipFlag(Axis.Flags, ImPlotAxisFlags_LockMin);
     ImGui::SameLine();
     if (lock_min) {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
@@ -1323,7 +1324,7 @@ inline void AxisMenu(ImPlotAxis& Axis) {
         ImGui::PopStyleVar();    }
 
     if (ImGui::Checkbox("##LockMax", &lock_max))
-        FlipFlag(Axis.Flags, ImAxisFlags_LockMax);
+        FlipFlag(Axis.Flags, ImPlotAxisFlags_LockMax);
     ImGui::SameLine();
     if (lock_max) {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
@@ -1335,16 +1336,16 @@ inline void AxisMenu(ImPlotAxis& Axis) {
     }
     ImGui::Separator();
     if (ImGui::Checkbox("Invert", &invert))
-        FlipFlag(Axis.Flags, ImAxisFlags_Invert);
+        FlipFlag(Axis.Flags, ImPlotAxisFlags_Invert);
     if (ImGui::Checkbox("Log Scale", &logscale))
-        FlipFlag(Axis.Flags, ImAxisFlags_LogScale);
+        FlipFlag(Axis.Flags, ImPlotAxisFlags_LogScale);
     ImGui::Separator();
     if (ImGui::Checkbox("Grid Lines", &grid))
-        FlipFlag(Axis.Flags, ImAxisFlags_GridLines);
+        FlipFlag(Axis.Flags, ImPlotAxisFlags_GridLines);
     if (ImGui::Checkbox("Tick Marks", &ticks))
-        FlipFlag(Axis.Flags, ImAxisFlags_TickMarks);
+        FlipFlag(Axis.Flags, ImPlotAxisFlags_TickMarks);
     if (ImGui::Checkbox("Labels", &labels))
-        FlipFlag(Axis.Flags, ImAxisFlags_TickLabels);
+        FlipFlag(Axis.Flags, ImPlotAxisFlags_TickLabels);
 }
 
 void PlotContextMenu(ImPlotState& plot) {
@@ -1469,7 +1470,7 @@ void EndPlot() {
 
     // render ticks
     PushPlotClipRect();
-    if (HasFlag(plot.XAxis.Flags, ImAxisFlags_TickMarks)) {
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickMarks)) {
         for (ImTick &xt : gp.XTicks)
             DrawList.AddLine({xt.PixelPos, gp.BB_Grid.Max.y},{xt.PixelPos, gp.BB_Grid.Max.y - (xt.Major ? 10.0f : 5.0f)}, gp.Col_Border, 1);
     }
@@ -1481,7 +1482,7 @@ void EndPlot() {
         if (!y[i].present) { continue; }
         axis_count++;
 
-        if (!HasFlag(plot.YAxis[i].Flags, ImAxisFlags_TickMarks)) { continue; }
+        if (!HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks)) { continue; }
 
         float x_start = gp.AxisLabelReference[i];
         float direction = (i == 0) ? 1.0f : -1.0f;
@@ -1649,17 +1650,17 @@ void EndPlot() {
     // FIT DATA --------------------------------------------------------------
 
     if (gp.FitThisFrame && (gp.VisibleItemCount > 0 || plot.Queried)) {
-        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.ExtentsX.Min)) {
+        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMin) && !NanOrInf(gp.ExtentsX.Min)) {
             plot.XAxis.Range.Min = gp.ExtentsX.Min;
         }
-        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.ExtentsX.Max)) {
+        if (gp.FitX && !HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMax) && !NanOrInf(gp.ExtentsX.Max)) {
             plot.XAxis.Range.Max = gp.ExtentsX.Max;
         }
         for (int i = 0; i < MAX_Y_AXES; i++) {
-            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMin) && !NanOrInf(gp.ExtentsY[i].Min)) {
+            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMin) && !NanOrInf(gp.ExtentsY[i].Min)) {
                 plot.YAxis[i].Range.Min = gp.ExtentsY[i].Min;
             }
-            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImAxisFlags_LockMax) && !NanOrInf(gp.ExtentsY[i].Max)) {
+            if (gp.FitY[i] && !HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMax) && !NanOrInf(gp.ExtentsY[i].Max)) {
                 plot.YAxis[i].Range.Max = gp.ExtentsY[i].Max;
             }
         }
@@ -2018,25 +2019,25 @@ int idx = offset;
         idx = (idx + 1) % count;
         if (!cull || gp.BB_Grid.Contains(c)) {
             // TODO: Optimize the loop and if statements, this is atrocious
-            if (HasFlag(gp.Style.Marker, ImMarker_Circle)) 
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Circle)) 
                 MarkerCircle(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);
-            if (HasFlag(gp.Style.Marker, ImMarker_Square))
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Square))
                 MarkerSquare(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);     
-            if (HasFlag(gp.Style.Marker, ImMarker_Diamond)) 
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Diamond)) 
                 MarkerDiamond(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);
-            if (HasFlag(gp.Style.Marker, ImMarker_Up))
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Up))
                 MarkerUp(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);     
-            if (HasFlag(gp.Style.Marker, ImMarker_Down))    
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Down))    
                 MarkerDown(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);  
-            if (HasFlag(gp.Style.Marker, ImMarker_Left))
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Left))
                 MarkerLeft(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);     
-            if (HasFlag(gp.Style.Marker, ImMarker_Right))    
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Right))    
                 MarkerRight(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);  
-            if (HasFlag(gp.Style.Marker, ImMarker_Cross))
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Cross))
                 MarkerCross(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight); 
-            if (HasFlag(gp.Style.Marker, ImMarker_Plus))
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Plus))
                 MarkerPlus(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight); 
-            if (HasFlag(gp.Style.Marker, ImMarker_Asterisk))
+            if (HasFlag(gp.Style.Marker, ImPlotMarker_Asterisk))
                 MarkerAsterisk(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);  
         }
     }  
@@ -2212,22 +2213,22 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
     }
     PushPlotClipRect();
     if (count > 1 && rend_line) {
-        if (HasFlag(plot->XAxis.Flags, ImAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImAxisFlags_LogScale))
+        if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
             RenderLineStrip(Plt2PixLogLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
-        else if (HasFlag(plot->XAxis.Flags, ImAxisFlags_LogScale))
+        else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
             RenderLineStrip(Plt2PixLogLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
-        else if (HasFlag(plot->YAxis[y_axis].Flags, ImAxisFlags_LogScale))
+        else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
             RenderLineStrip(Plt2PixLinLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
         else
             RenderLineStrip(Plt2PixLinLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
     }
     // render markers
-    if (gp.Style.Marker != ImMarker_None) {
-        if (HasFlag(plot->XAxis.Flags, ImAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImAxisFlags_LogScale))
+    if (gp.Style.Marker != ImPlotMarker_None) {
+        if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
             RenderMarkers(Plt2PixLogLog(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
-        else if (HasFlag(plot->XAxis.Flags, ImAxisFlags_LogScale))
+        else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
             RenderMarkers(Plt2PixLogLin(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
-        else if (HasFlag(plot->YAxis[y_axis].Flags, ImAxisFlags_LogScale))
+        else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
             RenderMarkers(Plt2PixLinLog(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
         else
             RenderMarkers(Plt2PixLinLin(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
