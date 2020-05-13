@@ -67,7 +67,7 @@ enum ImAxisFlags_ {
     ImAxisFlags_Auxiliary  = ImAxisFlags_Default & ~ImAxisFlags_GridLines,
 };
 
-// Plot styling colors 
+// Plot styling colors
 enum ImPlotCol_ {
     ImPlotCol_Line,          // plot line/outline color (defaults to a rotating color set)
     ImPlotCol_Fill,          // plot fill color for bars (defaults to the current line color)
@@ -102,7 +102,7 @@ enum ImPlotStyleVar_ {
 // Marker specification
 enum ImMarker_ {
     ImMarker_None        = 1 << 0,  // no marker
-    ImMarker_Circle      = 1 << 1,  // a circle marker will be rendered at each point 
+    ImMarker_Circle      = 1 << 1,  // a circle marker will be rendered at each point
     ImMarker_Square      = 1 << 2,  // a square maker will be rendered at each point
     ImMarker_Diamond     = 1 << 3,  // a diamond marker will be rendered at each point
     ImMarker_Up          = 1 << 4,  // an upward-pointing triangle marker will up rendered at each point
@@ -154,13 +154,13 @@ namespace ImPlot {
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }"". #title_id must
 // be unique. If you need to avoid ID collisions or don't want to display a
 // title in the plot, use double hashes (e.g. "MyPlot##Hidden"). If #x_label
-// and/or #y_label are provided, axes labels will be displayed. 
-bool BeginPlot(const char* title_id, 
-               const char* x_label  = NULL, 
-               const char* y_label  = NULL, 
-               const ImVec2& size   = ImVec2(-1,-1), 
-               ImPlotFlags flags    = ImPlotFlags_Default, 
-               ImAxisFlags x_flags  = ImAxisFlags_Default, 
+// and/or #y_label are provided, axes labels will be displayed.
+bool BeginPlot(const char* title_id,
+               const char* x_label  = NULL,
+               const char* y_label  = NULL,
+               const ImVec2& size   = ImVec2(-1,-1),
+               ImPlotFlags flags    = ImPlotFlags_Default,
+               ImAxisFlags x_flags  = ImAxisFlags_Default,
                ImAxisFlags y_flags  = ImAxisFlags_Default,
                ImAxisFlags y2_flags = ImAxisFlags_Auxiliary,
                ImAxisFlags y3_flags = ImAxisFlags_Auxiliary);
@@ -228,7 +228,7 @@ void RestorePalette();
 void PushStyleColor(ImPlotCol idx, ImU32 col);
 // Temporarily modify a plot color.
 void PushStyleColor(ImPlotCol idx, const ImVec4& col);
-// Undo temporary color modification. 
+// Undo temporary color modification.
 void PopStyleColor(int count = 1);
 
 // Temporarily modify a style variable of float type.
