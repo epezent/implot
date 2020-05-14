@@ -2090,39 +2090,34 @@ inline void RenderLineStrip(Transformer transformer, ImDrawList& DrawList, Gette
    if (i_start >= count ) i_start -= count;
    int i_end = offset + count;
    if (i_end >= count) i_end -= count;
+   
+   const int    segments  = count - 1;
+   ImVec2 p1 = transformer(getter(offset));    
+   if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
+      for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
+         ImVec2 p2 = transformer(getter(i1));
 
-    const int    segments  = count - 1;
-    ImVec2 p1 = transformer(getter(offset));
-    bool test1 = !cull || gp.BB_Grid.Contains(p1);
-    if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
-        for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count)
-        {
-            ImVec2 p2 = transformer(getter(i1));
-            bool test2 = !cull || gp.BB_Grid.Contains(p2);
-            if (test1 | test2)
-                RenderLineAA(DrawList, p1, p2, line_weight, col_line);
-            p1 = p2;
-            test1 = test2;
-        }
-    }
-    else {
-        const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
-        DrawList.PrimReserve(segments * 6, segments * 4);
-        int segments_culled = 0;
-        for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count)
-        {
-           ImVec2 p2 = transformer(getter(i1));
-           bool test2 = !cull || gp.BB_Grid.Contains(p2);
-           if (test1 | test2)
-               RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
-           else
-               segments_culled++;
-           p1 = p2;
-           test1 = test2;
-        }
-        if (segments_culled > 0)
-            DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4);
-    }
+         if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1,p2), ImMax(p1,p2))))
+               RenderLineAA(DrawList, p1, p2, line_weight, col_line);
+         p1 = p2;            
+      }
+   }
+   else {
+      const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
+      DrawList.PrimReserve(segments * 6, segments * 4);
+      int segments_culled = 0;
+      for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
+         ImVec2 p2 = transformer(getter(i1));           
+
+         if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+            RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
+         else
+            segments_culled++;
+         p1 = p2;
+      }
+      if (segments_culled > 0)
+         DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4);
+   }
 }
 
 //-----------------------------------------------------------------------------
@@ -2572,15 +2567,15 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
 
     if (gp.Style.Colors[ImPlotCol_Line].w != -1)
         item->Color = gp.Style.Colors[ImPlotCol_Line];
-
-    // find data extents
+    
+  // find data extents
     if (gp.FitThisFrame) {
         for (int i = 0; i < count; ++i) {
             ImVec2 p = getter(i);
-            FitPoint(p);
+            FitPoint(ImVec2(p.x, 0));
         }
     }
-
+  
     ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
     bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
 
