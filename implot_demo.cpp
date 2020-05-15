@@ -22,18 +22,16 @@
 
 // ImPlot v0.2 WIP
 
-#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
-#define _CRT_SECURE_NO_WARNINGS
-#endif
 
-#ifdef _MSC_VER
-#pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
-#endif
-
-#include <implot.h>
+#include "implot.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cmath> // for 'float' overloads of elementary functions (sin,cos,etc)
+
+#ifdef _MSC_VER
+#define sprintf sprintf_s
+#endif
 
 namespace {
 
@@ -468,11 +466,11 @@ void ShowDemoWindow(bool* p_open) {
             if (data.size() > 0)
                 ImPlot::Plot("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(float));
             if (ImPlot::IsPlotQueried() && data.size() > 0) {
-                ImPlotLimits range = ImPlot::GetPlotQuery();
+                ImPlotLimits range2 = ImPlot::GetPlotQuery();
                 int cnt = 0;
                 ImVec2 avg;
                 for (int i = 0; i < data.size(); ++i) {
-                    if (range.Contains(data[i])) {
+                    if (range2.Contains(data[i])) {
                         avg.x += data[i].x;
                         avg.y += data[i].y;
                         cnt++;
@@ -659,7 +657,7 @@ void ShowDemoWindow(bool* p_open) {
                 dataDigital[i].AddPoint(t, sin(2*t) < 0.45);
             i++;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, (int)t % 5);
+                dataDigital[i].AddPoint(t, fmod(t,5.0f));
             i++;
             if (showDigital[i])
                 dataDigital[i].AddPoint(t, sin(2*t) < 0.17);
@@ -701,13 +699,18 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
         if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_DIGITAL_PLOT")) {
+           const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_DIGITAL_PLOT");
+            if (payload) {
                 int i = *(int*)payload->Data;
                 showDigital[i] = true;
             }
-            else if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_ANALOG_PLOT")) {
-                int i = *(int*)payload->Data;
-                showAnalog[i] = true;
+            else
+            {
+               payload = ImGui::AcceptDragDropPayload("DND_ANALOG_PLOT");
+               if (payload) {
+                  int i = *(int*)payload->Data;
+                  showAnalog[i] = true;
+               }
             }
             ImGui::EndDragDropTarget();
         }
