@@ -231,7 +231,6 @@ ImVec4 NextColor();
 // Structs
 //-----------------------------------------------------------------------------
 
-
 /// Tick mark info
 struct ImTick {
     ImTick(double value, bool major, bool render_label = true) {
@@ -449,6 +448,11 @@ inline ImVec2 PixelsToPlot(float x, float y, int y_axis_in = -1) {
     return plt;
 }
 
+ImVec2 PixelsToPlot(const ImVec2& pix, int y_axis) {
+    return PixelsToPlot(pix.x, pix.y, y_axis);
+}
+
+// This function is convenient but should not be used to process a high volume of points. Use the Transformer structs below instead.
 inline ImVec2 PlotToPixels(float x, float y, int y_axis_in = -1) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() Needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
@@ -466,13 +470,12 @@ inline ImVec2 PlotToPixels(float x, float y, int y_axis_in = -1) {
     return pix;
 }
 
-ImVec2 PixelsToPlot(const ImVec2& pix, int y_axis) {
-    return PixelsToPlot(pix.x, pix.y, y_axis);
-}
-
+// This function is convenient but should not be used to process a high volume of points. Use the Transformer structs below instead.
 ImVec2 PlotToPixels(const ImVec2& plt, int y_axis) {
     return PlotToPixels(plt.x, plt.y, y_axis);
 }
+
+// Transformer structs
 
 struct Plt2PixLinLin {
     Plt2PixLinLin(int y_axis_in) : y_axis(y_axis_in) {}
