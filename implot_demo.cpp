@@ -152,7 +152,7 @@ void ShowDemoWindow(bool* p_open) {
             xs2[i] = i * 0.1f;
             ys2[i] = xs2[i] * xs2[i];
         }
-        if (ImPlot::BeginPlot("Line Plot", "x", "f(x)", ImVec2(0,0))) {
+        if (ImPlot::BeginPlot("Line Plot", "x", "f(x)")) {
             ImPlot::PlotLine("sin(50*x)", xs1, ys1, 1001);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
             ImPlot::PlotLine("x^2", xs2, ys2, 11);
@@ -173,7 +173,7 @@ void ShowDemoWindow(bool* p_open) {
             xs2[i] = 0.25f + 0.2f * ((float)rand() / (float)RAND_MAX);
             ys2[i] = 0.75f + 0.2f * ((float)rand() / (float)RAND_MAX);
         }
-        if (ImPlot::BeginPlot("Scatter Plot", NULL, NULL, ImVec2(-1,300))) {
+        if (ImPlot::BeginPlot("Scatter Plot", NULL, NULL)) {
             ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
 
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 6);
@@ -195,7 +195,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::SetNextPlotLimits(0, 110, -0.5f, 9.5f, ImGuiCond_Always);
         else
             ImPlot::SetNextPlotLimits(-0.5f, 9.5f, 0, 110, ImGuiCond_Always);
-        if (ImPlot::BeginPlot("Bar Plot", horz ? "Score":  "Student", horz ? "Student" : "Score", ImVec2(-1, 300))) {
+        if (ImPlot::BeginPlot("Bar Plot", horz ? "Score":  "Student", horz ? "Student" : "Score")) {
             static float midtm[10] = {83, 67, 23, 89, 83, 78, 91, 82, 85, 90};
             static float final[10] = {80, 62, 56, 99, 55, 78, 88, 78, 90, 100};
             static float grade[10] = {80, 69, 52, 92, 72, 78, 75, 76, 89, 95};
@@ -220,7 +220,7 @@ void ShowDemoWindow(bool* p_open) {
         float err1[5] = {0.2f, 0.4f, 0.2f, 0.6f, 0.4f};
         float err2[5] = {0.4f, 0.2f, 0.4f, 0.8f, 0.6f};
         ImPlot::SetNextPlotLimits(0, 6, 0, 10);
-        if (ImPlot::BeginPlot("##ErrorBars",NULL,NULL,ImVec2(-1,300))) {
+        if (ImPlot::BeginPlot("##ErrorBars",NULL,NULL)) {
 
             ImPlot::PlotBar("Bar", xs, bar, 5, 0.5f);
             ImPlot::PlotErrorBars("Bar", xs, bar, err1, 5);
@@ -300,7 +300,7 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Markers and Text")) {
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
-        if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,300), 0, 0, 0)) {
+        if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {
             float xs[2] = {1,4};
             float ys[2] = {10,11};
             // filled
@@ -384,7 +384,7 @@ void ShowDemoWindow(bool* p_open) {
             ys3[i] = pow(10.0f, xs[i]);
         }
         ImPlot::SetNextPlotLimits(0.1f, 100, 0, 10);
-        if (ImPlot::BeginPlot("Log Plot", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default, ImPlotAxisFlags_Default | ImPlotAxisFlags_LogScale )) {
+        if (ImPlot::BeginPlot("Log Plot", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Default, ImPlotAxisFlags_Default | ImPlotAxisFlags_LogScale )) {
             ImPlot::PlotLine("f(x) = x",      xs, xs,  1001);
             ImPlot::PlotLine("f(x) = sin(x)+1", xs, ys1, 1001);
             ImPlot::PlotLine("f(x) = log(x)", xs, ys2, 1001);
@@ -426,7 +426,7 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::PushStyleColor(ImPlotCol_YAxis2, y2_col);
         ImPlot::PushStyleColor(ImPlotCol_YAxis3, y3_col);
 
-        if (ImPlot::BeginPlot("Multi-Axis Plot", NULL, NULL, ImVec2(-1,300),
+        if (ImPlot::BeginPlot("Multi-Axis Plot", NULL, NULL, ImVec2(-1,0),
                              ImPlotFlags_Default |
                              (y2_axis ? ImPlotFlags_YAxis2 : 0) |
                              (y3_axis ? ImPlotFlags_YAxis3 : 0))) {
@@ -458,7 +458,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Unindent();
         static ImVector<ImVec2> data;
         ImPlotLimits range, query;
-        if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default | ImPlotFlags_Query, ImPlotAxisFlags_GridLines, ImPlotAxisFlags_GridLines)) {
+        if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Default | ImPlotFlags_Query, ImPlotAxisFlags_GridLines, ImPlotAxisFlags_GridLines)) {
             if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) 
                 data.push_back(ImPlot::GetPlotMousePos());
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Diamond);
@@ -573,7 +573,7 @@ void ShowDemoWindow(bool* p_open) {
             }
         }
         ImPlot::SetNextPlotLimitsX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##DND", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default)) {
+        if (ImPlot::BeginPlot("##DND")) {
             for (int i = 0; i < 10; ++i) {
                 if (show[i]) {
                     char label[8];
@@ -676,7 +676,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImPlot::SetNextPlotLimitsY(-1, 1);
         ImPlot::SetNextPlotLimitsX(t - 10.0f, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Digital", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default)) {
+        if (ImPlot::BeginPlot("##Digital")) {
             for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
                 if (showDigital[i]) {
                     char label[32];
@@ -743,7 +743,7 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::PushStyleColor(ImPlotCol_YAxis, IM_COL32(192, 192, 192, 192));
         ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2);
         ImPlot::SetNextPlotLimits(-0.5f, 9.5f, -0.5f, 9.5f);
-        if (ImPlot::BeginPlot("##Custom", NULL, NULL, ImVec2(-1,300), ImPlotFlags_Default & ~ImPlotFlags_Legend, 0)) {
+        if (ImPlot::BeginPlot("##Custom", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Default & ~ImPlotFlags_Legend, 0)) {
             float lin[10] = {8,8,9,7,8,8,8,9,7,8};
             float bar[10] = {1,2,5,3,4,1,2,5,3,4};
             float dot[10] = {7,6,6,7,8,5,6,5,8,7};
@@ -761,7 +761,7 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Rendering")) {
-        if (ImPlot::BeginPlot("##CustomRend",NULL,NULL,ImVec2(-1,300))) {
+        if (ImPlot::BeginPlot("##CustomRend")) {
             ImVec2 cntr = ImPlot::PlotToPixels(ImVec2(0.5f,  0.5f));
             ImVec2 rmin = ImPlot::PlotToPixels(ImVec2(0.25f, 0.75f));
             ImVec2 rmax = ImPlot::PlotToPixels(ImVec2(0.75f, 0.25f));
@@ -779,7 +779,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("Make sure VSync is disabled.");
         ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
         SetNextPlotLimits(0,1,0,1, ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,300),ImPlotFlags_Default | ImPlotFlags_NoChild)) {
+        if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_Default | ImPlotFlags_NoChild)) {
             char buff[16];
             for (int i = 0; i < 100; ++i) {
                 sprintf(buff, "item_%d",i);

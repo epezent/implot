@@ -158,7 +158,7 @@ namespace ImPlot {
 bool BeginPlot(const char* title_id,
                const char* x_label  = NULL,
                const char* y_label  = NULL,
-               const ImVec2& size   = ImVec2(-1,-1),
+               const ImVec2& size   = ImVec2(-1,0),
                ImPlotFlags flags    = ImPlotFlags_Default,
                ImPlotAxisFlags x_flags  = ImPlotAxisFlags_Default,
                ImPlotAxisFlags y_flags  = ImPlotAxisFlags_Default,
