@@ -156,10 +156,10 @@ namespace ImPlot {
 // title in the plot, use double hashes (e.g. "MyPlot##Hidden"). If #x_label
 // and/or #y_label are provided, axes labels will be displayed.
 bool BeginPlot(const char* title_id,
-               const char* x_label  = NULL,
-               const char* y_label  = NULL,
-               const ImVec2& size   = ImVec2(-1,0),
-               ImPlotFlags flags    = ImPlotFlags_Default,
+               const char* x_label      = NULL,
+               const char* y_label      = NULL,
+               const ImVec2& size       = ImVec2(-1,0),
+               ImPlotFlags flags        = ImPlotFlags_Default,
                ImPlotAxisFlags x_flags  = ImPlotAxisFlags_Default,
                ImPlotAxisFlags y_flags  = ImPlotAxisFlags_Default,
                ImPlotAxisFlags y2_flags = ImPlotAxisFlags_Auxiliary,
@@ -183,14 +183,14 @@ void PlotScatter(const char* label_id, const float* xs, const float* ys, int cou
 void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset = 0);
 void PlotScatter(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a vertical bar graph.
-void PlotBar(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
-void PlotBar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
-void PlotBar(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float width, int offset = 0);
-// Plots a horizontal bars graph.
-void PlotBarH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
-void PlotBarH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
-void PlotBarH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float height,  int offset = 0);
-// Plots vertical error bars.
+void PlotBars(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
+void PlotBars(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
+void PlotBars(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float width, int offset = 0);
+// Plots a horizontal bar graph.
+void PlotBarsH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
+void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
+void PlotBarsH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float height,  int offset = 0);
+// Plots vertical error bar.
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);

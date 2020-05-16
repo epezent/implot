@@ -32,11 +32,12 @@ When you are not sure about a old symbol or function name, try using the Search/
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
 - 2020/05/16 (0.2) - All plotting functions were reverted to being prefixed with "Plot" to maintain a consistent VerbNoun style. `Plot` was split into `PlotLine`
-                     and `PlotScatter` (however, `PlotLine` can still be used to plot scatter points as `Plot` did before.)
+                     and `PlotScatter` (however, `PlotLine` can still be used to plot scatter points as `Plot` did before.). `Bar` is not `PlotBars`, to indicate
+                     that multiple bars will be plotted.
 - 2020/05/13 (0.2) - `ImMarker` was change to `ImPlotMarker` and `ImAxisFlags` was changed to `ImPlotAxisFlags`.
 - 2020/05/11 (0.2) - `ImPlotFlags_Selection` was changed to `ImPlotFlags_BoxSelect`
 - 2020/05/11 (0.2) - The namespace ImGui:: was replaced with ImPlot::. As a result, the following additional changes were made:
-                     - Functions that were prefixed or decorated with the word "Plot" have been truncated. E.g., `ImGui::PlotBar` is now just `ImPlot::Bar`.
+                     - Functions that were prefixed or decorated with the word "Plot" have been truncated. E.g., `ImGui::PlotBars` is now just `ImPlot::Bar`.
                        It should be fairly obvious what was what.
                      - Some functions have been given names that would have otherwise collided with the ImGui namespace. This has been done to maintain a consistent
                        style with ImGui. E.g., 'ImGui::PushPlotStyleVar` is now 'ImPlot::PushStyleVar'.
@@ -2333,7 +2334,7 @@ struct GetterBarH {
 
 
 template <typename Getter>
-void PlotBarEx(const char* label_id, Getter getter, int count, float width, int offset) {
+void PlotBarsEx(const char* label_id, Getter getter, int count, float width, int offset) {
 
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Bar() Needs to be called between BeginPlot() and EndPlot()!");
 
@@ -2385,25 +2386,25 @@ void PlotBarEx(const char* label_id, Getter getter, int count, float width, int 
     PopPlotClipRect();
 }
 
-void PlotBar(const char* label_id, const float* values, int count, float width, float shift, int offset, int stride) {
+void PlotBars(const char* label_id, const float* values, int count, float width, float shift, int offset, int stride) {
     GetterBarV getter(values,shift,stride);
-    PlotBarEx(label_id, getter, count, width, offset);
+    PlotBarsEx(label_id, getter, count, width, offset);
 }
 
-void PlotBar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset, int stride) {
+void PlotBars(const char* label_id, const float* xs, const float* ys, int count, float width, int offset, int stride) {
     Getter2D getter(xs,ys,stride);
-    PlotBarEx(label_id, getter, count, width, offset);
+    PlotBarsEx(label_id, getter, count, width, offset);
 }
 
-void PlotBar(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float width, int offset) {
+void PlotBars(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float width, int offset) {
     GetterFuncPtrImVec2 getter(getter_func, data);
-    PlotBarEx(label_id, getter, count, width, offset);
+    PlotBarsEx(label_id, getter, count, width, offset);
 }
 
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
-void PlotBarHEx(const char* label_id, Getter getter, int count, float height,  int offset) {
+void PlotBarsHEx(const char* label_id, Getter getter, int count, float height,  int offset) {
 
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BarH() Needs to be called between BeginPlot() and EndPlot()!");
 
@@ -2455,19 +2456,19 @@ void PlotBarHEx(const char* label_id, Getter getter, int count, float height,  i
     PopPlotClipRect();
 }
 
-void PlotBarH(const char* label_id, const float* values, int count, float height, float shift, int offset, int stride) {
+void PlotBarsH(const char* label_id, const float* values, int count, float height, float shift, int offset, int stride) {
     GetterBarH getter(values,shift,stride);
-    PlotBarHEx(label_id, getter, count, height, offset);
+    PlotBarsHEx(label_id, getter, count, height, offset);
 }
 
-void PlotBarH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset, int stride) {
+void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset, int stride) {
     Getter2D getter(xs,ys,stride);
-    PlotBarHEx(label_id, getter, count, height, offset);
+    PlotBarsHEx(label_id, getter, count, height, offset);
 }
 
-void PlotBarH(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float height,  int offset) {
+void PlotBarsH(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float height,  int offset) {
     GetterFuncPtrImVec2 getter(getter_func, data);
-    PlotBarHEx(label_id, getter, count, height, offset);
+    PlotBarsHEx(label_id, getter, count, height, offset);
 }
 
 //-----------------------------------------------------------------------------

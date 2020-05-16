@@ -200,14 +200,14 @@ void ShowDemoWindow(bool* p_open) {
             static float final[10] = {80, 62, 56, 99, 55, 78, 88, 78, 90, 100};
             static float grade[10] = {80, 69, 52, 92, 72, 78, 75, 76, 89, 95};
             if (horz) {
-                ImPlot::PlotBarH("Midterm Exam", midtm, 10, 0.2f, -0.2f);
-                ImPlot::PlotBarH("Final Exam", final, 10, 0.2f,  0);
-                ImPlot::PlotBarH("Course Grade", grade, 10, 0.2f, 0.2f);
+                ImPlot::PlotBarsH("Midterm Exam", midtm, 10, 0.2f, -0.2f);
+                ImPlot::PlotBarsH("Final Exam", final, 10, 0.2f,  0);
+                ImPlot::PlotBarsH("Course Grade", grade, 10, 0.2f, 0.2f);
             }
             else {
-                ImPlot::PlotBar("Midterm Exam", midtm, 10, 0.2f, -0.2f);
-                ImPlot::PlotBar("Final Exam", final, 10, 0.2f,  0);
-                ImPlot::PlotBar("Course Grade", grade, 10, 0.2f, 0.2f);
+                ImPlot::PlotBars("Midterm Exam", midtm, 10, 0.2f, -0.2f);
+                ImPlot::PlotBars("Final Exam", final, 10, 0.2f,  0);
+                ImPlot::PlotBars("Course Grade", grade, 10, 0.2f, 0.2f);
             }
             ImPlot::EndPlot();
         }
@@ -222,7 +222,7 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimits(0, 6, 0, 10);
         if (ImPlot::BeginPlot("##ErrorBars",NULL,NULL)) {
 
-            ImPlot::PlotBar("Bar", xs, bar, 5, 0.5f);
+            ImPlot::PlotBars("Bar", xs, bar, 5, 0.5f);
             ImPlot::PlotErrorBars("Bar", xs, bar, err1, 5);
 
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
@@ -747,7 +747,7 @@ void ShowDemoWindow(bool* p_open) {
             float lin[10] = {8,8,9,7,8,8,8,9,7,8};
             float bar[10] = {1,2,5,3,4,1,2,5,3,4};
             float dot[10] = {7,6,6,7,8,5,6,5,8,7};
-            ImPlot::PlotBar("Bar", bar, 10, 0.5f);
+            ImPlot::PlotBars("Bar", bar, 10, 0.5f);
             ImPlot::PlotLine("Line", lin, 10);
             ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 0);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);
