@@ -31,8 +31,10 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2020/05/13 (0.2) - ImMarker was change to ImPlotMarker and ImAxisFlags was changed to ImPlotAxisFlags
-- 2020/05/11 (0.2) - ImPlotFlags_Selection was changed to ImPlotFlags_BoxSelect
+- 2020/05/16 (0.2) - All plotting functions were reverted to being prefixed with "Plot" to maintain a consistent VerbNoun style. `Plot` was split into `PlotLine`
+                     and `PlotScatter` (however, `PlotLine` can still be used to plot scatter points as `Plot` did before.)
+- 2020/05/13 (0.2) - `ImMarker` was change to `ImPlotMarker` and `ImAxisFlags` was changed to `ImPlotAxisFlags`.
+- 2020/05/11 (0.2) - `ImPlotFlags_Selection` was changed to `ImPlotFlags_BoxSelect`
 - 2020/05/11 (0.2) - The namespace ImGui:: was replaced with ImPlot::. As a result, the following additional changes were made:
                      - Functions that were prefixed or decorated with the word "Plot" have been truncated. E.g., `ImGui::PlotBar` is now just `ImPlot::Bar`.
                        It should be fairly obvious what was what.
@@ -77,7 +79,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 ImPlotStyle::ImPlotStyle() {
     LineWeight = 1;
     Marker = ImPlotMarker_None;
-    MarkerSize = 5;
+    MarkerSize = 4;
     MarkerWeight = 1;
     ErrorBarSize = 5;
     ErrorBarWeight = 1.5;
@@ -2243,24 +2245,72 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
     PopPlotClipRect();
 }
 
-void Plot(const char* label_id, const float* values, int count, int offset, int stride) {
+void PlotLine(const char* label_id, const float* values, int count, int offset, int stride) {
     GetterYs getter(values,stride);
     PlotEx(label_id, getter, count, offset);
 }
 
-void Plot(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
+void PlotLine(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
     Getter2D getter(xs,ys,stride);
     return PlotEx(label_id, getter, count, offset);
 }
 
-void Plot(const char* label_id, const ImVec2* data, int count, int offset) {
+void PlotLine(const char* label_id, const ImVec2* data, int count, int offset) {
     GetterImVec2 getter(data);
     return PlotEx(label_id, getter, count, offset);
 }
 
-void Plot(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
+void PlotLine(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImVec2 getter(getter_func,data);
     return PlotEx(label_id, getter, count, offset);
+}
+
+//-----------------------------------------------------------------------------
+// PLOT SCATTER
+//-----------------------------------------------------------------------------
+
+void PlotScatter(const char* label_id, const float* values, int count, int offset, int stride) {
+    int pops = 1;
+    PushStyleVar(ImPlotStyleVar_LineWeight, 0);
+    if (GetStyle().Marker == ImPlotMarker_None) {
+        PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
+        pops++;
+    }
+    PlotLine(label_id, values, count, offset, stride);
+    PopStyleVar(pops);
+}
+
+void PlotScatter(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
+    int pops = 1;
+    PushStyleVar(ImPlotStyleVar_LineWeight, 0);
+    if (GetStyle().Marker == ImPlotMarker_None) {
+        PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
+        pops++;
+    }
+    PlotLine(label_id, xs, ys, count, offset, stride);
+    PopStyleVar(pops);
+}
+
+void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset) {
+        int pops = 1;
+    PushStyleVar(ImPlotStyleVar_LineWeight, 0);
+    if (GetStyle().Marker == ImPlotMarker_None) {
+        PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
+        pops++;
+    }
+    PlotLine(label_id, data, count, offset);
+    PopStyleVar(pops);
+}
+
+void PlotScatter(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset) {
+    int pops = 1;
+    PushStyleVar(ImPlotStyleVar_LineWeight, 0);
+    if (GetStyle().Marker == ImPlotMarker_None) {
+        PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
+        pops++;
+    }
+    PlotLine(label_id, getter, data, count, offset);
+    PopStyleVar(pops);
 }
 
 //-----------------------------------------------------------------------------
@@ -2333,17 +2383,17 @@ void PlotBarEx(const char* label_id, Getter getter, int count, float width, int 
     PopPlotClipRect();
 }
 
-void Bar(const char* label_id, const float* values, int count, float width, float shift, int offset, int stride) {
+void PlotBar(const char* label_id, const float* values, int count, float width, float shift, int offset, int stride) {
     GetterBarV getter(values,shift,stride);
     PlotBarEx(label_id, getter, count, width, offset);
 }
 
-void Bar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset, int stride) {
+void PlotBar(const char* label_id, const float* xs, const float* ys, int count, float width, int offset, int stride) {
     Getter2D getter(xs,ys,stride);
     PlotBarEx(label_id, getter, count, width, offset);
 }
 
-void Bar(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float width, int offset) {
+void PlotBar(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float width, int offset) {
     GetterFuncPtrImVec2 getter(getter_func, data);
     PlotBarEx(label_id, getter, count, width, offset);
 }
@@ -2403,17 +2453,17 @@ void PlotBarHEx(const char* label_id, Getter getter, int count, float height,  i
     PopPlotClipRect();
 }
 
-void BarH(const char* label_id, const float* values, int count, float height, float shift, int offset, int stride) {
+void PlotBarH(const char* label_id, const float* values, int count, float height, float shift, int offset, int stride) {
     GetterBarH getter(values,shift,stride);
     PlotBarHEx(label_id, getter, count, height, offset);
 }
 
-void BarH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset, int stride) {
+void PlotBarH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset, int stride) {
     Getter2D getter(xs,ys,stride);
     PlotBarHEx(label_id, getter, count, height, offset);
 }
 
-void BarH(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float height,  int offset) {
+void PlotBarH(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float height,  int offset) {
     GetterFuncPtrImVec2 getter(getter_func, data);
     PlotBarHEx(label_id, getter, count, height, offset);
 }
@@ -2478,17 +2528,17 @@ void PlotErrorBarsEx(const char* label_id, Getter getter, int count, int offset)
     PopPlotClipRect();
 }
 
-void ErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset, int stride) {
+void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset, int stride) {
     GetterError getter(xs, ys, err, err, stride);
     PlotErrorBarsEx(label_id, getter, count, offset);
 }
 
-void ErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset, int stride) {
+void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset, int stride) {
     GetterError getter(xs, ys, neg, pos, stride);
     PlotErrorBarsEx(label_id, getter, count, offset);
 }
 
-void ErrorBars(const char* label_id, ImVec4 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
+void PlotErrorBars(const char* label_id, ImVec4 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImVec4 getter(getter_func, data);
     PlotErrorBarsEx(label_id, getter, count, offset);
 }
@@ -2511,7 +2561,7 @@ inline void DrawPieSlice(ImDrawList& DrawList, const ImVec2& center, float radiu
 }
 
 
-void PieChart(const char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents, float angle0) {
+void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents, float angle0) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PieChart() Needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
@@ -2552,7 +2602,7 @@ void PieChart(const char** label_ids, float* values, int count, const ImVec2& ce
     PopPlotClipRect();
 }
 
-void Text(const char* text, float x, float y, bool vertical, const ImVec2& pixel_offset) {
+void PlotText(const char* text, float x, float y, bool vertical, const ImVec2& pixel_offset) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Text() Needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
     PushPlotClipRect();
@@ -2645,12 +2695,12 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
     ImGui::PopClipRect();
 }
 
-void Digital(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
+void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
     Getter2D getter(xs,ys,stride);
     return PlotDigitalEx(label_id, getter, count, offset);
 }
 
-void Digital(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
+void PlotDigital(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImVec2 getter(getter_func,data);
     return PlotDigitalEx(label_id, getter, count, offset);
 }

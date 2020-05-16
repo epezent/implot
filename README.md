@@ -27,7 +27,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 - size-aware grid with smart labels that are always power-of-ten multiples of 1, 2, and 5
 - default styling based on current ImGui theme, but most elements can be customized independently 
 - mouse cursor location display and optional crosshairs cursor
-- customizable data getters and data striding (just like ImGui:PlotLines)
+- customizable data getters and data striding (just like ImGui:PlotLine)
 - relatively good performance for high density plots
 
 ## Usage
