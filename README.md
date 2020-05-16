@@ -32,12 +32,12 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 
 ## Usage
 
-The API is used just like any other ImGui `BeginX`/`EndX` pair. First, start a plotting context with `ImPlot::BeginPlot()`. Next, plot as many items as you want with the provided API functions (e.g. `Plot()`, `Bar()`, `ErrorBars()`, etc). Finally, wrap things up with a call to `ImPlot::EndPlot()`. That's it! 
+The API is used just like any other ImGui `BeginX`/`EndX` pair. First, start a plotting context with `ImPlot::BeginPlot()`. Next, plot as many items as you want with the provided `PlotX` functions (e.g. `PlotLine()`, `PlotBars()`, `PlotErrorBars()`, etc). Finally, wrap things up with a call to `ImPlot::EndPlot()`. That's it! 
 
 ```cpp
 if (ImPlot::BeginPlot("My Plot")) {
-    ImPlot::Plot("My Line Plot", x_data, y_data, 1000);
-    ImPlot::Bar("My Bar Plot", values, 10);
+    ImPlot::PlotLine("My Line Plot", x_data, y_data, 1000);
+    ImPlot::PlotBars("My Bar Plot", values, 10);
     ...
     ImPlot::EndPlot();
 }
