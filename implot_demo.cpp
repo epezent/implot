@@ -152,7 +152,7 @@ void ShowDemoWindow(bool* p_open) {
             xs2[i] = i * 0.1f;
             ys2[i] = xs2[i] * xs2[i];
         }
-        if (ImPlot::BeginPlot("Line Plot", "x", "f(x)", ImVec2(-1,300))) {
+        if (ImPlot::BeginPlot("Line Plot", "x", "f(x)", ImVec2(0,0))) {
             ImPlot::PlotLine("sin(50*x)", xs1, ys1, 1001);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
             ImPlot::PlotLine("x^2", xs2, ys2, 11);

@@ -854,7 +854,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // BB AND HOVER -----------------------------------------------------------
 
     // frame
-    const ImVec2 frame_size = ImGui::CalcItemSize(size, 100, 100);
+    const float default_w = ImGui::CalcItemWidth();
+    const float default_h = default_w * 0.75f;
+    const ImVec2 frame_size = ImGui::CalcItemSize(size, default_w, default_w);
     gp.BB_Frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
     ImGui::ItemSize(gp.BB_Frame);
     if (!ImGui::ItemAdd(gp.BB_Frame, 0, &gp.BB_Frame)) {
