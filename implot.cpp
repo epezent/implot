@@ -57,6 +57,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 #include "implot.h"
 #include "imgui_internal.h"
+#include <limits>
 
 #ifdef _MSC_VER
 #define sprintf sprintf_s
@@ -129,6 +130,30 @@ namespace {
 // Private Utils
 //-----------------------------------------------------------------------------
 
+template <typename F>
+struct FloatProps {
+    static inline F Min(); 
+    static inline F Max();
+    static inline F Eps();
+    static inline F Inf();
+};
+
+template <>
+struct FloatProps<float> {
+    static inline float Min() { return FLT_MIN; } 
+    static inline float Max() { return FLT_MAX; }
+    static inline float Eps() { return FLT_EPSILON; }
+    static inline float Inf() { return HUGE_VALF; }
+};
+
+template <>
+struct FloatProps<double> {
+    static inline double Min() { return DBL_MIN; } 
+    static inline double Max() { return DBL_MAX; }
+    static inline double Eps() { return DBL_EPSILON; }
+    static inline double Inf() { return HUGE_VAL; }
+};
+
 /// Returns true if a flag is set
 template <typename TSet, typename TFlag>
 inline bool HasFlag(TSet set, TFlag flag) {
@@ -151,10 +176,9 @@ inline ImPlotFloat ConstrainNan(ImPlotFloat val) {
     return isnan(val) ? 0 : val;
 }
 
-/// Turns INFINITYs to FLT_MAXs
+/// Turns infinity to floating point maximums
 inline ImPlotFloat ConstrainInf(ImPlotFloat val) {
-    // TODO: FLT_MAX/DBL_MAX templates 
-    return val == INFINITY ? DBL_MAX : val == -INFINITY ? -DBL_MAX : val;
+    return val == FloatProps<ImPlotFloat>::Inf() ?  FloatProps<ImPlotFloat>::Max() : val == -FloatProps<ImPlotFloat>::Inf() ? - FloatProps<ImPlotFloat>::Max() : val;
 }
 
 /// Turns numbers less than or equal to 0 to 0.001 (sort of arbitrary, is there a better way?)
@@ -164,7 +188,7 @@ inline ImPlotFloat ConstrainLog(ImPlotFloat val) {
 
 /// Returns true if val is NAN or INFINITY
 inline bool NanOrInf(ImPlotFloat val) {
-    return val == INFINITY || val == -INFINITY || isnan(val);
+    return val == FloatProps<ImPlotFloat>::Inf() || val == -FloatProps<ImPlotFloat>::Inf() || isnan(val);
 }
 
 /// Utility function to that rounds x to powers of 2,5 and 10 for generating axis labels
@@ -570,37 +594,38 @@ const char* GetLegendLabel(int i) {
 // Tick Utils
 //-----------------------------------------------------------------------------
 
-inline void GetTicks(const ImPlotRange& scale, int nMajor, int nMinor, bool logscale, ImVector<ImTick> &out) {
+inline void GetTicks(const ImPlotRange& range, int nMajor, int nMinor, bool logscale, ImVector<ImTick> &out) {
     out.shrink(0);
     if (logscale) {
-        if (scale.Min <= 0 || scale.Max <= 0)
+        if (range.Min <= 0 || range.Max <= 0)
             return;
-        int exp_min = (int)(ImFloor(log10(scale.Min)));
-        int exp_max = (int)(ImCeil(log10(scale.Max)));
+        int exp_min = (int)log10(range.Min);
+        int exp_max = (int)(ceil(log10(range.Max)));
         for (int e = exp_min - 1; e < exp_max + 1; ++e) {
             double major1 = ImPow(10, (double)(e));
             double major2 = ImPow(10, (double)(e + 1));
             double interval = (major2 - major1) / 9;
-            if (major1 >= (scale.Min - FLT_EPSILON) && major1 <= (scale.Max + FLT_EPSILON))
+            if (major1 >= (range.Min - FloatProps<ImPlotFloat>::Eps()) && major1 <= (range.Max + FloatProps<ImPlotFloat>::Eps()))
                 out.push_back(ImTick(major1, true));
             for (int i = 1; i < 9; ++i) {
                 double minor = major1 + i * interval;
-                if (minor >= (scale.Min - FLT_EPSILON) && minor <= (scale.Max + FLT_EPSILON))
+                if (minor >= (range.Min - FloatProps<ImPlotFloat>::Eps()) && minor <= (range.Max + FloatProps<ImPlotFloat>::Eps()))
                     out.push_back(ImTick(minor, false, false));
             }
         }
     }
     else {
-        const double range    = NiceNum(scale.Max - scale.Min, 0);
-        const double interval = NiceNum(range / (nMajor - 1), 1);
-        const double graphmin = floor(scale.Min / interval) * interval;
-        const double graphmax = ceil(scale.Max / interval) * interval;
+
+        const double nice_range    = NiceNum(range.Size() * 0.99, 0);
+        const double interval      = NiceNum(nice_range / (nMajor - 1), 1);
+        const double graphmin      = floor(range.Min / interval) * interval;
+        const double graphmax      = ceil(range.Max / interval) * interval;
         for (double major = graphmin; major < graphmax + 0.5 * interval; major += interval) {
-            if (major >= scale.Min && major <= scale.Max)
+            if (major >= range.Min && major <= range.Max)
                 out.push_back(ImTick(major, true));
             for (int i = 1; i < nMinor; ++i) {
                 double minor = major + i * interval / nMinor;
-                if (minor >= scale.Min && minor <= scale.Max)
+                if (minor >= range.Min && minor <= range.Max)
                     out.push_back(ImTick(minor, false));
             }
         }
@@ -817,10 +842,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     if (plot.XAxis.Range.Max <= plot.XAxis.Range.Min)
-        plot.XAxis.Range.Max = plot.XAxis.Range.Min + FLT_EPSILON;
+        plot.XAxis.Range.Max = plot.XAxis.Range.Min + FloatProps<ImPlotFloat>::Eps();
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (plot.YAxis[i].Range.Max <= plot.YAxis[i].Range.Min)
-            plot.YAxis[i].Range.Max = plot.YAxis[i].Range.Min + FLT_EPSILON;
+            plot.YAxis[i].Range.Max = plot.YAxis[i].Range.Min + FloatProps<ImPlotFloat>::Eps();
     }
 
     // adaptive divisions
@@ -1212,7 +1237,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (gp.RenderX) {
         for (int t = 0; t < gp.XTicks.Size; t++) {
             ImTick *xt = &gp.XTicks[t];
-            xt->PixelPos = PlotToPixels(xt->PlotPos, 0, 0).x;
+            xt->PixelPos = PlotToPixels(xt->PlotPos, 0, 0).x; 
         }
     }
     for (int i = 0; i < MAX_Y_AXES; i++) {
@@ -1295,11 +1320,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // reset items count
     gp.VisibleItemCount = 0;
     // reset extents
-    gp.ExtentsX.Min = INFINITY;
-    gp.ExtentsX.Max = -INFINITY;
+    gp.ExtentsX.Min = FloatProps<ImPlotFloat>::Inf();
+    gp.ExtentsX.Max = -FloatProps<ImPlotFloat>::Inf();
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        gp.ExtentsY[i].Min = INFINITY;
-        gp.ExtentsY[i].Max = -INFINITY;
+        gp.ExtentsY[i].Min = FloatProps<ImPlotFloat>::Inf();
+        gp.ExtentsY[i].Max = -FloatProps<ImPlotFloat>::Inf();
     }
     // clear item names
     gp.LegendLabels.Buf.resize(0);
@@ -1313,9 +1338,19 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 // Context Menu
 //-----------------------------------------------------------------------------
 
+template <typename F>
+bool DragImPlotFloat(const char* label, F* v, float v_speed, F v_min, F v_max) {
+    return false;
+}
 
-bool DragDouble(const char* label, double* v, float v_speed = 1.0f, double v_min = 0.0, double v_max = 0.0, const char* format = "%.3f", float power = 1.0f) {
-    return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, format, power);
+template <>
+bool DragImPlotFloat<double>(const char* label, double* v, float v_speed, double v_min, double v_max) {
+    return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, "%.3f", 1);
+}
+
+template <>
+bool DragImPlotFloat<float>(const char* label, float* v, float v_speed, float v_min, float v_max) {
+    return ImGui::DragScalar(label, ImGuiDataType_Float, v, v_speed, &v_min, &v_max, "%.3f", 1);
 }
 
 inline void AxisMenu(ImPlotAxis& Axis) {
@@ -1334,7 +1369,7 @@ inline void AxisMenu(ImPlotAxis& Axis) {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);
     }
-    DragDouble("Min", &Axis.Range.Min, 0.01f + 0.01f * (Axis.Range.Size()), -INFINITY, Axis.Range.Max - FLT_EPSILON);
+    DragImPlotFloat("Min", &Axis.Range.Min, 0.01f + 0.01f * (float)Axis.Range.Size(), -FloatProps<ImPlotFloat>::Inf(), Axis.Range.Max - FloatProps<ImPlotFloat>::Eps());
     if (lock_min) {
         ImGui::PopItemFlag();
         ImGui::PopStyleVar();    }
@@ -1345,7 +1380,7 @@ inline void AxisMenu(ImPlotAxis& Axis) {
     if (lock_max) {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);    }
-    DragDouble("Max", &Axis.Range.Max, 0.01f + 0.01f * (Axis.Range.Size()), Axis.Range.Min + FLT_EPSILON, INFINITY);
+    DragImPlotFloat("Max", &Axis.Range.Max, 0.01f + 0.01f * (float)Axis.Range.Size(), Axis.Range.Min + FloatProps<ImPlotFloat>::Eps(), FloatProps<ImPlotFloat>::Inf());
     if (lock_max) {
         ImGui::PopItemFlag();
         ImGui::PopStyleVar();
@@ -2672,7 +2707,8 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             ImPlotPoint itemData2 = getter(i2);
             i1 = i2;
             int pixY_0 = (int)(line_weight);
-            float pixY_1_float = gp.Style.DigitalBitHeight * ImMax(0.0, itemData1.y);
+            itemData1.y = itemData1.y < 0 ? 0 : itemData1.y;
+            float pixY_1_float = gp.Style.DigitalBitHeight * (float)itemData1.y;
             int pixY_1 = (int)(pixY_1_float); //allow only positive values
             int pixY_chPosOffset = (int)(ImMax(gp.Style.DigitalBitHeight, pixY_1_float) + gp.Style.DigitalBitGap);
             pixYMax = ImMax(pixYMax, pixY_chPosOffset);
