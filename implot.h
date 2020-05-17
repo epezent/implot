@@ -25,6 +25,13 @@
 #pragma once
 #include "imgui.h"
 
+// This can be defined in your imconfig.h to change the desired plot precision.
+// #ifndef ImPlotFloat
+// #define ImPlotFloat double
+// #endif
+
+typedef double ImPlotFloat;
+
 //-----------------------------------------------------------------------------
 // Basic types and flags
 //-----------------------------------------------------------------------------
@@ -114,12 +121,18 @@ enum ImPlotMarker_ {
     ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
+struct ImPlotPoint {
+    ImPlotFloat x, y;
+    ImPlotPoint()  { x = y = 0; }
+    ImPlotPoint(ImPlotFloat _x, ImPlotFloat _y) { x = _x; y = _y; }
+};
+
 // A range defined by a min/max value. Used for plot axes ranges.
 struct ImPlotRange {
-    float Min, Max;
+    ImPlotFloat Min, Max;
     ImPlotRange();
-    bool Contains(float value) const;
-    float Size() const;
+    bool Contains(ImPlotFloat value) const;
+    ImPlotFloat Size() const;
 };
 
 // Combination of two ranges for X and Y axes.
@@ -127,7 +140,6 @@ struct ImPlotLimits {
     ImPlotRange X, Y;
     ImPlotLimits();
     bool Contains(const ImVec2& p) const;
-    ImVec2 Size() const;
 };
 
 // Plot style structure
@@ -195,7 +207,7 @@ void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a pie chart. If the sum of values > 1, each value will be normalized. Center and radius are in plot coordinates.
-void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2& center, float radius, bool show_percents = true, float angle0 = 90);
+void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents = true, float angle0 = 90);
 // Plots digital data.
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
@@ -209,7 +221,7 @@ void PlotText(const char* text, float x, float y, bool vertical = false, const I
 /// Returns true if the plot area in the current or most recent plot is hovered.
 bool IsPlotHovered();
 /// Returns the mouse position in x,y coordinates of the current or most recent plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImVec2 GetPlotMousePos(int y_axis = -1);
+ImPlotPoint GetPlotMousePos(int y_axis = -1);
 /// Returns the current or most recent plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImPlotLimits GetPlotLimits(int y_axis = -1);
 /// Returns true if the current or most recent plot is being queried.
@@ -263,9 +275,9 @@ ImVec2 GetPlotPos();
 ImVec2 GetPlotSize();
 
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImVec2 PixelsToPlot(const ImVec2& pix, int y_axis = -1);
+ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImVec2 PlotToPixels(const ImVec2& plt, int y_axis = -1);
+ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = -1);
 
 // Push clip rect for rendering to current plot area
 void PushPlotClipRect();

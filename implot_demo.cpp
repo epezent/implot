@@ -240,12 +240,10 @@ void ShowDemoWindow(bool* p_open) {
     if (ImGui::CollapsingHeader("Pie Charts")) {
         static const char* labels1[]   = {"Frogs","Hogs","Dogs","Logs"};
         static float pre_normalized[] = {0.15f,  0.30f,  0.45f, 0.10f};
-        ImVec2 center(0.5f,0.5f); // in plot units, not pixels
-        float radius = 0.4f;      // in plot units, not pixels
 
         SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
-            ImPlot::PlotPieChart(labels1, pre_normalized, 4, center, radius);
+            ImPlot::PlotPieChart(labels1, pre_normalized, 4, 0.5f, 0.5f, 0.4f);
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
@@ -262,7 +260,7 @@ void ShowDemoWindow(bool* p_open) {
         static const char* labels2[]   = {"One","Two","Three","Four","Five"};
         static float not_normalized[] = {1,2,3,4,5};
         if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
-            ImPlot::PlotPieChart(labels2, not_normalized, 5, center, radius);
+            ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f);
             ImPlot::EndPlot();
         }
         ImPlot::RestorePalette();
@@ -459,8 +457,11 @@ void ShowDemoWindow(bool* p_open) {
         static ImVector<ImVec2> data;
         ImPlotLimits range, query;
         if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Default | ImPlotFlags_Query, ImPlotAxisFlags_GridLines, ImPlotAxisFlags_GridLines)) {
-            if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) 
-                data.push_back(ImPlot::GetPlotMousePos());
+            if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) {
+                ImPlotPoint pt = ImPlot::GetPlotMousePos();
+
+                data.push_back(ImVec2(pt.x, pt.y));
+            }
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Diamond);
             if (data.size() > 0)
                 ImPlot::PlotScatter("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(float));
@@ -762,9 +763,9 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Rendering")) {
         if (ImPlot::BeginPlot("##CustomRend")) {
-            ImVec2 cntr = ImPlot::PlotToPixels(ImVec2(0.5f,  0.5f));
-            ImVec2 rmin = ImPlot::PlotToPixels(ImVec2(0.25f, 0.75f));
-            ImVec2 rmax = ImPlot::PlotToPixels(ImVec2(0.75f, 0.25f));
+            ImVec2 cntr = ImPlot::PlotToPixels(ImPlotPoint(0.5f,  0.5f));
+            ImVec2 rmin = ImPlot::PlotToPixels(ImPlotPoint(0.25f, 0.75f));
+            ImVec2 rmax = ImPlot::PlotToPixels(ImPlotPoint(0.75f, 0.25f));
             ImPlot::PushPlotClipRect();
             ImGui::GetWindowDrawList()->AddCircleFilled(cntr,20,IM_COL32(255,255,0,255),20);
             ImGui::GetWindowDrawList()->AddRect(rmin, rmax, IM_COL32(128,0,255,255));
