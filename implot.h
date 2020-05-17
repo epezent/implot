@@ -25,11 +25,7 @@
 #pragma once
 #include "imgui.h"
 
-// This can be defined in your imconfig.h to change the desired plot precision.
-// #ifndef ImPlotFloat
-// #define ImPlotFloat double
-// #endif
-
+// The desired plot precision (float or double)
 typedef double ImPlotFloat;
 
 //-----------------------------------------------------------------------------
@@ -260,11 +256,11 @@ void PopStyleVar(int count = 1);
 //-----------------------------------------------------------------------------
 
 /// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
-void SetNextPlotLimits(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotLimits(ImPlotFloat x_min, ImPlotFloat x_max, ImPlotFloat y_min, ImPlotFloat y_max, ImGuiCond cond = ImGuiCond_Once);
 /// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis limits will be locked.
-void SetNextPlotLimitsX(float x_min, float x_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotLimitsX(ImPlotFloat x_min, ImPlotFloat x_max, ImGuiCond cond = ImGuiCond_Once);
 /// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis limits will be locked.
-void SetNextPlotLimitsY(float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+void SetNextPlotLimitsY(ImPlotFloat y_min, ImPlotFloat y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
 
 /// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first Y axis.
 void SetPlotYAxis(int y_axis);

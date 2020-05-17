@@ -142,7 +142,7 @@ inline void FlipFlag(TSet& set, TFlag flag) {
 }
 
 /// Linearly remaps float x from [x0 x1] to [y0 y1].
-inline double Remap(double x, double x0, double x1, double y0, double y1) {
+inline float Remap(float x, float x0, float x1, float y0, float y1) {
     return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
 }
 
@@ -399,7 +399,7 @@ ImVec4 NextColor() {
     return col;
 }
 
-inline void FitPoint(const ImVec2& p) {
+inline void FitPoint(const ImPlotPoint& p) {
     ImPlotRange* extents_x = &gp.ExtentsX;
     ImPlotRange* extents_y = &gp.ExtentsY[gp.CurrentPlot->CurrentYAxis];
     if (!NanOrInf(p.x)) {
@@ -483,10 +483,10 @@ ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis) {
 struct Plt2PixLinLin {
     Plt2PixLinLin(int y_axis_in) : y_axis(y_axis_in) {}
 
-    ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
+    ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
-        return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
-                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
+        return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
+                       (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min)) );
     }
 
     int y_axis;
@@ -495,12 +495,12 @@ struct Plt2PixLinLin {
 struct Plt2PixLogLin {
     Plt2PixLogLin(int y_axis_in) : y_axis(y_axis_in) {}
 
-    ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
-    ImVec2 operator()(float x, float y) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
-        x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
-        return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
-                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
+    ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
+    ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
+        ImPlotFloat t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        x        = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
+        return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
+                       (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min)) );
     }
 
     int y_axis;
@@ -509,28 +509,27 @@ struct Plt2PixLogLin {
 struct Plt2PixLinLog {
     Plt2PixLinLog(int y_axis_in) : y_axis(y_axis_in) {}
 
-    ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
-    ImVec2 operator()(float x, float y) {
-        float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
-        y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
-        return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
-                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
+    ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
+    ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
+        ImPlotFloat t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        y             = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, (float)t);
+        return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
+                       (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min)) );
     }
-
     int y_axis;
 };
 
 struct Plt2PixLogLog {
     Plt2PixLogLog(int y_axis_in) : y_axis(y_axis_in) {}
 
-    ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
-    ImVec2 operator()(float x, float y) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
-        x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
-        t       = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
-        y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
-        return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
-                 gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
+    ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
+    ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
+        ImPlotFloat t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        x             = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
+        t             = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        y             = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, (float)t);
+        return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
+                       (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min)) );
     }
 
     int y_axis;
@@ -1213,14 +1212,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (gp.RenderX) {
         for (int t = 0; t < gp.XTicks.Size; t++) {
             ImTick *xt = &gp.XTicks[t];
-            xt->PixelPos = PlotToPixels((float)xt->PlotPos, 0, 0).x;
+            xt->PixelPos = PlotToPixels(xt->PlotPos, 0, 0).x;
         }
     }
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (gp.RenderY[i]) {
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
                 ImTick *yt = &gp.YTicks[i][t];
-                yt->PixelPos = PlotToPixels(0, (float)yt->PlotPos, i).y;
+                yt->PixelPos = PlotToPixels(0, yt->PlotPos, i).y;
             }
         }
     }
@@ -1716,12 +1715,12 @@ void EndPlot() {
 // MISC API
 //-----------------------------------------------------------------------------
 
-void SetNextPlotLimits(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond) {
+void SetNextPlotLimits(ImPlotFloat x_min, ImPlotFloat x_max, ImPlotFloat y_min, ImPlotFloat y_max, ImGuiCond cond) {
     SetNextPlotLimitsX(x_min, x_max, cond);
     SetNextPlotLimitsY(y_min, y_max, cond);
 }
 
-void SetNextPlotLimitsX(float x_min, float x_max, ImGuiCond cond) {
+void SetNextPlotLimitsX(ImPlotFloat x_min, ImPlotFloat x_max, ImGuiCond cond) {
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
     gp.NextPlotData.HasXRange = true;
     gp.NextPlotData.XRangeCond = cond;
@@ -1729,7 +1728,7 @@ void SetNextPlotLimitsX(float x_min, float x_max, ImGuiCond cond) {
     gp.NextPlotData.X.Max = x_max;
 }
 
-void SetNextPlotLimitsY(float y_min, float y_max, ImGuiCond cond, int y_axis) {
+void SetNextPlotLimitsY(ImPlotFloat y_min, ImPlotFloat y_max, ImGuiCond cond, int y_axis) {
     IM_ASSERT_USER_ERROR(y_axis >= 0 && y_axis < MAX_Y_AXES, "y_axis Needs to be between 0 and MAX_Y_AXES");
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
     gp.NextPlotData.HasYRange[y_axis] = true;
@@ -2147,45 +2146,48 @@ inline void RenderLineStrip(Transformer transformer, ImDrawList& DrawList, Gette
 // DATA GETTERS
 //-----------------------------------------------------------------------------
 
-inline float StrideIndex(const float* data, int idx, int stride) {
-    return *(const float*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
+template <typename T>
+inline T StrideIndex(const T* data, int idx, int stride) {
+    return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
 }
 
+template <typename T>
 struct GetterYs {
-    GetterYs(const float* ys, int stride) {  Ys = ys; Stride = stride; }
-    const float* Ys;
+    GetterYs(const T* ys, int stride) {  Ys = ys; Stride = stride; }
+    const T* Ys;
     int Stride;
-    inline ImVec2 operator()(int idx) {
-        return ImVec2((float)idx, StrideIndex(Ys, idx, Stride));
+    inline ImPlotPoint operator()(int idx) {
+        return ImPlotPoint((T)idx, StrideIndex(Ys, idx, Stride));
     }
 };
 
+template <typename T>
 struct Getter2D {
-    Getter2D(const float* xs, const float* ys, int stride) { Xs = xs; Ys = ys; Stride = stride; }
-    const float* Xs;
-    const float* Ys;
+    Getter2D(const T* xs, const T* ys, int stride) { Xs = xs; Ys = ys; Stride = stride; }
+    const T* Xs;
+    const T* Ys;
     int Stride;
-    inline ImVec2 operator()(int idx) {
-        return ImVec2(StrideIndex(Xs, idx, Stride), StrideIndex(Ys, idx, Stride));
+    inline ImPlotPoint operator()(int idx) {
+        return ImPlotPoint(StrideIndex(Xs, idx, Stride), StrideIndex(Ys, idx, Stride));
     }
 };
 
 struct GetterImVec2 {
     GetterImVec2(const ImVec2* data) { Data = data; }
-    inline ImVec2 operator()(int idx) { return Data[idx]; }
+    inline ImPlotPoint operator()(int idx) { return ImPlotPoint(Data[idx].x, Data[idx].y); }
     const ImVec2* Data;
 };
 
 struct GetterFuncPtrImVec2 {
     GetterFuncPtrImVec2(ImVec2 (*g)(void* data, int idx), void* d) { getter = g; data = d;}
-    ImVec2 operator()(int idx) { return getter(data, idx); }
+    inline ImPlotPoint operator()(int idx) { ImVec2 p = getter(data, idx); return ImPlotPoint(p.x,p.y); }
     ImVec2 (*getter)(void* data, int idx);
     void* data;
 };
 
 struct GetterFuncPtrImVec4 {
     GetterFuncPtrImVec4(ImVec4 (*g)(void* data, int idx), void* d) { getter = g; data = d;}
-    ImVec4 operator()(int idx) { return getter(data, idx); }
+    inline ImVec4 operator()(int idx) { return getter(data, idx); }
     ImVec4 (*getter)(void* data, int idx);
     void* data;
 };
@@ -2225,7 +2227,7 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
     // find data extents
     if (gp.FitThisFrame) {
         for (int i = 0; i < count; ++i) {
-            ImVec2 p = getter(i);
+            ImPlotPoint p = getter(i);
             FitPoint(p);
         }
     }
@@ -2326,16 +2328,18 @@ void PlotScatter(const char* label_id, ImVec2 (*getter)(void* data, int idx), vo
 // PLOT BAR
 //-----------------------------------------------------------------------------
 
+template <typename T>
 struct GetterBarV {
-    const float* Ys; float XShift; int Stride;
-    GetterBarV(const float* ys, float xshift, int stride) { Ys = ys; XShift = xshift; Stride = stride; }
-    inline ImVec2 operator()(int idx) { return ImVec2((float)idx + XShift, StrideIndex(Ys, idx, Stride)); }
+    const T* Ys; T XShift; int Stride;
+    GetterBarV(const T* ys, T xshift, int stride) { Ys = ys; XShift = xshift; Stride = stride; }
+    inline ImPlotPoint operator()(int idx) { return ImPlotPoint((T)idx + XShift, StrideIndex(Ys, idx, Stride)); }
 };
 
+template <typename T>
 struct GetterBarH {
-    const float* Xs; float YShift; int Stride;
-    GetterBarH(const float* xs, float yshift, int stride) { Xs = xs; YShift = yshift; Stride = stride; }
-    inline ImVec2 operator()(int idx) { return ImVec2(StrideIndex(Xs, idx, Stride), (float)idx + YShift); }
+    const T* Xs; T YShift; int Stride;
+    GetterBarH(const T* xs, T yshift, int stride) { Xs = xs; YShift = yshift; Stride = stride; }
+    inline ImPlotPoint operator()(int idx) { return ImPlotPoint(StrideIndex(Xs, idx, Stride), (T)idx + YShift); }
 };
 
 
@@ -2369,15 +2373,15 @@ void PlotBarsEx(const char* label_id, Getter getter, int count, float width, int
     // find data extents
     if (gp.FitThisFrame) {
         for (int i = 0; i < count; ++i) {
-            ImVec2 p = getter(i);
-            FitPoint(ImVec2(p.x - half_width, p.y));
-            FitPoint(ImVec2(p.x + half_width, 0));
+            ImPlotPoint p = getter(i);
+            FitPoint(ImPlotPoint(p.x - half_width, p.y));
+            FitPoint(ImPlotPoint(p.x + half_width, 0));
         }
     }
 
     int idx = offset;
     for (int i = 0; i < count; ++i) {
-        ImVec2 p;
+        ImPlotPoint p;
         p = getter(idx);
         idx = (idx + 1) % count;
         if (p.y == 0)
@@ -2439,15 +2443,15 @@ void PlotBarsHEx(const char* label_id, Getter getter, int count, float height,  
     // find data extents
     if (gp.FitThisFrame) {
         for (int i = 0; i < count; ++i) {
-            ImVec2 p = getter(i);
-            FitPoint(ImVec2(0, p.y - half_height));
-            FitPoint(ImVec2(p.x, p.y + half_height));
+            ImPlotPoint p = getter(i);
+            FitPoint(ImPlotPoint(0, p.y - half_height));
+            FitPoint(ImPlotPoint(p.x, p.y + half_height));
         }
     }
 
     int idx = offset;
     for (int i = 0; i < count; ++i) {
-        ImVec2 p;
+        ImPlotPoint p;
         p = getter(idx);
         idx = (idx + 1) % count;
         if (p.x == 0)
@@ -2516,8 +2520,8 @@ void PlotErrorBarsEx(const char* label_id, Getter getter, int count, int offset)
     if (gp.FitThisFrame) {
         for (int i = 0; i < count; ++i) {
             ImVec4 e = getter(i);
-            FitPoint(ImVec2(e.x , e.y - e.z));
-            FitPoint(ImVec2(e.x , e.y + e.w ));
+            FitPoint(ImPlotPoint(e.x , e.y - e.z));
+            FitPoint(ImPlotPoint(e.x , e.y + e.w ));
         }
     }
 
@@ -2644,8 +2648,8 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
   // find data extents
     if (gp.FitThisFrame) {
         for (int i = 0; i < count; ++i) {
-            ImVec2 p = getter(i);
-            FitPoint(ImVec2(p.x, 0));
+            ImPlotPoint p = getter(i);
+            FitPoint(ImPlotPoint(p.x, 0));
         }
     }
 
@@ -2659,31 +2663,30 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
     // render digital signals as "pixel bases" rectangles
     if (count > 1 && rend_line) {
         //
-        const float mx = (gp.PixelRange[ax].Max.x - gp.PixelRange[ax].Min.x) / gp.CurrentPlot->XAxis.Range.Size();
-        const int    segments  = count - 1;
+        const int segments  = count - 1;
         int    i1 = offset;
         int pixYMax = 0;
         for (int s = 0; s < segments; ++s) {
             const int i2 = (i1 + 1) % count;
-            ImVec2 itemData1 = getter(i1);
-            ImVec2 itemData2 = getter(i2);
+            ImPlotPoint itemData1 = getter(i1);
+            ImPlotPoint itemData2 = getter(i2);
             i1 = i2;
             int pixY_0 = (int)(line_weight);
-            float pixY_1_float = gp.Style.DigitalBitHeight * ImMax(0.0f, itemData1.y);
+            float pixY_1_float = gp.Style.DigitalBitHeight * ImMax(0.0, itemData1.y);
             int pixY_1 = (int)(pixY_1_float); //allow only positive values
             int pixY_chPosOffset = (int)(ImMax(gp.Style.DigitalBitHeight, pixY_1_float) + gp.Style.DigitalBitGap);
             pixYMax = ImMax(pixYMax, pixY_chPosOffset);
-            ImVec2 pMin, pMax;
-            pMin.x = gp.PixelRange[ax].Min.x + mx * (itemData1.x - gp.CurrentPlot->XAxis.Range.Min);
-            pMax.x = gp.PixelRange[ax].Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Range.Min);
-            int pixY_Offset = 20;//20 pixel from bottom due to mouse cursor label
+            ImVec2 pMin = PlotToPixels(itemData1);
+            ImVec2 pMax = PlotToPixels(itemData2);
+            int pixY_Offset = 20; //20 pixel from bottom due to mouse cursor label
+
             pMin.y = (gp.PixelRange[ax].Min.y) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
             pMax.y = (gp.PixelRange[ax].Min.y) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
             //plot only one rectangle for same digital state
             while (((s+2) < segments) && (itemData1.y == itemData2.y)) {
                 const int i3 = (i1 + 1) % count;
                 itemData2 = getter(i3);
-                pMax.x = gp.PixelRange[ax].Min.x + mx * (itemData2.x - gp.CurrentPlot->XAxis.Range.Min);
+                pMax.x = PlotToPixels(itemData2).x;
                 i1 = i3;
                 s++;
             }
