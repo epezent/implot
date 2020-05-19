@@ -44,7 +44,7 @@ struct ScrollingData {
     int MaxSize;
     int Offset;
     ImVector<ImVec2> Data;
-    ScrollingData() { 
+    ScrollingData() {
         MaxSize = 1000;
         Offset  = 0;
         Data.reserve(MaxSize);
@@ -68,7 +68,7 @@ struct ScrollingData {
 struct RollingData {
     float Span;
     ImVector<ImVec2> Data;
-    RollingData() { 
+    RollingData() {
         Span = 10.0f;
         Data.reserve(1000);
     }
@@ -178,8 +178,8 @@ void ShowDemoWindow(bool* p_open) {
 
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 6);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);
-            ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(1,0,0,0.25f));      
-            ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, ImVec4(0,0,0,0));      
+            ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(1,0,0,0.25f));
+            ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, ImVec4(0,0,0,0));
             ImPlot::PlotScatter("Data 2", xs2, ys2, 50);
             ImPlot::PopStyleColor(2);
             ImPlot::PopStyleVar(2);
@@ -305,50 +305,50 @@ void ShowDemoWindow(bool* p_open) {
             float ys[2] = {10,11};
             // filled
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
-            ImPlot::PlotLine("Circle##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Circle##Fill", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);   ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Square##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Square##Fill", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Diamond);  ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Diamond##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Diamond##Fill", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Up);       ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Up##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Up##Fill", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Down);     ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Down##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Down##Fill", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Left);     ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Left##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Left##Fill", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Right);    ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Right##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Right##Fill", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Cross);    ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Cross##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Cross##Fill", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Plus);     ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Plus##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Plus##Fill", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Asterisk); ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Asterisk##Fill", xs, ys, 2);   
+            ImPlot::PlotLine("Asterisk##Fill", xs, ys, 2);
             ImPlot::PopStyleVar(10);
 
             xs[0] = 6; xs[1] = 9;
             ys[0] = 10; ys[1] = 11;
             ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(0,0,0,0));
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
-            ImPlot::PlotLine("Circle", xs, ys, 2);   
+            ImPlot::PlotLine("Circle", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);   ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Square", xs, ys, 2);   
+            ImPlot::PlotLine("Square", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Diamond);  ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Diamond", xs, ys, 2);   
+            ImPlot::PlotLine("Diamond", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Up);       ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Up", xs, ys, 2);   
+            ImPlot::PlotLine("Up", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Down);     ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Down", xs, ys, 2);   
+            ImPlot::PlotLine("Down", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Left);     ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Left", xs, ys, 2);   
+            ImPlot::PlotLine("Left", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Right);    ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Right", xs, ys, 2);   
+            ImPlot::PlotLine("Right", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Cross);    ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Cross", xs, ys, 2);   
+            ImPlot::PlotLine("Cross", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Plus);     ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Plus", xs, ys, 2);   
+            ImPlot::PlotLine("Plus", xs, ys, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Asterisk); ys[0]--; ys[1]--;
-            ImPlot::PlotLine("Asterisk", xs, ys, 2);   
+            ImPlot::PlotLine("Asterisk", xs, ys, 2);
             ImPlot::PopStyleColor();
             ImPlot::PopStyleVar(10);
 
@@ -358,7 +358,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 8);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerWeight, 2);
-            ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle | ImPlotMarker_Cross); 
+            ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle | ImPlotMarker_Cross);
             ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, ImVec4(0,0,0,1));
             ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(1,1,1,1));
             ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0,0,0,1));
@@ -459,7 +459,7 @@ void ShowDemoWindow(bool* p_open) {
         static ImVector<ImVec2> data;
         ImPlotLimits range, query;
         if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Default | ImPlotFlags_Query, ImPlotAxisFlags_GridLines, ImPlotAxisFlags_GridLines)) {
-            if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) 
+            if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl)
                 data.push_back(ImPlot::GetPlotMousePos());
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Diamond);
             if (data.size() > 0)
@@ -718,8 +718,8 @@ void ShowDemoWindow(bool* p_open) {
     if (ImGui::CollapsingHeader("Offset Data")) {
         float xs[50], ys[50];
         for (int i = 0; i < 50; ++i) {
-            xs[i] = 0.5 + 0.4 * cos(i/50.f * 6.28);
-            ys[i] = 0.5 + 0.4 * sin(i/50.f * 6.28);
+            xs[i] = float(0.5 + 0.4 * cos(i/50.f * 6.28));
+            ys[i] = float(0.5 + 0.4 * sin(i/50.f * 6.28));
         }
         static int offset = 0;
         ImGui::SliderInt("Offset", &offset, -100, 100);
