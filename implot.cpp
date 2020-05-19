@@ -58,6 +58,8 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #include "implot.h"
 #include "imgui_internal.h"
 
+#include <cmath>
+
 #ifdef _MSC_VER
 #define sprintf sprintf_s
 #endif
@@ -244,9 +246,9 @@ struct ImTick {
     double PlotPos;
     float  PixelPos;
     ImVec2 Size;
-    int    TextOffset;    
+    int    TextOffset;
     bool   Major;
-    bool   RenderLabel;    
+    bool   RenderLabel;
 };
 
 struct ImPlotItem {
@@ -369,7 +371,7 @@ struct ImPlotContext {
     bool FitY[MAX_Y_AXES] = {};
     // Hover states
     bool Hov_Frame;
-    bool Hov_Grid;    
+    bool Hov_Grid;
     // Render flags
     bool RenderX, RenderY[MAX_Y_AXES];
     // Mouse pos
@@ -461,11 +463,11 @@ inline ImVec2 PlotToPixels(float x, float y, int y_axis_in = -1) {
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 pix;
     if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale)) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        float t = std::log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
     }
     if (HasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale)) {
-        float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        float t = std::log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
     }
     pix.x = gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min);
@@ -497,7 +499,7 @@ struct Plt2PixLogLin {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        float t = std::log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
         return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
                  gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
@@ -511,7 +513,7 @@ struct Plt2PixLinLog {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        float t = std::log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
         return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
                  gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
@@ -525,9 +527,9 @@ struct Plt2PixLogLog {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        float t = std::log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
-        t       = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        t       = std::log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
         return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
                  gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
@@ -576,8 +578,8 @@ inline void GetTicks(const ImPlotRange& scale, int nMajor, int nMinor, bool logs
     if (logscale) {
         if (scale.Min <= 0 || scale.Max <= 0)
             return;
-        int exp_min = (int)(ImFloor(log10(scale.Min)));
-        int exp_max = (int)(ImCeil(log10(scale.Max)));
+        int exp_min = (int)(ImFloor(std::log10(scale.Min)));
+        int exp_max = (int)(ImCeil(std::log10(scale.Max)));
         for (int e = exp_min - 1; e < exp_max + 1; ++e) {
             double major1 = ImPow(10, (double)(e));
             double major2 = ImPow(10, (double)(e + 1));
@@ -2107,16 +2109,16 @@ inline void RenderLineStrip(Transformer transformer, ImDrawList& DrawList, Gette
    if (i_start >= count ) i_start -= count;
    int i_end = offset + count;
    if (i_end >= count) i_end -= count;
-   
+
    const int    segments  = count - 1;
-   ImVec2 p1 = transformer(getter(offset));    
+   ImVec2 p1 = transformer(getter(offset));
    if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
       for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
          ImVec2 p2 = transformer(getter(i1));
 
          if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1,p2), ImMax(p1,p2))))
                RenderLineAA(DrawList, p1, p2, line_weight, col_line);
-         p1 = p2;            
+         p1 = p2;
       }
    }
    else {
@@ -2124,7 +2126,7 @@ inline void RenderLineStrip(Transformer transformer, ImDrawList& DrawList, Gette
       DrawList.PrimReserve(segments * 6, segments * 4);
       int segments_culled = 0;
       for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
-         ImVec2 p2 = transformer(getter(i1));           
+         ImVec2 p2 = transformer(getter(i1));
 
          if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
             RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
@@ -2558,7 +2560,7 @@ inline void DrawPieSlice(ImDrawList& DrawList, const ImVec2& center, float radiu
     float da = (a1 - a0) / (n - 1);
     for (int i = 0; i < n; ++i) {
         float a = a0 + i * da;
-        buffer[i + 1] = PlotToPixels(center.x + radius * cos(a), center.y + radius * sin(a));
+        buffer[i + 1] = PlotToPixels(center.x + radius * std::cos(a), center.y + radius * std::sin(a));
     }
     DrawList.AddConvexPolyFilled(buffer, n + 1, col);
 }
@@ -2595,7 +2597,7 @@ void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2
                 sprintf(buffer, "%.0f%%", percent * 100);
                 ImVec2 size = ImGui::CalcTextSize(buffer);
                 float angle = a0 + (a1 - a0) * 0.5f;
-                ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
+                ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * std::cos(angle), center.y + 0.5f * radius * std::sin(angle));
                 DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), IM_COL32(0,0,0,255), buffer);
                 DrawList.AddText(pos - size * 0.5f, IM_COL32(255,255,255,255), buffer);
             }
@@ -2632,7 +2634,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
 
     if (gp.Style.Colors[ImPlotCol_Line].w != -1)
         item->Color = gp.Style.Colors[ImPlotCol_Line];
-    
+
   // find data extents
     if (gp.FitThisFrame) {
         for (int i = 0; i < count; ++i) {
