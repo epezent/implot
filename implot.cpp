@@ -61,7 +61,8 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 #include "implot.h"
 #include "imgui_internal.h"
-
+#include <limits>
+#include "TimeFormatter.hpp"
 #ifdef _MSC_VER
 #define sprintf sprintf_s
 #endif
@@ -732,14 +733,24 @@ inline void AddDefaultTicks(const ImPlotRange& range, int nMajor, int nMinor, bo
     }
 }
 
-inline void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, ImGuiTextBuffer& buffer) {
+inline void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, bool isTimeAxis, ImGuiTextBuffer& buffer) {
     char temp[32];
+    int tick_count = 0;
+    for (int t = 0 ; t < ticks.Size; t++) {
+	ImPlotTick *tk = &ticks[t];
+	if (tk->RenderLabel && !tk->Labeled) tick_count++;
+    }
     for (int t = 0; t < ticks.Size; t++) {
         ImPlotTick *tk = &ticks[t];
         if (tk->RenderLabel && !tk->Labeled) {
             tk->TextOffset = buffer.size();
             if (scientific)
                 sprintf(temp, "%.0e", tk->PlotPos);
+            } else if (isTimeAxis) {
+                auto t = TimeFormatter(tk->PlotPos);
+                std::string tick_str = t.getRangeFormattedString(ticks[ticks.Size-1].PlotPos - ticks[0].PlotPos, rendereres_count, 0);
+                sprintf(temp, "%s", tick_str.c_str());
+            }
             else
                 sprintf(temp, "%.10g", tk->PlotPos);
             buffer.append(temp, temp + strlen(temp) + 1);
@@ -944,6 +955,25 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         if (plot.XAxis.Divisions < 2)
             plot.XAxis.Divisions = 2;
     }
+
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
+
+        auto min_time = TimeFormatter(plot.XAxis.Range.Min);
+        auto string_time = min_time.getRangeFormattedString(plot.XAxis.Range.Size() , 5 , 0)  ; // Extra zero
+        auto string_time_size = ImGui::CalcTextSize(string_time.c_str());
+        
+        // 60% spacing 40% text
+        
+        plot.XAxis.Divisions = (int)IM_ROUND((0.25 * gp.BB_Canvas.GetWidth())/string_time_size.x);
+        if (plot.XAxis.Divisions < 2)
+            plot.XAxis.Divisions = 2;
+        
+        plot.XAxis.Subdivisions = (int)IM_ROUND((0.15 * gp.BB_Canvas.GetWidth())/(string_time_size.x));; // Extra padding 
+        if (plot.XAxis.Divisions == 2 && plot.XAxis.Subdivisions < 1) {
+            plot.XAxis.Subdivisions = 1;
+        }
+    }
+
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Adaptive)) {
             plot.YAxis[i].Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight());
@@ -1013,7 +1043,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     float max_label_width[MAX_Y_AXES] = {};
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (gp.Y[i].Present && HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) {
-            LabelTicks(gp.YTicks[i], HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Scientific), gp.YTickLabels[i]);
+            LabelTicks(gp.YTicks[i], HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Scientific), false, gp.YTickLabels[i]);
             max_label_width[i] = MaxTickLabelWidth(gp.YTicks[i]);
         }
     }
@@ -1755,12 +1785,27 @@ void EndPlot() {
         DrawList.AddLine(v3, v4, gp.Col_Border);
     }
 
+    // render initial point for time scale reference 
+     if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
+        char buffer[128] = {};
+        BufferWriter writer(buffer, sizeof(buffer));
+        
+        writer.Write("%s", TimeFormatter{plot.XAxis.Range.Min}.getFullFormattedString().c_str());
+        ImVec2 size = ImGui::CalcTextSize(buffer);
+        ImVec2 pos  = ImVec2{gp.BB_Plot.Min.x + 5, gp.BB_Plot.Max.y - 15} ;
+        
+        DrawList.AddText(pos, gp.Col_Txt, buffer);
+    }
+    
     // render mouse pos
     if (HasFlag(plot.Flags, ImPlotFlags_MousePos) && gp.Hov_Plot) {
         char buffer[128] = {};
         BufferWriter writer(buffer, sizeof(buffer));
-
-        writer.Write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
+        if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
+            writer.Write("%s,%.2f", TimeFormatter{gp.LastMousePos[0].x}.getFullFormattedString().c_str(), gp.LastMousePos[0].y);
+        } else {
+            writer.Write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
+        }
         if (HasFlag(plot.Flags, ImPlotFlags_YAxis2)) {
             writer.Write(",(%.2f)", gp.LastMousePos[1].y);
         }

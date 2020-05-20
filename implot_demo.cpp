@@ -188,6 +188,24 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Time Series Plot")) {
+        static double txs1[1001], tys1[1001];
+        //struct timeval timestamp;
+        //gettimeofday(&timestamp, NULL);
+        //double baseMicroTimestamp = timestamp.tv_sec * 1000000 + timestamp.tv_usec;
+        double baseMicroTimestamp = 1589954190000000;
+        ImPlot::SetNextPlotLimitsX(baseMicroTimestamp, baseMicroTimestamp + 1001 * 100, ImGuiCond_Once);
+        for (int i = 0; i < 1001; ++i) {
+            txs1[i] = baseMicroTimestamp + i * 100;
+            tys1[i] = 0.5f + 0.5f * sin(50 * txs1[i]);
+        }
+        
+        if (ImPlot::BeginPlot("Time Series Plot", "x_t", "f(x_t)", ImVec2(-1,0), ImPlotFlags_Default, ImPlotAxisFlags_Default | ImPlotAxisFlags_Time)) {
+            ImPlot::PlotLine("sin(50*x_t)", txs1, tys1, 1001);
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Filled Plots")) {
         static t_float xs1[101], ys1[101], ys2[101], ys3[101];
         srand(0);
