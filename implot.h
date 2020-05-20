@@ -66,6 +66,7 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_Adaptive   = 1 << 6, // grid divisions will adapt to the current pixel size the axis
     ImPlotAxisFlags_LogScale   = 1 << 7, // a logartithmic (base 10) axis scale will be used
     ImPlotAxisFlags_Scientific = 1 << 8, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
+    ImPlotAxisFlags_Time       = 1 << 9, // treat X axis data as timestamp in micro seconds
     ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels | ImPlotAxisFlags_Adaptive,
     ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_GridLines,
 };
@@ -135,7 +136,7 @@ struct ImPlotRange {
 struct ImPlotLimits {
     ImPlotRange X, Y;
     ImPlotLimits();
-    bool Contains(const ImVec2& p) const;
+    bool Contains(const ImPlotPoint& p) const;
 };
 
 // Plot style structure
@@ -181,31 +182,31 @@ void EndPlot();
 //-----------------------------------------------------------------------------
 
 // Plots a standard 2D line plot.
-void PlotLine(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
-void PlotLine(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
+void PlotLine(const char* label_id, const ImPlotFloat* values, int count, int offset = 0, int stride = sizeof(ImPlotFloat));
+void PlotLine(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, int offset = 0, int stride = sizeof(ImPlotFloat));
 void PlotLine(const char* label_id, const ImVec2* data, int count, int offset = 0);
 void PlotLine(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a standard 2D scatter plot.
-void PlotScatter(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
-void PlotScatter(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
+void PlotScatter(const char* label_id, const ImPlotFloat* values, int count, int offset = 0, int stride = sizeof(ImPlotFloat));
+void PlotScatter(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, int offset = 0, int stride = sizeof(ImPlotFloat));
 void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset = 0);
 void PlotScatter(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a vertical bar graph.
-void PlotBars(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
-void PlotBars(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
-void PlotBars(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float width, int offset = 0);
+void PlotBars(const char* label_id, const ImPlotFloat* values, int count, ImPlotFloat width = 0.67f, ImPlotFloat shift = 0, int offset = 0, int stride = sizeof(ImPlotFloat));
+void PlotBars(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, ImPlotFloat width, int offset = 0, int stride = sizeof(ImPlotFloat));
+void PlotBars(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, ImPlotFloat width, int offset = 0);
 // Plots a horizontal bar graph.
-void PlotBarsH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
-void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
+void PlotBarsH(const char* label_id, const ImPlotFloat* values, int count, ImPlotFloat height = 0.67f, ImPlotFloat shift = 0, int offset = 0, int stride = sizeof(ImPlotFloat));
+void PlotBarsH(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, ImPlotFloat height,  int offset = 0, int stride = sizeof(ImPlotFloat));
 void PlotBarsH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float height,  int offset = 0);
 // Plots vertical error bar.
-void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
+void PlotErrorBars(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, const ImPlotFloat* err, int count, int offset = 0, int stride = sizeof(ImPlotFloat));
+void PlotErrorBars(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, const ImPlotFloat* neg, const ImPlotFloat* pos, int count, int offset = 0, int stride = sizeof(ImPlotFloat));
 void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a pie chart. If the sum of values > 1, each value will be normalized. Center and radius are in plot coordinates.
-void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents = true, float angle0 = 90);
+void PlotPieChart(const char** label_ids, ImPlotFloat* values, int count, ImPlotFloat x, ImPlotFloat y, ImPlotFloat radius, bool show_percents = true, float angle0 = 90);
 // Plots digital data.
-void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
+void PlotDigital(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, int offset = 0, int stride = sizeof(ImPlotFloat));
 void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a text label at point x,y.
 void PlotText(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));

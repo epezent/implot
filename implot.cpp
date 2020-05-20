@@ -58,7 +58,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #include "implot.h"
 #include "imgui_internal.h"
 #include <limits>
-
+#include "TimeFormatter.hpp"
 #ifdef _MSC_VER
 #define sprintf sprintf_s
 #endif
@@ -118,7 +118,7 @@ ImPlotFloat ImPlotRange::Size() const {
 
 ImPlotLimits::ImPlotLimits() {}
 
-bool ImPlotLimits::Contains(const ImVec2& p) const {
+bool ImPlotLimits::Contains(const ImPlotPoint& p) const {
     return X.Contains(p.x) && Y.Contains(p.y);
 }
 
@@ -632,17 +632,29 @@ inline void GetTicks(const ImPlotRange& range, int nMajor, int nMinor, bool logs
     }
 }
 
-inline void LabelTicks(ImVector<ImTick> &ticks, bool scientific, ImGuiTextBuffer& buffer) {
+inline void LabelTicks(ImVector<ImTick> &ticks, bool scientific, bool isTimeAxis,  ImGuiTextBuffer& buffer) {
     buffer.Buf.resize(0);
-    char temp[32];
+    char temp[80];
+    int rendereres_count = 0;
+    for (int t = 0; t < ticks.Size; t++) {
+        ImTick *tk = &ticks[t];
+        if (tk->RenderLabel) { rendereres_count++;}
+    }
+
     for (int t = 0; t < ticks.Size; t++) {
         ImTick *tk = &ticks[t];
         if (tk->RenderLabel) {
             tk->TextOffset = buffer.size();
-            if (scientific)
+            if (scientific){
                 sprintf(temp, "%.0e", tk->PlotPos);
-            else
-                sprintf(temp, "%g", tk->PlotPos);
+            } else if (isTimeAxis) {
+                auto t = TimeFormatter(tk->PlotPos);
+                std::string tick_str = t.getRangeFormattedString(ticks[ticks.Size-1].PlotPos - ticks[0].PlotPos, rendereres_count, 0);
+                sprintf(temp, "%s", tick_str.c_str());
+            }
+            else {
+               sprintf(temp, "%g", tk->PlotPos);
+            }
             buffer.append(temp, temp + strlen(temp) + 1);
             tk->Size = ImGui::CalcTextSize(buffer.Buf.Data + tk->TextOffset);
         }
@@ -854,6 +866,25 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         if (plot.XAxis.Divisions < 2)
             plot.XAxis.Divisions = 2;
     }
+
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
+
+        auto min_time = TimeFormatter(plot.XAxis.Range.Min);
+        auto string_time = min_time.getRangeFormattedString(plot.XAxis.Range.Size() , 5 , 0)  ; // Extra zero
+        auto string_time_size = ImGui::CalcTextSize(string_time.c_str());
+        
+        // 60% spacing 40% text
+        
+        plot.XAxis.Divisions = (int)IM_ROUND((0.25 * gp.BB_Canvas.GetWidth())/string_time_size.x);
+        if (plot.XAxis.Divisions < 2)
+            plot.XAxis.Divisions = 2;
+        
+        plot.XAxis.Subdivisions = (int)IM_ROUND((0.15 * gp.BB_Canvas.GetWidth())/(string_time_size.x));; // Extra padding 
+        if (plot.XAxis.Divisions == 2 && plot.XAxis.Subdivisions < 1) {
+            plot.XAxis.Subdivisions = 1;
+        }
+    }
+
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Adaptive)) {
             plot.YAxis[i].Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight());
@@ -911,6 +942,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // get ticks
+    //plot.XAxis.Divisions = 5;
+    //plot.XAxis.Subdivisions = 2;
     if (gp.RenderX)
         GetTicks(plot.XAxis.Range, plot.XAxis.Divisions, plot.XAxis.Subdivisions, HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale), gp.XTicks);
     for (int i = 0; i < MAX_Y_AXES; i++) {
@@ -920,13 +953,15 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // label ticks
-    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels))
-        LabelTicks(gp.XTicks, HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Scientific), gp.XTickLabels);
+    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels)) {
+        LabelTicks(gp.XTicks, HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Scientific), HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time), gp.XTickLabels);
+    }
+        
 
     float max_label_width[MAX_Y_AXES] = {};
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (y[i].present && HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) {
-            LabelTicks(gp.YTicks[i], HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Scientific), gp.YTickLabels[i]);
+            LabelTicks(gp.YTicks[i], HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Scientific), false, gp.YTickLabels[i]);
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
                 ImTick *yt = &gp.YTicks[i][t];
                 max_label_width[i] = yt->Size.x > max_label_width[i] ? yt->Size.x : max_label_width[i];
@@ -1682,12 +1717,27 @@ void EndPlot() {
         DrawList.AddLine(v3, v4, gp.Col_Border);
     }
 
+    // render initial point for time scale reference 
+     if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
+        char buffer[128] = {};
+        BufferWriter writer(buffer, sizeof(buffer));
+        
+        writer.Write("%s", TimeFormatter{plot.XAxis.Range.Min}.getFullFormattedString().c_str());
+        ImVec2 size = ImGui::CalcTextSize(buffer);
+        ImVec2 pos  = ImVec2{gp.BB_Grid.Min.x + 5, gp.BB_Grid.Max.y - 15} ;
+        
+        DrawList.AddText(pos, gp.Col_Txt, buffer);
+    }
+    
     // render mouse pos
     if (HasFlag(plot.Flags, ImPlotFlags_MousePos) && gp.Hov_Grid) {
         char buffer[128] = {};
         BufferWriter writer(buffer, sizeof(buffer));
-
-        writer.Write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
+        if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
+            writer.Write("%s,%.2f", TimeFormatter{gp.LastMousePos[0].x}.getFullFormattedString().c_str(), gp.LastMousePos[0].y);
+        } else {
+            writer.Write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
+        }
         if (HasFlag(plot.Flags, ImPlotFlags_YAxis2)) {
             writer.Write(",(%.2f)", gp.LastMousePos[1].y);
         }
@@ -2291,13 +2341,13 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
     PopPlotClipRect();
 }
 
-void PlotLine(const char* label_id, const float* values, int count, int offset, int stride) {
-    GetterYs getter(values,stride);
+void PlotLine(const char* label_id, const ImPlotFloat* values, int count, int offset, int stride) {
+    GetterYs<ImPlotFloat> getter(values,stride);
     PlotEx(label_id, getter, count, offset);
 }
 
-void PlotLine(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
-    Getter2D getter(xs,ys,stride);
+void PlotLine(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, int offset, int stride) {
+    Getter2D<ImPlotFloat> getter(xs,ys,stride);
     return PlotEx(label_id, getter, count, offset);
 }
 
@@ -2315,7 +2365,7 @@ void PlotLine(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), 
 // PLOT SCATTER
 //-----------------------------------------------------------------------------
 
-void PlotScatter(const char* label_id, const float* values, int count, int offset, int stride) {
+void PlotScatter(const char* label_id, const ImPlotFloat* values, int count, int offset, int stride) {
     int pops = 1;
     PushStyleVar(ImPlotStyleVar_LineWeight, 0);
     if (GetStyle().Marker == ImPlotMarker_None) {
@@ -2326,7 +2376,7 @@ void PlotScatter(const char* label_id, const float* values, int count, int offse
     PopStyleVar(pops);
 }
 
-void PlotScatter(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
+void PlotScatter(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, int offset, int stride) {
     int pops = 1;
     PushStyleVar(ImPlotStyleVar_LineWeight, 0);
     if (GetStyle().Marker == ImPlotMarker_None) {
@@ -2431,13 +2481,13 @@ void PlotBarsEx(const char* label_id, Getter getter, int count, float width, int
     PopPlotClipRect();
 }
 
-void PlotBars(const char* label_id, const float* values, int count, float width, float shift, int offset, int stride) {
-    GetterBarV getter(values,shift,stride);
+void PlotBars(const char* label_id, const ImPlotFloat* values, int count, ImPlotFloat width, ImPlotFloat shift, int offset, int stride) {
+    GetterBarV<ImPlotFloat> getter(values,shift,stride);
     PlotBarsEx(label_id, getter, count, width, offset);
 }
 
-void PlotBars(const char* label_id, const float* xs, const float* ys, int count, float width, int offset, int stride) {
-    Getter2D getter(xs,ys,stride);
+void PlotBars(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, ImPlotFloat width, int offset, int stride) {
+    Getter2D<ImPlotFloat> getter(xs,ys,stride);
     PlotBarsEx(label_id, getter, count, width, offset);
 }
 
@@ -2501,13 +2551,13 @@ void PlotBarsHEx(const char* label_id, Getter getter, int count, float height,  
     PopPlotClipRect();
 }
 
-void PlotBarsH(const char* label_id, const float* values, int count, float height, float shift, int offset, int stride) {
-    GetterBarH getter(values,shift,stride);
+void PlotBarsH(const char* label_id, const ImPlotFloat* values, int count, ImPlotFloat height, ImPlotFloat shift, int offset, int stride) {
+    GetterBarH<ImPlotFloat> getter(values,shift,stride);
     PlotBarsHEx(label_id, getter, count, height, offset);
 }
 
-void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset, int stride) {
-    Getter2D getter(xs,ys,stride);
+void PlotBarsH(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, ImPlotFloat height,  int offset, int stride) {
+    Getter2D<ImPlotFloat> getter(xs,ys,stride);
     PlotBarsHEx(label_id, getter, count, height, offset);
 }
 
@@ -2521,8 +2571,8 @@ void PlotBarsH(const char* label_id, ImVec2 (*getter_func)(void* data, int idx),
 //-----------------------------------------------------------------------------
 
 struct GetterError {
-    const float* Xs; const float* Ys; const float* Neg; const float* Pos; int Stride;
-    GetterError(const float* xs, const float* ys, const float* neg, const float* pos, int stride) {
+    const ImPlotFloat* Xs; const ImPlotFloat* Ys; const ImPlotFloat* Neg; const ImPlotFloat* Pos; int Stride;
+    GetterError(const ImPlotFloat* xs, const ImPlotFloat* ys, const ImPlotFloat* neg, const ImPlotFloat* pos, int stride) {
         Xs = xs; Ys = ys; Neg = neg; Pos = pos; Stride = stride;
     }
     ImVec4 operator()(int idx) {
@@ -2576,12 +2626,12 @@ void PlotErrorBarsEx(const char* label_id, Getter getter, int count, int offset)
     PopPlotClipRect();
 }
 
-void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset, int stride) {
+void PlotErrorBars(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, const ImPlotFloat* err, int count, int offset, int stride) {
     GetterError getter(xs, ys, err, err, stride);
     PlotErrorBarsEx(label_id, getter, count, offset);
 }
 
-void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset, int stride) {
+void PlotErrorBars(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, const ImPlotFloat* neg, const ImPlotFloat* pos, int count, int offset, int stride) {
     GetterError getter(xs, ys, neg, pos, stride);
     PlotErrorBarsEx(label_id, getter, count, offset);
 }
@@ -2609,7 +2659,7 @@ inline void DrawPieSlice(ImDrawList& DrawList, const ImPlotPoint& center, float 
 }
 
 
-void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents, float angle0) {
+void PlotPieChart(const char** label_ids, ImPlotFloat* values, int count, ImPlotFloat x, ImPlotFloat y, ImPlotFloat radius, bool show_percents, float angle0) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PieChart() Needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
@@ -2745,8 +2795,8 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
     ImGui::PopClipRect();
 }
 
-void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
-    Getter2D getter(xs,ys,stride);
+void PlotDigital(const char* label_id, const ImPlotFloat* xs, const ImPlotFloat* ys, int count, int offset, int stride) {
+    Getter2D<ImPlotFloat> getter(xs,ys,stride);
     return PlotDigitalEx(label_id, getter, count, offset);
 }
 
