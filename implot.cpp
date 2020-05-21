@@ -57,6 +57,8 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 #include "implot.h"
 #include "imgui_internal.h"
+#include <cmath> // for 'float' overloads of elementary functions (sin,cos,etc) - without it there are a lot of 'double to float' conversion warnings
+#include <algorithm> //std::min
 
 #ifdef _MSC_VER
 #define sprintf sprintf_s
@@ -163,8 +165,13 @@ inline float ConstrainLog(float val) {
 }
 
 /// Returns true if val is NAN or INFINITY
+inline auto IsFinite(float val)
+{
+   return fabsf(val) <= FLT_MAX;
+}
 inline bool NanOrInf(float val) {
-    return val == INFINITY || val == -INFINITY || isnan(val);
+    //return val == INFINITY || val == -INFINITY || isnan(val);
+   return !IsFinite(val);
 }
 
 /// Utility function to that rounds x to powers of 2,5 and 10 for generating axis labels
@@ -399,17 +406,17 @@ ImVec4 NextColor() {
     return col;
 }
 
+inline void FitPoint(ImPlotRange* extents, const float p)
+{
+   if (IsFinite(p))
+   {
+      extents->Min = p < extents->Min ? p : extents->Min;
+      extents->Max = p > extents->Max ? p : extents->Max;
+   }
+}
 inline void FitPoint(const ImVec2& p) {
-    ImPlotRange* extents_x = &gp.ExtentsX;
-    ImPlotRange* extents_y = &gp.ExtentsY[gp.CurrentPlot->CurrentYAxis];
-    if (!NanOrInf(p.x)) {
-        extents_x->Min = p.x < extents_x->Min ? p.x : extents_x->Min;
-        extents_x->Max = p.x > extents_x->Max ? p.x : extents_x->Max;
-    }
-    if (!NanOrInf(p.y)) {
-        extents_y->Min = p.y < extents_y->Min ? p.y : extents_y->Min;
-        extents_y->Max = p.y > extents_y->Max ? p.y : extents_y->Max;
-    }
+    FitPoint(&gp.ExtentsX, p.x);
+    FitPoint(&gp.ExtentsY[gp.CurrentPlot->CurrentYAxis], p.y);    
 }
 
 //-----------------------------------------------------------------------------
@@ -2098,41 +2105,166 @@ inline void RenderLineAA(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p
     DrawList.AddLine(p1, p2, col_line, line_weight);
 }
 
-template <typename Transformer, typename Getter>
-inline void RenderLineStrip(Transformer transformer, ImDrawList& DrawList, Getter getter, int count, int offset, float line_weight, ImU32 col_line, bool cull) {
-// render line segments
-   offset %= count;
-   if (offset < 0) offset += count; // shift negative offset to positive range
-   int i_start = offset + 1;
-   if (i_start >= count ) i_start -= count;
-   int i_end = offset + count;
-   if (i_end >= count) i_end -= count;
-   
-   const int    segments  = count - 1;
-   ImVec2 p1 = transformer(getter(offset));    
-   if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
-      for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
-         ImVec2 p2 = transformer(getter(i1));
+enum
+{
+   RenderLineStrip_Offset = 1,
+   RenderLineStrip_Extents = 2,
+   RenderLineStrip_LogX = 4,
+   RenderLineStrip_LogY = 8,
+   RenderLineStrip_Cull = 16
+};
 
-         if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1,p2), ImMax(p1,p2))))
-               RenderLineAA(DrawList, p1, p2, line_weight, col_line);
-         p1 = p2;            
-      }
+template<int flags, typename Getter> void RenderLineStrip(Getter& getter, ImDrawList& DrawList, int count, int offset, float line_weight, ImU32 col_line, int y_axis)
+{
+   // render line segments
+   ImPlotRange* __restrict extents_x, * __restrict extents_y;
+   extents_x = nullptr; extents_y = nullptr; // mute 'not referenced' warning
+   if constexpr ((flags & RenderLineStrip_Extents) != 0)
+   {
+      extents_x = &gp.ExtentsX;
+      extents_y = &gp.ExtentsY[gp.CurrentPlot->CurrentYAxis];
    }
-   else {
-      const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
-      DrawList.PrimReserve(segments * 6, segments * 4);
-      int segments_culled = 0;
-      for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
-         ImVec2 p2 = transformer(getter(i1));           
+            
+   float inv_xaxis_rangemin, inv_yaxis_rangemin, x_scale, y_scale, x_offs, y_offs;      
+   if constexpr ((flags & RenderLineStrip_LogX) != 0)
+   {
+      inv_xaxis_rangemin = 1.0f / gp.CurrentPlot->XAxis.Range.Min; 
+      x_scale = gp.Mx * (gp.CurrentPlot->XAxis.Range.Max - gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+      x_offs = gp.PixelRange[y_axis].Min.x - gp.CurrentPlot->XAxis.Range.Min + gp.Mx * gp.CurrentPlot->XAxis.Range.Min;
+   }
+   else
+   {
+      inv_xaxis_rangemin = 1.0f;
+      x_scale = gp.Mx;
+      x_offs = gp.PixelRange[y_axis].Min.x - gp.Mx * gp.CurrentPlot->XAxis.Range.Min;                           
+   }
+   if constexpr ((flags & RenderLineStrip_LogY) != 0)
+   {
+      inv_yaxis_rangemin = 1.0f / gp.CurrentPlot->YAxis[y_axis].Range.Min;
+      y_scale = gp.My[y_axis] * (gp.CurrentPlot->YAxis[y_axis].Range.Max - gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+      y_offs = gp.PixelRange[y_axis].Min.y - gp.CurrentPlot->YAxis[y_axis].Range.Min + gp.My[y_axis] * gp.CurrentPlot->YAxis[y_axis].Range.Min;
+   }
+   else
+   {
+      inv_yaxis_rangemin = 1.0f;
+      y_scale = gp.My[y_axis];
+      y_offs = gp.PixelRange[y_axis].Min.y - gp.My[y_axis]* gp.CurrentPlot->YAxis[y_axis].Range.Min;          
+   }
 
-         if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
-            RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
+   if constexpr ((flags & RenderLineStrip_Offset) != 0)
+   {
+      offset %= count;
+      if (offset < 0) offset += count; // shift negative offset to positive range}   
+   }
+
+   ImVec2 p1 = getter(offset);
+   if constexpr ((flags & RenderLineStrip_Extents) != 0) FitPoint(extents_x, p1.x), FitPoint(extents_y, p1.y);
+   if constexpr ((flags & RenderLineStrip_LogX) != 0) p1.x = log10(p1.x * inv_xaxis_rangemin);
+   if constexpr ((flags & RenderLineStrip_LogY) != 0) p1.y = log10(p1.y * inv_yaxis_rangemin);
+      
+   p1.x = p1.x * x_scale + x_offs;
+   p1.y = p1.y * y_scale + y_offs;
+
+   if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
+      for (int i1 = 1; i1 < count; ++i1)
+      {
+         int idx = i1;
+         if constexpr ((flags & RenderLineStrip_Offset) != 0)
+         {
+            idx += offset;
+            if (idx >= count)
+               idx -= count;
+         }
+            
+         ImVec2 p2 = getter(idx);
+
+         if constexpr ((flags & RenderLineStrip_Extents) != 0) FitPoint(extents_x, p2.x), FitPoint(extents_y, p2.y);
+         if constexpr ((flags & RenderLineStrip_LogX) != 0) p2.x = log10(p2.x * inv_xaxis_rangemin);
+         if constexpr ((flags & RenderLineStrip_LogY) != 0) p2.y = log10(p2.y * inv_yaxis_rangemin);
+
+         p2.x = p2.x * x_scale + x_offs;
+         p2.y = p2.y * y_scale + y_offs;
+
+         if constexpr ((flags & RenderLineStrip_Cull) != 0)
+         {
+            if (gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+               RenderLineAA(DrawList, p1, p2, line_weight, col_line);
+         }
          else
-            segments_culled++;
+            RenderLineAA(DrawList, p1, p2, line_weight, col_line);
+
          p1 = p2;
       }
-      if (segments_culled > 0)
+   }
+   else 
+   {
+      int segments = count - 1, i1 = 1, segments_culled = 0;
+      const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
+      while (segments)
+      {
+         int cnt = std::min(segments, (int/*todo - remove this cast*/)(((size_t(1) << sizeof(ImDrawIdx) * 8)-1 - DrawList._VtxCurrentIdx) / 4)); // find how many can be reserved up to end of current draw command's limit
+         if (cnt >= std::min(64,segments))
+         {
+            if constexpr ((flags & RenderLineStrip_Cull) != 0)
+            {
+               if (segments_culled >= cnt)                  
+                  segments_culled -= cnt; // reuse previous reservation
+               else
+               {
+                  DrawList.PrimReserve((cnt - segments_culled) * 6, (cnt - segments_culled) * 4); // add more elements to previous reservation
+                  segments_culled = 0;
+               }
+            }
+            else
+               DrawList.PrimReserve(cnt * 6, cnt * 4); // reserve up to then end of the capabilities of current draw command            
+         }
+         else
+         {
+            if constexpr ((flags & RenderLineStrip_Cull) != 0) if (segments_culled > 0)
+            {
+               DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4);
+               segments_culled = 0;
+            }
+               
+            cnt = std::min(segments, (int/*todo - remove this cast*/)(((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - 0/*DrawList._VtxCurrentIdx*/) / 4));
+            DrawList.PrimReserve(cnt * 6, cnt * 4); // reserve new draw command               
+         }
+
+         segments -= cnt;
+
+         for (size_t ie = i1 + cnt; i1 != ie; ++i1)
+         {
+            int idx = i1;
+            if constexpr ((flags & RenderLineStrip_Offset) != 0)
+            {
+               idx += offset;
+               if (idx >= count)
+                  idx -= count;
+            }
+
+            ImVec2 p2 = getter(idx);
+
+            if constexpr ((flags & RenderLineStrip_Extents) != 0) FitPoint(extents_x, p2.x), FitPoint(extents_y, p2.y);
+            if constexpr ((flags & RenderLineStrip_LogX) != 0) p2.x = log10(p2.x * inv_xaxis_rangemin);
+            if constexpr ((flags & RenderLineStrip_LogY) != 0) p2.y = log10(p2.y * inv_yaxis_rangemin);
+
+            p2.x = p2.x * x_scale + x_offs;
+            p2.y = p2.y * y_scale + y_offs;
+
+
+            if constexpr (!(flags & RenderLineStrip_Cull) != 0)
+            {
+               if (gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+                  RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
+               else
+                  segments_culled++;
+            }
+            else
+               RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
+            p1 = p2;
+         }              
+      }
+      if constexpr ((flags & RenderLineStrip_Cull) != 0) if (segments_culled > 0)
          DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4);
    }
 }
@@ -2216,23 +2348,24 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
 
     bool cull = HasFlag(plot->Flags, ImPlotFlags_CullData);
 
-    // find data extents
-    if (gp.FitThisFrame) {
-        for (int i = 0; i < count; ++i) {
-            ImVec2 p = getter(i);
-            FitPoint(p);
-        }
-    }
     PushPlotClipRect();
     if (count > 1 && rend_line) {
-        if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(Plt2PixLogLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
-        else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(Plt2PixLogLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
-        else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(Plt2PixLinLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
-        else
-            RenderLineStrip(Plt2PixLinLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
+
+       static void(*render_fn[32])(Getter & getter, ImDrawList & DrawList, int count, int offset, float line_weight, ImU32 col_line, int y_axis) =
+       {
+          &RenderLineStrip<0>,&RenderLineStrip<1>,&RenderLineStrip<2>,&RenderLineStrip<3>, &RenderLineStrip<4>,&RenderLineStrip<5>,&RenderLineStrip<6>,&RenderLineStrip<7>,
+          &RenderLineStrip<8>,&RenderLineStrip<9>,&RenderLineStrip<10>,&RenderLineStrip<11>, &RenderLineStrip<12>,&RenderLineStrip<13>,&RenderLineStrip<14>,&RenderLineStrip<15>,
+          &RenderLineStrip<16>,&RenderLineStrip<17>,&RenderLineStrip<18>,&RenderLineStrip<19>,&RenderLineStrip<20>,&RenderLineStrip<21>,&RenderLineStrip<22>,&RenderLineStrip<23>,
+          &RenderLineStrip<24>,&RenderLineStrip<25>,&RenderLineStrip<26>,&RenderLineStrip<27>,&RenderLineStrip<28>,&RenderLineStrip<29>,&RenderLineStrip<30>,&RenderLineStrip<31>
+       };
+
+       int which_fn_to_use = (RenderLineStrip_Offset & -(offset != 0))
+          | (RenderLineStrip_Extents & -(gp.FitThisFrame != false))
+          | (RenderLineStrip_LogX & -(HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) != false))
+          | (RenderLineStrip_LogY & -(HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale) != false))
+          | (RenderLineStrip_Cull & -(cull != false));
+
+       render_fn[which_fn_to_use](getter, DrawList, count, offset, line_weight, col_line, y_axis);
     }
     // render markers
     if (gp.Style.Marker != ImPlotMarker_None) {
