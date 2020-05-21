@@ -408,11 +408,11 @@ ImVec4 NextColor() {
 
 inline void FitPoint(ImPlotRange* extents, const float p)
 {
-   if (IsFinite(p))
-   {
-      extents->Min = p < extents->Min ? p : extents->Min;
-      extents->Max = p > extents->Max ? p : extents->Max;
-   }
+    if (IsFinite(p))
+    {
+        extents->Min = p < extents->Min ? p : extents->Min;
+        extents->Max = p > extents->Max ? p : extents->Max;
+    }
 }
 inline void FitPoint(const ImVec2& p) {
     FitPoint(&gp.ExtentsX, p.x);
