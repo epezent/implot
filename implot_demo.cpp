@@ -552,7 +552,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Separator();
         for (int i = 0; i < 10; ++i) {
             char label[8];
-            sprintf(label, "data_%d", i);
+            sprintf(label, show[i] ? "data_%d*" : "data_%d", i);
             ImGui::Selectable(label, false, 0, ImVec2(100, 0));
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 ImGui::SetDragDropPayload("DND_PLOT", &i, sizeof(int));
@@ -575,7 +575,7 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimitsX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         if (ImPlot::BeginPlot("##DND")) {
             for (int i = 0; i < 10; ++i) {
-                if (show[i]) {
+                if (show[i] && data[i].Data.size() > 0) {
                     char label[8];
                     sprintf(label, "data_%d", i);
                     ImPlot::PlotLine(label, &data[i].Data[0].x, &data[i].Data[0].y, data[i].Data.size(), data[i].Offset, 2 * sizeof(float));
@@ -678,7 +678,7 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimitsX(t - 10.0f, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Digital")) {
             for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
-                if (showDigital[i]) {
+                if (showDigital[i] && dataDigital[i].Data.size() > 0) {
                     char label[32];
                     sprintf(label, "digital_%d", i);
                     ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitHeight, bitHeight);
