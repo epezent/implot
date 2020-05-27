@@ -244,9 +244,9 @@ struct ImTick {
     double PlotPos;
     float  PixelPos;
     ImVec2 Size;
-    int    TextOffset;    
+    int    TextOffset;
     bool   Major;
-    bool   RenderLabel;    
+    bool   RenderLabel;
 };
 
 struct ImPlotItem {
@@ -369,7 +369,7 @@ struct ImPlotContext {
     bool FitY[MAX_Y_AXES] = {};
     // Hover states
     bool Hov_Frame;
-    bool Hov_Grid;    
+    bool Hov_Grid;
     // Render flags
     bool RenderX, RenderY[MAX_Y_AXES];
     // Mouse pos
@@ -2107,16 +2107,16 @@ inline void RenderLineStrip(Transformer transformer, ImDrawList& DrawList, Gette
    if (i_start >= count ) i_start -= count;
    int i_end = offset + count;
    if (i_end >= count) i_end -= count;
-   
+
    const int    segments  = count - 1;
-   ImVec2 p1 = transformer(getter(offset));    
+   ImVec2 p1 = transformer(getter(offset));
    if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
       for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
          ImVec2 p2 = transformer(getter(i1));
 
          if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1,p2), ImMax(p1,p2))))
                RenderLineAA(DrawList, p1, p2, line_weight, col_line);
-         p1 = p2;            
+         p1 = p2;
       }
    }
    else {
@@ -2124,7 +2124,7 @@ inline void RenderLineStrip(Transformer transformer, ImDrawList& DrawList, Gette
       DrawList.PrimReserve(segments * 6, segments * 4);
       int segments_culled = 0;
       for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
-         ImVec2 p2 = transformer(getter(i1));           
+         ImVec2 p2 = transformer(getter(i1));
 
          if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
             RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
@@ -2632,7 +2632,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
 
     if (gp.Style.Colors[ImPlotCol_Line].w != -1)
         item->Color = gp.Style.Colors[ImPlotCol_Line];
-    
+
   // find data extents
     if (gp.FitThisFrame) {
         for (int i = 0; i < count; ++i) {
