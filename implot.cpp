@@ -427,9 +427,9 @@ inline void UpdateTransformCache() {
 
         gp.My[i] = (gp.PixelRange[i].Max.y - gp.PixelRange[i].Min.y) / gp.CurrentPlot->YAxis[i].Range.Size();
     }
-    gp.LogDenX = log10(gp.CurrentPlot->XAxis.Range.Max / gp.CurrentPlot->XAxis.Range.Min);
+    gp.LogDenX = log10f(gp.CurrentPlot->XAxis.Range.Max / gp.CurrentPlot->XAxis.Range.Min);
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        gp.LogDenY[i] = log10(gp.CurrentPlot->YAxis[i].Range.Max / gp.CurrentPlot->YAxis[i].Range.Min);
+        gp.LogDenY[i] = log10f(gp.CurrentPlot->YAxis[i].Range.Max / gp.CurrentPlot->YAxis[i].Range.Min);
     }
     gp.Mx = (gp.PixelRange[0].Max.x - gp.PixelRange[0].Min.x) / gp.CurrentPlot->XAxis.Range.Size();
 }
@@ -442,11 +442,11 @@ inline ImVec2 PixelsToPlot(float x, float y, int y_axis_in = -1) {
     plt.y = (y - gp.PixelRange[y_axis].Min.y) / gp.My[y_axis] + gp.CurrentPlot->YAxis[y_axis].Range.Min;
     if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale)) {
         float t = (plt.x - gp.CurrentPlot->XAxis.Range.Min) / gp.CurrentPlot->XAxis.Range.Size();
-        plt.x = pow(10.0f, t * gp.LogDenX) * gp.CurrentPlot->XAxis.Range.Min;
+        plt.x = powf(10.0f, t * gp.LogDenX) * gp.CurrentPlot->XAxis.Range.Min;
     }
     if (HasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale)) {
         float t = (plt.y - gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.CurrentPlot->YAxis[y_axis].Range.Size();
-        plt.y = pow(10.0f, t * gp.LogDenY[y_axis]) * gp.CurrentPlot->YAxis[y_axis].Range.Min;
+        plt.y = powf(10.0f, t * gp.LogDenY[y_axis]) * gp.CurrentPlot->YAxis[y_axis].Range.Min;
     }
     return plt;
 }
@@ -461,11 +461,11 @@ inline ImVec2 PlotToPixels(float x, float y, int y_axis_in = -1) {
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 pix;
     if (HasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale)) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        float t = log10f(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
     }
     if (HasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale)) {
-        float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        float t = log10f(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
     }
     pix.x = gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min);
@@ -497,7 +497,7 @@ struct Plt2PixLogLin {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        float t = log10f(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
         return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
                  gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
@@ -511,7 +511,7 @@ struct Plt2PixLinLog {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        float t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        float t = log10f(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
         return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
                  gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
@@ -525,9 +525,9 @@ struct Plt2PixLogLog {
 
     ImVec2 operator()(const ImVec2& plt) { return (*this)(plt.x, plt.y); }
     ImVec2 operator()(float x, float y) {
-        float t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+        float t = log10f(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, t);
-        t       = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
+        t       = log10f(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
         y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, t);
         return ImVec2( gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min),
                  gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min) );
@@ -576,8 +576,8 @@ inline void GetTicks(const ImPlotRange& scale, int nMajor, int nMinor, bool logs
     if (logscale) {
         if (scale.Min <= 0 || scale.Max <= 0)
             return;
-        int exp_min = (int)(ImFloor(log10(scale.Min)));
-        int exp_max = (int)(ImCeil(log10(scale.Max)));
+        int exp_min = (int)(ImFloor(log10f(scale.Min)));
+        int exp_max = (int)(ImCeil(log10f(scale.Max)));
         for (int e = exp_min - 1; e < exp_max + 1; ++e) {
             double major1 = ImPow(10, (double)(e));
             double major2 = ImPow(10, (double)(e + 1));
@@ -2558,7 +2558,7 @@ inline void DrawPieSlice(ImDrawList& DrawList, const ImVec2& center, float radiu
     float da = (a1 - a0) / (n - 1);
     for (int i = 0; i < n; ++i) {
         float a = a0 + i * da;
-        buffer[i + 1] = PlotToPixels(center.x + radius * cos(a), center.y + radius * sin(a));
+        buffer[i + 1] = PlotToPixels(center.x + radius * cosf(a), center.y + radius * sinf(a));
     }
     DrawList.AddConvexPolyFilled(buffer, n + 1, col);
 }
@@ -2595,7 +2595,7 @@ void PlotPieChart(const char** label_ids, float* values, int count, const ImVec2
                 sprintf(buffer, "%.0f%%", percent * 100);
                 ImVec2 size = ImGui::CalcTextSize(buffer);
                 float angle = a0 + (a1 - a0) * 0.5f;
-                ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
+                ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cosf(angle), center.y + 0.5f * radius * sinf(angle));
                 DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), IM_COL32(0,0,0,255), buffer);
                 DrawList.AddText(pos - size * 0.5f, IM_COL32(255,255,255,255), buffer);
             }
