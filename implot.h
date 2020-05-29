@@ -20,13 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.2 WIP
+// ImPlot v0.3 WIP
 
 #pragma once
 #include "imgui.h"
-
-// The desired plot precision (float or double)
-typedef double ImPlotFloat;
 
 //-----------------------------------------------------------------------------
 // Basic types and flags
@@ -117,25 +114,31 @@ enum ImPlotMarker_ {
     ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
+/// Double precision version of ImVec2 used by ImPlot and extensible by end users
 struct ImPlotPoint {
-    ImPlotFloat x, y;
-    ImPlotPoint()  { x = y = 0; }
-    ImPlotPoint(ImPlotFloat _x, ImPlotFloat _y) { x = _x; y = _y; }
+    double x, y;
+    ImPlotPoint()  { x = y = 0.0; }
+    ImPlotPoint(double _x, double _y) { x = _x; y = _y; }
+    double  operator[] (size_t idx) const { return (&x)[idx]; }
+    double& operator[] (size_t idx)       { return (&x)[idx]; }
+#ifdef IMPLOT_POINT_CLASS_EXTRA
+    IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h to convert back and forth between your math types and ImVec2.
+#endif
 };
 
 // A range defined by a min/max value. Used for plot axes ranges.
 struct ImPlotRange {
-    ImPlotFloat Min, Max;
+    double Min, Max;
     ImPlotRange();
-    bool Contains(ImPlotFloat value) const;
-    ImPlotFloat Size() const;
+    bool Contains(double value) const;
+    double Size() const;
 };
 
 // Combination of two ranges for X and Y axes.
 struct ImPlotLimits {
     ImPlotRange X, Y;
     ImPlotLimits();
-    bool Contains(const ImVec2& p) const;
+    bool Contains(double x, double y) const;
 };
 
 // Plot style structure
@@ -177,7 +180,7 @@ bool BeginPlot(const char* title_id,
 void EndPlot();
 
 //-----------------------------------------------------------------------------
-// Plot Items (float)
+// Plot Items (single precision data)
 //-----------------------------------------------------------------------------
 
 // Plots a standard 2D line plot.
@@ -201,7 +204,6 @@ void PlotBarsH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void
 // Plots vertical error bar.
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBars(const char* label_id, ImVec4 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a pie chart. If the sum of values > 1, each value will be normalized. Center and radius are in plot coordinates.
 void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents = true, float angle0 = 90);
 // Plots digital data.
@@ -210,7 +212,38 @@ void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), vo
 // Plots a text label at point x,y.
 void PlotText(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 
+//-----------------------------------------------------------------------------
+// Plot Items (double precision data)
+//-----------------------------------------------------------------------------
 
+// Plots a standard 2D line plot.
+void PlotLine(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
+void PlotLine(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
+void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
+void PlotLine(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+// Plots a standard 2D scatter plot.
+void PlotScatter(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
+void PlotScatter(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
+void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
+void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+// Plots a vertical bar graph.
+void PlotBars(const char* label_id, const double* values, int count, double width = 0.67f, double shift = 0, int offset = 0, int stride = sizeof(double));
+void PlotBars(const char* label_id, const double* xs, const double* ys, int count, double width, int offset = 0, int stride = sizeof(double));
+void PlotBars(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double width, int offset = 0);
+// Plots a horizontal bar graph.
+void PlotBarsH(const char* label_id, const double* values, int count, double height = 0.67f, double shift = 0, int offset = 0, int stride = sizeof(double));
+void PlotBarsH(const char* label_id, const double* xs, const double* ys, int count, double height,  int offset = 0, int stride = sizeof(double));
+void PlotBarsH(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double height,  int offset = 0);
+// Plots vertical error bar.
+void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset = 0, int stride = sizeof(double));
+void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
+// Plots a pie chart. If the sum of values > 1, each value will be normalized. Center and radius are in plot coordinates.
+void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, bool show_percents = true, double angle0 = 90);
+// Plots digital data.
+void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
+void PlotDigital(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+// Plots a text label at point x,y.
+void PlotText(const char* text, double x, double y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 
 //-----------------------------------------------------------------------------
 // Plot Queries
@@ -258,11 +291,11 @@ void PopStyleVar(int count = 1);
 //-----------------------------------------------------------------------------
 
 /// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
-void SetNextPlotLimits(ImPlotFloat x_min, ImPlotFloat x_max, ImPlotFloat y_min, ImPlotFloat y_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
 /// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis limits will be locked.
-void SetNextPlotLimitsX(ImPlotFloat x_min, ImPlotFloat x_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_Once);
 /// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis limits will be locked.
-void SetNextPlotLimitsY(ImPlotFloat y_min, ImPlotFloat y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
 
 /// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first Y axis.
 void SetPlotYAxis(int y_axis);
