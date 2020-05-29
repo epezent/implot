@@ -87,6 +87,10 @@ A: Not exactly, but it does give you the ability to query plot sub-ranges, with 
 
 A: Not currently. Use your OS's screen capturing mechanisms if you need to capture a plot. ImPlot is not suitable for rendering publication quality plots; it is only intended to be used as a visualization tool. Post-process your data with MATLAB and matplotlib for these purposes.
 
+**Q: Does ImPlot handle double precision data?**
+
+A: Yes, ImPlot accepts both `float` and `double` for all of its plotting functions.
+
 **Q: Can ImPlot be used with other languages/bindings?**
 
 A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. 
