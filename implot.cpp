@@ -2028,7 +2028,7 @@ inline void MarkerRight(ImDrawList& DrawList, const ImVec2& c, float s, bool out
 }
 
 inline void MarkerAsterisk(ImDrawList& DrawList, const ImVec2& c, float s, bool /*outline*/, ImU32 col_outline, bool /*fill*/, ImU32 /*col_fill*/, float weight) {
-    ImVec2 marker[6] = {{SQRT_3_2, 0.5f}, {0, -1}, {-SQRT_3_2, 0.5f}, {SQRT_3_2, -0.5f}, {0, 1},  {-SQRT_3_2, -0.5f}};
+    ImVec2 marker[6] = {ImVec2(SQRT_3_2, 0.5f), ImVec2(0, -1), ImVec2(-SQRT_3_2, 0.5f), ImVec2(SQRT_3_2, -0.5f), ImVec2(0, 1),  ImVec2(-SQRT_3_2, -0.5f)};
     TransformMarker(marker, 6, c, s);
     DrawList.AddLine(marker[0], marker[5], col_outline, weight);
     DrawList.AddLine(marker[1], marker[4], col_outline, weight);
@@ -2036,14 +2036,14 @@ inline void MarkerAsterisk(ImDrawList& DrawList, const ImVec2& c, float s, bool 
 }
 
 inline void MarkerPlus(ImDrawList& DrawList, const ImVec2& c, float s, bool /*outline*/, ImU32 col_outline, bool /*fill*/, ImU32 /*col_fill*/, float weight) {
-    ImVec2 marker[4] = {{1, 0}, {0, -1}, {-1, 0}, {0, 1}};
+    ImVec2 marker[4] = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(0, 1)};
     TransformMarker(marker, 4, c, s);
     DrawList.AddLine(marker[0], marker[2], col_outline, weight);
     DrawList.AddLine(marker[1], marker[3], col_outline, weight);
 }
 
 inline void MarkerCross(ImDrawList& DrawList, const ImVec2& c, float s, bool /*outline*/, ImU32 col_outline, bool /*fill*/, ImU32 /*col_fill*/, float weight) {
-    ImVec2 marker[4] = {{SQRT_1_2,SQRT_1_2},{SQRT_1_2,-SQRT_1_2},{-SQRT_1_2,-SQRT_1_2},{-SQRT_1_2,SQRT_1_2}};
+    ImVec2 marker[4] = {ImVec2(SQRT_1_2,SQRT_1_2),ImVec2(SQRT_1_2,-SQRT_1_2),ImVec2(-SQRT_1_2,-SQRT_1_2),ImVec2(-SQRT_1_2,SQRT_1_2)};
     TransformMarker(marker, 4, c, s);
     DrawList.AddLine(marker[0], marker[2], col_outline, weight);
     DrawList.AddLine(marker[1], marker[3], col_outline, weight);
