@@ -29,6 +29,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 - mouse cursor location display and optional crosshairs cursor
 - customizable data getters and data striding (just like ImGui:PlotLine)
 - relatively good performance for high density plots
+- support for single and double precision data
 
 ## Usage
 
