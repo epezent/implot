@@ -504,11 +504,11 @@ ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis) {
 
 // Transformer structs
 
-struct Plt2PixLinLin {
-    Plt2PixLinLin(int y_axis_in) : y_axis(y_axis_in) {}
+struct TransformerLinLin {
+    TransformerLinLin(int y_axis_in) : y_axis(y_axis_in) {}
 
-    ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
-    ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
+    inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
+    inline ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
         return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
                        (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min)) );
     }
@@ -516,11 +516,11 @@ struct Plt2PixLinLin {
     int y_axis;
 };
 
-struct Plt2PixLogLin {
-    Plt2PixLogLin(int y_axis_in) : y_axis(y_axis_in) {}
+struct TransformerLogLin {
+    TransformerLogLin(int y_axis_in) : y_axis(y_axis_in) {}
 
-    ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
-    ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
+    inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
+    inline ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
         ImPlotFloat t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x        = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
         return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
@@ -530,11 +530,11 @@ struct Plt2PixLogLin {
     int y_axis;
 };
 
-struct Plt2PixLinLog {
-    Plt2PixLinLog(int y_axis_in) : y_axis(y_axis_in) {}
+struct TransformerLinLog {
+    TransformerLinLog(int y_axis_in) : y_axis(y_axis_in) {}
 
-    ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
-    ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
+    inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
+    inline ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
         ImPlotFloat t = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
         y             = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, (float)t);
         return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
@@ -543,11 +543,13 @@ struct Plt2PixLinLog {
     int y_axis;
 };
 
-struct Plt2PixLogLog {
-    Plt2PixLogLog(int y_axis_in) : y_axis(y_axis_in) {}
+struct TransformerLogLog {
+    TransformerLogLog(int y_axis_in) : y_axis(y_axis_in) {
 
-    ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
-    ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
+    }
+
+    inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
+    inline ImVec2 operator()(ImPlotFloat x, ImPlotFloat y) {
         ImPlotFloat t = log10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x             = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
         t             = log10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
@@ -2269,24 +2271,24 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
     PushPlotClipRect();
     if (count > 1 && rend_line) {
         if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(Plt2PixLogLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
+            RenderLineStrip(TransformerLogLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
         else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(Plt2PixLogLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
+            RenderLineStrip(TransformerLogLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
         else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(Plt2PixLinLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
+            RenderLineStrip(TransformerLinLog(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
         else
-            RenderLineStrip(Plt2PixLinLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
+            RenderLineStrip(TransformerLinLin(y_axis), DrawList, getter, count, offset, line_weight, col_line, cull);
     }
     // render markers
     if (gp.Style.Marker != ImPlotMarker_None) {
         if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderMarkers(Plt2PixLogLog(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
+            RenderMarkers(TransformerLogLog(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
         else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-            RenderMarkers(Plt2PixLogLin(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
+            RenderMarkers(TransformerLogLin(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
         else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderMarkers(Plt2PixLinLog(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
+            RenderMarkers(TransformerLinLog(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
         else
-            RenderMarkers(Plt2PixLinLin(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
+            RenderMarkers(TransformerLinLin(y_axis), DrawList, getter, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
     }
     PopPlotClipRect();
 }

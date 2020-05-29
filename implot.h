@@ -177,7 +177,7 @@ bool BeginPlot(const char* title_id,
 void EndPlot();
 
 //-----------------------------------------------------------------------------
-// Plot Items
+// Plot Items (float)
 //-----------------------------------------------------------------------------
 
 // Plots a standard 2D line plot.
@@ -209,6 +209,8 @@ void PlotDigital(const char* label_id, const float* xs, const float* ys, int cou
 void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a text label at point x,y.
 void PlotText(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
+
+
 
 //-----------------------------------------------------------------------------
 // Plot Queries
