@@ -99,8 +99,3 @@ A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) 
 ## Special Notes
 - By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
 - If you plan to render several thousands lines or points, then you should consider enabling 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file, OR handling the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer (the official OpenGL3 renderer supports this). If you fail to do this, then you may at some point hit the maximum number of indices that can be rendered.
-
-## See Also
-[ImPlot discussion](https://github.com/ocornut/imgui/issues/3173) - ImPlot discussion issue at the official ImGui repository
-
-[imgui-plot](https://github.com/soulthreads/imgui-plot) - an alternate plotting widget by soulthreads
