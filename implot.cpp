@@ -2190,6 +2190,12 @@ struct GetterXsYs {
     }
 };
 
+struct GetterImVec2 {
+    GetterImVec2(const ImVec2* data) { Data = data; }
+    inline ImPlotPoint operator()(int idx) { return ImPlotPoint(Data[idx].x, Data[idx].y); }
+    const ImVec2* Data;
+};
+
 struct GetterImPlotPoint {
     GetterImPlotPoint(const ImPlotPoint* data) { Data = data; }
     inline ImPlotPoint operator()(int idx) { return Data[idx]; }
@@ -2201,12 +2207,6 @@ struct GetterFuncPtrImPlotPoint {
     inline ImPlotPoint operator()(int idx) { return getter(data, idx); }
     ImPlotPoint (*getter)(void* data, int idx);
     void* data;
-};
-
-struct GetterImVec2 {
-    GetterImVec2(const ImVec2* data) { Data = data; }
-    inline ImPlotPoint operator()(int idx) { return ImPlotPoint(Data[idx].x, Data[idx].y); }
-    const ImVec2* Data;
 };
 
 //-----------------------------------------------------------------------------

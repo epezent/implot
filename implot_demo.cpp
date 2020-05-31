@@ -167,7 +167,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("The demo data precision is: double");
 #else
         ImGui::BulletText("The demo data precision is: float");
-#endif 
+#endif
 
     }
     //-------------------------------------------------------------------------
