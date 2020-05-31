@@ -183,10 +183,37 @@ void ShowDemoWindow(bool* p_open) {
             ys2[i] = xs2[i] * xs2[i];
         }
         if (ImPlot::BeginPlot("Line Plot", "x", "f(x)")) {
-            ImPlot::PlotLine("sin(50*x)", xs1, ys1, 1001);
+            ImPlot::PlotLine("0.5 + 0.5*sin(50*x)", xs1, ys1, 1001);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
             ImPlot::PlotLine("x^2", xs2, ys2, 11);
             ImPlot::PopStyleVar();
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Filled Plots")) {
+        static t_float xs1[101], ys1[101], ys2[101], ys3[101];
+        srand(0);
+        for (int i = 0; i < 101; ++i) {
+            xs1[i] = (float)i;
+            ys1[i] = RandomRange(400,450);
+            ys2[i] = RandomRange(275,350);
+            ys3[i] = RandomRange(150,225);
+        }
+        ImPlot::SetNextPlotLimits(0,100,0,500);
+        if (ImPlot::BeginPlot("Stock Prices", "Days", "Price")) {
+            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1,1,0,1));
+            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,1,0,0.25f));
+            ImPlot::PlotLine("Stock 1", xs1, ys1, 101);
+            ImPlot::PopStyleColor(2);
+            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1,0,1,1));
+            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,1,0.25f));
+            ImPlot::PlotLine("Stock 2", xs1, ys2, 101);
+            ImPlot::PopStyleColor(2);
+            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1,0,0,1));
+            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,0,0.25f));
+            ImPlot::PlotLine("Stock 3", xs1, ys3, 101);
+            ImPlot::PopStyleColor(2);
             ImPlot::EndPlot();
         }
     }

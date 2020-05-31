@@ -2121,47 +2121,104 @@ inline void RenderLine(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2,
     DrawList._VtxCurrentIdx += 4;
 }
 
+inline void RenderFill(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2, float zero, ImU32 col_fill, ImVec2 uv) {
+    const int crosses_zero = (p1.y > zero && p2.y < zero) || (p1.y < zero && p2.y > zero); // could do y*y < 0 earlier on
+    const float xmid = p1.x + (p2.x - p1.x) / (p2.y-p1.y) * (zero - p1.y);
+    DrawList._VtxWritePtr[0].pos = p1;
+    DrawList._VtxWritePtr[0].uv  = uv;
+    DrawList._VtxWritePtr[0].col = col_fill;
+    DrawList._VtxWritePtr[1].pos = p2;
+    DrawList._VtxWritePtr[1].uv  = uv;
+    DrawList._VtxWritePtr[1].col = col_fill;
+    DrawList._VtxWritePtr[2].pos = ImVec2(xmid, zero);
+    DrawList._VtxWritePtr[2].uv  = uv;
+    DrawList._VtxWritePtr[2].col = col_fill;
+    DrawList._VtxWritePtr[3].pos = ImVec2(p1.x, zero);
+    DrawList._VtxWritePtr[3].uv  = uv;
+    DrawList._VtxWritePtr[3].col = col_fill;
+    DrawList._VtxWritePtr[4].pos = ImVec2(p2.x, zero);;
+    DrawList._VtxWritePtr[4].uv  = uv;
+    DrawList._VtxWritePtr[4].col = col_fill;
+    DrawList._VtxWritePtr += 5;
+    DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
+    DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1 + crosses_zero);
+    DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+    DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+    DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3 - crosses_zero);
+    DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 4);
+    DrawList._IdxWritePtr += 6;
+    DrawList._VtxCurrentIdx += 5;
+}
+
 inline void RenderLineAA(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2, float line_weight, ImU32 col_line) {
     DrawList.AddLine(p1, p2, col_line, line_weight);
 }
 
 template <typename Getter, typename Transformer>
 inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& DrawList, int count, int offset, float line_weight, ImU32 col_line, bool cull) {
-// render line segments
-   offset %= count;
-   if (offset < 0) offset += count; // shift negative offset to positive range
-   int i_start = offset + 1;
-   if (i_start >= count ) i_start -= count;
-   int i_end = offset + count;
-   if (i_end >= count) i_end -= count;
+    offset %= count;
+    if (offset < 0)
+        offset += count; // shift negative offset to positive range
+    int i_start = offset + 1;
+    if (i_start >= count)
+        i_start -= count;
+    int i_end = offset + count;
+    if (i_end >= count)
+        i_end -= count;
+    const int segments = count - 1;
+    ImVec2 p1 = transformer(getter(offset));
+    if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
+        for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
+            ImVec2 p2 = transformer(getter(i1));
 
-   const int    segments  = count - 1;
-   ImVec2 p1 = transformer(getter(offset));
-   if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
-      for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
-         ImVec2 p2 = transformer(getter(i1));
+            if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+                RenderLineAA(DrawList, p1, p2, line_weight, col_line);
+            p1 = p2;
+        }
+    }
+    else {
+        const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
+        DrawList.PrimReserve(segments * 6, segments * 4);
+        int segments_culled = 0;
+        for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
+            ImVec2 p2 = transformer(getter(i1));
+            if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+                RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
+            else
+                segments_culled++;
+            p1 = p2;
+        }
+        if (segments_culled > 0)
+            DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4);
+    }
+}
 
-         if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1,p2), ImMax(p1,p2))))
-               RenderLineAA(DrawList, p1, p2, line_weight, col_line);
-         p1 = p2;
-      }
-   }
-   else {
-      const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
-      DrawList.PrimReserve(segments * 6, segments * 4);
-      int segments_culled = 0;
-      for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
-         ImVec2 p2 = transformer(getter(i1));
-
-         if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
-            RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
-         else
-            segments_culled++;
-         p1 = p2;
-      }
-      if (segments_culled > 0)
-         DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4);
-   }
+template <typename Getter, typename Transformer>
+inline void RenderLineFill(Getter getter, Transformer transformer, ImDrawList& DrawList, int count, int offset, ImU32 col_fill, bool cull) {
+    (void)cull;
+    offset %= count;
+    if (offset < 0)
+        offset += count; // shift negative offset to positive range
+    int i_start = offset + 1;
+    if (i_start >= count)
+        i_start -= count;
+    int i_end = offset + count;
+    if (i_end >= count)
+        i_end -= count;
+    const int segments = count - 1;
+    ImVec2 p1 = transformer(getter(offset));
+    float zero = transformer(0,0).y;
+    const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
+    DrawList.PrimReserve(segments * 6, segments * 5);
+    int segments_culled = 0;
+    for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
+        ImVec2 p2 = transformer(getter(i1));
+        // TODO: Culling (not as simple as RenderLineStrip)
+        RenderFill(DrawList, p1, p2, zero, col_fill, uv);
+        p1 = p2;
+    }
+    if (segments_culled > 0)
+        DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 5);
 }
 
 //-----------------------------------------------------------------------------
@@ -2230,15 +2287,10 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
 
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
-    const bool rend_line    = gp.Style.Colors[ImPlotCol_Line].w != 0          && gp.Style.LineWeight > 0;
-    const bool rend_mk_line = gp.Style.Colors[ImPlotCol_MarkerOutline].w != 0 && gp.Style.MarkerWeight > 0;
-    const bool rend_mk_fill = gp.Style.Colors[ImPlotCol_MarkerFill].w != 0;
+    const bool rend_line    = gp.Style.Colors[ImPlotCol_Line].w != 0 && gp.Style.LineWeight > 0;
+    const bool rend_fill    = gp.Style.Colors[ImPlotCol_Fill].w > 0;
 
     ImU32 col_line    = gp.Style.Colors[ImPlotCol_Line].w == -1 ? ImGui::GetColorU32(item->Color) : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_Line]);
-    ImU32 col_mk_line = gp.Style.Colors[ImPlotCol_MarkerOutline].w == -1 ? col_line        : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_MarkerOutline]);
-    ImU32 col_mk_fill = gp.Style.Colors[ImPlotCol_MarkerFill].w == -1 ?    col_line        : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_MarkerFill]);
-
-    const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
 
     if (gp.Style.Colors[ImPlotCol_Line].w != -1)
         item->Color = gp.Style.Colors[ImPlotCol_Line];
@@ -2253,7 +2305,21 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
         }
     }
     PushPlotClipRect();
+    // render fill
+    if (count > 1 && rend_fill) {
+        const ImU32 col_fill = ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_Fill]);
+        if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
+            RenderLineFill(getter, TransformerLogLog(y_axis), DrawList, count, offset, col_fill, cull);
+        else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
+            RenderLineFill(getter, TransformerLogLin(y_axis), DrawList, count, offset, col_fill, cull);
+        else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
+            RenderLineFill(getter, TransformerLinLog(y_axis), DrawList, count, offset, col_fill, cull);
+        else
+            RenderLineFill(getter, TransformerLinLin(y_axis), DrawList, count, offset, col_fill, cull);
+    }
+    // render line
     if (count > 1 && rend_line) {
+        const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
         if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
             RenderLineStrip(getter, TransformerLogLog(y_axis), DrawList, count, offset, line_weight, col_line, cull);
         else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
@@ -2265,6 +2331,10 @@ inline void PlotEx(const char* label_id, Getter getter, int count, int offset)
     }
     // render markers
     if (gp.Style.Marker != ImPlotMarker_None) {
+        const bool rend_mk_line = gp.Style.Colors[ImPlotCol_MarkerOutline].w != 0 && gp.Style.MarkerWeight > 0;
+        const bool rend_mk_fill = gp.Style.Colors[ImPlotCol_MarkerFill].w != 0;
+        const ImU32 col_mk_line = gp.Style.Colors[ImPlotCol_MarkerOutline].w == -1 ? col_line : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_MarkerOutline]);
+        const ImU32 col_mk_fill = gp.Style.Colors[ImPlotCol_MarkerFill].w == -1 ?    col_line : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_MarkerFill]);
         if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
             RenderMarkers(getter, TransformerLogLog(y_axis), DrawList, count, offset, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
         else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
