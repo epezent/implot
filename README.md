@@ -6,6 +6,9 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/query.gif" width="285"> 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/views.gif" width="285"> 
 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/noise.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/stock.gif" width="285"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/multiy.gif" width="285"> 
+
 ## Features
 
 - multiple plot types: 
