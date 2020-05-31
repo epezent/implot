@@ -35,7 +35,7 @@ typedef int ImPlotCol;
 typedef int ImPlotStyleVar;
 typedef int ImPlotMarker;
 
-// Options for plots
+// Options for plots.
 enum ImPlotFlags_ {
     ImPlotFlags_MousePos    = 1 << 0,  // the mouse position, in plot coordinates, will be displayed in the bottom-right
     ImPlotFlags_Legend      = 1 << 1,  // a legend will be displayed in the top-left
@@ -52,7 +52,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
 };
 
-// Options for plot axes (X and Y)
+// Options for plot axes (X and Y).
 enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_GridLines  = 1 << 0, // grid lines will be displayed
     ImPlotAxisFlags_TickMarks  = 1 << 1, // tick marks will be displayed for each grid line
@@ -67,7 +67,7 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_GridLines,
 };
 
-// Plot styling colors
+// Plot styling colors.
 enum ImPlotCol_ {
     ImPlotCol_Line,          // plot line/outline color (defaults to a rotating color set)
     ImPlotCol_Fill,          // plot fill color for bars (defaults to the current line color)
@@ -86,7 +86,7 @@ enum ImPlotCol_ {
     ImPlotCol_COUNT
 };
 
-// Plot styling variables
+// Plot styling variables.
 enum ImPlotStyleVar_ {
     ImPlotStyleVar_LineWeight,       // float, line weight in pixels
     ImPlotStyleVar_Marker,           // int,   marker specification
@@ -99,7 +99,7 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_COUNT
 };
 
-// Marker specification
+// Marker specifications. You can combine this with binary OR, e.g. ImPlotMarker_Circle | ImPlotMarker_Cross.
 enum ImPlotMarker_ {
     ImPlotMarker_None        = 1 << 0,  // no marker
     ImPlotMarker_Circle      = 1 << 1,  // a circle marker will be rendered at each point
@@ -114,7 +114,7 @@ enum ImPlotMarker_ {
     ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
-/// Double precision version of ImVec2 used by ImPlot and extensible by end users
+/// Double precision version of ImVec2 used by ImPlot. Extensible by end users.
 struct ImPlotPoint {
     double x, y;
     ImPlotPoint()  { x = y = 0.0; }
@@ -122,7 +122,7 @@ struct ImPlotPoint {
     double  operator[] (size_t idx) const { return (&x)[idx]; }
     double& operator[] (size_t idx)       { return (&x)[idx]; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
-    IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h to convert back and forth between your math types and ImVec2.
+    IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h to convert back and forth between your math types and ImPlotPoint.
 #endif
 };
 
@@ -138,6 +138,7 @@ struct ImPlotRange {
 struct ImPlotLimits {
     ImPlotRange X, Y;
     ImPlotLimits();
+    bool Contains(const ImPlotPoint& p) const;
     bool Contains(double x, double y) const;
 };
 
@@ -156,7 +157,7 @@ struct ImPlotStyle {
 };
 
 //-----------------------------------------------------------------------------
-// Core API
+// Begin/End Plot
 //-----------------------------------------------------------------------------
 
 namespace ImPlot {
@@ -261,16 +262,16 @@ void SetPalette(const ImVec4* colors, int num_colors);
 // Restores the default ImPlot color map.
 void RestorePalette();
 
-// Temporarily modify a plot color.
+// Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, ImU32 col);
-// Temporarily modify a plot color.
+// Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, const ImVec4& col);
 // Undo temporary color modification.
 void PopStyleColor(int count = 1);
 
-// Temporarily modify a style variable of float type.
+// Temporarily modify a style variable of float type. Don't forget to call PopStyleVar!
 void PushStyleVar(ImPlotStyleVar idx, float val);
-// Temporarily modify a style variable of int type.
+// Temporarily modify a style variable of int type. Don't forget to call PopStyleVar!
 void PushStyleVar(ImPlotStyleVar idx, int val);
 // Undo temporary style modification.
 void PopStyleVar(int count = 1);
@@ -281,12 +282,12 @@ void PopStyleVar(int count = 1);
 
 /// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis limits will be locked.
+/// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
 void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axis limits will be locked.
+/// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
 void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
 
-/// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first Y axis.
+/// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
 void SetPlotYAxis(int y_axis);
 
 // Get the current Plot position (top-left) in pixels.
@@ -299,9 +300,9 @@ ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = -1);
 
-// Push clip rect for rendering to current plot area
+// Push clip rect for rendering to current plot area.
 void PushPlotClipRect();
-// Pop plot clip rect
+// Pop plot clip rect.
 void PopPlotClipRect();
 
 //-----------------------------------------------------------------------------

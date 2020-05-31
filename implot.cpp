@@ -123,6 +123,10 @@ double ImPlotRange::Size() const {
 
 ImPlotLimits::ImPlotLimits() {}
 
+bool ImPlotLimits::Contains(const ImPlotPoint& p) const {
+    return Contains(p.x, p.y);
+}
+
 bool ImPlotLimits::Contains(double x, double y) const {
     return X.Contains(x) && Y.Contains(y);
 }
