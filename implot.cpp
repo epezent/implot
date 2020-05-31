@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2020/05/31 (0.3) - Plot functions taking custom ImVec2* getters were removed. Use the ImPlotPoint* getter versions instead.
 - 2020/05/29 (0.3) - The signature of ImPlotLimits::Contains was changed to take two doubles instead of ImVec2
 - 2020/05/16 (0.2) - All plotting functions were reverted to being prefixed with "Plot" to maintain a consistent VerbNoun style. `Plot` was split into `PlotLine`
                      and `PlotScatter` (however, `PlotLine` can still be used to plot scatter points as `Plot` did before.). `Bar` is not `PlotBars`, to indicate
@@ -2208,13 +2209,6 @@ struct GetterImVec2 {
     const ImVec2* Data;
 };
 
-struct GetterFuncPtrImVec2 {
-    GetterFuncPtrImVec2(ImVec2 (*g)(void* data, int idx), void* d) { getter = g; data = d;}
-    inline ImPlotPoint operator()(int idx) { ImVec2 p = getter(data, idx); return ImPlotPoint(p.x,p.y); }
-    ImVec2 (*getter)(void* data, int idx);
-    void* data;
-};
-
 //-----------------------------------------------------------------------------
 // PLOT
 //-----------------------------------------------------------------------------
@@ -2297,10 +2291,6 @@ void PlotLine(const char* label_id, const ImVec2* data, int count, int offset) {
     return PlotEx(label_id, getter, count, offset);
 }
 
-void PlotLine(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtrImVec2 getter(getter_func,data);
-    return PlotEx(label_id, getter, count, offset);
-}
 
 //-----------------------------------------------------------------------------
 // double
@@ -2319,6 +2309,9 @@ void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offs
     GetterImPlotPoint getter(data);
     return PlotEx(label_id, getter, count, offset);
 }
+
+//-----------------------------------------------------------------------------
+// custom
 
 void PlotLine(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func,data);
@@ -2360,12 +2353,6 @@ void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset
     PopStyleVar(vars);
 }
 
-void PlotScatter(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset) {
-    int vars = PushScatterStyle();
-    PlotLine(label_id, getter, data, count, offset);
-    PopStyleVar(vars);
-}
-
 //-----------------------------------------------------------------------------
 // double
 
@@ -2386,6 +2373,9 @@ void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int o
     PlotLine(label_id, data, count, offset);
     PopStyleVar(vars);
 }
+
+//-----------------------------------------------------------------------------
+// custom
 
 void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset) {
     int vars = PushScatterStyle();
@@ -2478,11 +2468,6 @@ void PlotBars(const char* label_id, const float* xs, const float* ys, int count,
     PlotBarsEx(label_id, getter, count, width, offset);
 }
 
-void PlotBars(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float width, int offset) {
-    GetterFuncPtrImVec2 getter(getter_func, data);
-    PlotBarsEx(label_id, getter, count, width, offset);
-}
-
 //-----------------------------------------------------------------------------
 // double
 
@@ -2495,6 +2480,9 @@ void PlotBars(const char* label_id, const double* xs, const double* ys, int coun
     GetterXsYs<double> getter(xs,ys,stride);
     PlotBarsEx(label_id, getter, count, width, offset);
 }
+
+//-----------------------------------------------------------------------------
+// custom
 
 void PlotBars(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double width, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func, data);
@@ -2571,11 +2559,6 @@ void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count
     PlotBarsHEx(label_id, getter, count, height, offset);
 }
 
-void PlotBarsH(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, float height,  int offset) {
-    GetterFuncPtrImVec2 getter(getter_func, data);
-    PlotBarsHEx(label_id, getter, count, height, offset);
-}
-
 //-----------------------------------------------------------------------------
 // double
 
@@ -2588,6 +2571,9 @@ void PlotBarsH(const char* label_id, const double* xs, const double* ys, int cou
     GetterXsYs<double> getter(xs,ys,stride);
     PlotBarsHEx(label_id, getter, count, height, offset);
 }
+
+//-----------------------------------------------------------------------------
+// custom
 
 void PlotBarsH(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double height,  int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func, data);
@@ -2855,11 +2841,6 @@ void PlotDigital(const char* label_id, const float* xs, const float* ys, int cou
     return PlotDigitalEx(label_id, getter, count, offset);
 }
 
-void PlotDigital(const char* label_id, ImVec2 (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtrImVec2 getter(getter_func,data);
-    return PlotDigitalEx(label_id, getter, count, offset);
-}
-
 //-----------------------------------------------------------------------------
 // double
 
@@ -2867,6 +2848,9 @@ void PlotDigital(const char* label_id, const double* xs, const double* ys, int c
     GetterXsYs<double> getter(xs,ys,stride);
     return PlotDigitalEx(label_id, getter, count, offset);
 }
+
+//-----------------------------------------------------------------------------
+// custom
 
 void PlotDigital(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func,data);

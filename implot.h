@@ -187,20 +187,16 @@ void EndPlot();
 void PlotLine(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void PlotLine(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void PlotLine(const char* label_id, const ImVec2* data, int count, int offset = 0);
-void PlotLine(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a standard 2D scatter plot.
 void PlotScatter(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void PlotScatter(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset = 0);
-void PlotScatter(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a vertical bar graph.
 void PlotBars(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
 void PlotBars(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
-void PlotBars(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float width, int offset = 0);
 // Plots a horizontal bar graph.
 void PlotBarsH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
 void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
-void PlotBarsH(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, float height,  int offset = 0);
 // Plots vertical error bar.
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
@@ -208,7 +204,6 @@ void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const
 void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents = true, float angle0 = 90);
 // Plots digital data.
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-void PlotDigital(const char* label_id, ImVec2 (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a text label at point x,y.
 void PlotText(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 
@@ -220,20 +215,16 @@ void PlotText(const char* text, float x, float y, bool vertical = false, const I
 void PlotLine(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
 void PlotLine(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
 void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
-void PlotLine(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a standard 2D scatter plot.
 void PlotScatter(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
 void PlotScatter(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
 void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
-void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a vertical bar graph.
 void PlotBars(const char* label_id, const double* values, int count, double width = 0.67f, double shift = 0, int offset = 0, int stride = sizeof(double));
 void PlotBars(const char* label_id, const double* xs, const double* ys, int count, double width, int offset = 0, int stride = sizeof(double));
-void PlotBars(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double width, int offset = 0);
 // Plots a horizontal bar graph.
 void PlotBarsH(const char* label_id, const double* values, int count, double height = 0.67f, double shift = 0, int offset = 0, int stride = sizeof(double));
 void PlotBarsH(const char* label_id, const double* xs, const double* ys, int count, double height,  int offset = 0, int stride = sizeof(double));
-void PlotBarsH(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double height,  int offset = 0);
 // Plots vertical error bar.
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset = 0, int stride = sizeof(double));
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
@@ -241,9 +232,18 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, bool show_percents = true, double angle0 = 90);
 // Plots digital data.
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
-void PlotDigital(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 // Plots a text label at point x,y.
 void PlotText(const char* text, double x, double y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
+
+//-----------------------------------------------------------------------------
+// Plot Items (custom getters)
+//-----------------------------------------------------------------------------
+
+void PlotLine(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+void PlotBars(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double width, int offset = 0);
+void PlotBarsH(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double height,  int offset = 0);
+void PlotDigital(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 //-----------------------------------------------------------------------------
 // Plot Queries
