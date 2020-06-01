@@ -226,6 +226,9 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents = true, float angle0 = 90);
 void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, bool show_percents = true, double angle0 = 90);
 
+// Plots a 2D heatmap chart.
+void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels = true);
+
 // Plots digital data.
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));

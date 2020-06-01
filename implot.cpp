@@ -2823,6 +2823,16 @@ void PlotPieChart(const char** label_ids, double* values, int count, double x, d
 }
 
 //-----------------------------------------------------------------------------
+// PLOT HEATMAP
+//-----------------------------------------------------------------------------
+
+void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels) {
+    ImPlotItem* item = RegisterItem(label_id);
+    if (!item->Show)
+        return;
+}
+
+//-----------------------------------------------------------------------------
 // PLOT DIGITAL
 //-----------------------------------------------------------------------------
 
