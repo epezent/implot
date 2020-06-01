@@ -91,6 +91,7 @@ ImPlotStyle::ImPlotStyle() {
     ErrorBarSize = 5;
     ErrorBarWeight = 1.5;
     DigitalBitHeight = 8;
+    DigitalBitGap = 4;
 
     Colors[ImPlotCol_Line]          = IM_COL_AUTO;
     Colors[ImPlotCol_Fill]          = IM_COL_AUTO;
@@ -2479,7 +2480,7 @@ struct GetterBarH {
 template <typename Getter, typename TWidth>
 void PlotBarsEx(const char* label_id, Getter getter, int count, TWidth width, int offset) {
 
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Bar() Needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBars() Needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
     if (!item->Show)
@@ -2570,7 +2571,7 @@ void PlotBars(const char* label_id, ImPlotPoint (*getter_func)(void* data, int i
 template <typename Getter, typename THeight>
 void PlotBarsHEx(const char* label_id, Getter getter, int count, THeight height, int offset) {
 
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BarH() Needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBarsH() Needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
     if (!item->Show)
@@ -2681,7 +2682,7 @@ struct GetterError {
 
 template <typename Getter>
 void PlotErrorBarsEx(const char* label_id, Getter getter, int count, int offset) {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "ErrorBars() Needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBars() Needs to be called between BeginPlot() and EndPlot()!");
 
     ImGuiID id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
@@ -2766,7 +2767,7 @@ inline void DrawPieSlice(ImDrawList& DrawList, const ImPlotPoint& center, double
 
 template <typename T>
 void PlotPieChartEx(const char** label_ids, T* values, int count, T x, T y, T radius, bool show_percents, T angle0) {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PieChart() Needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotPieChart() Needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
     T sum = 0;
@@ -2839,7 +2840,7 @@ void PlotHeatmap(const char* label_id, const double* values, int rows, int cols,
 template <typename Getter>
 inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int offset)
 {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Plot() Needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotDigital() Needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
     if (!item->Show)
@@ -2851,14 +2852,6 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
 
     if (gp.Style.Colors[ImPlotCol_Line].w != -1)
         item->Color = gp.Style.Colors[ImPlotCol_Line];
-
-  // find data extents
-    if (gp.FitThisFrame) {
-        for (int i = 0; i < count; ++i) {
-            ImPlotPoint p = getter(i);
-            FitPoint(ImPlotPoint(p.x, 0));
-        }
-    }
 
     ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
     bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
@@ -2953,7 +2946,7 @@ void PlotText(const char* text, float x, float y, bool vertical, const ImVec2& p
 //-----------------------------------------------------------------------------
 // double
 void PlotText(const char* text, double x, double y, bool vertical, const ImVec2& pixel_offset) {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Text() Needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotText() Needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
     PushPlotClipRect();
     ImVec2 pos = PlotToPixels(ImPlotPoint(x,y)) + pixel_offset;
