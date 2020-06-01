@@ -60,7 +60,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #include "implot.h"
 #include "imgui_internal.h"
 #include <limits>
-
+#include <algorithm> //std::min
 #ifdef _MSC_VER
 #define sprintf sprintf_s
 #endif
@@ -2165,8 +2165,7 @@ inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& 
         i_start -= count;
     int i_end = offset + count;
     if (i_end >= count)
-        i_end -= count;
-    const int segments = count - 1;
+        i_end -= count;    
     ImVec2 p1 = transformer(getter(offset));
     if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
         for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
@@ -2178,19 +2177,56 @@ inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& 
         }
     }
     else {
+        int segments = count - 1, i1 = 1, segments_culled = 0;
         const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
-        DrawList.PrimReserve(segments * 6, segments * 4);
-        int segments_culled = 0;
-        for (int i1 = i_start; i1 != i_end; i1 = i1 + 1 < count ? i1 + 1 : i1 + 1 - count) {
-            ImVec2 p2 = transformer(getter(i1));
-            if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+        while (segments)
+        {
+           int cnt = (int/*todo - remove this cast*/)std::min(size_t(segments), (((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - DrawList._VtxCurrentIdx) / 4)); // find how many can be reserved up to end of current draw command's limit
+           if (cnt >= std::min(64, segments)) // make sure at least this many elements can be rendered to avoid situations where at the end of buffer this slow path is not taken all the time
+           {
+              if (segments_culled >= cnt)
+                 segments_culled -= cnt; // reuse previous reservation
+              else
+              {
+                 DrawList.PrimReserve((cnt - segments_culled) * 6, (cnt - segments_culled) * 4); // add more elements to previous reservation
+                 segments_culled = 0;
+              }                 
+           }
+           else
+           {
+              if (segments_culled > 0)
+              {
+                 DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4);
+                 segments_culled = 0;
+              }
+
+              cnt = (int/*todo - remove this cast*/)std::min(size_t(segments), (((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - 0/*DrawList._VtxCurrentIdx*/) / 4));
+              DrawList.PrimReserve(cnt * 6, cnt * 4); // reserve new draw command               
+           }
+
+           segments -= cnt;
+
+           for (size_t ie = i1 + cnt; i1 != ie; ++i1)
+           {
+              int idx = i1;
+              if (offset)
+              {
+                 idx += offset;
+                 if (idx >= count)
+                    idx -= count;
+              }
+
+              ImVec2 p2 = transformer(getter(idx));
+
+              if (!cull || gp.BB_Grid.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
                 RenderLine(DrawList, p1, p2, line_weight, col_line, uv);
-            else
+              else
                 segments_culled++;
-            p1 = p2;
+              p1 = p2;        
+           }
         }
         if (segments_culled > 0)
-            DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4);
+           DrawList.PrimUnreserve(segments_culled * 6, segments_culled * 4);
     }
 }
 
