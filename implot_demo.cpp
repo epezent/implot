@@ -341,7 +341,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::LabelText("##Colormap Index", cmap_names[map]);
         ImGui::DragFloatRange2("Scale (Left Only)",&scale_min,&scale_max,0.01f);
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax;
-        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(250,250),0,axes_flags,axes_flags)) {
+        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(250,250))) {
             ImPlot::SetColormap(map);
             ImPlot::PlotHeatmap("heat",values1[0],7,7,scale_min,scale_max);
             ImPlot::EndPlot();
