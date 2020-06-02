@@ -117,19 +117,16 @@ enum ImPlotMarker_ {
 
 // Built-in colormaps
 enum ImPlotColormap_ {
-    // Qualitative
-    ImPlotColormap_Default,
-    // Sequential
-    ImPlotColormap_Viridis,
-    ImPlotColormap_Plasma,
-    ImPlotColormap_Hot,
-    ImPlotColormap_Cool,
-    // ImPlotColormap_Spring,
-    // ImPlotColormap_Summer,
-    // ImPlotColormap_Autumn,
-    // ImPlotColormap_Winter,
-    // Diverging
-    // ...
+    ImPlotColormap_Default  = 0, // ImPlot default colormap         (n=10)
+    ImPlotColormap_Dark     = 1, // a.k.a. matplotlib "Set1"        (n=9)
+    ImPlotColormap_Pastel   = 2, // a.k.a. matplotlib "Pastel1"     (n=9)
+    ImPlotColormap_Paired   = 3, // a.k.a. matplotlib "Paired"      (n=12)
+    ImPlotColormap_Viridis  = 4, // a.k.a. matplotlib "viridis"     (n=11)
+    ImPlotColormap_Plasma   = 5, // a.k.a. matplotlib "plasma"      (n=11)
+    ImPlotColormap_Hot      = 6, // a.k.a. matplotlib/MATLAB "hot"  (n=11)
+    ImPlotColormap_Cool     = 7, // a.k.a. matplotlib/MATLAB "cool" (n=11)
+    ImPlotColormap_Pink     = 8, // a.k.a. matplotlib/MATLAB "pink" (n=11)
+    ImPlotColormap_Jet      = 9, // a.k.a. MATLAB "jet"             (n=11)
     ImPlotColormap_COUNT
 };
 
@@ -246,7 +243,7 @@ void PlotPieChart(const char** label_ids, float* values, int count, float x, flo
 void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, bool show_percents = true, double angle0 = 90);
 
 // Plots a 2D heatmap chart. Values are expected to be in row-major order.
-void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels = true);
+void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels = true, const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
 
 // Plots digital data.
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
@@ -279,15 +276,6 @@ ImPlotLimits GetPlotQuery(int y_axis = -1);
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
 
-// Switch to one of the built-in colormaps for plot items.
-void SetColormap(ImPlotColormap colormap);
-// Sets a custom colormap to be used for plot items.
-void SetColormap(const ImVec4* colors, int num_colors);
-// Restores the default ImPlot colormap.
-void RestoreColormap();
-// Linearly interpolates a color from the current colormap/
-ImVec4 SampleColormap(float t);
-
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, ImU32 col);
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
@@ -301,6 +289,17 @@ void PushStyleVar(ImPlotStyleVar idx, float val);
 void PushStyleVar(ImPlotStyleVar idx, int val);
 // Undo temporary style modification.
 void PopStyleVar(int count = 1);
+
+// Switch to one of the built-in colormaps.
+void SetColormap(ImPlotColormap colormap);
+// Sets a custom colormap.
+void SetColormap(const ImVec4* colors, int num_colors);
+// Returns the size of the current colormap
+int GetColormapSize();
+/// Returns a color from the Color map given an index > 0 (modulo will be performed)
+ImVec4 GetColormapColor(int index);
+// Linearly interpolates a color from the current colormap given t between 0 and 1.
+ImVec4 LerpColormap(float t);
 
 //-----------------------------------------------------------------------------
 // Plot Utils

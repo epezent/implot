@@ -124,6 +124,7 @@ struct BenchmarkItem {
 namespace ImPlot {
 
 void ShowDemoWindow(bool* p_open) {
+    static const char* cmap_names[]   = {"Default","Dark","Pastel","Paired","Viridis","Plasma","Hot","Cool","Pink","Jet"};
     static bool show_app_metrics = false;
     static bool show_app_style_editor = false;
     if (show_app_metrics)             { ImGui::ShowMetricsWindow(&show_app_metrics); }
@@ -140,7 +141,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::EndMenuBar();
     }
     //-------------------------------------------------------------------------
-    ImGui::Text("ImPlot says hello. (0.2 WIP)");
+    ImGui::Text("ImPlot says hello. (0.3 WIP)");
     if (ImGui::CollapsingHeader("Help")) {
         ImGui::Text("USER GUIDE:");
         ImGui::BulletText("Left click and drag within the plot area to pan X and Y axes.");
@@ -264,6 +265,7 @@ void ShowDemoWindow(bool* p_open) {
                 ImPlot::PlotBars("Final Exam", final, 10, 0.2f,  0);
                 ImPlot::PlotBars("Course Grade", grade, 10, 0.2f, 0.2f);
             }
+            ImPlot::SetColormap(ImPlotColormap_Default);
             ImPlot::EndPlot();
         }
     }
@@ -312,40 +314,46 @@ void ShowDemoWindow(bool* p_open) {
         static const char* labels2[]   = {"One","Two","Three","Four","Five"};
         static t_float not_normalized[] = {1,2,3,4,5};
         if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
-            ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f);
+            ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f, false, 0);
             ImPlot::EndPlot();
         }
-        ImPlot::RestoreColormap();
+        ImPlot::SetColormap(ImPlotColormap_Default);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Heatmaps")) {
         static double values1[7][7] = {{0.8, 2.4, 2.5, 3.9, 0.0, 4.0, 0.0},
-                                     {2.4, 0.0, 4.0, 1.0, 2.7, 0.0, 0.0},
-                                     {1.1, 2.4, 0.8, 4.3, 1.9, 4.4, 0.0},
-                                     {0.6, 0.0, 0.3, 0.0, 3.1, 0.0, 0.0},
-                                     {0.7, 1.7, 0.6, 2.6, 2.2, 6.2, 0.0},
-                                     {1.3, 1.2, 0.0, 0.0, 0.0, 3.2, 5.1},
-                                     {0.1, 2.0, 0.0, 1.4, 0.0, 1.9, 6.3}};
+                                       {2.4, 0.0, 4.0, 1.0, 2.7, 0.0, 0.0},
+                                       {1.1, 2.4, 0.8, 4.3, 1.9, 4.4, 0.0},
+                                       {0.6, 0.0, 0.3, 0.0, 3.1, 0.0, 0.0},
+                                       {0.7, 1.7, 0.6, 2.6, 2.2, 6.2, 0.0},
+                                       {1.3, 1.2, 0.0, 0.0, 0.0, 3.2, 5.1},
+                                       {0.1, 2.0, 0.0, 1.4, 0.0, 1.9, 6.3}};
+        static float scale_min = 0;
+        static float scale_max = 6.3f;
         static double values2[100*100];
         for (int i = 0; i < 100*100; ++i) {
             values2[i] = RandomRange(0,1);
         }
         static ImPlotColormap map = ImPlotColormap_Viridis;
-        if (ImGui::Button("Cycle Colormaps"))
+        if (ImGui::Button("Cycle Colormap"))
             map = (map + 1) % ImPlotColormap_COUNT;
+        ImGui::SameLine();
+        ImGui::LabelText("##Colormap Index", cmap_names[map]);
+        ImGui::DragFloatRange2("Scale (Left Only)",&scale_min,&scale_max,0.01f);
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax;
         if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(250,250),0,axes_flags,axes_flags)) {
             ImPlot::SetColormap(map);
-            ImPlot::PlotHeatmap("heat",values1[0],7,7,0,6.3);
+            ImPlot::PlotHeatmap("heat",values1[0],7,7,scale_min,scale_max);
             ImPlot::EndPlot();
-            ImPlot::RestoreColormap();
+            ImPlot::SetColormap(ImPlotColormap_Default);
         }
         ImGui::SameLine();
+        SetNextPlotLimits(1,2,1,2);
         if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(250,250),0,axes_flags,axes_flags)) {
             ImPlot::SetColormap(map);
-            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,false);
+            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,false,{1,1},{2,2});
             ImPlot::EndPlot();
-            ImPlot::RestoreColormap();
+            ImPlot::SetColormap(ImPlotColormap_Default);
         }
     }
     //-------------------------------------------------------------------------
@@ -379,9 +387,16 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Markers and Text")) {
+    if (ImGui::CollapsingHeader("Colormaps, Markers, and Text")) {
+        static ImPlotColormap map = ImPlotColormap_Default;
+        if (ImGui::Button("Cycle Colormap"))
+            map = (map + 1) % ImPlotColormap_COUNT;
+        ImGui::SameLine();
+        ImGui::LabelText("##Colormap Index", cmap_names[map]);
+        ImGui::PushID(map); // NB: The merely a workaround so that the demo can cycle color maps. You wouldn't need to do this in your own code!  
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
         if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {
+            ImPlot::SetColormap(map);
             t_float xs[2] = {1,4};
             t_float ys[2] = {10,11};
             // filled
@@ -451,8 +466,11 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotText("Open Markers", 6.75, 11.75);
             ImPlot::PlotText("Fancy Markers", 4.5, 4.25, true);
 
+            ImPlot::SetColormap(ImPlotColormap_Default);
+
             ImPlot::EndPlot();
         }
+        ImGui::PopID();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Log Scale")) {
@@ -841,7 +859,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImPlot::PopStyleColor(5);
         ImPlot::PopStyleVar();
-        ImPlot::RestoreColormap();
+        ImPlot::SetColormap(ImPlotColormap_Default);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Rendering")) {
