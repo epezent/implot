@@ -34,6 +34,7 @@ typedef int ImPlotAxisFlags;
 typedef int ImPlotCol;
 typedef int ImPlotStyleVar;
 typedef int ImPlotMarker;
+typedef int ImPlotColormap;
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -114,7 +115,25 @@ enum ImPlotMarker_ {
     ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
-/// Double precision version of ImVec2 used by ImPlot. Extensible by end users.
+// Built-in colormaps
+enum ImPlotColormap_ {
+    // Qualitative
+    ImPlotColormap_Default,
+    // Sequential
+    ImPlotColormap_Viridis,
+    ImPlotColormap_Plasma,
+    ImPlotColormap_Hot,
+    ImPlotColormap_Cool,
+    // ImPlotColormap_Spring,
+    // ImPlotColormap_Summer,
+    // ImPlotColormap_Autumn,
+    // ImPlotColormap_Winter,
+    // Diverging
+    // ...
+    ImPlotColormap_COUNT
+};
+
+// Double precision version of ImVec2 used by ImPlot. Extensible by end users.
 struct ImPlotPoint {
     double x, y;
     ImPlotPoint()  { x = y = 0.0; }
@@ -226,7 +245,7 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents = true, float angle0 = 90);
 void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, bool show_percents = true, double angle0 = 90);
 
-// Plots a 2D heatmap chart.
+// Plots a 2D heatmap chart. Values are expected to be in row-major order.
 void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels = true);
 
 // Plots digital data.
@@ -242,15 +261,15 @@ void PlotText(const char* text, double x, double y, bool vertical = false, const
 // Plot Queries
 //-----------------------------------------------------------------------------
 
-/// Returns true if the plot area in the current or most recent plot is hovered.
+// Returns true if the plot area in the current or most recent plot is hovered.
 bool IsPlotHovered();
-/// Returns the mouse position in x,y coordinates of the current or most recent plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+// Returns the mouse position in x,y coordinates of the current or most recent plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImPlotPoint GetPlotMousePos(int y_axis = -1);
-/// Returns the current or most recent plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+// Returns the current or most recent plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImPlotLimits GetPlotLimits(int y_axis = -1);
-/// Returns true if the current or most recent plot is being queried.
+// Returns true if the current or most recent plot is being queried.
 bool IsPlotQueried();
-/// Returns the current or most recent plot query bounds.
+// Returns the current or most recent plot query bounds.
 ImPlotLimits GetPlotQuery(int y_axis = -1);
 
 //-----------------------------------------------------------------------------
@@ -260,10 +279,14 @@ ImPlotLimits GetPlotQuery(int y_axis = -1);
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
 
-// Sets the color palette to be used for plot items.
-void SetPalette(const ImVec4* colors, int num_colors);
-// Restores the default ImPlot color map.
-void RestorePalette();
+// Switch to one of the built-in colormaps for plot items.
+void SetColormap(ImPlotColormap colormap);
+// Sets a custom colormap to be used for plot items.
+void SetColormap(const ImVec4* colors, int num_colors);
+// Restores the default ImPlot colormap.
+void RestoreColormap();
+// Linearly interpolates a color from the current colormap/
+ImVec4 SampleColormap(float t);
 
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, ImU32 col);
@@ -283,14 +306,14 @@ void PopStyleVar(int count = 1);
 // Plot Utils
 //-----------------------------------------------------------------------------
 
-/// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
+// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
+// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
 void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
+// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
 void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
 
-/// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
+// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
 void SetPlotYAxis(int y_axis);
 
 // Get the current Plot position (top-left) in pixels.

@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2020/06/01 (0.3) - SetPalette/RestorePalette were changed to SetColormap/RestoreColormap for consistency with other plotting libraries.
 - 2020/05/31 (0.3) - Plot functions taking custom ImVec2* getters were removed. Use the ImPlotPoint* getter versions instead.
 - 2020/05/29 (0.3) - The signature of ImPlotLimits::Contains was changed to take two doubles instead of ImVec2
 - 2020/05/16 (0.2) - All plotting functions were reverted to being prefixed with "Plot" to maintain a consistent VerbNoun style. `Plot` was split into `PlotLine`
@@ -152,8 +153,9 @@ inline void FlipFlag(TSet& set, TFlag flag) {
     HasFlag(set, flag) ? set &= ~flag : set |= flag;
 }
 
-/// Linearly remaps float x from [x0 x1] to [y0 y1].
-inline float Remap(float x, float x0, float x1, float y0, float y1) {
+/// Linearly remaps x from [x0 x1] to [y0 y1].
+template <typename T>
+inline T Remap(T x, T x0, T x1, T y0, T y1) {
     return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
 }
 
@@ -334,7 +336,7 @@ struct ImPlotContext {
     ImPlotContext() : RenderX(), RenderY() {
         CurrentPlot = NULL;
         FitThisFrame = FitX = false;
-        RestorePalette();
+        RestoreColormap();
     }
 
     /// ALl Plots
@@ -385,7 +387,7 @@ struct ImPlotContext {
     // Mouse pos
     ImPlotPoint LastMousePos[MAX_Y_AXES];
     // Style
-    ImVector<ImVec4> ColorMap;
+    ImVector<ImVec4> Colormap;
     ImPlotStyle Style;
     ImVector<ImGuiColorMod> ColorModifiers;  // Stack for PushStyleColor()/PopStyleColor()
     ImVector<ImGuiStyleMod> StyleModifiers;  // Stack for PushStyleVar()/PopStyleVar()
@@ -404,7 +406,7 @@ static ImPlotContext gp;
 
 /// Returns the next unused default plot color
 ImVec4 NextColor() {
-    ImVec4 col  = gp.ColorMap[gp.CurrentPlot->ColorIdx % gp.ColorMap.size()];
+    ImVec4 col  = gp.Colormap[gp.CurrentPlot->ColorIdx % gp.Colormap.size()];
     gp.CurrentPlot->ColorIdx++;
     return col;
 }
@@ -1078,8 +1080,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         float zoom_rate = 0.1f;
         if (IO.MouseWheel > 0)
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));
-        float tx = Remap(IO.MousePos.x, gp.BB_Grid.Min.x, gp.BB_Grid.Max.x, 0, 1);
-        float ty = Remap(IO.MousePos.y, gp.BB_Grid.Min.y, gp.BB_Grid.Max.y, 0, 1);
+        float tx = Remap(IO.MousePos.x, gp.BB_Grid.Min.x, gp.BB_Grid.Max.x, 0.0f, 1.0f);
+        float ty = Remap(IO.MousePos.y, gp.BB_Grid.Min.y, gp.BB_Grid.Max.y, 0.0f, 1.0f);
         if (hov_x_axis_region && !x.lock) {
             ImPlotAxisScale axis_scale(0, tx, ty, zoom_rate);
             const ImPlotPoint& plot_tl = axis_scale.Min;
@@ -1866,29 +1868,105 @@ ImPlotStyle& GetStyle() {
     return gp.Style;
 }
 
-void SetPalette(const ImVec4* colors, int num_colors) {
-    gp.ColorMap.shrink(0);
-    gp.ColorMap.reserve(num_colors);
+void SetColormap(const ImVec4* colors, int num_colors) {
+    gp.Colormap.shrink(0);
+    gp.Colormap.reserve(num_colors);
     for (int i = 0; i < num_colors; ++i) {
-        gp.ColorMap.push_back(colors[i]);
+        gp.Colormap.push_back(colors[i]);
     }
 }
 
-/// Returns the next unused default plot color
-void RestorePalette() {
-    static ImVec4 default_colors[10] = {
-        ImVec4((0.0F), (0.7490196228F), (1.0F), (1.0F)),                    // Blues::DeepSkyBlue,
-        ImVec4((1.0F), (0.0F), (0.0F), (1.0F)),                             // Reds::Red,
-        ImVec4((0.4980392158F), (1.0F), (0.0F), (1.0F)),                    // Greens::Chartreuse,
-        ImVec4((1.0F), (1.0F), (0.0F), (1.0F)),                             // Yellows::Yellow,
-        ImVec4((0.0F), (1.0F), (1.0F), (1.0F)),                             // Cyans::Cyan,
-        ImVec4((1.0F), (0.6470588446F), (0.0F), (1.0F)),                    // Oranges::Orange,
-        ImVec4((1.0F), (0.0F), (1.0F), (1.0F)),                             // Purples::Magenta,
-        ImVec4((0.5411764979F), (0.1686274558F), (0.8862745166F), (1.0F)),  // Purples::BlueViolet,
-        ImVec4((0.5f), (0.5f), (0.5f), (1.0F)),                             // Grays::Gray50,
-        ImVec4((0.8235294223F), (0.7058823705F), (0.5490196347F), (1.0F))   // Browns::Tan
+void SetColormap(ImPlotColormap colormap) {
+    static ImVec4 maps[ImPlotColormap_COUNT][10] {
+        // ImPlotColormap_Default
+        {
+            ImVec4((0.0F), (0.7490196228F), (1.0F), (1.0F)),                    // Blues::DeepSkyBlue,
+            ImVec4((1.0F), (0.0F), (0.0F), (1.0F)),                             // Reds::Red,
+            ImVec4((0.4980392158F), (1.0F), (0.0F), (1.0F)),                    // Greens::Chartreuse,
+            ImVec4((1.0F), (1.0F), (0.0F), (1.0F)),                             // Yellows::Yellow,
+            ImVec4((0.0F), (1.0F), (1.0F), (1.0F)),                             // Cyans::Cyan,
+            ImVec4((1.0F), (0.6470588446F), (0.0F), (1.0F)),                    // Oranges::Orange,
+            ImVec4((1.0F), (0.0F), (1.0F), (1.0F)),                             // Purples::Magenta,
+            ImVec4((0.5411764979F), (0.1686274558F), (0.8862745166F), (1.0F)),  // Purples::BlueViolet,
+            ImVec4((0.5f), (0.5f), (0.5f), (1.0F)),                             // Grays::Gray50,
+            ImVec4((0.8235294223F), (0.7058823705F), (0.5490196347F), (1.0F))   // Browns::Tan
+        },
+        // ImPlotColormap_Viridis
+        {
+            ImVec4(0.267004f, 0.004874f, 0.329415f, 1.f),
+            ImVec4(0.281412f, 0.155834f, 0.469201f, 1.f),
+            ImVec4(0.244972f, 0.287675f, 0.53726f,  1.f),
+            ImVec4(0.190631f, 0.407061f, 0.556089f, 1.f),
+            ImVec4(0.147607f, 0.511733f, 0.557049f, 1.f),
+            ImVec4(0.119699f, 0.618490f, 0.536347f, 1.f),
+            ImVec4(0.208030f, 0.718701f, 0.472873f, 1.f),
+            ImVec4(0.430983f, 0.808473f, 0.346476f, 1.f),
+            ImVec4(0.709898f, 0.868751f, 0.169257f, 1.f),
+            ImVec4(0.993248f, 0.906157f, 0.143936f, 1.f )
+        },
+        // ImPlotColormap_Plasma
+        {
+            ImVec4(0.050383f, 0.029803f, 0.527975f, 1.f),
+            ImVec4(0.274191f, 0.012109f, 0.622722f, 1.f),
+            ImVec4(0.447714f, 0.002080f, 0.660240f, 1.f),
+            ImVec4(0.610667f, 0.090204f, 0.619951f, 1.f),
+            ImVec4(0.740143f, 0.213864f, 0.524216f, 1.f),
+            ImVec4(0.846788f, 0.342551f, 0.420579f, 1.f),
+            ImVec4(0.928329f, 0.472975f, 0.326067f, 1.f),
+            ImVec4(0.983041f, 0.624131f, 0.227937f, 1.f),
+            ImVec4(0.991209f, 0.790537f, 0.149377f, 1.f),
+            ImVec4(0.940015f, 0.975158f, 0.131326f, 1.f)
+        },
+        // ImPlotColormap_Hot
+        {
+            ImVec4(0.3333f,    0.0f,    0.0f, 1.0f),
+            ImVec4(0.6667f,    0.0f,    0.0f, 1.0f),
+            ImVec4(1.0000f,    0.0f,    0.0f, 1.0f),
+            ImVec4(1.0000f, 0.3333f,    0.0f, 1.0f),
+            ImVec4(1.0000f, 0.6667f,    0.0f, 1.0f),
+            ImVec4(1.0000f, 1.0000f,    0.0f, 1.0f),
+            ImVec4(1.0000f, 1.0000f, 0.2500f, 1.0f),
+            ImVec4(1.0000f, 1.0000f, 0.5000f, 1.0f),
+            ImVec4(1.0000f, 1.0000f, 0.7500f, 1.0f),
+            ImVec4(1.0000f, 1.0000f, 1.0000f, 1.0f)
+        },
+        // ImPlotColormap_Cool
+        {
+            ImVec4(   0.0f, 1.0000f, 1.0000f, 1.0f),
+            ImVec4(0.1111f, 0.8889f, 1.0000f, 1.0f),
+            ImVec4(0.2222f, 0.7778f, 1.0000f, 1.0f),
+            ImVec4(0.3333f, 0.6667f, 1.0000f, 1.0f),
+            ImVec4(0.4444f, 0.5556f, 1.0000f, 1.0f),
+            ImVec4(0.5556f, 0.4444f, 1.0000f, 1.0f),
+            ImVec4(0.6667f, 0.3333f, 1.0000f, 1.0f),
+            ImVec4(0.7778f, 0.2222f, 1.0000f, 1.0f),
+            ImVec4(0.8889f, 0.1111f, 1.0000f, 1.0f),
+            ImVec4(1.0000f,    0.0f, 1.0000f, 1.0f)
+        }
+        // ImPlotColormap_Spring
+        // ImPlotColormap_Summer
+        // ImPlotColormap_Autumn
+        // ImPlotColormap_Winter
     };
-    SetPalette(default_colors, 10);
+    SetColormap(maps[colormap], 10);
+}
+
+/// Returns the next unused default plot color
+void RestoreColormap() {
+    SetColormap(ImPlotColormap_Default);
+}
+
+ImVec4 SampleColormap(float t) {
+    t = ImClamp(t,0.0f,1.0f);
+    int i1 = (int)((gp.Colormap.Size-1) * t);
+    int i2 = i1 + 1;
+
+    if (i2 == gp.Colormap.Size)
+        return gp.Colormap[i1];
+    float t1 = (float)i1 / (float)gp.Colormap.Size;
+    float t2 = (float)i2 / (float)gp.Colormap.Size;
+    t = Remap(t, t1, t2, 0.0f, 1.0f);
+    return ImLerp(gp.Colormap[i1],gp.Colormap[i2],t);
 }
 
 void PushStyleColor(ImPlotCol idx, ImU32 col) {
@@ -2515,8 +2593,7 @@ void PlotBarsEx(const char* label_id, Getter getter, int count, TWidth width, in
 
     int idx = offset;
     for (int i = 0; i < count; ++i) {
-        ImPlotPoint p;
-        p = getter(idx);
+        ImPlotPoint p = getter(idx);
         idx = (idx + 1) % count;
         if (p.y == 0)
             continue;
@@ -2606,8 +2683,7 @@ void PlotBarsHEx(const char* label_id, Getter getter, int count, THeight height,
 
     int idx = offset;
     for (int i = 0; i < count; ++i) {
-        ImPlotPoint p;
-        p = getter(idx);
+        ImPlotPoint p = getter(idx);
         idx = (idx + 1) % count;
         if (p.x == 0)
             continue;
@@ -2828,9 +2904,42 @@ void PlotPieChart(const char** label_ids, double* values, int count, double x, d
 //-----------------------------------------------------------------------------
 
 void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotHeatmap() Needs to be called between BeginPlot() and EndPlot()!");
     ImPlotItem* item = RegisterItem(label_id);
     if (!item->Show)
         return;
+    if (gp.FitThisFrame) {
+        FitPoint(ImPlotPoint(0, 0));
+        FitPoint(ImPlotPoint(1, 1));        
+    }
+
+    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
+    double w = 1.0 / cols;
+    double h = 1.0 / rows;
+    const ImPlotPoint half_size(w*0.5,h*0.5);
+    ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
+    int i = 0;
+    for (int r = 0; r < rows; ++r) {
+        for (int c = 0; c < cols; ++c) {
+            ImPlotPoint p;
+            p.x = 0.5*w + c*w;
+            p.y = 1 - (0.5*h + r*h);
+            ImVec2 px = PlotToPixels(p);
+            ImVec2 a  = PlotToPixels(p.x - half_size.x, p.y - half_size.y);
+            ImVec2 b  = PlotToPixels(p.x + half_size.x, p.y + half_size.y);
+            float t = (float)Remap(values[i], scale_min, scale_max, 0.0, 1.0);
+            ImVec4 color = SampleColormap(t);
+            DrawList.AddRectFilled(a, b, ImGui::GetColorU32(color));
+            if (show_labels) {
+                char buff[32];
+                sprintf(buff, "%g", values[i]);
+                ImVec2 size = ImGui::CalcTextSize(buff);
+                DrawList.AddText(px - size * 0.5f, ImGui::GetColorU32(ImGuiCol_Text), buff);
+            }
+            i++;
+        }
+    }
+    ImGui::PopClipRect();
 }
 
 //-----------------------------------------------------------------------------

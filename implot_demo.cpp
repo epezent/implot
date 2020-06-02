@@ -129,7 +129,7 @@ void ShowDemoWindow(bool* p_open) {
     if (show_app_metrics)             { ImGui::ShowMetricsWindow(&show_app_metrics); }
     if (show_app_style_editor)        { ImGui::Begin("Style Editor", &show_app_style_editor); ImGui::ShowStyleEditor(); ImGui::End(); }
     ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(520, 750), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(530, 750), ImGuiCond_FirstUseEver);
     ImGui::Begin("ImPlot Demo", p_open, ImGuiWindowFlags_MenuBar);
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Tools")) {
@@ -307,7 +307,7 @@ void ShowDemoWindow(bool* p_open) {
             ImVec4(0.9882f,    0.3059f,    0.1647f, 1.0f),
             ImVec4(0.7412f,       0.0f,    0.1490f, 1.0f),
         };
-        ImPlot::SetPalette(YlOrRd, 5);
+        ImPlot::SetColormap(YlOrRd, 5);
         SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         static const char* labels2[]   = {"One","Two","Three","Four","Five"};
         static t_float not_normalized[] = {1,2,3,4,5};
@@ -315,7 +315,38 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f);
             ImPlot::EndPlot();
         }
-        ImPlot::RestorePalette();
+        ImPlot::RestoreColormap();
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Heatmaps")) {
+        static double values1[7][7] = {{0.8, 2.4, 2.5, 3.9, 0.0, 4.0, 0.0},
+                                     {2.4, 0.0, 4.0, 1.0, 2.7, 0.0, 0.0},
+                                     {1.1, 2.4, 0.8, 4.3, 1.9, 4.4, 0.0},
+                                     {0.6, 0.0, 0.3, 0.0, 3.1, 0.0, 0.0},
+                                     {0.7, 1.7, 0.6, 2.6, 2.2, 6.2, 0.0},
+                                     {1.3, 1.2, 0.0, 0.0, 0.0, 3.2, 5.1},
+                                     {0.1, 2.0, 0.0, 1.4, 0.0, 1.9, 6.3}};
+        static double values2[100*100];
+        for (int i = 0; i < 100*100; ++i) {
+            values2[i] = RandomRange(0,1);
+        }
+        static ImPlotColormap map = ImPlotColormap_Viridis;
+        if (ImGui::Button("Cycle Colormaps"))
+            map = (map + 1) % ImPlotColormap_COUNT;
+        static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax;
+        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(250,250),0,axes_flags,axes_flags)) {
+            ImPlot::SetColormap(map);
+            ImPlot::PlotHeatmap("heat",values1[0],7,7,0,6.3);
+            ImPlot::EndPlot();
+            ImPlot::RestoreColormap();
+        }
+        ImGui::SameLine();
+        if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(250,250),0,axes_flags,axes_flags)) {
+            ImPlot::SetColormap(map);
+            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,false);
+            ImPlot::EndPlot();
+            ImPlot::RestoreColormap();
+        }
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Realtime Plots")) {
@@ -783,12 +814,12 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Styles")) {
-        static ImVec4 my_palette[3] = {
+        static ImVec4 my_map[3] = {
             ImVec4(0.000f, 0.980f, 0.604f, 1.0f),
             ImVec4(0.996f, 0.278f, 0.380f, 1.0f),
             ImVec4(0.1176470593f, 0.5647059083f, 1.0f, 1.0f),
         };
-        ImPlot::SetPalette(my_palette, 3);
+        ImPlot::SetColormap(my_map, 3);
         ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(32,51,77,255));
         ImPlot::PushStyleColor(ImPlotCol_PlotBg, ImVec4(0,0,0,0));
         ImPlot::PushStyleColor(ImPlotCol_PlotBorder, ImVec4(0,0,0,0));
@@ -810,7 +841,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImPlot::PopStyleColor(5);
         ImPlot::PopStyleVar();
-        ImPlot::RestorePalette();
+        ImPlot::RestoreColormap();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Rendering")) {
