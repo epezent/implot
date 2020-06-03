@@ -18,7 +18,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
     - error bars
     - pie charts
     - heatmaps
-    - and more likely to come (check [Announcements](https://github.com/epezent/implot/issues/48))
+    - and more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
 - reversible and lockable axes
