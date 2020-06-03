@@ -54,7 +54,7 @@ typedef ImVec2 t_float2;
 #define Fmod fmodf
 #endif
 
-namespace {
+namespace ImPlot {
 
 t_float RandomRange(t_float min, t_float max) {
     t_float scale = rand() / (t_float) RAND_MAX;
@@ -119,17 +119,14 @@ struct BenchmarkItem {
     ImVec4 Col;
 };
 
-} // private namespace
-
-namespace ImPlot {
-
 void ShowDemoWindow(bool* p_open) {
+    static const char* cmap_names[]   = {"Default","Dark","Pastel","Paired","Viridis","Plasma","Hot","Cool","Pink","Jet"};
     static bool show_app_metrics = false;
     static bool show_app_style_editor = false;
     if (show_app_metrics)             { ImGui::ShowMetricsWindow(&show_app_metrics); }
     if (show_app_style_editor)        { ImGui::Begin("Style Editor", &show_app_style_editor); ImGui::ShowStyleEditor(); ImGui::End(); }
     ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(520, 750), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(530, 750), ImGuiCond_FirstUseEver);
     ImGui::Begin("ImPlot Demo", p_open, ImGuiWindowFlags_MenuBar);
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Tools")) {
@@ -140,7 +137,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::EndMenuBar();
     }
     //-------------------------------------------------------------------------
-    ImGui::Text("ImPlot says hello. (0.2 WIP)");
+    ImGui::Text("ImPlot says hello. (0.3 WIP)");
     if (ImGui::CollapsingHeader("Help")) {
         ImGui::Text("USER GUIDE:");
         ImGui::BulletText("Left click and drag within the plot area to pan X and Y axes.");
@@ -244,12 +241,18 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Bar Plots")) {
+        static const char* labels[] = {"S1","S2","S3","S4","S5","S6","S7","S8","S9","S10"};
+        static const double positions[] = {0,1,2,3,4,5,6,7,8,9};
         static bool horz = false;
         ImGui::Checkbox("Horizontal",&horz);
-        if (horz)
+        if (horz) {
             ImPlot::SetNextPlotLimits(0, 110, -0.5, 9.5, ImGuiCond_Always);
-        else
+            ImPlot::SetNextPlotTicksY(positions, 10, labels);
+        }
+        else {
             ImPlot::SetNextPlotLimits(-0.5, 9.5, 0, 110, ImGuiCond_Always);
+            ImPlot::SetNextPlotTicksX(positions, 10, labels);
+        }
         if (ImPlot::BeginPlot("Bar Plot", horz ? "Score":  "Student", horz ? "Student" : "Score")) {
             static t_float midtm[10] = {83, 67, 23, 89, 83, 78, 91, 82, 85, 90};
             static t_float final[10] = {80, 62, 56, 99, 55, 78, 88, 78, 90, 100};
@@ -264,6 +267,7 @@ void ShowDemoWindow(bool* p_open) {
                 ImPlot::PlotBars("Final Exam", final, 10, 0.2f,  0);
                 ImPlot::PlotBars("Course Grade", grade, 10, 0.2f, 0.2f);
             }
+            ImPlot::SetColormap(ImPlotColormap_Default);
             ImPlot::EndPlot();
         }
     }
@@ -307,15 +311,61 @@ void ShowDemoWindow(bool* p_open) {
             ImVec4(0.9882f,    0.3059f,    0.1647f, 1.0f),
             ImVec4(0.7412f,       0.0f,    0.1490f, 1.0f),
         };
-        ImPlot::SetPalette(YlOrRd, 5);
+        ImPlot::SetColormap(YlOrRd, 5);
         SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         static const char* labels2[]   = {"One","Two","Three","Four","Five"};
         static t_float not_normalized[] = {1,2,3,4,5};
         if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
-            ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f);
+            ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f, false, 0);
             ImPlot::EndPlot();
         }
-        ImPlot::RestorePalette();
+        ImPlot::SetColormap(ImPlotColormap_Default);
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Heatmaps")) {
+        static t_float values1[7][7] = {{0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f},
+                                        {2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f},
+                                        {1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f},
+                                        {0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f},
+                                        {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f},
+                                        {1.3f, 1.2f, 0.0f, 0.0f, 0.0f, 3.2f, 5.1f},
+                                        {0.1f, 2.0f, 0.0f, 1.4f, 0.0f, 1.9f, 6.3f}};
+        static float scale_min = 0;
+        static float scale_max = 6.3f;
+        static t_float values2[100*100];
+        for (int i = 0; i < 100*100; ++i) {
+            values2[i] = RandomRange(0,1);
+        }
+        static ImPlotColormap map = ImPlotColormap_Viridis;
+        if (ImGui::Button("Change Colormap",ImVec2(225,0)))
+            map = (map + 1) % ImPlotColormap_COUNT;
+        ImPlot::SetColormap(map);
+        ImGui::SameLine();
+        ImGui::LabelText("##Colormap Index", cmap_names[map]);
+        ImGui::SetNextItemWidth(225);
+        ImGui::DragFloat("Max",&scale_max,0.01f,0.1f,20);
+        static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax | ImPlotAxisFlags_TickLabels;
+        static const char* xlabels[] = {"C1","C2","C3","C4","C5","C6","C7"};
+        static const char* ylabels[] = {"R1","R2","R3","R4","R5","R6","R7"};
+
+        SetNextPlotTicksX(0 + 1.0/14.0, 1 - 1.0/14.0, 7, xlabels);
+        SetNextPlotTicksY(1- 1.0/14.0, 0 + 1.0/14.0, 7,  ylabels);
+
+        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(225,225),0,axes_flags,axes_flags)) {
+            ImPlot::PlotHeatmap("heat",values1[0],7,7,scale_min,scale_max);
+            ImPlot::EndPlot();
+        }
+        ImGui::SameLine();
+        ImPlot::ShowColormapScale(scale_min, scale_max, 225);
+        ImPlot::SetColormap(ImPlotColormap_Default);
+        ImGui::SameLine();
+        static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
+        ImPlot::SetColormap(&gray[0], 2);
+        if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),ImPlotFlags_ContextMenu,0,0)) {
+            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,false);
+            ImPlot::EndPlot();
+        }
+        ImPlot::SetColormap(ImPlotColormap_Default);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Realtime Plots")) {
@@ -349,8 +399,15 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Markers and Text")) {
+        static ImPlotColormap map = ImPlotColormap_Default;
+        if (ImGui::Button("Change Colormap##2"))
+            map = (map + 1) % ImPlotColormap_COUNT;
+        ImGui::SameLine();
+        ImGui::LabelText("##Colormap Index", cmap_names[map]);
+        ImGui::PushID(map); // NB: This is merely a workaround so that the demo can cycle color maps. You wouldn't need to do this in your own code!
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
         if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {
+            ImPlot::SetColormap(map);
             t_float xs[2] = {1,4};
             t_float ys[2] = {10,11};
             // filled
@@ -420,8 +477,11 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotText("Open Markers", 6.75, 11.75);
             ImPlot::PlotText("Fancy Markers", 4.5, 4.25, true);
 
+            ImPlot::SetColormap(ImPlotColormap_Default);
+
             ImPlot::EndPlot();
         }
+        ImGui::PopID();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Log Scale")) {
@@ -782,13 +842,40 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Custom Ticks")) {
+        static bool custom_ticks  = true;
+        static bool custom_labels = true;
+        ImGui::Checkbox("Show Custom Ticks", &custom_ticks);
+        if (custom_ticks) {
+            ImGui::SameLine();
+            ImGui::Checkbox("Show Custom Labels", &custom_labels);
+        }
+        double pi = 3.14;
+        const char* pi_str[] = {"PI"};
+        static double yticks[] = {1,3,7,9};
+        static const char*  ylabels[] = {"One","Three","Seven","Nine"};
+        static double yticks_aux[] = {0.2,0.4,0.6};
+        static const char* ylabels_aux[] = {"A","B","C","D","E","F"};
+        if (custom_ticks) {
+            ImPlot::SetNextPlotTicksX(&pi,1,custom_labels ? pi_str : NULL, true);
+            ImPlot::SetNextPlotTicksY(yticks, 4, custom_labels ? ylabels : NULL);
+            ImPlot::SetNextPlotTicksY(yticks_aux, 3, custom_labels ? ylabels_aux : NULL, false, 1);
+            ImPlot::SetNextPlotTicksY(0, 1, 6, custom_labels ? ylabels_aux : NULL, false, 2);
+        }
+        ImPlot::SetNextPlotLimits(2.5,5,0,10);
+        if (ImPlot::BeginPlot("Custom Ticks", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Default | ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
+
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Styles")) {
-        static ImVec4 my_palette[3] = {
+        static ImVec4 my_map[3] = {
             ImVec4(0.000f, 0.980f, 0.604f, 1.0f),
             ImVec4(0.996f, 0.278f, 0.380f, 1.0f),
             ImVec4(0.1176470593f, 0.5647059083f, 1.0f, 1.0f),
         };
-        ImPlot::SetPalette(my_palette, 3);
+        ImPlot::SetColormap(my_map, 3);
         ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(32,51,77,255));
         ImPlot::PushStyleColor(ImPlotCol_PlotBg, ImVec4(0,0,0,0));
         ImPlot::PushStyleColor(ImPlotCol_PlotBorder, ImVec4(0,0,0,0));
@@ -810,7 +897,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImPlot::PopStyleColor(5);
         ImPlot::PopStyleVar();
-        ImPlot::RestorePalette();
+        ImPlot::SetColormap(ImPlotColormap_Default);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Rendering")) {

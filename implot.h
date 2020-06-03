@@ -34,6 +34,7 @@ typedef int ImPlotAxisFlags;
 typedef int ImPlotCol;
 typedef int ImPlotStyleVar;
 typedef int ImPlotMarker;
+typedef int ImPlotColormap;
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -114,7 +115,22 @@ enum ImPlotMarker_ {
     ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
 };
 
-/// Double precision version of ImVec2 used by ImPlot. Extensible by end users.
+// Built-in colormaps
+enum ImPlotColormap_ {
+    ImPlotColormap_Default  = 0, // ImPlot default colormap         (n=10)
+    ImPlotColormap_Dark     = 1, // a.k.a. matplotlib "Set1"        (n=9)
+    ImPlotColormap_Pastel   = 2, // a.k.a. matplotlib "Pastel1"     (n=9)
+    ImPlotColormap_Paired   = 3, // a.k.a. matplotlib "Paired"      (n=12)
+    ImPlotColormap_Viridis  = 4, // a.k.a. matplotlib "viridis"     (n=11)
+    ImPlotColormap_Plasma   = 5, // a.k.a. matplotlib "plasma"      (n=11)
+    ImPlotColormap_Hot      = 6, // a.k.a. matplotlib/MATLAB "hot"  (n=11)
+    ImPlotColormap_Cool     = 7, // a.k.a. matplotlib/MATLAB "cool" (n=11)
+    ImPlotColormap_Pink     = 8, // a.k.a. matplotlib/MATLAB "pink" (n=11)
+    ImPlotColormap_Jet      = 9, // a.k.a. MATLAB "jet"             (n=11)
+    ImPlotColormap_COUNT
+};
+
+// Double precision version of ImVec2 used by ImPlot. Extensible by end users.
 struct ImPlotPoint {
     double x, y;
     ImPlotPoint()  { x = y = 0.0; }
@@ -226,6 +242,10 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents = true, float angle0 = 90);
 void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, bool show_percents = true, double angle0 = 90);
 
+// Plots a 2D heatmap chart. Values are expected to be in row-major order.
+void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, bool show_labels = true, const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
+void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels = true, const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
+
 // Plots digital data.
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
@@ -239,15 +259,15 @@ void PlotText(const char* text, double x, double y, bool vertical = false, const
 // Plot Queries
 //-----------------------------------------------------------------------------
 
-/// Returns true if the plot area in the current or most recent plot is hovered.
+// Returns true if the plot area in the current or most recent plot is hovered.
 bool IsPlotHovered();
-/// Returns the mouse position in x,y coordinates of the current or most recent plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+// Returns the mouse position in x,y coordinates of the current or most recent plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImPlotPoint GetPlotMousePos(int y_axis = -1);
-/// Returns the current or most recent plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+// Returns the current or most recent plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImPlotLimits GetPlotLimits(int y_axis = -1);
-/// Returns true if the current or most recent plot is being queried.
+// Returns true if the current or most recent plot is being queried.
 bool IsPlotQueried();
-/// Returns the current or most recent plot query bounds.
+// Returns the current or most recent plot query bounds.
 ImPlotLimits GetPlotQuery(int y_axis = -1);
 
 //-----------------------------------------------------------------------------
@@ -256,11 +276,6 @@ ImPlotLimits GetPlotQuery(int y_axis = -1);
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
-
-// Sets the color palette to be used for plot items.
-void SetPalette(const ImVec4* colors, int num_colors);
-// Restores the default ImPlot color map.
-void RestorePalette();
 
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, ImU32 col);
@@ -276,18 +291,36 @@ void PushStyleVar(ImPlotStyleVar idx, int val);
 // Undo temporary style modification.
 void PopStyleVar(int count = 1);
 
+// Switch to one of the built-in colormaps.
+void SetColormap(ImPlotColormap colormap);
+// Sets a custom colormap.
+void SetColormap(const ImVec4* colors, int num_colors);
+// Returns the size of the current colormap
+int GetColormapSize();
+/// Returns a color from the Color map given an index > 0 (modulo will be performed)
+ImVec4 GetColormapColor(int index);
+// Linearly interpolates a color from the current colormap given t between 0 and 1.
+ImVec4 LerpColormap(float t);
+
 //-----------------------------------------------------------------------------
 // Plot Utils
 //-----------------------------------------------------------------------------
 
-/// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
+// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
+// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
 void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_Once);
-/// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
+// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
 void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
 
-/// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
+// Set the X axis ticks and optionally the labels for the next plot.
+void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false);
+void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** labels = NULL, bool show_default = false);
+// Set the Y axis ticks and optionally the labels for the next plot.
+void SetNextPlotTicksY(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
+void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
+
+// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
 void SetPlotYAxis(int y_axis);
 
 // Get the current Plot position (top-left) in pixels.
@@ -299,6 +332,9 @@ ImVec2 GetPlotSize();
 ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = -1);
+
+// Renders a vertical color scale using the current color map
+void ShowColormapScale(double scale_min, double scale_max, float height);
 
 // Push clip rect for rendering to current plot area.
 void PushPlotClipRect();
