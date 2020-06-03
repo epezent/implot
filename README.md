@@ -17,6 +17,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
     - vertical/horizontal bars
     - error bars
     - pie charts
+    - heatmaps
     - and more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
@@ -29,6 +30,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 - optional legend with toggle buttons to quickly show/hide items
 - size-aware grid with smart labels that are always power-of-ten multiples of 1, 2, and 5
 - default styling based on current ImGui theme, but most elements can be customized independently 
+- several built-in colormaps
 - mouse cursor location display and optional crosshairs cursor
 - customizable data getters and data striding (just like ImGui:PlotLine)
 - relatively good performance for high density plots
