@@ -18,7 +18,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
     - error bars
     - pie charts
     - heatmaps
-    - and more likely to come
+    - and more likely to come (check [Announcements](https://github.com/epezent/implot/issues/48))
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
 - reversible and lockable axes
@@ -79,7 +79,7 @@ A: Yes to y-axes (up to three), "not yet" to x-axes.
 
 **Q: Does ImPlot support [insert plot type]?**
 
-A: Maybe. Check the gallery and demo to see if your desired plot type is shown. If not, consider submitting an issue or better yet, a PR!
+A: Maybe. Check the demo, gallery, or [Announcements](https://github.com/epezent/implot/issues/48) to see if your desired plot type is shown. If not, consider submitting an issue or better yet, a PR!
 
 **Q: Does ImPlot support 3D plots?**
 
