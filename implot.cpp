@@ -304,13 +304,23 @@ struct ImPlotState {
     int CurrentYAxis;
 };
 
-struct ImNextPlotData {
+struct ImPlotNextPlotData {
+    ImPlotNextPlotData() {
+        HasXRange = false;
+        HasUserXTickLabels = false;
+        for (int i = 0; i < MAX_Y_AXES; ++i) {
+            HasYRange[i] = false;
+            HasUserYTickLabels[i] = false;
+        }
+    }
     ImGuiCond XRangeCond;
     ImGuiCond YRangeCond[MAX_Y_AXES];
     bool HasXRange;
     bool HasYRange[MAX_Y_AXES];
     ImPlotRange X;
     ImPlotRange Y[MAX_Y_AXES];
+    bool HasUserXTickLabels;
+    bool HasUserYTickLabels[MAX_Y_AXES];
 };
 
 /// Holds Plot state information that must persist only between calls to BeginPlot()/EndPlot()
@@ -374,7 +384,7 @@ struct ImPlotContext {
     ImPlotStyle Style;
     ImVector<ImGuiColorMod> ColorModifiers;  // Stack for PushStyleColor()/PopStyleColor()
     ImVector<ImGuiStyleMod> StyleModifiers;  // Stack for PushStyleVar()/PopStyleVar()
-    ImNextPlotData NextPlotData;
+    ImPlotNextPlotData NextPlotData;
     // Digital plot item count
     int DigitalPlotItemCnt;
     int DigitalPlotOffset;
@@ -740,7 +750,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     ImGuiContext &G      = *GImGui;
     ImGuiWindow * Window = G.CurrentWindow;
     if (Window->SkipItems) {
-        gp.NextPlotData = ImNextPlotData();
+        gp.NextPlotData = ImPlotNextPlotData();
         return false;
     }
 
@@ -886,7 +896,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.BB_Frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
     ImGui::ItemSize(gp.BB_Frame);
     if (!ImGui::ItemAdd(gp.BB_Frame, 0, &gp.BB_Frame)) {
-        gp.NextPlotData = ImNextPlotData();
+        gp.NextPlotData = ImPlotNextPlotData();
         gp.CurrentPlot = NULL;
         if (!HasFlag(plot.Flags, ImPlotFlags_NoChild))
             ImGui::EndChild();
@@ -1736,7 +1746,7 @@ void EndPlot() {
     // Null current plot/data
     gp.CurrentPlot = NULL;
     // Reset next plot data
-    gp.NextPlotData = ImNextPlotData();
+    gp.NextPlotData = ImPlotNextPlotData();
     // Pop ImGui::PushID at the end of BeginPlot
     ImGui::PopID();
     // End child window
