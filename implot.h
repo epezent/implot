@@ -313,6 +313,13 @@ void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_O
 // Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
 void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
 
+// Set the X axis ticks and optionally the labels for the next plot.
+void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false);
+void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** labels = NULL, bool show_default = false);
+// Set the Y axis ticks and optionally the labels for the next plot.
+void SetNextPlotTicksY(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
+void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
+
 // Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
 void SetPlotYAxis(int y_axis);
 

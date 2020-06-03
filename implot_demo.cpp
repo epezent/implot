@@ -241,12 +241,18 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Bar Plots")) {
+        static const char* labels[] = {"S1","S2","S3","S4","S5","S6","S7","S8","S9","S10"};
+        static const double positions[] = {0,1,2,3,4,5,6,7,8,9};
         static bool horz = false;
         ImGui::Checkbox("Horizontal",&horz);
-        if (horz)
+        if (horz) {
             ImPlot::SetNextPlotLimits(0, 110, -0.5, 9.5, ImGuiCond_Always);
-        else
+            ImPlot::SetNextPlotTicksY(positions, 10, labels);
+        }
+        else {
             ImPlot::SetNextPlotLimits(-0.5, 9.5, 0, 110, ImGuiCond_Always);
+            ImPlot::SetNextPlotTicksX(positions, 10, labels);
+        }
         if (ImPlot::BeginPlot("Bar Plot", horz ? "Score":  "Student", horz ? "Student" : "Score")) {
             static t_float midtm[10] = {83, 67, 23, 89, 83, 78, 91, 82, 85, 90};
             static t_float final[10] = {80, 62, 56, 99, 55, 78, 88, 78, 90, 100};
@@ -331,15 +337,21 @@ void ShowDemoWindow(bool* p_open) {
             values2[i] = RandomRange(0,1);
         }
         static ImPlotColormap map = ImPlotColormap_Viridis;
-        if (ImGui::Button("Cycle Colormap",ImVec2(225,0)))
+        if (ImGui::Button("Change Colormap",ImVec2(225,0)))
             map = (map + 1) % ImPlotColormap_COUNT;
         ImPlot::SetColormap(map);
         ImGui::SameLine();
         ImGui::LabelText("##Colormap Index", cmap_names[map]);
         ImGui::SetNextItemWidth(225);
         ImGui::DragFloat("Max",&scale_max,0.01f,0.1f,20);
-        static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax;
-        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(225,225),ImPlotFlags_ContextMenu,axes_flags,axes_flags)) {
+        static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax | ImPlotAxisFlags_TickLabels;
+        static const char* xlabels[] = {"C1","C2","C3","C4","C5","C6","C7"};
+        static const char* ylabels[] = {"R1","R2","R3","R4","R5","R6","R7"};
+
+        SetNextPlotTicksX(0 + 1.0/14.0, 1 - 1.0/14.0, 7, xlabels);
+        SetNextPlotTicksY(1- 1.0/14.0, 0 + 1.0/14.0, 7,  ylabels);
+
+        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(225,225),0,axes_flags,axes_flags)) {
             ImPlot::PlotHeatmap("heat",values1[0],7,7,scale_min,scale_max);
             ImPlot::EndPlot();
         }
@@ -388,11 +400,11 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Markers and Text")) {
         static ImPlotColormap map = ImPlotColormap_Default;
-        if (ImGui::Button("Cycle Colormap##2"))
+        if (ImGui::Button("Change Colormap##2"))
             map = (map + 1) % ImPlotColormap_COUNT;
         ImGui::SameLine();
         ImGui::LabelText("##Colormap Index", cmap_names[map]);
-        ImGui::PushID(map); // NB: The merely a workaround so that the demo can cycle color maps. You wouldn't need to do this in your own code!
+        ImGui::PushID(map); // NB: This is merely a workaround so that the demo can cycle color maps. You wouldn't need to do this in your own code!
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
         if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {
             ImPlot::SetColormap(map);
@@ -826,6 +838,33 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SliderInt("Offset", &offset, -100, 100);
         if (ImPlot::BeginPlot("##offset")) {
             ImPlot::PlotLine("circle", xs, ys, 50, offset);
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Custom Ticks")) {
+        static bool custom_ticks  = true;
+        static bool custom_labels = true;
+        ImGui::Checkbox("Show Custom Ticks", &custom_ticks);
+        if (custom_ticks) {
+            ImGui::SameLine();
+            ImGui::Checkbox("Show Custom Labels", &custom_labels);
+        }
+        double pi = 3.14;
+        const char* pi_str[] = {"PI"};
+        static double yticks[] = {1,3,7,9};
+        static const char*  ylabels[] = {"One","Three","Seven","Nine"};
+        static double yticks_aux[] = {0.2,0.4,0.6};
+        static const char* ylabels_aux[] = {"A","B","C","D","E","F"};
+        if (custom_ticks) {
+            ImPlot::SetNextPlotTicksX(&pi,1,custom_labels ? pi_str : NULL, true);
+            ImPlot::SetNextPlotTicksY(yticks, 4, custom_labels ? ylabels : NULL);
+            ImPlot::SetNextPlotTicksY(yticks_aux, 3, custom_labels ? ylabels_aux : NULL, false, 1);
+            ImPlot::SetNextPlotTicksY(0, 1, 6, custom_labels ? ylabels_aux : NULL, false, 2);
+        }
+        ImPlot::SetNextPlotLimits(2.5,5,0,10);
+        if (ImPlot::BeginPlot("Custom Ticks", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Default | ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
+
             ImPlot::EndPlot();
         }
     }
