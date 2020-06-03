@@ -243,6 +243,7 @@ void PlotPieChart(const char** label_ids, float* values, int count, float x, flo
 void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, bool show_percents = true, double angle0 = 90);
 
 // Plots a 2D heatmap chart. Values are expected to be in row-major order.
+void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, bool show_labels = true, const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
 void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels = true, const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
 
 // Plots digital data.
@@ -324,6 +325,9 @@ ImVec2 GetPlotSize();
 ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = -1);
+
+// Renders a vertical color scale using the current color map
+void ShowColormapScale(double scale_min, double scale_max, float height);
 
 // Push clip rect for rendering to current plot area.
 void PushPlotClipRect();

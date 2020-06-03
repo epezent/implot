@@ -537,33 +537,6 @@ struct TransformerLogLog {
 // Legend Utils
 //-----------------------------------------------------------------------------
 
-/// Utility function to that rounds x to powers of 2,5 and 10 for generating axis labels
-/// Taken from Graphics Gems 1 Chapter 11.2, "Nice Numbers for Graph Labels"
-inline double NiceNum(double x, bool round) {
-    double f;  /* fractional part of x */
-    double nf; /* nice, rounded fraction */
-    int expv = (int)floor(ImLog10(x));
-    f = x / ImPow(10.0, (double)expv); /* between 1 and 10 */
-    if (round)
-        if (f < 1.5)
-            nf = 1;
-        else if (f < 3)
-            nf = 2;
-        else if (f < 7)
-            nf = 5;
-        else
-            nf = 10;
-    else if (f <= 1)
-        nf = 1;
-    else if (f <= 2)
-        nf = 2;
-    else if (f <= 5)
-        nf = 5;
-    else
-        nf = 10;
-    return nf * ImPow(10.0, expv);
-}
-
 ImPlotItem* RegisterItem(const char* label_id) {
     ImGuiID id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);
@@ -595,6 +568,33 @@ const char* GetLegendLabel(int i) {
 // Tick Utils
 //-----------------------------------------------------------------------------
 
+/// Utility function to that rounds x to powers of 2,5 and 10 for generating axis labels
+/// Taken from Graphics Gems 1 Chapter 11.2, "Nice Numbers for Graph Labels"
+inline double NiceNum(double x, bool round) {
+    double f;  /* fractional part of x */
+    double nf; /* nice, rounded fraction */
+    int expv = (int)floor(ImLog10(x));
+    f = x / ImPow(10.0, (double)expv); /* between 1 and 10 */
+    if (round)
+        if (f < 1.5)
+            nf = 1;
+        else if (f < 3)
+            nf = 2;
+        else if (f < 7)
+            nf = 5;
+        else
+            nf = 10;
+    else if (f <= 1)
+        nf = 1;
+    else if (f <= 2)
+        nf = 2;
+    else if (f <= 5)
+        nf = 5;
+    else
+        nf = 10;
+    return nf * ImPow(10.0, expv);
+}
+
 inline void GetTicks(const ImPlotRange& range, int nMajor, int nMinor, bool logscale, ImVector<ImTick> &out) {
     out.shrink(0);
     if (logscale) {
@@ -616,7 +616,6 @@ inline void GetTicks(const ImPlotRange& range, int nMajor, int nMinor, bool logs
         }
     }
     else {
-
         const double nice_range    = NiceNum(range.Size() * 0.99, 0);
         const double interval      = NiceNum(nice_range / (nMajor - 1), 1);
         const double graphmin      = floor(range.Min / interval) * interval;
@@ -1340,17 +1339,17 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 //-----------------------------------------------------------------------------
 
 template <typename F>
-bool Dragdouble(const char* label, F* v, float v_speed, F v_min, F v_max) {
+bool DragFloat(const char* label, F* v, float v_speed, F v_min, F v_max) {
     return false;
 }
 
 template <>
-bool Dragdouble<double>(const char* label, double* v, float v_speed, double v_min, double v_max) {
+bool DragFloat<double>(const char* label, double* v, float v_speed, double v_min, double v_max) {
     return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, "%.3f", 1);
 }
 
 template <>
-bool Dragdouble<float>(const char* label, float* v, float v_speed, float v_min, float v_max) {
+bool DragFloat<float>(const char* label, float* v, float v_speed, float v_min, float v_max) {
     return ImGui::DragScalar(label, ImGuiDataType_Float, v, v_speed, &v_min, &v_max, "%.3f", 1);
 }
 
@@ -1370,7 +1369,7 @@ inline void AxisMenu(ImPlotAxis& Axis) {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);
     }
-    Dragdouble("Min", &Axis.Range.Min, 0.01f + 0.01f * (float)Axis.Range.Size(), -HUGE_VAL, Axis.Range.Max - DBL_EPSILON);
+    DragFloat("Min", &Axis.Range.Min, 0.01f + 0.01f * (float)Axis.Range.Size(), -HUGE_VAL, Axis.Range.Max - DBL_EPSILON);
     if (lock_min) {
         ImGui::PopItemFlag();
         ImGui::PopStyleVar();    }
@@ -1381,7 +1380,7 @@ inline void AxisMenu(ImPlotAxis& Axis) {
     if (lock_max) {
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);    }
-    Dragdouble("Max", &Axis.Range.Max, 0.01f + 0.01f * (float)Axis.Range.Size(), Axis.Range.Min + DBL_EPSILON, HUGE_VAL);
+    DragFloat("Max", &Axis.Range.Max, 0.01f + 0.01f * (float)Axis.Range.Size(), Axis.Range.Min + DBL_EPSILON, HUGE_VAL);
     if (lock_max) {
         ImGui::PopItemFlag();
         ImGui::PopStyleVar();
@@ -1561,7 +1560,6 @@ void EndPlot() {
                     gp.Col_Border, 1);
         }
     }
-
     ImGui::PopClipRect();
 
     PushPlotClipRect();
@@ -2110,23 +2108,23 @@ inline void RenderLine(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2,
     DrawList._VtxCurrentIdx += 4;
 }
 
-inline void RenderRect(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2, ImU32 col, ImVec2 uv) {
+inline void RenderRect(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2, ImU32 col_ul, ImU32 col_ur, ImU32 col_bl, ImU32 col_br, ImVec2 uv) {
     DrawList._VtxWritePtr[0].pos.x = p1.x;
     DrawList._VtxWritePtr[0].pos.y = p1.y;
     DrawList._VtxWritePtr[0].uv    = uv;
-    DrawList._VtxWritePtr[0].col   = col;
+    DrawList._VtxWritePtr[0].col   = col_ul;
     DrawList._VtxWritePtr[1].pos.x = p2.x;
     DrawList._VtxWritePtr[1].pos.y = p1.y;
     DrawList._VtxWritePtr[1].uv    = uv;
-    DrawList._VtxWritePtr[1].col   = col;
+    DrawList._VtxWritePtr[1].col   = col_ur;
     DrawList._VtxWritePtr[2].pos.x = p2.x;
     DrawList._VtxWritePtr[2].pos.y = p2.y;
     DrawList._VtxWritePtr[2].uv    = uv;
-    DrawList._VtxWritePtr[2].col   = col;
+    DrawList._VtxWritePtr[2].col   = col_br;
     DrawList._VtxWritePtr[3].pos.x = p1.x;
     DrawList._VtxWritePtr[3].pos.y = p2.y;
     DrawList._VtxWritePtr[3].uv    = uv;
-    DrawList._VtxWritePtr[3].col   = col;
+    DrawList._VtxWritePtr[3].col   = col_bl;
     DrawList._VtxWritePtr += 4;
     DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
     DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
@@ -2841,22 +2839,13 @@ void PlotPieChart(const char** label_ids, double* values, int count, double x, d
 // PLOT HEATMAP
 //-----------------------------------------------------------------------------
 
-void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotHeatmap() Needs to be called between BeginPlot() and EndPlot()!");
-    ImPlotItem* item = RegisterItem(label_id);
-    if (!item->Show)
-        return;
-    if (gp.FitThisFrame) {
-        FitPoint(bounds_min);
-        FitPoint(bounds_max);        
-    }
-    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
+template <typename T, typename Transformer>
+void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* values, int rows, int cols, T scale_min, T scale_max, bool show_labels, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
     const double w = (bounds_max.x - bounds_min.x) / cols;
     const double h = (bounds_max.y - bounds_min.y) / rows;
     const ImPlotPoint half_size(w*0.5,h*0.5);
     const int n = rows * cols;
     int i = 0;
-    ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
     DrawList.PrimReserve(6*n, 4*n);
     const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
     for (int r = 0; r < rows; ++r) {
@@ -2864,13 +2853,13 @@ void PlotHeatmap(const char* label_id, const double* values, int rows, int cols,
             ImPlotPoint p;
             p.x = bounds_min.x + 0.5*w + c*w;
             p.y = bounds_min.y + 1 - (0.5*h + r*h);
-            ImVec2 px = PlotToPixels(p);
-            ImVec2 a  = PlotToPixels(p.x - half_size.x, p.y - half_size.y);
-            ImVec2 b  = PlotToPixels(p.x + half_size.x, p.y + half_size.y);
-            float t = (float)Remap(values[i], scale_min, scale_max, 0.0, 1.0);
+            ImVec2 px = transformer(p);
+            ImVec2 a  = transformer(p.x - half_size.x, p.y - half_size.y);
+            ImVec2 b  = transformer(p.x + half_size.x, p.y + half_size.y);
+            float t = (float)Remap(values[i], scale_min, scale_max, T(0), T(1));
             ImVec4 color = LerpColormap(t);
-            // DrawList.AddRectFilled(a, b, ImGui::GetColorU32(color));
-            RenderRect(DrawList, a, b, ImGui::GetColorU32(color), uv);
+            ImU32 col = ImGui::GetColorU32(color);
+            RenderRect(DrawList, a, b, col, col, col, col, uv);
             i++;
         }
     }
@@ -2882,7 +2871,7 @@ void PlotHeatmap(const char* label_id, const double* values, int rows, int cols,
                 ImPlotPoint p;
                 p.x = bounds_min.x + 0.5*w + c*w;
                 p.y = bounds_min.y + 1 - (0.5*h + r*h);
-                ImVec2 px = PlotToPixels(p);
+                ImVec2 px = transformer(p);
                 char buff[32];
                 sprintf(buff, "%g", values[i]);
                 ImVec2 size = ImGui::CalcTextSize(buff);
@@ -2891,7 +2880,46 @@ void PlotHeatmap(const char* label_id, const double* values, int rows, int cols,
             }
         }
     }
+}
+
+template <typename T>
+void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T scale_min, T scale_max, bool show_labels, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotHeatmap() Needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(scale_min != scale_max, "Scale values must be different!");
+    ImPlotItem* item = RegisterItem(label_id);
+    if (!item->Show)
+        return;
+    if (gp.FitThisFrame) {
+        FitPoint(bounds_min);
+        FitPoint(bounds_max);
+    }
+    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
+    ImGui::PushClipRect(gp.BB_Grid.Min, gp.BB_Grid.Max, true);
+    ImPlotState* plot = gp.CurrentPlot;
+    int y_axis = plot->CurrentYAxis;
+    if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
+        RenderHeatmap(TransformerLogLog(y_axis), DrawList, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+    else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
+        RenderHeatmap(TransformerLogLin(y_axis), DrawList, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+    else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
+        RenderHeatmap(TransformerLinLog(y_axis), DrawList, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+    else
+        RenderHeatmap(TransformerLinLin(y_axis), DrawList, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
     ImGui::PopClipRect();
+}
+
+//-----------------------------------------------------------------------------
+// float
+
+void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, bool show_labels, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+    return PlotHeatmapEx(label_id, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+}
+
+//-----------------------------------------------------------------------------
+// double
+
+void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+    return PlotHeatmapEx(label_id, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
 }
 
 //-----------------------------------------------------------------------------
@@ -3023,12 +3051,12 @@ void PlotText(const char* text, double x, double y, bool vertical, const ImVec2&
 //------------------------------------------------------------------------------
 
 void SetColormap(const ImVec4* colors, int num_colors) {
-    IM_ASSERT_USER_ERROR(num_colors > 0, "The number of colors cannot be 0!");
+    IM_ASSERT_USER_ERROR(num_colors > 1, "The number of colors must be greater than 1!");
     static ImVector<ImVec4> user_colormap;
     user_colormap.shrink(0);
     user_colormap.reserve(num_colors);
-    for (int i = 0; i < num_colors; ++i) 
-        user_colormap.push_back(colors[i]);    
+    for (int i = 0; i < num_colors; ++i)
+        user_colormap.push_back(colors[i]);
     gp.Colormap = &user_colormap[0];
     gp.ColormapSize = num_colors;
 }
@@ -3045,15 +3073,68 @@ ImVec4 GetColormapColor(int index) {
 }
 
 ImVec4 LerpColormap(float t) {
-    t = ImClamp(t,0.0f,1.0f);
-    int i1 = (int)((gp.ColormapSize-1) * t);
+    float tc = ImClamp(t,0.0f,1.0f);
+    int i1 = (int)((gp.ColormapSize -1 ) * tc);
     int i2 = i1 + 1;
     if (i2 == gp.ColormapSize)
         return gp.Colormap[i1];
-    float t1 = (float)i1 / (float)gp.ColormapSize;
-    float t2 = (float)i2 / (float)gp.ColormapSize;
-    t = Remap(t, t1, t2, 0.0f, 1.0f);
-    return ImLerp(gp.Colormap[i1], gp.Colormap[i2], t);
+    float t1 = (float)i1 / (float)(gp.ColormapSize - 1);
+    float t2 = (float)i2 / (float)(gp.ColormapSize - 1);
+    float tr = Remap(t, t1, t2, 0.0f, 1.0f);
+    return ImLerp(gp.Colormap[i1], gp.Colormap[i2], tr);
+}
+
+void ShowColormapScale(double scale_min, double scale_max, float height) {
+    static ImVector<ImTick> ticks;
+    static ImGuiTextBuffer txt_buff;
+    ImPlotRange range;
+    range.Min = scale_min;
+    range.Max = scale_max;
+    GetTicks(range, 10, 0, false, ticks);
+    LabelTicks(ticks, false, txt_buff);
+    float max_width = 0;
+    for (int i = 0; i < ticks.Size; ++i)
+        max_width = ticks[i].Size.x > max_width ? ticks[i].Size.x : max_width;
+
+    ImGuiContext &G      = *GImGui;
+    ImGuiWindow * Window = G.CurrentWindow;
+    if (Window->SkipItems)
+        return;
+    const ImGuiStyle &Style    = G.Style;
+    const float txt_off = 5;
+    const float bar_w   = 20;
+
+    ImDrawList &DrawList = *Window->DrawList;
+    ImVec2 size(bar_w + txt_off + max_width + 2 * Style.WindowPadding.x, height);
+    ImRect bb_frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + size);
+    ImGui::ItemSize(bb_frame);
+    if (!ImGui::ItemAdd(bb_frame, 0, &bb_frame))
+        return;
+    ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, ImGui::GetColorU32(ImGuiCol_FrameBg));
+    ImRect bb_grad(bb_frame.Min + Style.WindowPadding, bb_frame.Min + ImVec2(bar_w + Style.WindowPadding.x, height - Style.WindowPadding.y));
+
+    int num_cols = GetColormapSize();
+    float h_step = (height - 2 * Style.WindowPadding.y) / (num_cols - 1);
+    const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
+    for (int i = 0; i < num_cols-1; ++i) {
+        ImRect rect(bb_grad.Min.x, bb_grad.Min.y + h_step * i, bb_grad.Max.x, bb_grad.Min.y + h_step * (i + 1));
+        ImU32 col1 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - i));
+        ImU32 col2 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - (i+1)));
+        DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col1, col2, col2);
+    }
+    ImU32 col_border = gp.Style.Colors[ImPlotCol_PlotBorder].w  == -1 ? ImGui::GetColorU32(ImGuiCol_Text, 0.5f) : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_PlotBorder]);
+
+    ImGui::PushClipRect(bb_frame.Min, bb_frame.Max, true);
+    for (int i = 0; i < ticks.Size; ++i) {
+        float ypos = Remap((float)ticks[i].PlotPos, (float)range.Max, (float)range.Min, bb_grad.Min.y, bb_grad.Max.y);
+        if (ypos < bb_grad.Max.y - 2 && ypos > bb_grad.Min.y + 2)
+            DrawList.AddLine(ImVec2(bb_grad.Max.x-1, ypos), ImVec2(bb_grad.Max.x - (ticks[i].Major ? 10.0f : 5.0f), ypos), col_border, 1.0f);
+        DrawList.AddText(ImVec2(bb_grad.Max.x-1, ypos) + ImVec2(txt_off, -ticks[i].Size.y * 0.5f), ImGui::GetColorU32(ImGuiCol_Text), txt_buff.Buf.Data + ticks[i].TextOffset);
+    }
+    ImGui::PopClipRect();
+
+    DrawList.AddRect(bb_grad.Min, bb_grad.Max, col_border);
+
 }
 
 void SetColormap(ImPlotColormap colormap) {

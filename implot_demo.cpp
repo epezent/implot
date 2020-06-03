@@ -54,7 +54,7 @@ typedef ImVec2 t_float2;
 #define Fmod fmodf
 #endif
 
-namespace {
+namespace ImPlot {
 
 t_float RandomRange(t_float min, t_float max) {
     t_float scale = rand() / (t_float) RAND_MAX;
@@ -118,10 +118,6 @@ struct BenchmarkItem {
     t_float2* Data;
     ImVec4 Col;
 };
-
-} // private namespace
-
-namespace ImPlot {
 
 void ShowDemoWindow(bool* p_open) {
     static const char* cmap_names[]   = {"Default","Dark","Pastel","Paired","Viridis","Plasma","Hot","Cool","Pink","Jet"};
@@ -321,40 +317,43 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Heatmaps")) {
-        static double values1[7][7] = {{0.8, 2.4, 2.5, 3.9, 0.0, 4.0, 0.0},
-                                       {2.4, 0.0, 4.0, 1.0, 2.7, 0.0, 0.0},
-                                       {1.1, 2.4, 0.8, 4.3, 1.9, 4.4, 0.0},
-                                       {0.6, 0.0, 0.3, 0.0, 3.1, 0.0, 0.0},
-                                       {0.7, 1.7, 0.6, 2.6, 2.2, 6.2, 0.0},
-                                       {1.3, 1.2, 0.0, 0.0, 0.0, 3.2, 5.1},
-                                       {0.1, 2.0, 0.0, 1.4, 0.0, 1.9, 6.3}};
+        static t_float values1[7][7] = {{0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f},
+                                        {2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f},
+                                        {1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f},
+                                        {0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f},
+                                        {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f},
+                                        {1.3f, 1.2f, 0.0f, 0.0f, 0.0f, 3.2f, 5.1f},
+                                        {0.1f, 2.0f, 0.0f, 1.4f, 0.0f, 1.9f, 6.3f}};
         static float scale_min = 0;
         static float scale_max = 6.3f;
-        static double values2[100*100];
+        static t_float values2[100*100];
         for (int i = 0; i < 100*100; ++i) {
             values2[i] = RandomRange(0,1);
         }
         static ImPlotColormap map = ImPlotColormap_Viridis;
-        if (ImGui::Button("Cycle Colormap"))
+        if (ImGui::Button("Cycle Colormap",ImVec2(225,0)))
             map = (map + 1) % ImPlotColormap_COUNT;
+        ImPlot::SetColormap(map);
         ImGui::SameLine();
         ImGui::LabelText("##Colormap Index", cmap_names[map]);
-        ImGui::DragFloatRange2("Scale (Left Only)",&scale_min,&scale_max,0.01f);
+        ImGui::SetNextItemWidth(225);
+        ImGui::DragFloat("Max",&scale_max,0.01f,0.1f,20);
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax;
-        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(250,250))) {
-            ImPlot::SetColormap(map);
+        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(225,225),ImPlotFlags_ContextMenu,axes_flags,axes_flags)) {
             ImPlot::PlotHeatmap("heat",values1[0],7,7,scale_min,scale_max);
             ImPlot::EndPlot();
-            ImPlot::SetColormap(ImPlotColormap_Default);
         }
         ImGui::SameLine();
-        SetNextPlotLimits(1,2,1,2);
-        if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(250,250),0,axes_flags,axes_flags)) {
-            ImPlot::SetColormap(map);
-            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,false,{1,1},{2,2});
+        ImPlot::ShowColormapScale(scale_min, scale_max, 225);
+        ImPlot::SetColormap(ImPlotColormap_Default);
+        ImGui::SameLine();
+        static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
+        ImPlot::SetColormap(&gray[0], 2);
+        if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),ImPlotFlags_ContextMenu,0,0)) {
+            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,false);
             ImPlot::EndPlot();
-            ImPlot::SetColormap(ImPlotColormap_Default);
         }
+        ImPlot::SetColormap(ImPlotColormap_Default);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Realtime Plots")) {
@@ -387,13 +386,13 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Colormaps, Markers, and Text")) {
+    if (ImGui::CollapsingHeader("Markers and Text")) {
         static ImPlotColormap map = ImPlotColormap_Default;
-        if (ImGui::Button("Cycle Colormap"))
+        if (ImGui::Button("Cycle Colormap##2"))
             map = (map + 1) % ImPlotColormap_COUNT;
         ImGui::SameLine();
         ImGui::LabelText("##Colormap Index", cmap_names[map]);
-        ImGui::PushID(map); // NB: The merely a workaround so that the demo can cycle color maps. You wouldn't need to do this in your own code!  
+        ImGui::PushID(map); // NB: The merely a workaround so that the demo can cycle color maps. You wouldn't need to do this in your own code!
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
         if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {
             ImPlot::SetColormap(map);
