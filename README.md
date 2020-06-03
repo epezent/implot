@@ -26,11 +26,11 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 - controls for zooming, panning, box selection, and auto-fitting data
 - controls for creating persistent query ranges (see demo)
 - several plot styling options: 10 marker types, adjustable marker sizes, line weights, outline colors, fill colors, etc.
+- built-in and user definable colormaps
 - optional plot titles, axis labels, and grid labels
 - optional legend with toggle buttons to quickly show/hide items
 - size-aware grid with smart labels that are always power-of-ten multiples of 1, 2, and 5
 - default styling based on current ImGui theme, but most elements can be customized independently 
-- several built-in colormaps
 - mouse cursor location display and optional crosshairs cursor
 - customizable data getters and data striding (just like ImGui:PlotLine)
 - relatively good performance for high density plots
