@@ -663,7 +663,7 @@ void ShowDemoWindow(bool* p_open) {
             paused = !paused;
         ImGui::Separator();
         for (int i = 0; i < K_CHANNELS; ++i) {
-            char label[K_CHANNELS];
+            char label[8];
             sprintf(label, show[i] ? "data_%d*" : "data_%d", i);
             ImGui::Selectable(label, false, 0, ImVec2(100, 0));
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
