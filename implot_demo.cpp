@@ -303,20 +303,12 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
-
-        static ImVec4 YlOrRd[5] = {
-            ImVec4(1.0000f,    1.0000f,    0.8000f, 1.0f),
-            ImVec4(0.9961f,    0.8510f,    0.4627f, 1.0f),
-            ImVec4(0.9961f,    0.6314f,    0.2627f, 1.0f),
-            ImVec4(0.9882f,    0.3059f,    0.1647f, 1.0f),
-            ImVec4(0.7412f,       0.0f,    0.1490f, 1.0f),
-        };
-        ImPlot::SetColormap(YlOrRd, 5);
+        ImPlot::SetColormap(ImPlotColormap_Cool, 5);
         SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        static const char* labels2[]   = {"One","Two","Three","Four","Five"};
-        static t_float not_normalized[] = {1,2,3,4,5};
+        static const char* labels2[]   = {"One##1","One##2","Two","Three","Five"};
+        static t_float not_normalized[] = {1,1,2,3,5};
         if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
-            ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f, false, 0);
+            ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f, NULL, 0);
             ImPlot::EndPlot();
         }
         ImPlot::SetColormap(ImPlotColormap_Default);
@@ -341,7 +333,7 @@ void ShowDemoWindow(bool* p_open) {
             map = (map + 1) % ImPlotColormap_COUNT;
         ImPlot::SetColormap(map);
         ImGui::SameLine();
-        ImGui::LabelText("##Colormap Index", cmap_names[map]);
+        ImGui::LabelText("##Colormap Index", "%s", cmap_names[map]);
         ImGui::SetNextItemWidth(225);
         ImGui::DragFloat("Max",&scale_max,0.01f,0.1f,20);
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax | ImPlotAxisFlags_TickLabels;
@@ -362,7 +354,7 @@ void ShowDemoWindow(bool* p_open) {
         static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
         ImPlot::SetColormap(&gray[0], 2);
         if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),ImPlotFlags_ContextMenu,0,0)) {
-            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,false);
+            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,NULL);
             ImPlot::EndPlot();
         }
         ImPlot::SetColormap(ImPlotColormap_Default);
@@ -403,7 +395,7 @@ void ShowDemoWindow(bool* p_open) {
         if (ImGui::Button("Change Colormap##2"))
             map = (map + 1) % ImPlotColormap_COUNT;
         ImGui::SameLine();
-        ImGui::LabelText("##Colormap Index", cmap_names[map]);
+        ImGui::LabelText("##Colormap Index", "%s", cmap_names[map]);
         ImGui::PushID(map); // NB: This is merely a workaround so that the demo can cycle color maps. You wouldn't need to do this in your own code!
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
         if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {

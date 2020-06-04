@@ -239,12 +239,12 @@ void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
 
 // Plots a pie chart. If the sum of values > 1, each value will be normalized. Center and radius are in plot coordinates.
-void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents = true, float angle0 = 90);
-void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, bool show_percents = true, double angle0 = 90);
+void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, const char* label_fmt = "%.1f%%", float angle0 = 90);
+void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, const char* label_fmt = "%.1f%%", double angle0 = 90);
 
-// Plots a 2D heatmap chart. Values are expected to be in row-major order.
-void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, bool show_labels = true, const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
-void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels = true, const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
+// Plots a 2D heatmap chart. Values are expected to be in row-major order. label_fmt can be set to NULL for no labels.
+void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
+void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
 
 // Plots digital data.
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
@@ -291,8 +291,8 @@ void PushStyleVar(ImPlotStyleVar idx, int val);
 // Undo temporary style modification.
 void PopStyleVar(int count = 1);
 
-// Switch to one of the built-in colormaps.
-void SetColormap(ImPlotColormap colormap);
+// Switch to one of the built-in colormaps. If samples is greater than 1, the map will be linearly resampled.
+void SetColormap(ImPlotColormap colormap, int samples = 0);
 // Sets a custom colormap.
 void SetColormap(const ImVec4* colors, int num_colors);
 // Returns the size of the current colormap

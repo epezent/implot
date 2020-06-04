@@ -2862,7 +2862,7 @@ inline void DrawPieSlice(ImDrawList& DrawList, const ImPlotPoint& center, double
 }
 
 template <typename T>
-void PlotPieChartEx(const char** label_ids, T* values, int count, T x, T y, T radius, bool show_percents, T angle0) {
+void PlotPieChartEx(const char** label_ids, T* values, int count, T x, T y, T radius, const char* fmt, T angle0) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
@@ -2890,9 +2890,9 @@ void PlotPieChartEx(const char** label_ids, T* values, int count, T x, T y, T ra
                 DrawPieSlice(DrawList, center, radius, a0, a0 + (a1 - a0) * 0.5f, col);
                 DrawPieSlice(DrawList, center, radius, a0 + (a1 - a0) * 0.5f, a1, col);
             }
-            if (show_percents) {
-                char buffer[8];
-                sprintf(buffer, "%.0f%%", percent * 100);
+            if (fmt != NULL) {
+                char buffer[32];
+                sprintf(buffer, fmt, percent * 100);
                 ImVec2 size = ImGui::CalcTextSize(buffer);
                 T angle = a0 + (a1 - a0) * 0.5f;
                 ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
@@ -2908,15 +2908,15 @@ void PlotPieChartEx(const char** label_ids, T* values, int count, T x, T y, T ra
 //-----------------------------------------------------------------------------
 // float
 
-void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, bool show_percents, float angle0) {
-    return PlotPieChartEx(label_ids, values, count, x, y, radius, show_percents, angle0);
+void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, const char* fmt, float angle0) {
+    return PlotPieChartEx(label_ids, values, count, x, y, radius, fmt, angle0);
 }
 
 //-----------------------------------------------------------------------------
 // double
 
-void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, bool show_percents, double angle0) {
-    return PlotPieChartEx(label_ids, values, count, x, y, radius, show_percents, angle0);
+void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, const char* fmt, double angle0) {
+    return PlotPieChartEx(label_ids, values, count, x, y, radius, fmt, angle0);
 }
 
 //-----------------------------------------------------------------------------
@@ -2924,7 +2924,7 @@ void PlotPieChart(const char** label_ids, double* values, int count, double x, d
 //-----------------------------------------------------------------------------
 
 template <typename T, typename Transformer>
-void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* values, int rows, int cols, T scale_min, T scale_max, bool show_labels, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* values, int rows, int cols, T scale_min, T scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
     const double w = (bounds_max.x - bounds_min.x) / cols;
     const double h = (bounds_max.y - bounds_min.y) / rows;
     const ImPlotPoint half_size(w*0.5,h*0.5);
@@ -2937,7 +2937,6 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
             ImPlotPoint p;
             p.x = bounds_min.x + 0.5*w + c*w;
             p.y = bounds_min.y + 1 - (0.5*h + r*h);
-            ImVec2 px = transformer(p);
             ImVec2 a  = transformer(p.x - half_size.x, p.y - half_size.y);
             ImVec2 b  = transformer(p.x + half_size.x, p.y + half_size.y);
             float t = (float)Remap(values[i], scale_min, scale_max, T(0), T(1));
@@ -2947,7 +2946,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
             i++;
         }
     }
-    if (show_labels) {
+    if (fmt != NULL) {
         // this has to go in its own loop due to PrimReserve above
         i = 0;
         for (int r = 0; r < rows; ++r) {
@@ -2957,7 +2956,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
                 p.y = bounds_min.y + 1 - (0.5*h + r*h);
                 ImVec2 px = transformer(p);
                 char buff[32];
-                sprintf(buff, "%g", values[i]);
+                sprintf(buff, fmt, values[i]);
                 ImVec2 size = ImGui::CalcTextSize(buff);
                 DrawList.AddText(px - size * 0.5f, ImGui::GetColorU32(ImGuiCol_Text), buff);
                 i++;
@@ -2967,7 +2966,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
 }
 
 template <typename T>
-void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T scale_min, T scale_max, bool show_labels, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T scale_min, T scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotHeatmap() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(scale_min != scale_max, "Scale values must be different!");
     ImPlotItem* item = RegisterItem(label_id);
@@ -2982,28 +2981,28 @@ void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T 
     ImPlotState* plot = gp.CurrentPlot;
     int y_axis = plot->CurrentYAxis;
     if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderHeatmap(TransformerLogLog(y_axis), DrawList, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+        RenderHeatmap(TransformerLogLog(y_axis), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
     else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-        RenderHeatmap(TransformerLogLin(y_axis), DrawList, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+        RenderHeatmap(TransformerLogLin(y_axis), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
     else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderHeatmap(TransformerLinLog(y_axis), DrawList, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+        RenderHeatmap(TransformerLinLog(y_axis), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
     else
-        RenderHeatmap(TransformerLinLin(y_axis), DrawList, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+        RenderHeatmap(TransformerLinLin(y_axis), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
     ImGui::PopClipRect();
 }
 
 //-----------------------------------------------------------------------------
 // float
 
-void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, bool show_labels, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
-    return PlotHeatmapEx(label_id, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+    return PlotHeatmapEx(label_id, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
 }
 
 //-----------------------------------------------------------------------------
 // double
 
-void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, bool show_labels, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
-    return PlotHeatmapEx(label_id, values, rows, cols, scale_min, scale_max, show_labels, bounds_min, bounds_max);
+void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+    return PlotHeatmapEx(label_id, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
 }
 
 //-----------------------------------------------------------------------------
@@ -3201,7 +3200,6 @@ void ShowColormapScale(double scale_min, double scale_max, float height) {
 
     int num_cols = GetColormapSize();
     float h_step = (height - 2 * Style.WindowPadding.y) / (num_cols - 1);
-    const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
     for (int i = 0; i < num_cols-1; ++i) {
         ImRect rect(bb_grad.Min.x, bb_grad.Min.y + h_step * i, bb_grad.Max.x, bb_grad.Min.y + h_step * (i + 1));
         ImU32 col1 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - i));
@@ -3223,7 +3221,7 @@ void ShowColormapScale(double scale_min, double scale_max, float height) {
 
 }
 
-void SetColormap(ImPlotColormap colormap) {
+void SetColormap(ImPlotColormap colormap, int samples) {
     static int csizes[ImPlotColormap_COUNT] = {10,9,9,12,11,11,11,11,11,11};
     static OffsetCalculator<ImPlotCol_COUNT> coffs(csizes);
     static ImVec4 cdata[] {
@@ -3347,6 +3345,16 @@ void SetColormap(ImPlotColormap colormap) {
     // TODO: Calculate offsets at compile time
     gp.Colormap     = &cdata[coffs.Offsets[colormap]];
     gp.ColormapSize = csizes[colormap];
+
+    if (samples > 1) {
+        static ImVector<ImVec4> resampled;
+        resampled.resize(samples);
+        for (int i = 0; i < samples; ++i) {
+            float t = i * 1.0f / (samples - 1);
+            resampled[i] = LerpColormap(t);
+        }
+        SetColormap(&resampled[0], samples);
+    }
 }
 
 }  // namespace ImPlot
