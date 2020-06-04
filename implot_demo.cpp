@@ -67,7 +67,7 @@ struct ScrollingData {
     int Offset;
     ImVector<t_float2> Data;
     ScrollingData() {
-        MaxSize = 1000;
+        MaxSize = 2000;
         Offset  = 0;
         Data.reserve(MaxSize);
     }
@@ -93,7 +93,7 @@ struct RollingData {
     ImVector<t_float2> Data;
     RollingData() {
         Span = 10.0f;
-        Data.reserve(1000);
+        Data.reserve(2000);
     }
     void AddPoint(t_float x, t_float y) {
         t_float xmod = Fmod(x, Span);
@@ -375,14 +375,20 @@ void ShowDemoWindow(bool* p_open) {
             sdata2.AddPoint(t, mouse.y * 0.0005f);
             rdata2.AddPoint(t, mouse.y * 0.0005f);
         }
-        ImPlot::SetNextPlotLimitsX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
+        static float history = 10.0f;
+        ImGui::SliderFloat("History",&history,1,30,"%.1f s");
+        rdata1.Span = history;
+        rdata2.Span = history;
+        ImPlot::SetNextPlotLimitsX(t - history, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         static int rt_axis = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_TickLabels;
-        if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis)) {
+        if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
             ImPlot::PlotLine("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), sdata1.Offset, 2 * sizeof(t_float));
+            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,0,0.25f));
             ImPlot::PlotLine("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2 * sizeof(t_float));
+            ImPlot::PopStyleColor();
             ImPlot::EndPlot();
         }
-        ImPlot::SetNextPlotLimitsX(0, 10, ImGuiCond_Always);
+        ImPlot::SetNextPlotLimitsX(0, history, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Rolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis)) {
             ImPlot::PlotLine("Data 1", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 2 * sizeof(t_float));
             ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(t_float));
@@ -632,13 +638,14 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag and Drop")) {
+        const int K_CHANNELS = 9;
         srand((int)(10000000 * ImGui::GetTime()));
         static bool paused = false;
         static bool init = true;
-        static ScrollingData data[10];
-        static bool show[10];
+        static ScrollingData data[K_CHANNELS];
+        static bool show[K_CHANNELS];
         if (init) {
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < K_CHANNELS; ++i) {
                 show[i] = false;
             }
             init = false;
@@ -646,7 +653,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("Drag data items from the left column onto the plot.");
         ImGui::BeginGroup();
         if (ImGui::Button("Clear", ImVec2(100, 0))) {
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < K_CHANNELS; ++i) {
                 show[i] = false;
                 data[i].Data.shrink(0);
                 data[i].Offset = 0;
@@ -655,8 +662,8 @@ void ShowDemoWindow(bool* p_open) {
         if (ImGui::Button(paused ? "Resume" : "Pause", ImVec2(100,0)))
             paused = !paused;
         ImGui::Separator();
-        for (int i = 0; i < 10; ++i) {
-            char label[8];
+        for (int i = 0; i < K_CHANNELS; ++i) {
+            char label[K_CHANNELS];
             sprintf(label, show[i] ? "data_%d*" : "data_%d", i);
             ImGui::Selectable(label, false, 0, ImVec2(100, 0));
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
@@ -670,18 +677,16 @@ void ShowDemoWindow(bool* p_open) {
         static t_float t = 0;
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < K_CHANNELS; ++i) {
                 if (show[i])
-                    data[i].AddPoint(t, data[i].Data.empty() ?
-                                        0.25f + 0.5f * (t_float)rand() / t_float(RAND_MAX) :
-                                        data[i].Data.back().y + (0.005f + 0.0002f * (t_float)rand() / t_float(RAND_MAX)) * (-1 + 2 * (t_float)rand() / t_float(RAND_MAX)));
+                    data[i].AddPoint(t, (i+1)*0.1f + RandomRange(-0.01f,0.01f));
             }
         }
         ImPlot::SetNextPlotLimitsX((double)t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         if (ImPlot::BeginPlot("##DND")) {
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < K_CHANNELS; ++i) {
                 if (show[i] && data[i].Data.size() > 0) {
-                    char label[8];
+                    char label[K_CHANNELS];
                     sprintf(label, "data_%d", i);
                     ImPlot::PlotLine(label, &data[i].Data[0].x, &data[i].Data[0].y, data[i].Data.size(), data[i].Offset, 2 * sizeof(t_float));
                 }
