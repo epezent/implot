@@ -160,15 +160,15 @@ struct ImPlotLimits {
 
 // Plot style structure
 struct ImPlotStyle {
-    float    LineWeight;              // = 1, line weight in pixels
-    ImPlotMarker Marker;              // = ImPlotMarker_None, marker specification
-    float    MarkerSize;              // = 4, marker size in pixels (roughly the marker's "radius")
-    float    MarkerWeight;            // = 1, outline weight of markers in pixels
-    float    ErrorBarSize;            // = 5, error bar whisker width in pixels
-    float    ErrorBarWeight;          // = 1.5, error bar whisker weight in pixels
-    float    DigitalBitHeight;        // = 8, digital channels bit height (at y = 1.0f) in pixels
-    float    DigitalBitGap;           // = 4, digital channels bit padding gap in pixels
-    ImVec4   Colors[ImPlotCol_COUNT]; // array of plot specific colors
+    float        LineWeight;              // = 1, line weight in pixels
+    ImPlotMarker Marker;                  // = ImPlotMarker_None, marker specification
+    float        MarkerSize;              // = 4, marker size in pixels (roughly the marker's "radius")
+    float        MarkerWeight;            // = 1, outline weight of markers in pixels
+    float        ErrorBarSize;            // = 5, error bar whisker width in pixels
+    float        ErrorBarWeight;          // = 1.5, error bar whisker weight in pixels
+    float        DigitalBitHeight;        // = 8, digital channels bit height (at y = 1.0f) in pixels
+    float        DigitalBitGap;           // = 4, digital channels bit padding gap in pixels
+    ImVec4       Colors[ImPlotCol_COUNT]; // array of plot specific colors
     ImPlotStyle();
 };
 
@@ -238,9 +238,9 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
 
-// Plots a pie chart. If the sum of values > 1, each value will be normalized. Center and radius are in plot coordinates.
-void PlotPieChart(const char** label_ids, float* values, int count, float x, float y, float radius, const char* label_fmt = "%.1f%%", float angle0 = 90);
-void PlotPieChart(const char** label_ids, double* values, int count, double x, double y, double radius, const char* label_fmt = "%.1f%%", double angle0 = 90);
+// Plots a pie chart. If the sum of values > 1 or normalize is true, each value will be normalized. Center and radius are in plot coordinates.
+void PlotPieChart(const char** label_ids, const float* values, int count, float x, float y, float radius, bool normalize = false, const char* label_fmt = "%.1f", float angle0 = 90);
+void PlotPieChart(const char** label_ids, const double* values, int count, double x, double y, double radius, bool normalize = false, const char* label_fmt = "%.1f", double angle0 = 90);
 
 // Plots a 2D heatmap chart. Values are expected to be in row-major order. label_fmt can be set to NULL for no labels.
 void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
@@ -297,7 +297,7 @@ void SetColormap(ImPlotColormap colormap, int samples = 0);
 void SetColormap(const ImVec4* colors, int num_colors);
 // Returns the size of the current colormap
 int GetColormapSize();
-/// Returns a color from the Color map given an index > 0 (modulo will be performed)
+// Returns a color from the Color map given an index > 0 (modulo will be performed)
 ImVec4 GetColormapColor(int index);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(float t);

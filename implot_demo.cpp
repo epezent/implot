@@ -295,20 +295,26 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Pie Charts")) {
         static const char* labels1[]   = {"Frogs","Hogs","Dogs","Logs"};
-        static t_float pre_normalized[] = {0.15f,  0.30f,  0.45f, 0.10f};
-
+        static float data1[] = {0.15f,  0.30f,  0.2f, 0.05f};
+        static bool normalize = false;
+        ImGui::SetNextItemWidth(250);
+        ImGui::DragFloat4("Values", data1, 0.01f, 0, 1);
+        if ((data1[0] + data1[1] + data1[2] + data1[3]) < 1) {
+            ImGui::SameLine();
+            ImGui::Checkbox("Normalize", &normalize);
+        }
         SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
-            ImPlot::PlotPieChart(labels1, pre_normalized, 4, 0.5f, 0.5f, 0.4f);
+            ImPlot::PlotPieChart(labels1, data1, 4, 0.5f, 0.5f, 0.4f, normalize, "%.2f");
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
         ImPlot::SetColormap(ImPlotColormap_Cool, 5);
         SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        static const char* labels2[]   = {"One##1","One##2","Two","Three","Five"};
-        static t_float not_normalized[] = {1,1,2,3,5};
+        static const char* labels2[]   = {"A","B","C","D","E"};
+        static t_float data2[] = {1,1,2,3,5};
         if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
-            ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f, NULL, 0);
+            ImPlot::PlotPieChart(labels2, data2, 5, 0.5f, 0.5f, 0.4f, true, "%.0f", 180);
             ImPlot::EndPlot();
         }
         ImPlot::SetColormap(ImPlotColormap_Default);
