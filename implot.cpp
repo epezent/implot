@@ -1143,19 +1143,23 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 break;
             }
         }
-
-        if (direction == 0) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
-        } else if (direction == (1 << 1)) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-        } else if (direction == (1 << 2)) {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-        } else {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+        if (IO.MouseDragMaxDistanceSqr[0] > 5) {
+            if (direction == 0) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
+            }
+            else if (direction == (1 << 1)) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+            }
+            else if (direction == (1 << 2)) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+            }
+            else {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+            }
         }
     }
     // start drag
-    if (!drag_in_progress && gp.Hov_Frame && IO.MouseDragMaxDistanceSqr[0] > 5 && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
+    if (!drag_in_progress && gp.Hov_Frame && IO.MouseClicked[0] && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
         if (hov_x_axis_region) {
             plot.XAxis.Dragging = true;
         }
