@@ -57,8 +57,8 @@ Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sour
 
 ## Special Notes
 
-- It is **HIGHLY** recommended that you either: 
-    1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer for 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version past [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be)
+- If you experience data truncation and/or visual glitches, it is **HIGHLY** recommended that you either: 
+    1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be).
     2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file.
 - By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
 
