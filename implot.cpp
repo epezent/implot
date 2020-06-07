@@ -61,8 +61,8 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 #include "implot.h"
 #include "imgui_internal.h"
-#include <limits>
-#include "TimeFormatter.hpp"
+#include <time.h>
+
 #ifdef _MSC_VER
 #define sprintf sprintf_s
 #endif
@@ -84,6 +84,101 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 // static inline float  ImLog10(float x)  { return log10f(x); }
 static inline double ImLog10(double x) { return log10(x); }
+
+struct ImTimeFormatter {
+    ImTimeFormatter(double microSecondTimeStamp) {
+        // Don't keep decimals
+        unsigned long long USTimeStamp = microSecondTimeStamp;
+        s = USTimeStamp / US_IN_SEC;
+        _us = USTimeStamp - s * US_IN_SEC ;
+    }
+
+    char* GetFullFormattedString() {
+        ResetBuf();
+        WriteFormattedTimeToBuf("%Y/%m/%e %I:%M:%S.");
+        WritePaddedMicroSecondsToBuf();
+        return buf;
+    }
+
+    char* GetRangeFormattedString(double range, double divisions) {
+        ResetBuf();
+        double us = range/1000;
+        double ms = us/1000;
+        double s = ms/1000;
+        double min=s/60;
+        double hr=min/60;
+        double day= hr/24;
+        double month = day/30;
+        double div = divisions;
+
+
+        if (month>div) {
+            WriteFormattedTimeToBuf("%Y/%m/%e");
+        } else if (day>div) {
+            WriteFormattedTimeToBuf("%m/%e");
+        } else if (hr>div) {
+            WriteFormattedTimeToBuf("%e:%I");
+        } else if (min>div) {
+            WriteFormattedTimeToBuf("%I:%M");
+        } else if (s>div) {
+            WriteFormattedTimeToBuf("%I:%M:%S");
+        } else if (ms>div) {
+            WriteFormattedTimeToBuf("%M:%S.");
+            WritePaddedMilliSecondsToBuf();
+        } else {    // Last Granularity
+            WriteFormattedTimeToBuf("%S.");
+            WritePaddedMicroSecondsToBuf();
+        }
+        return buf;
+    }
+
+    void WriteFormattedTimeToBuf(const char* format) {
+        int copied = strftime(buf, 80, format ,localtime(&s));
+        if (copied) {
+            ptr_index = copied;
+        }
+    }
+
+    void WritePaddedMilliSecondsToBuf() {
+        sprintf(&buf[ptr_index], "%03d", (int)getMilliSeconds());
+    }
+
+    void WritePaddedMicroSecondsToBuf() {
+        sprintf(&buf[ptr_index], "%06d", (int)getMicroSeconds());
+    }
+
+    unsigned long long  getIntergral() {
+        return s * US_IN_SEC + _us;
+    }
+
+    unsigned long long  getSeconds(){
+        return s;
+    }
+
+    /*uint64_t getNanoSeconds() {
+        // For Future Use
+        return ns;
+    }*/
+
+    unsigned long long  getMicroSeconds() {
+        return _us ;
+    }
+
+    unsigned long long  getMilliSeconds() {
+        return getMicroSeconds() / 1000;
+    }
+
+    void ResetBuf() {
+        buf[0] = '\0';
+        ptr_index = 0;
+    }
+
+    time_t s;
+    unsigned long long  _us;
+    static const unsigned long long  US_IN_SEC = 1000000;
+    char buf[80];
+    int ptr_index = 0;
+};
 
 ImPlotStyle::ImPlotStyle() {
     LineWeight = 1;
@@ -745,15 +840,15 @@ inline void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, bool isTime
         ImPlotTick *tk = &ticks[t];
         if (tk->RenderLabel && !tk->Labeled) {
             tk->TextOffset = buffer.size();
-            if (scientific)
+            if (scientific) {
                 sprintf(temp, "%.0e", tk->PlotPos);
             } else if (isTimeAxis) {
-                auto t = TimeFormatter(tk->PlotPos);
-                std::string tick_str = t.getRangeFormattedString(ticks[ticks.Size-1].PlotPos - ticks[0].PlotPos, tick_count, 0);
-                sprintf(temp, "%s", tick_str.c_str());
-            }
-            else
+                auto t = ImTimeFormatter(tk->PlotPos);
+                char* format = t.GetRangeFormattedString(ticks[ticks.Size-1].PlotPos - ticks[0].PlotPos, tick_count);
+                sprintf(temp, "%s", format);
+            } else {
                 sprintf(temp, "%.10g", tk->PlotPos);
+            }
             buffer.append(temp, temp + strlen(temp) + 1);
             tk->Size = ImGui::CalcTextSize(buffer.Buf.Data + tk->TextOffset);
             tk->Labeled = true;
@@ -959,19 +1054,20 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
 
-        auto min_time = TimeFormatter(plot.XAxis.Range.Min);
-        auto string_time = min_time.getRangeFormattedString(plot.XAxis.Range.Size() , 5 , 0)  ; // Extra zero
-        auto string_time_size = ImGui::CalcTextSize(string_time.c_str());
-        
-        // 60% spacing 40% text
-        
-        plot.XAxis.Divisions = (int)IM_ROUND((0.25 * gp.BB_Canvas.GetWidth())/string_time_size.x);
+        auto min_time = ImTimeFormatter(plot.XAxis.Range.Min);
+        char* string_time = min_time.GetRangeFormattedString(plot.XAxis.Range.Size() , 5)  ;
+        auto string_time_size = ImGui::CalcTextSize(string_time);
+
+        int netDivisions = (int)IM_ROUND((gp.BB_Canvas.GetWidth())/string_time_size.x);
+        plot.XAxis.Divisions = netDivisions * 0.30;
         if (plot.XAxis.Divisions < 2)
             plot.XAxis.Divisions = 2;
-        
-        plot.XAxis.Subdivisions = (int)IM_ROUND((0.15 * gp.BB_Canvas.GetWidth())/(string_time_size.x));; // Extra padding 
-        if (plot.XAxis.Divisions == 2 && plot.XAxis.Subdivisions < 1) {
-            plot.XAxis.Subdivisions = 1;
+
+        if (netDivisions)
+            plot.XAxis.Subdivisions = (netDivisions - plot.XAxis.Divisions)/(float(netDivisions));
+
+        if (plot.XAxis.Subdivisions < 1) {
+            plot.XAxis.Subdivisions = 2;
         }
     }
 
@@ -1039,7 +1135,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // label ticks
     if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels))
-        LabelTicks(gp.XTicks, HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Scientific), gp.XTickLabels);
+        LabelTicks(gp.XTicks, HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Scientific), HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time), gp.XTickLabels);
 
     float max_label_width[MAX_Y_AXES] = {};
     for (int i = 0; i < MAX_Y_AXES; i++) {
@@ -1786,24 +1882,24 @@ void EndPlot() {
         DrawList.AddLine(v3, v4, gp.Col_Border);
     }
 
-    // render initial point for time scale reference 
+    // render initial point for time scale reference
      if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
         char buffer[128] = {};
         BufferWriter writer(buffer, sizeof(buffer));
-        
-        writer.Write("%s", TimeFormatter{plot.XAxis.Range.Min}.getFullFormattedString().c_str());
+
+        writer.Write("%s", ImTimeFormatter{plot.XAxis.Range.Min}.GetFullFormattedString());
         ImVec2 size = ImGui::CalcTextSize(buffer);
         ImVec2 pos  = ImVec2{gp.BB_Plot.Min.x + 5, gp.BB_Plot.Max.y - 15} ;
-        
+
         DrawList.AddText(pos, gp.Col_Txt, buffer);
     }
-    
+
     // render mouse pos
     if (HasFlag(plot.Flags, ImPlotFlags_MousePos) && gp.Hov_Plot) {
         char buffer[128] = {};
         BufferWriter writer(buffer, sizeof(buffer));
         if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
-            writer.Write("%s,%.2f", TimeFormatter{gp.LastMousePos[0].x}.getFullFormattedString().c_str(), gp.LastMousePos[0].y);
+            writer.Write("%s,%.2f", ImTimeFormatter{gp.LastMousePos[0].x}.GetFullFormattedString(), gp.LastMousePos[0].y);
         } else {
             writer.Write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
         }
@@ -3248,7 +3344,7 @@ void ShowColormapScale(double scale_min, double scale_max, float height) {
     ticks.shrink(0);
     txt_buff.Buf.shrink(0);
     AddDefaultTicks(range, 10, 0, false, ticks);
-    LabelTicks(ticks, false, txt_buff);
+    LabelTicks(ticks, false, false,txt_buff);
     float max_width = 0;
     for (int i = 0; i < ticks.Size; ++i)
         max_width = ticks[i].Size.x > max_width ? ticks[i].Size.x : max_width;
