@@ -2203,8 +2203,8 @@ struct LineRenderer {
     }
     ImU32 Col;
     float Weight;
-    const int IdxConsumed = 6;
-    const int VtxConsumed = 4;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 4;
 };
 
 struct FillRenderer {
@@ -2239,8 +2239,8 @@ struct FillRenderer {
     }
     ImU32 Col;
     float Zero;
-    const int IdxConsumed = 6;
-    const int VtxConsumed = 5;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 5;
 };
 
 struct RectRenderer {
@@ -2275,8 +2275,8 @@ struct RectRenderer {
         DrawList._VtxCurrentIdx += 4;
     }
     ImU32 Col;
-    const int IdxConsumed = 6;
-    const int VtxConsumed = 4;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 4;
 };
 
 template <typename Getter, typename Transformer, typename Renderer>
@@ -2285,36 +2285,34 @@ inline void RenderPrimitives(Getter getter, Transformer transformer, Renderer re
     int prims = getter.Count - 1;
     int i1 = 1;
     int prims_culled = 0;
-    // TODO: replace the 6s and 4s below with I and V
-    const int I = renderer.IdxConsumed;
-    const int V = renderer.VtxConsumed;
+
     const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
     while (prims) {
         // find how many can be reserved up to end of current draw command's limit
-        int cnt = (int)ImMin(size_t(prims), (((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - DrawList._VtxCurrentIdx) / V));
+        int cnt = (int)ImMin(size_t(prims), (((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - DrawList._VtxCurrentIdx) / Renderer::VtxConsumed));
         // make sure at least this many elements can be rendered to avoid situations where at the end of buffer this slow path is not taken all the time
         if (cnt >= ImMin(64, prims)) {
             if (prims_culled >= cnt)
                 prims_culled -= cnt; // reuse previous reservation
             else {
-                DrawList.PrimReserve((cnt - prims_culled) * I, (cnt - prims_culled) * V); // add more elements to previous reservation
+                DrawList.PrimReserve((cnt - prims_culled) * Renderer::IdxConsumed, (cnt - prims_culled) * Renderer::VtxConsumed); // add more elements to previous reservation
                 prims_culled = 0;
             }
         }
         else
         {
             if (prims_culled > 0) {
-                DrawList.PrimUnreserve(prims_culled * I, prims_culled * V);
+                DrawList.PrimUnreserve(prims_culled * Renderer::IdxConsumed, prims_culled * Renderer::VtxConsumed);
                 prims_culled = 0;
             }
 
-            cnt = (int)ImMin(size_t(prims), (((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - 0/*DrawList._VtxCurrentIdx*/) / V));
-            DrawList.PrimReserve(cnt * I, cnt * V); // reserve new draw command
+            cnt = (int)ImMin(size_t(prims), (((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - 0/*DrawList._VtxCurrentIdx*/) / Renderer::VtxConsumed));
+            DrawList.PrimReserve(cnt * Renderer::IdxConsumed, cnt * Renderer::VtxConsumed); // reserve new draw command
         }
         prims -= cnt;
         for (int ie = i1 + cnt; i1 != ie; ++i1) {
-            int idx = i1;
-            ImVec2 p2 = transformer(getter(idx));
+
+            ImVec2 p2 = transformer(getter(i1));
             // TODO: Put the cull check inside of each Renderer
             if (!cull || gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
                 renderer.render(DrawList, p1, p2, uv);
@@ -2324,7 +2322,7 @@ inline void RenderPrimitives(Getter getter, Transformer transformer, Renderer re
         }
     }
     if (prims_culled > 0)
-        DrawList.PrimUnreserve(prims_culled * I, prims_culled * V);
+        DrawList.PrimUnreserve(prims_culled * Renderer::IdxConsumed, prims_culled * Renderer::VtxConsumed);
 }
 
 template <typename Getter, typename Transformer>
