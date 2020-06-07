@@ -160,6 +160,12 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Unindent();
         ImGui::BulletText("Double right click to open the plot context menu.");
         ImGui::BulletText("Click legend label icons to show/hide plot items.");
+        ImGui::BulletText("IMPORTANT: By default, anti-aliased lines are turned OFF.");
+        ImGui::Indent();
+            ImGui::BulletText("Software AA can be enabled per plot with ImPlotFlags_AntiAliased.");
+            ImGui::BulletText("AA for demo plots can be enabled from the plot's context menu.");
+            ImGui::BulletText("If allowable, you are better off using hardware AA (e.g. MSAA).");
+        ImGui::Unindent();
 #ifdef IMPLOT_DEMO_USE_DOUBLE
         ImGui::BulletText("The demo data precision is: double");
 #else
@@ -831,18 +837,37 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Offset Data")) {
-        t_float xs[50], ys[50];
-        for (int i = 0; i < 50; ++i) {
-            xs[i] = 0.5f + 0.4f * Cos(i/50.f * 6.28f);
-            ys[i] = 0.5f + 0.4f * Sin(i/50.f * 6.28f);
+    if (ImGui::CollapsingHeader("Offset and Stride")) {
+        static const int k_circles    = 11;
+        static const int k_points_per = 50;
+        static const int k_size       = 2 * k_points_per * k_circles;
+        static t_float interleaved_data[k_size];
+        for (int p = 0; p < k_points_per; ++p) {
+            for (int c = 0; c < k_circles; ++c) {
+                t_float r = (t_float)c / (k_circles - 1) * 0.2f + 0.2f;
+                interleaved_data[p*2*k_circles + 2*c + 0] = 0.5f + r * Cos((t_float)p/k_points_per * 6.28f);
+                interleaved_data[p*2*k_circles + 2*c + 1] = 0.5f + r * Sin((t_float)p/k_points_per * 6.28f);
+            }
         }
         static int offset = 0;
-        ImGui::SliderInt("Offset", &offset, -100, 100);
-        if (ImPlot::BeginPlot("##offset")) {
-            ImPlot::PlotLine("circle", xs, ys, 50, offset);
+        ImGui::BulletText("Offsetting is useful for realtime plots (see above) and circular buffers.");
+        ImGui::BulletText("Striding is useful for interleaved data (e.g. audio) or plotting structs.");
+        ImGui::BulletText("Here, all circle data is stored in a single interleaved buffer:");
+        ImGui::BulletText("[c0.x0 c0.y0 ... cn.x0 cn.y0 c0.x1 c0.y1 ... cn.x1 cn.y1 ... cn.xm cn.ym]");
+        ImGui::BulletText("The offset value indicates which circle point index is considered the first.");
+        ImGui::BulletText("Offsets can be negative and/or larger than the actual data count.");
+        ImGui::SliderInt("Offset", &offset, -2*k_points_per, 2*k_points_per);
+        if (ImPlot::BeginPlot("##strideoffset")) {
+            ImPlot::SetColormap(ImPlotColormap_Jet);
+            char buff[16];
+            for (int c = 0; c < k_circles; ++c) {
+                sprintf(buff, "Circle %d", c);
+                ImPlot::PlotLine(buff, &interleaved_data[c*2 + 0], &interleaved_data[c*2 + 1], k_points_per, offset, 2*k_circles*sizeof(t_float));
+            }
             ImPlot::EndPlot();
+            ImPlot::SetColormap(ImPlotColormap_Default);
         }
+        // offset++; uncomment for animation!
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Ticks")) {
