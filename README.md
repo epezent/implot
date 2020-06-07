@@ -55,6 +55,13 @@ Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features.
 
 Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sources. This assumes you already have an ImGui-ready environment. If not, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
 
+## Special Notes
+
+- It is **HIGHLY** recommended that you either: 
+    1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer for 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version past [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be)
+    2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file.
+- By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
+
 ## FAQ
 
 **Q: Why?**
@@ -85,6 +92,10 @@ A: Maybe. Check the demo, gallery, or [Announcements](https://github.com/epezent
 
 A: No, and likely never will since ImGui only deals in 2D rendering.
 
+**Q: My plot lines look like crap!**
+
+A: See the note about anti-aliasing under **Special Notes** above.
+
 **Q: Does ImPlot provide analytic tools?**
 
 A: Not exactly, but it does give you the ability to query plot sub-ranges, with which you can process your data however you like. 
@@ -101,6 +112,4 @@ A: Yes, ImPlot accepts both `float` and `double` for all of its plotting functio
 
 A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. 
 
-## Special Notes
-- By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
-- If you plan to render several thousands lines or points, then you should consider enabling 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file, OR handling the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer (the official OpenGL3 renderer supports this). If you fail to do this, then you may at some point hit the maximum number of indices that can be rendered.
+
