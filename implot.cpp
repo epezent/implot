@@ -737,9 +737,10 @@ inline void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, bool isTime
     char temp[32];
     int tick_count = 0;
     for (int t = 0 ; t < ticks.Size; t++) {
-	ImPlotTick *tk = &ticks[t];
-	if (tk->RenderLabel && !tk->Labeled) tick_count++;
+	    ImPlotTick *tk = &ticks[t];
+	    if (tk->RenderLabel && !tk->Labeled) tick_count++;
     }
+
     for (int t = 0; t < ticks.Size; t++) {
         ImPlotTick *tk = &ticks[t];
         if (tk->RenderLabel && !tk->Labeled) {
@@ -748,7 +749,7 @@ inline void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, bool isTime
                 sprintf(temp, "%.0e", tk->PlotPos);
             } else if (isTimeAxis) {
                 auto t = TimeFormatter(tk->PlotPos);
-                std::string tick_str = t.getRangeFormattedString(ticks[ticks.Size-1].PlotPos - ticks[0].PlotPos, rendereres_count, 0);
+                std::string tick_str = t.getRangeFormattedString(ticks[ticks.Size-1].PlotPos - ticks[0].PlotPos, tick_count, 0);
                 sprintf(temp, "%s", tick_str.c_str());
             }
             else
