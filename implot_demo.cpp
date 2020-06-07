@@ -67,7 +67,7 @@ struct ScrollingData {
     int Offset;
     ImVector<t_float2> Data;
     ScrollingData() {
-        MaxSize = 1000;
+        MaxSize = 2000;
         Offset  = 0;
         Data.reserve(MaxSize);
     }
@@ -93,7 +93,7 @@ struct RollingData {
     ImVector<t_float2> Data;
     RollingData() {
         Span = 10.0f;
-        Data.reserve(1000);
+        Data.reserve(2000);
     }
     void AddPoint(t_float x, t_float y) {
         t_float xmod = Fmod(x, Span);
@@ -295,28 +295,26 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Pie Charts")) {
         static const char* labels1[]   = {"Frogs","Hogs","Dogs","Logs"};
-        static t_float pre_normalized[] = {0.15f,  0.30f,  0.45f, 0.10f};
-
+        static float data1[] = {0.15f,  0.30f,  0.2f, 0.05f};
+        static bool normalize = false;
+        ImGui::SetNextItemWidth(250);
+        ImGui::DragFloat4("Values", data1, 0.01f, 0, 1);
+        if ((data1[0] + data1[1] + data1[2] + data1[3]) < 1) {
+            ImGui::SameLine();
+            ImGui::Checkbox("Normalize", &normalize);
+        }
         SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
-            ImPlot::PlotPieChart(labels1, pre_normalized, 4, 0.5f, 0.5f, 0.4f);
+            ImPlot::PlotPieChart(labels1, data1, 4, 0.5f, 0.5f, 0.4f, normalize, "%.2f");
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
-
-        static ImVec4 YlOrRd[5] = {
-            ImVec4(1.0000f,    1.0000f,    0.8000f, 1.0f),
-            ImVec4(0.9961f,    0.8510f,    0.4627f, 1.0f),
-            ImVec4(0.9961f,    0.6314f,    0.2627f, 1.0f),
-            ImVec4(0.9882f,    0.3059f,    0.1647f, 1.0f),
-            ImVec4(0.7412f,       0.0f,    0.1490f, 1.0f),
-        };
-        ImPlot::SetColormap(YlOrRd, 5);
+        ImPlot::SetColormap(ImPlotColormap_Cool, 5);
         SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        static const char* labels2[]   = {"One","Two","Three","Four","Five"};
-        static t_float not_normalized[] = {1,2,3,4,5};
+        static const char* labels2[]   = {"A","B","C","D","E"};
+        static t_float data2[] = {1,1,2,3,5};
         if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Legend, 0, 0)) {
-            ImPlot::PlotPieChart(labels2, not_normalized, 5, 0.5f, 0.5f, 0.4f, false, 0);
+            ImPlot::PlotPieChart(labels2, data2, 5, 0.5f, 0.5f, 0.4f, true, "%.0f", 180);
             ImPlot::EndPlot();
         }
         ImPlot::SetColormap(ImPlotColormap_Default);
@@ -341,7 +339,7 @@ void ShowDemoWindow(bool* p_open) {
             map = (map + 1) % ImPlotColormap_COUNT;
         ImPlot::SetColormap(map);
         ImGui::SameLine();
-        ImGui::LabelText("##Colormap Index", cmap_names[map]);
+        ImGui::LabelText("##Colormap Index", "%s", cmap_names[map]);
         ImGui::SetNextItemWidth(225);
         ImGui::DragFloat("Max",&scale_max,0.01f,0.1f,20);
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax | ImPlotAxisFlags_TickLabels;
@@ -362,7 +360,7 @@ void ShowDemoWindow(bool* p_open) {
         static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
         ImPlot::SetColormap(&gray[0], 2);
         if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),ImPlotFlags_ContextMenu,0,0)) {
-            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,false);
+            ImPlot::PlotHeatmap("heat",values2,100,100,0,1,NULL);
             ImPlot::EndPlot();
         }
         ImPlot::SetColormap(ImPlotColormap_Default);
@@ -383,14 +381,20 @@ void ShowDemoWindow(bool* p_open) {
             sdata2.AddPoint(t, mouse.y * 0.0005f);
             rdata2.AddPoint(t, mouse.y * 0.0005f);
         }
-        ImPlot::SetNextPlotLimitsX(t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
+        static float history = 10.0f;
+        ImGui::SliderFloat("History",&history,1,30,"%.1f s");
+        rdata1.Span = history;
+        rdata2.Span = history;
+        ImPlot::SetNextPlotLimitsX(t - history, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         static int rt_axis = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_TickLabels;
-        if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis)) {
+        if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
             ImPlot::PlotLine("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), sdata1.Offset, 2 * sizeof(t_float));
+            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,0,0.25f));
             ImPlot::PlotLine("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2 * sizeof(t_float));
+            ImPlot::PopStyleColor();
             ImPlot::EndPlot();
         }
-        ImPlot::SetNextPlotLimitsX(0, 10, ImGuiCond_Always);
+        ImPlot::SetNextPlotLimitsX(0, history, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Rolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis)) {
             ImPlot::PlotLine("Data 1", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 2 * sizeof(t_float));
             ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(t_float));
@@ -403,7 +407,7 @@ void ShowDemoWindow(bool* p_open) {
         if (ImGui::Button("Change Colormap##2"))
             map = (map + 1) % ImPlotColormap_COUNT;
         ImGui::SameLine();
-        ImGui::LabelText("##Colormap Index", cmap_names[map]);
+        ImGui::LabelText("##Colormap Index", "%s", cmap_names[map]);
         ImGui::PushID(map); // NB: This is merely a workaround so that the demo can cycle color maps. You wouldn't need to do this in your own code!
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
         if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {
@@ -640,13 +644,14 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag and Drop")) {
+        const int K_CHANNELS = 9;
         srand((int)(10000000 * ImGui::GetTime()));
         static bool paused = false;
         static bool init = true;
-        static ScrollingData data[10];
-        static bool show[10];
+        static ScrollingData data[K_CHANNELS];
+        static bool show[K_CHANNELS];
         if (init) {
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < K_CHANNELS; ++i) {
                 show[i] = false;
             }
             init = false;
@@ -654,7 +659,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("Drag data items from the left column onto the plot.");
         ImGui::BeginGroup();
         if (ImGui::Button("Clear", ImVec2(100, 0))) {
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < K_CHANNELS; ++i) {
                 show[i] = false;
                 data[i].Data.shrink(0);
                 data[i].Offset = 0;
@@ -663,7 +668,7 @@ void ShowDemoWindow(bool* p_open) {
         if (ImGui::Button(paused ? "Resume" : "Pause", ImVec2(100,0)))
             paused = !paused;
         ImGui::Separator();
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < K_CHANNELS; ++i) {
             char label[8];
             sprintf(label, show[i] ? "data_%d*" : "data_%d", i);
             ImGui::Selectable(label, false, 0, ImVec2(100, 0));
@@ -678,18 +683,16 @@ void ShowDemoWindow(bool* p_open) {
         static t_float t = 0;
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < K_CHANNELS; ++i) {
                 if (show[i])
-                    data[i].AddPoint(t, data[i].Data.empty() ?
-                                        0.25f + 0.5f * (t_float)rand() / t_float(RAND_MAX) :
-                                        data[i].Data.back().y + (0.005f + 0.0002f * (t_float)rand() / t_float(RAND_MAX)) * (-1 + 2 * (t_float)rand() / t_float(RAND_MAX)));
+                    data[i].AddPoint(t, (i+1)*0.1f + RandomRange(-0.01f,0.01f));
             }
         }
         ImPlot::SetNextPlotLimitsX((double)t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         if (ImPlot::BeginPlot("##DND")) {
-            for (int i = 0; i < 10; ++i) {
+            for (int i = 0; i < K_CHANNELS; ++i) {
                 if (show[i] && data[i].Data.size() > 0) {
-                    char label[8];
+                    char label[K_CHANNELS];
                     sprintf(label, "data_%d", i);
                     ImPlot::PlotLine(label, &data[i].Data[0].x, &data[i].Data[0].y, data[i].Data.size(), data[i].Offset, 2 * sizeof(t_float));
                 }
@@ -918,7 +921,6 @@ void ShowDemoWindow(bool* p_open) {
         static BenchmarkItem items[n_items];
         ImGui::BulletText("Make sure VSync is disabled.");
         ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
-        SetNextPlotLimits(0,1,0,1, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_Default | ImPlotFlags_NoChild)) {
             char buff[16];
             for (int i = 0; i < 100; ++i) {
