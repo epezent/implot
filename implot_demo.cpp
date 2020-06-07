@@ -281,7 +281,7 @@ void ShowDemoWindow(bool* p_open) {
     if (ImGui::CollapsingHeader("Error Bars")) {
         t_float xs[5]  = {1,2,3,4,5};
         t_float lin[5] = {8,8,9,7,8};
-        t_float lin2[5] = { 6,7,6,9,6};
+        t_float lin2[5] = {6,7,6,9,6};
         t_float bar[5] = {1,2,5,3,4};
         t_float err1[5] = {0.2f, 0.4f, 0.2f, 0.6f, 0.4f};
         t_float err2[5] = {0.4f, 0.2f, 0.4f, 0.8f, 0.6f};
