@@ -285,6 +285,7 @@ void ShowDemoWindow(bool* p_open) {
         t_float bar[5] = {1,2,5,3,4};
         t_float err1[5] = {0.2f, 0.4f, 0.2f, 0.6f, 0.4f};
         t_float err2[5] = {0.4f, 0.2f, 0.4f, 0.8f, 0.6f};
+        t_float err3[5] = {0.02f, 0.04f, 0.05f, 0.03f, 0.06f};
         ImPlot::SetNextPlotLimits(0, 6, 0, 10);
         if (ImPlot::BeginPlot("##ErrorBars",NULL,NULL)) {
             ImPlot::PlotBars("Bar", xs, bar, 5, 0.5f);
@@ -299,8 +300,8 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 3);
             ImPlot::PushStyleColor(ImPlotCol_ErrorBar, ImVec4(0, 1, 0, 1));
-            ImPlot::PlotErrorBarsH("Line##ErrorBarH", xs, lin2, err1, err2, 5);
-            ImPlot::PlotLine("Line##ErrorBarH", xs, lin2, 5);
+            ImPlot::PlotErrorBarsH("Line2##ErrorBarH", xs, lin2, err1, err3, 5);
+            ImPlot::PlotLine("Line2##ErrorBarH", xs, lin2, 5);
             ImPlot::PopStyleVar(2);
             ImPlot::PopStyleColor();
             ImPlot::EndPlot();

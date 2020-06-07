@@ -2967,6 +2967,8 @@ void PlotErrorBarsHEx(const char* label_id, Getter getter) {
             ImPlotPointErrorH e = getter(i);
             FitPoint(ImPlotPoint(e.x, e.y - e.neg_v));
             FitPoint(ImPlotPoint(e.x, e.y + e.pos_v));
+            FitPoint(ImPlotPoint(e.x - e.neg_h, e.y));
+            FitPoint(ImPlotPoint(e.x + e.pos_h, e.y));
         }
     }
 
@@ -2974,10 +2976,15 @@ void PlotErrorBarsHEx(const char* label_id, Getter getter) {
         ImPlotPointErrorH e = getter(i);
         ImVec2 p1 = PlotToPixels(e.x, e.y - e.neg_v);
         ImVec2 p2 = PlotToPixels(e.x, e.y + e.pos_v);
+        ImVec2 p3 = PlotToPixels(e.x - e.neg_h, e.y);
+        ImVec2 p4 = PlotToPixels(e.x + e.pos_h, e.y);
         DrawList.AddLine(p1, p2, col, gp.Style.ErrorBarWeight);
+        DrawList.AddLine(p3, p4, col, gp.Style.ErrorBarWeight);
         if (rend_whisker) {
             DrawList.AddLine(p1 - ImVec2(half_whisker, 0), p1 + ImVec2(half_whisker, 0), col, gp.Style.ErrorBarWeight);
             DrawList.AddLine(p2 - ImVec2(half_whisker, 0), p2 + ImVec2(half_whisker, 0), col, gp.Style.ErrorBarWeight);
+            DrawList.AddLine(p3 - ImVec2(0, half_whisker), p3 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
+            DrawList.AddLine(p4 - ImVec2(0, half_whisker), p4 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
         }
     }
     PopPlotClipRect();
