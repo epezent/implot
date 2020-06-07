@@ -514,7 +514,6 @@ inline void FitPoint(const ImPlotPoint& p) {
 
 inline void UpdateTransformCache() {
     // get pixels for transforms
-
     for (int i = 0; i < MAX_Y_AXES; i++) {
         gp.PixelRange[i] = ImRect(HasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_Invert) ? gp.BB_Plot.Max.x : gp.BB_Plot.Min.x,
                                   HasFlag(gp.CurrentPlot->YAxis[i].Flags, ImPlotAxisFlags_Invert) ? gp.BB_Plot.Min.y : gp.BB_Plot.Max.y,
@@ -577,60 +576,58 @@ ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis) {
 // Transformer functors
 
 struct TransformerLinLin {
-    TransformerLinLin(int y_axis_in) : y_axis(y_axis_in) {}
+    TransformerLinLin(int y_axis) : YAxis(y_axis) {}
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
-        return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
-                       (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min)) );
+        return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
+                       (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
 
-    int y_axis;
+    int YAxis;
 };
 
 struct TransformerLogLin {
-    TransformerLogLin(int y_axis_in) : y_axis(y_axis_in) {}
+    TransformerLogLin(int y_axis) : YAxis(y_axis) {}
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
         double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x        = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
-        return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
-                       (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min)) );
+        return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
+                       (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
 
-    int y_axis;
+    int YAxis;
 };
 
 struct TransformerLinLog {
-    TransformerLinLog(int y_axis_in) : y_axis(y_axis_in) {}
+    TransformerLinLog(int y_axis) : YAxis(y_axis) {}
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
-        double t = ImLog10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
-        y        = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, (float)t);
-        return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
-                       (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min)) );
+        double t = ImLog10(y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
+        y        = ImLerp(gp.CurrentPlot->YAxis[YAxis].Range.Min, gp.CurrentPlot->YAxis[YAxis].Range.Max, (float)t);
+        return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
+                       (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
-    int y_axis;
+    int YAxis;
 };
 
 struct TransformerLogLog {
-    TransformerLogLog(int y_axis_in) : y_axis(y_axis_in) {
-
-    }
+    TransformerLogLog(int y_axis) : YAxis(y_axis) {}
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
         double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x        = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
-        t        = ImLog10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
-        y        = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, (float)t);
-        return ImVec2( (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
-                       (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min)) );
+        t        = ImLog10(y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
+        y        = ImLerp(gp.CurrentPlot->YAxis[YAxis].Range.Min, gp.CurrentPlot->YAxis[YAxis].Range.Max, (float)t);
+        return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
+                       (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
 
-    int y_axis;
+    int YAxis;
 };
 
 //-----------------------------------------------------------------------------
@@ -731,6 +728,19 @@ inline void AddDefaultTicks(const ImPlotRange& range, int nMajor, int nMinor, bo
     }
 }
 
+inline void AddCustomTicks(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer) {
+    for (int i = 0; i < n; ++i) {
+        ImPlotTick tick(values[i],false);
+        tick.TextOffset = buffer.size();
+        if (labels != NULL) {
+            buffer.append(labels[i], labels[i] + strlen(labels[i]) + 1);
+            tick.Size = ImGui::CalcTextSize(labels[i]);
+            tick.Labeled = true;
+        }
+        ticks.push_back(tick);
+    }
+}
+
 inline void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, ImGuiTextBuffer& buffer) {
     char temp[32];
     for (int t = 0; t < ticks.Size; t++) {
@@ -745,19 +755,6 @@ inline void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, ImGuiTextBu
             tk->Size = ImGui::CalcTextSize(buffer.Buf.Data + tk->TextOffset);
             tk->Labeled = true;
         }
-    }
-}
-
-inline void AddCustomTicks(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer) {
-    for (int i = 0; i < n; ++i) {
-        ImPlotTick tick(values[i],false);
-        tick.TextOffset = buffer.size();
-        if (labels != NULL) {
-            buffer.append(labels[i], labels[i] + strlen(labels[i]) + 1);
-            tick.Size = ImGui::CalcTextSize(labels[i]);
-            tick.Labeled = true;
-        }
-        ticks.push_back(tick);
     }
 }
 
@@ -2356,10 +2353,10 @@ inline int PosMod(int l, int r) {
     return (l % r + r) % r;
 }
 
-template <typename T>
-inline T StrideIndex(const T* data, int idx, int stride) {
-    return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
-}
+// template <typename T>
+// inline T StrideIndex(const T* data, int idx, int stride) {
+//     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
+// }
 
 template <typename T>
 inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
@@ -2641,21 +2638,21 @@ void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx
 
 template <typename T>
 struct GetterBarV {
-    const T* Ys; T XShift; int Stride;
-    GetterBarV(const T* ys, T xshift, int stride) { Ys = ys; XShift = xshift; Stride = stride; }
-    inline ImPlotPoint operator()(int idx) { return ImPlotPoint((T)idx + XShift, StrideIndex(Ys, idx, Stride)); }
+    const T* Ys; T XShift; int Count; int Offset; int Stride;
+    GetterBarV(const T* ys, T xshift, int count, int offset, int stride) { Ys = ys; XShift = xshift; Count = count; Offset = offset; Stride = stride; }
+    inline ImPlotPoint operator()(int idx) { return ImPlotPoint((T)idx + XShift, OffsetAndStride(Ys, idx, Count, Offset, Stride)); }
 };
 
 template <typename T>
 struct GetterBarH {
-    const T* Xs; T YShift; int Stride;
-    GetterBarH(const T* xs, T yshift, int stride) { Xs = xs; YShift = yshift; Stride = stride; }
-    inline ImPlotPoint operator()(int idx) { return ImPlotPoint(StrideIndex(Xs, idx, Stride), (T)idx + YShift); }
+    const T* Xs; T YShift; int Count; int Offset; int Stride;
+    GetterBarH(const T* xs, T yshift, int count, int offset, int stride) { Xs = xs; YShift = yshift; Count = count; Offset = offset; Stride = stride; }
+    inline ImPlotPoint operator()(int idx) { return ImPlotPoint(OffsetAndStride(Xs, idx, Count, Offset, Stride), (T)idx + YShift); }
 };
 
 
 template <typename Getter, typename TWidth>
-void PlotBarsEx(const char* label_id, Getter getter, int count, TWidth width, int offset) {
+void PlotBarsEx(const char* label_id, Getter getter, TWidth width) {
 
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBars() needs to be called between BeginPlot() and EndPlot()!");
 
@@ -2683,17 +2680,15 @@ void PlotBarsEx(const char* label_id, Getter getter, int count, TWidth width, in
 
     // find data extents
     if (gp.FitThisFrame) {
-        for (int i = 0; i < count; ++i) {
+        for (int i = 0; i < getter.Count; ++i) {
             ImPlotPoint p = getter(i);
             FitPoint(ImPlotPoint(p.x - half_width, p.y));
             FitPoint(ImPlotPoint(p.x + half_width, 0));
         }
     }
 
-    int idx = offset;
-    for (int i = 0; i < count; ++i) {
-        ImPlotPoint p = getter(idx);
-        idx = (idx + 1) % count;
+    for (int i = 0; i < getter.Count; ++i) {
+        ImPlotPoint p = getter(i);
         if (p.y == 0)
             continue;
         ImVec2 a = PlotToPixels(p.x - half_width, p.y);
@@ -2710,26 +2705,26 @@ void PlotBarsEx(const char* label_id, Getter getter, int count, TWidth width, in
 // float
 
 void PlotBars(const char* label_id, const float* values, int count, float width, float shift, int offset, int stride) {
-    GetterBarV<float> getter(values,shift,stride);
-    PlotBarsEx(label_id, getter, count, width, offset);
+    GetterBarV<float> getter(values,shift,count,offset,stride);
+    PlotBarsEx(label_id, getter, width);
 }
 
 void PlotBars(const char* label_id, const float* xs, const float* ys, int count, float width, int offset, int stride) {
     GetterXsYs<float> getter(xs,ys,count,offset,stride);
-    PlotBarsEx(label_id, getter, count, width, offset);
+    PlotBarsEx(label_id, getter, width);
 }
 
 //-----------------------------------------------------------------------------
 // double
 
 void PlotBars(const char* label_id, const double* values, int count, double width, double shift, int offset, int stride) {
-    GetterBarV<double> getter(values,shift,stride);
-    PlotBarsEx(label_id, getter, count, width, offset);
+    GetterBarV<double> getter(values,shift,count,offset,stride);
+    PlotBarsEx(label_id, getter, width);
 }
 
 void PlotBars(const char* label_id, const double* xs, const double* ys, int count, double width, int offset, int stride) {
     GetterXsYs<double> getter(xs,ys,count,offset,stride);
-    PlotBarsEx(label_id, getter, count, width, offset);
+    PlotBarsEx(label_id, getter, width);
 }
 
 //-----------------------------------------------------------------------------
@@ -2737,7 +2732,7 @@ void PlotBars(const char* label_id, const double* xs, const double* ys, int coun
 
 void PlotBars(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double width, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func, data, count, offset);
-    PlotBarsEx(label_id, getter, count, width, offset);
+    PlotBarsEx(label_id, getter, width);
 }
 
 //-----------------------------------------------------------------------------
@@ -2747,7 +2742,7 @@ void PlotBars(const char* label_id, ImPlotPoint (*getter_func)(void* data, int i
 // TODO: Migrate to RenderPrimitives
 
 template <typename Getter, typename THeight>
-void PlotBarsHEx(const char* label_id, Getter getter, int count, THeight height, int offset) {
+void PlotBarsHEx(const char* label_id, Getter getter, THeight height) {
 
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBarsH() needs to be called between BeginPlot() and EndPlot()!");
 
@@ -2775,17 +2770,15 @@ void PlotBarsHEx(const char* label_id, Getter getter, int count, THeight height,
 
     // find data extents
     if (gp.FitThisFrame) {
-        for (int i = 0; i < count; ++i) {
+        for (int i = 0; i < getter.Count; ++i) {
             ImPlotPoint p = getter(i);
             FitPoint(ImPlotPoint(0, p.y - half_height));
             FitPoint(ImPlotPoint(p.x, p.y + half_height));
         }
     }
 
-    int idx = offset;
-    for (int i = 0; i < count; ++i) {
-        ImPlotPoint p = getter(idx);
-        idx = (idx + 1) % count;
+    for (int i = 0; i < getter.Count; ++i) {
+        ImPlotPoint p = getter(i);
         if (p.x == 0)
             continue;
         ImVec2 a = PlotToPixels(0, p.y - half_height);
@@ -2802,26 +2795,26 @@ void PlotBarsHEx(const char* label_id, Getter getter, int count, THeight height,
 // float
 
 void PlotBarsH(const char* label_id, const float* values, int count, float height, float shift, int offset, int stride) {
-    GetterBarH<float> getter(values,shift,stride);
-    PlotBarsHEx(label_id, getter, count, height, offset);
+    GetterBarH<float> getter(values,shift,count,offset,stride);
+    PlotBarsHEx(label_id, getter, height);
 }
 
 void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset, int stride) {
     GetterXsYs<float> getter(xs,ys,count,offset,stride);
-    PlotBarsHEx(label_id, getter, count, height, offset);
+    PlotBarsHEx(label_id, getter, height);
 }
 
 //-----------------------------------------------------------------------------
 // double
 
 void PlotBarsH(const char* label_id, const double* values, int count, double height, double shift, int offset, int stride) {
-    GetterBarH<double> getter(values,shift,stride);
-    PlotBarsHEx(label_id, getter, count, height, offset);
+    GetterBarH<double> getter(values,shift,count,offset,stride);
+    PlotBarsHEx(label_id, getter, height);
 }
 
 void PlotBarsH(const char* label_id, const double* xs, const double* ys, int count, double height,  int offset, int stride) {
     GetterXsYs<double> getter(xs,ys,count,offset,stride);
-    PlotBarsHEx(label_id, getter, count, height, offset);
+    PlotBarsHEx(label_id, getter, height);
 }
 
 //-----------------------------------------------------------------------------
@@ -2829,7 +2822,7 @@ void PlotBarsH(const char* label_id, const double* xs, const double* ys, int cou
 
 void PlotBarsH(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double height,  int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func, data, count, offset);
-    PlotBarsHEx(label_id, getter, count, height, offset);
+    PlotBarsHEx(label_id, getter, height);
 }
 
 //-----------------------------------------------------------------------------
@@ -2845,20 +2838,20 @@ struct ImPlotPointError {
 
 template <typename T>
 struct GetterError {
-    const T* Xs; const T* Ys; const T* Neg; const T* Pos; int Stride;
-    GetterError(const T* xs, const T* ys, const T* neg, const T* pos, int stride) {
-        Xs = xs; Ys = ys; Neg = neg; Pos = pos; Stride = stride;
+    const T* Xs; const T* Ys; const T* Neg; const T* Pos; int Count; int Offset; int Stride;
+    GetterError(const T* xs, const T* ys, const T* neg, const T* pos, int count, int offset, int stride) {
+        Xs = xs; Ys = ys; Neg = neg; Pos = pos; Count = count; Offset = offset; Stride = stride;
     }
     ImPlotPointError operator()(int idx) {
-        return ImPlotPointError(StrideIndex(Xs,  idx, Stride),
-                                StrideIndex(Ys,  idx, Stride),
-                                StrideIndex(Neg, idx, Stride),
-                                StrideIndex(Pos, idx, Stride));
+        return ImPlotPointError(OffsetAndStride(Xs,  idx, Count, Offset, Stride),
+                                OffsetAndStride(Ys,  idx, Count, Offset, Stride),
+                                OffsetAndStride(Neg, idx, Count, Offset, Stride),
+                                OffsetAndStride(Pos, idx, Count, Offset, Stride));
     }
 };
 
 template <typename Getter>
-void PlotErrorBarsEx(const char* label_id, Getter getter, int count, int offset) {
+void PlotErrorBarsEx(const char* label_id, Getter getter) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBars() needs to be called between BeginPlot() and EndPlot()!");
 
     ImGuiID id = ImGui::GetID(label_id);
@@ -2877,17 +2870,15 @@ void PlotErrorBarsEx(const char* label_id, Getter getter, int count, int offset)
 
     // find data extents
     if (gp.FitThisFrame) {
-        for (int i = 0; i < count; ++i) {
+        for (int i = 0; i < getter.Count; ++i) {
             ImPlotPointError e = getter(i);
             FitPoint(ImPlotPoint(e.x , e.y - e.neg));
             FitPoint(ImPlotPoint(e.x , e.y + e.pos ));
         }
     }
 
-    int idx = offset;
-    for (int i = 0; i < count; ++i) {
-        ImPlotPointError e = getter(idx);
-        idx = (idx + 1) % count;
+    for (int i = 0; i < getter.Count; ++i) {
+        ImPlotPointError e = getter(i);
         ImVec2 p1 = PlotToPixels(e.x, e.y - e.neg);
         ImVec2 p2 = PlotToPixels(e.x, e.y + e.pos);
         DrawList.AddLine(p1,p2,col, gp.Style.ErrorBarWeight);
@@ -2903,26 +2894,26 @@ void PlotErrorBarsEx(const char* label_id, Getter getter, int count, int offset)
 // float
 
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset, int stride) {
-    GetterError<float> getter(xs, ys, err, err, stride);
-    PlotErrorBarsEx(label_id, getter, count, offset);
+    GetterError<float> getter(xs, ys, err, err, count, offset, stride);
+    PlotErrorBarsEx(label_id, getter);
 }
 
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset, int stride) {
-    GetterError<float> getter(xs, ys, neg, pos, stride);
-    PlotErrorBarsEx(label_id, getter, count, offset);
+    GetterError<float> getter(xs, ys, neg, pos, count, offset, stride);
+    PlotErrorBarsEx(label_id, getter);
 }
 
 //-----------------------------------------------------------------------------
 // double
 
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset, int stride) {
-    GetterError<double> getter(xs, ys, err, err, stride);
-    PlotErrorBarsEx(label_id, getter, count, offset);
+    GetterError<double> getter(xs, ys, err, err, count, offset, stride);
+    PlotErrorBarsEx(label_id, getter);
 }
 
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset, int stride) {
-    GetterError<double> getter(xs, ys, neg, pos, stride);
-    PlotErrorBarsEx(label_id, getter, count, offset);
+    GetterError<double> getter(xs, ys, neg, pos, count, offset, stride);
+    PlotErrorBarsEx(label_id, getter);
 }
 
 //-----------------------------------------------------------------------------
