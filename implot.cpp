@@ -2164,9 +2164,23 @@ inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& Dr
     }
 }
 
+template <typename Getter, typename Transformer>
 struct LineRenderer {
-    LineRenderer(ImU32 col, float weight) { Col = col; Weight = weight; }
-    inline void render(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2, ImVec2 uv) {
+    inline LineRenderer(Getter _getter, Transformer _transformer, ImU32 col, float weight) :
+        getter(_getter),
+        transformer(_transformer)
+    { 
+        Prims = getter.Count - 1;
+        Col = col; 
+        Weight = weight; 
+        p1 = transformer(getter(0));
+    }
+    inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
+        ImVec2 p2 = transformer(getter(prim + 1));
+        if (!gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2)))) {
+            p1 = p2;
+            return false;
+        }
         float dx = p2.x - p1.x;
         float dy = p2.y - p1.y;
         IM_NORMALIZE2F_OVER_ZERO(dx, dy);
@@ -2197,16 +2211,29 @@ struct LineRenderer {
         DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
         DrawList._IdxWritePtr += 6;
         DrawList._VtxCurrentIdx += 4;
+        p1 = p2;
+        return true;
     }
+    Getter getter;
+    Transformer transformer;
+    int Prims;
     ImU32 Col;
     float Weight;
+    ImVec2 p1;
     static const int IdxConsumed = 6;
     static const int VtxConsumed = 4;
 };
 
-struct FillRenderer {
-    FillRenderer(ImU32 col, float zero) { Col = col; Zero = zero; }
-    inline void render(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2, ImVec2 uv) {
+template <typename Getter, typename Transformer>
+struct LineFillRenderer {
+    LineFillRenderer(Getter _getter, Transformer _transformer, ImU32 col, float zero) { 
+        getter = _getter;
+        transformer = _transformer;
+        Col = col; 
+        Zero = zero; 
+        p1 = transformer(getter(0));
+    }
+    inline void operator()(ImDrawList& DrawList, ImVec2 uv) {
         const int crosses_zero = (p1.y > Zero && p2.y < Zero) || (p1.y < Zero && p2.y > Zero); // could do y*y < 0 earlier on
         const float xmid = p1.x + (p2.x - p1.x) / (p2.y-p1.y) * (Zero - p1.y);
         DrawList._VtxWritePtr[0].pos = p1;
@@ -2234,55 +2261,53 @@ struct FillRenderer {
         DrawList._IdxWritePtr += 6;
         DrawList._VtxCurrentIdx += 5;
     }
+    int Prims;
     ImU32 Col;
     float Zero;
+    ImVec2 p1;
     static const int IdxConsumed = 6;
     static const int VtxConsumed = 5;
 };
 
-struct RectRenderer {
+// struct RectRenderer {
+//     RectRenderer(ImU32 col) { Col = col; }
+//     inline void operator()(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2, ImVec2 uv) {
+//         DrawList._VtxWritePtr[0].pos.x = p1.x;
+//         DrawList._VtxWritePtr[0].pos.y = p1.y;
+//         DrawList._VtxWritePtr[0].uv    = uv;
+//         DrawList._VtxWritePtr[0].col   = Col;
+//         DrawList._VtxWritePtr[1].pos.x = p2.x;
+//         DrawList._VtxWritePtr[1].pos.y = p1.y;
+//         DrawList._VtxWritePtr[1].uv    = uv;
+//         DrawList._VtxWritePtr[1].col   = Col;
+//         DrawList._VtxWritePtr[2].pos.x = p2.x;
+//         DrawList._VtxWritePtr[2].pos.y = p2.y;
+//         DrawList._VtxWritePtr[2].uv    = uv;
+//         DrawList._VtxWritePtr[2].col   = Col;
+//         DrawList._VtxWritePtr[3].pos.x = p1.x;
+//         DrawList._VtxWritePtr[3].pos.y = p2.y;
+//         DrawList._VtxWritePtr[3].uv    = uv;
+//         DrawList._VtxWritePtr[3].col   = Col;
+//         DrawList._VtxWritePtr += 4;
+//         DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
+//         DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+//         DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+//         DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+//         DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
+//         DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+//         DrawList._IdxWritePtr += 6;
+//         DrawList._VtxCurrentIdx += 4;
+//     }
+//     ImU32 Col;
+//     static const int IdxConsumed = 6;
+//     static const int VtxConsumed = 4;
+// };
 
-    RectRenderer(ImU32 col) { Col = col; }
-
-    inline void render(ImDrawList& DrawList, const ImVec2& p1, const ImVec2& p2, ImVec2 uv) {
-        DrawList._VtxWritePtr[0].pos.x = p1.x;
-        DrawList._VtxWritePtr[0].pos.y = p1.y;
-        DrawList._VtxWritePtr[0].uv    = uv;
-        DrawList._VtxWritePtr[0].col   = Col;
-        DrawList._VtxWritePtr[1].pos.x = p2.x;
-        DrawList._VtxWritePtr[1].pos.y = p1.y;
-        DrawList._VtxWritePtr[1].uv    = uv;
-        DrawList._VtxWritePtr[1].col   = Col;
-        DrawList._VtxWritePtr[2].pos.x = p2.x;
-        DrawList._VtxWritePtr[2].pos.y = p2.y;
-        DrawList._VtxWritePtr[2].uv    = uv;
-        DrawList._VtxWritePtr[2].col   = Col;
-        DrawList._VtxWritePtr[3].pos.x = p1.x;
-        DrawList._VtxWritePtr[3].pos.y = p2.y;
-        DrawList._VtxWritePtr[3].uv    = uv;
-        DrawList._VtxWritePtr[3].col   = Col;
-        DrawList._VtxWritePtr += 4;
-        DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
-        DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
-        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
-        DrawList._IdxWritePtr += 6;
-        DrawList._VtxCurrentIdx += 4;
-    }
-    ImU32 Col;
-    static const int IdxConsumed = 6;
-    static const int VtxConsumed = 4;
-};
-
-template <typename Getter, typename Transformer, typename Renderer>
-inline void RenderPrimitives(Getter getter, Transformer transformer, Renderer renderer, ImDrawList& DrawList, bool cull) {
-    ImVec2 p1 = transformer(getter(0));
-    int prims = getter.Count - 1;
-    int i1 = 1;
+template <typename Renderer>
+inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList, bool cull) {
+    int prims_remain = renderer.Prims;
     int prims_culled = 0;
-
+    int idx = 0;
     const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
     while (prims) {
         // find how many can be reserved up to end of current draw command's limit
@@ -2302,20 +2327,13 @@ inline void RenderPrimitives(Getter getter, Transformer transformer, Renderer re
                 DrawList.PrimUnreserve(prims_culled * Renderer::IdxConsumed, prims_culled * Renderer::VtxConsumed);
                 prims_culled = 0;
             }
-
             cnt = (int)ImMin(size_t(prims), (((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - 0/*DrawList._VtxCurrentIdx*/) / Renderer::VtxConsumed));
             DrawList.PrimReserve(cnt * Renderer::IdxConsumed, cnt * Renderer::VtxConsumed); // reserve new draw command
         }
         prims -= cnt;
-        for (int ie = i1 + cnt; i1 != ie; ++i1) {
-
-            ImVec2 p2 = transformer(getter(i1));
-            // TODO: Put the cull check inside of each Renderer
-            if (!cull || gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
-                renderer.render(DrawList, p1, p2, uv);
-            else
+        for (int ie = idx + cnt; idx != ie; ++idx) {
+            if (!renderer(DrawList, uv, idx))
                 prims_culled++;
-            p1 = p2;
         }
     }
     if (prims_culled > 0)
@@ -2334,7 +2352,7 @@ inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& 
         }
     }
     else {
-        RenderPrimitives(getter, transformer, LineRenderer(col, line_weight), DrawList, cull);
+        RenderPrimitives(LineRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, cull);
     }
 }
 
@@ -2342,11 +2360,11 @@ template <typename Getter, typename Transformer>
 inline void RenderLineFill(Getter getter, Transformer transformer, ImDrawList& DrawList, ImU32 col_fill) {
     // TODO: Culling
     float zero = transformer(0,0).y;
-    RenderPrimitives(getter, transformer, FillRenderer(col_fill, zero), DrawList, false);
+    // RenderPrimitives(getter, transformer, LineFillRenderer(col_fill, zero), DrawList, false);
 }
 
 //-----------------------------------------------------------------------------
-// DATA GETTERS
+// GETTERS
 //-----------------------------------------------------------------------------
 
 inline int PosMod(int l, int r) {
