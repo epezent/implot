@@ -3119,6 +3119,8 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             ImPlotPoint itemData1 = getter(i1);
             ImPlotPoint itemData2 = getter(i2);
             i1 = i2;
+            if (NanOrInf(itemData1.y)) continue;
+            if (NanOrInf(itemData2.y)) itemData2.y = ConstrainNan(itemData2.y);
             int pixY_0 = (int)(line_weight);
             itemData1.y = itemData1.y < 0 ? 0 : itemData1.y;
             float pixY_1_float = gp.Style.DigitalBitHeight * (float)itemData1.y;
