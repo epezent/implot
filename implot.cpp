@@ -2922,7 +2922,7 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 
 template <typename Getter>
 void PlotErrorBarsHEx(const char* label_id, Getter getter) {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBars() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBarsH() needs to be called between BeginPlot() and EndPlot()!");
 
     ImGuiID id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
