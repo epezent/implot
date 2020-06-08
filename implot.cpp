@@ -2920,29 +2920,6 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 // PLOT ERROR BARS H
 //-----------------------------------------------------------------------------
 
-struct ImPlotPointErrorH {
-    ImPlotPointErrorH(double _x, double _y, double _neg_v, double _pos_v, double _neg_h, double _pos_h) {
-        x = _x; y = _y; neg_v = _neg_v; pos_v = _pos_v; neg_h = _neg_h; pos_h = _pos_h;
-    }
-    double x, y, neg_v, pos_v, neg_h, pos_h;
-};
-
-template <typename T>
-struct GetterErrorH {
-    const T* Xs; const T* Ys; const T* Neg_v; const T* Pos_v; const T* Neg_h; const T* Pos_h; int Count; int Offset; int Stride;
-    GetterErrorH(const T* xs, const T* ys, const T* neg_v, const T* pos_v, const T* neg_h, const T* pos_h, int count, int offset, int stride) {
-        Xs = xs; Ys = ys; Neg_v = neg_v; Pos_v = pos_v; Neg_h = neg_h; Pos_h = pos_h; Count = count; Offset = offset; Stride = stride;
-    }
-    ImPlotPointErrorH operator()(int idx) {
-        return ImPlotPointErrorH(OffsetAndStride(Xs, idx, Count, Offset, Stride),
-            OffsetAndStride(Ys, idx, Count, Offset, Stride),
-            OffsetAndStride(Neg_v, idx, Count, Offset, Stride),
-            OffsetAndStride(Pos_v, idx, Count, Offset, Stride), 
-            OffsetAndStride(Neg_h, idx, Count, Offset, Stride),
-            OffsetAndStride(Pos_h, idx, Count, Offset, Stride));
-    }
-};
-
 template <typename Getter>
 void PlotErrorBarsHEx(const char* label_id, Getter getter) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBars() needs to be called between BeginPlot() and EndPlot()!");
@@ -2964,27 +2941,20 @@ void PlotErrorBarsHEx(const char* label_id, Getter getter) {
     // find data extents
     if (gp.FitThisFrame) {
         for (int i = 0; i < getter.Count; ++i) {
-            ImPlotPointErrorH e = getter(i);
-            FitPoint(ImPlotPoint(e.x, e.y - e.neg_v));
-            FitPoint(ImPlotPoint(e.x, e.y + e.pos_v));
-            FitPoint(ImPlotPoint(e.x - e.neg_h, e.y));
-            FitPoint(ImPlotPoint(e.x + e.pos_h, e.y));
+            ImPlotPointError e = getter(i);
+            FitPoint(ImPlotPoint(e.x - e.neg, e.y));
+            FitPoint(ImPlotPoint(e.x + e.pos, e.y));
         }
     }
 
     for (int i = 0; i < getter.Count; ++i) {
-        ImPlotPointErrorH e = getter(i);
-        ImVec2 p1 = PlotToPixels(e.x, e.y - e.neg_v);
-        ImVec2 p2 = PlotToPixels(e.x, e.y + e.pos_v);
-        ImVec2 p3 = PlotToPixels(e.x - e.neg_h, e.y);
-        ImVec2 p4 = PlotToPixels(e.x + e.pos_h, e.y);
+        ImPlotPointError e = getter(i);
+        ImVec2 p1 = PlotToPixels(e.x - e.neg, e.y);
+        ImVec2 p2 = PlotToPixels(e.x + e.pos, e.y);
         DrawList.AddLine(p1, p2, col, gp.Style.ErrorBarWeight);
-        DrawList.AddLine(p3, p4, col, gp.Style.ErrorBarWeight);
         if (rend_whisker) {
-            DrawList.AddLine(p1 - ImVec2(half_whisker, 0), p1 + ImVec2(half_whisker, 0), col, gp.Style.ErrorBarWeight);
-            DrawList.AddLine(p2 - ImVec2(half_whisker, 0), p2 + ImVec2(half_whisker, 0), col, gp.Style.ErrorBarWeight);
-            DrawList.AddLine(p3 - ImVec2(0, half_whisker), p3 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
-            DrawList.AddLine(p4 - ImVec2(0, half_whisker), p4 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
+            DrawList.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
+            DrawList.AddLine(p2 - ImVec2(0, half_whisker), p2 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
         }
     }
     PopPlotClipRect();
@@ -2993,26 +2963,26 @@ void PlotErrorBarsHEx(const char* label_id, Getter getter) {
 //-----------------------------------------------------------------------------
 // float
 
-void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* err_v, const float* err_h, int count, int offset, int stride) {
-    GetterErrorH<float> getter(xs, ys, err_v, err_v, err_h, err_h, count, offset, stride);
+void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset, int stride) {
+    GetterError<float> getter(xs, ys, err, err, count, offset, stride);
     PlotErrorBarsHEx(label_id, getter);
 }
 
-void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg_v, const float* pos_v, const float* neg_h, const float* pos_h, int count, int offset, int stride) {
-    GetterErrorH<float> getter(xs, ys, neg_v, pos_v, neg_h, pos_h, count, offset, stride);
+void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset, int stride) {
+    GetterError<float> getter(xs, ys, neg, pos, count, offset, stride);
     PlotErrorBarsHEx(label_id, getter);
 }
 
 //-----------------------------------------------------------------------------
 // double
 
-void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err_v, const double* err_h, int count, int offset, int stride) {
-    GetterErrorH<double> getter(xs, ys, err_v, err_v, err_h, err_h, count, offset, stride);
+void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset, int stride) {
+    GetterError<double> getter(xs, ys, err, err, count, offset, stride);
     PlotErrorBarsHEx(label_id, getter);
 }
 
-void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg_v, const double* pos_v, const double* neg_h, const double* pos_h, int count, int offset, int stride) {
-    GetterErrorH<double> getter(xs, ys, neg_v, pos_v, neg_h, pos_h, count, offset, stride);
+void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset, int stride) {
+    GetterError<double> getter(xs, ys, neg, pos, count, offset, stride);
     PlotErrorBarsHEx(label_id, getter);
 }
 

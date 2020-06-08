@@ -238,11 +238,11 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
 
-// Plots both vertical and horizontal error bars
-void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* err_v, const float* err_h, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err_v, const double* err_h, int count, int offset = 0, int stride = sizeof(double));
-void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg_v, const float* pos_v, const float* neg_h, const float* pos_h, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg_v, const double* pos_v, const double* neg_h, const double* pos_h, int count, int offset = 0, int stride = sizeof(double));
+// Plots horizontal error bars
+void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
+void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset = 0, int stride = sizeof(double));
+void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
+void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
 
 // Plots a pie chart. If the sum of values > 1 or normalize is true, each value will be normalized. Center and radius are in plot coordinates.
 void PlotPieChart(const char** label_ids, const float* values, int count, float x, float y, float radius, bool normalize = false, const char* label_fmt = "%.1f", float angle0 = 90);
