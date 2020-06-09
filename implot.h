@@ -70,7 +70,7 @@ enum ImPlotAxisFlags_ {
 
 // Plot styling colors.
 enum ImPlotCol_ {
-    ImPlotCol_Line,          // plot line/outline color (defaults to a rotating color set)
+    ImPlotCol_Line,          // plot line/outline color (defaults to next unused color in current colormap)
     ImPlotCol_Fill,          // plot fill color for bars (defaults to the current line color)
     ImPlotCol_MarkerOutline, // marker outline color (defaults to the current line color)
     ImPlotCol_MarkerFill,    // marker fill color (defaults to the current line color)
@@ -232,13 +232,13 @@ void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count
 void PlotBarsH(const char* label_id, const double* xs, const double* ys, int count, double height,  int offset = 0, int stride = sizeof(double));
 void PlotBarsH(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double height,  int offset = 0);
 
-// Plots vertical error bar.
+// Plots vertical error bar. The label_id should match the label_id of the associated line or bar plot.
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset = 0, int stride = sizeof(double));
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
 
-// Plots horizontal error bars
+// Plots horizontal error bars. The label_id should match the label_id of the associated line or bar plot.
 void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset = 0, int stride = sizeof(double));
 void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
