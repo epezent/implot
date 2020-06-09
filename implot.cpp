@@ -2917,6 +2917,77 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 }
 
 //-----------------------------------------------------------------------------
+// PLOT ERROR BARS H
+//-----------------------------------------------------------------------------
+
+template <typename Getter>
+void PlotErrorBarsHEx(const char* label_id, Getter getter) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBarsH() needs to be called between BeginPlot() and EndPlot()!");
+
+    ImGuiID id = ImGui::GetID(label_id);
+    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
+    if (item != NULL && item->Show == false)
+        return;
+
+    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
+
+    PushPlotClipRect();
+
+    const ImU32 col = gp.Style.Colors[ImPlotCol_ErrorBar].w == -1 ? ImGui::GetColorU32(ImGuiCol_Text) : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_ErrorBar]);
+    const bool rend_whisker = gp.Style.ErrorBarSize > 0;
+
+    const float half_whisker = gp.Style.ErrorBarSize * 0.5f;
+
+    // find data extents
+    if (gp.FitThisFrame) {
+        for (int i = 0; i < getter.Count; ++i) {
+            ImPlotPointError e = getter(i);
+            FitPoint(ImPlotPoint(e.x - e.neg, e.y));
+            FitPoint(ImPlotPoint(e.x + e.pos, e.y));
+        }
+    }
+
+    for (int i = 0; i < getter.Count; ++i) {
+        ImPlotPointError e = getter(i);
+        ImVec2 p1 = PlotToPixels(e.x - e.neg, e.y);
+        ImVec2 p2 = PlotToPixels(e.x + e.pos, e.y);
+        DrawList.AddLine(p1, p2, col, gp.Style.ErrorBarWeight);
+        if (rend_whisker) {
+            DrawList.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
+            DrawList.AddLine(p2 - ImVec2(0, half_whisker), p2 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
+        }
+    }
+    PopPlotClipRect();
+}
+
+//-----------------------------------------------------------------------------
+// float
+
+void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset, int stride) {
+    GetterError<float> getter(xs, ys, err, err, count, offset, stride);
+    PlotErrorBarsHEx(label_id, getter);
+}
+
+void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset, int stride) {
+    GetterError<float> getter(xs, ys, neg, pos, count, offset, stride);
+    PlotErrorBarsHEx(label_id, getter);
+}
+
+//-----------------------------------------------------------------------------
+// double
+
+void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset, int stride) {
+    GetterError<double> getter(xs, ys, err, err, count, offset, stride);
+    PlotErrorBarsHEx(label_id, getter);
+}
+
+void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset, int stride) {
+    GetterError<double> getter(xs, ys, neg, pos, count, offset, stride);
+    PlotErrorBarsHEx(label_id, getter);
+}
+
+
+//-----------------------------------------------------------------------------
 // PLOT PIE CHART
 //-----------------------------------------------------------------------------
 
