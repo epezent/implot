@@ -812,6 +812,46 @@ struct ImPlotAxisScale {
 };
 
 //-----------------------------------------------------------------------------
+// Input Mapping
+//-----------------------------------------------------------------------------
+
+static ImPlotInputMap GetInputMapDefault() {
+    ImPlotInputMap i{};
+
+    i.PanButton = ImGuiMouseButton_Left;
+    i.PanMod = ImGuiKeyModFlags_None;
+
+    i.BoxSelectButton = ImGuiMouseButton_Right;
+    i.BoxSelectMod = ImGuiKeyModFlags_None;
+
+    i.BoxCancelButton = ImGuiMouseButton_Left;
+
+    i.QueryClickButton = ImGuiMouseButton_Left;
+    i.QueryClickMod = ImGuiKeyModFlags_Ctrl;
+
+    i.QueryDragButton = ImGuiMouseButton_Middle;
+    i.QueryDragMod = ImGuiKeyModFlags_None;
+
+    i.QueryDragButton2 = ImGuiMouseButton_Right;
+    i.QueryDragMod2 = ImGuiKeyModFlags_Ctrl;
+
+    i.HorizontalSizeMod = ImGuiKeyModFlags_Alt;
+    i.VerticalSizeMod = ImGuiKeyModFlags_Shift;
+
+    return i;
+};
+
+
+// Global input mapping
+static ImPlotInputMap gi = GetInputMapDefault();
+
+ImPlotInputMap SetInputMap(const ImPlotInputMap& inputMap) {
+    ImPlotInputMap prevInputMap = gi;
+    gi = inputMap;
+    return prevInputMap;
+}
+
+//-----------------------------------------------------------------------------
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
@@ -1074,7 +1114,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // QUERY DRAG -------------------------------------------------------------
-    if (plot.DraggingQuery && (IO.MouseReleased[0] || !IO.MouseDown[0])) {
+    if (plot.DraggingQuery && (IO.MouseReleased[gi.PanButton] || !IO.MouseDown[gi.PanButton])) {
         plot.DraggingQuery = false;
     }
     if (plot.DraggingQuery) {
@@ -1085,7 +1125,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (gp.Hov_Frame && gp.Hov_Plot && hov_query && !plot.DraggingQuery && !plot.Selecting && !hov_legend) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
         const bool any_y_dragging = plot.YAxis[0].Dragging || plot.YAxis[1].Dragging || plot.YAxis[2].Dragging;
-        if (IO.MouseDown[0] && !plot.XAxis.Dragging && !any_y_dragging) {
+        if (IO.MouseDown[gi.PanButton] && !plot.XAxis.Dragging && !any_y_dragging) {
             plot.DraggingQuery = true;
         }
     }
@@ -1093,12 +1133,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // DRAG INPUT -------------------------------------------------------------
 
     // end drags
-    if (plot.XAxis.Dragging && (IO.MouseReleased[0] || !IO.MouseDown[0])) {
+    if (plot.XAxis.Dragging && (IO.MouseReleased[gi.PanButton] || !IO.MouseDown[gi.PanButton])) {
         plot.XAxis.Dragging             = false;
         G.IO.MouseDragMaxDistanceSqr[0] = 0;
     }
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        if (plot.YAxis[i].Dragging && (IO.MouseReleased[0] || !IO.MouseDown[0])) {
+        if (plot.YAxis[i].Dragging && (IO.MouseReleased[gi.PanButton] || !IO.MouseDown[gi.PanButton])) {
             plot.YAxis[i].Dragging             = false;
             G.IO.MouseDragMaxDistanceSqr[0] = 0;
         }
@@ -1155,7 +1195,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     // start drag
-    if (!drag_in_progress && gp.Hov_Frame && IO.MouseClicked[0] && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
+    if (!drag_in_progress && gp.Hov_Frame && IO.MouseClicked[gi.PanButton] && IO.KeyMods == gi.PanMod && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
         if (hov_x_axis_region) {
             plot.XAxis.Dragging = true;
         }
@@ -1201,22 +1241,22 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // BOX-SELECTION AND QUERY ------------------------------------------------
 
     // confirm selection
-    if (plot.Selecting && (IO.MouseReleased[1] || !IO.MouseDown[1])) {
+    if (plot.Selecting && (IO.MouseReleased[gi.BoxSelectButton] || !IO.MouseDown[gi.BoxSelectButton])) {
         UpdateTransformCache();
         ImVec2 select_size = plot.SelectStart - IO.MousePos;
         if (HasFlag(plot.Flags, ImPlotFlags_BoxSelect) && ImFabs(select_size.x) > 2 && ImFabs(select_size.y) > 2) {
             ImPlotPoint p1 = PixelsToPlot(plot.SelectStart);
             ImPlotPoint p2 = PixelsToPlot(IO.MousePos);
-            if (!gp.X.LockMin && !IO.KeyAlt)
+            if (!gp.X.LockMin && IO.KeyMods != gi.HorizontalSizeMod)
                 plot.XAxis.Range.Min = ImMin(p1.x, p2.x);
-            if (!gp.X.LockMax && !IO.KeyAlt)
+            if (!gp.X.LockMax && IO.KeyMods != gi.HorizontalSizeMod)
                 plot.XAxis.Range.Max = ImMax(p1.x, p2.x);
             for (int i = 0; i < MAX_Y_AXES; i++) {
                 p1 = PixelsToPlot(plot.SelectStart, i);
                 p2 = PixelsToPlot(IO.MousePos, i);
-                if (!gp.Y[i].LockMin && !IO.KeyShift)
+                if (!gp.Y[i].LockMin && IO.KeyMods != gi.VerticalSizeMod)
                     plot.YAxis[i].Range.Min = ImMin(p1.y, p2.y);
-                if (!gp.Y[i].LockMax && !IO.KeyShift)
+                if (!gp.Y[i].LockMax && IO.KeyMods != gi.VerticalSizeMod)
                     plot.YAxis[i].Range.Max = ImMax(p1.y, p2.y);
             }
         }
@@ -1227,21 +1267,21 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
     }
     // cancel selection
-    if (plot.Selecting && (IO.MouseClicked[0] || IO.MouseDown[0])) {
+    if (plot.Selecting && (IO.MouseClicked[gi.BoxCancelButton] || IO.MouseDown[gi.BoxCancelButton])) {
         plot.Selecting = false;
     }
     // begin selection or query
-    if (gp.Hov_Frame && gp.Hov_Plot && IO.MouseClicked[1]) {
+    if (gp.Hov_Frame && gp.Hov_Plot && IO.MouseClicked[gi.BoxSelectButton] && IO.KeyMods == gi.BoxSelectMod) {
         plot.SelectStart = IO.MousePos;
         plot.Selecting = true;
     }
     // update query
     if (plot.Querying) {
         UpdateTransformCache();
-        plot.QueryRect.Min.x = IO.KeyAlt ? gp.BB_Plot.Min.x :   ImMin(plot.QueryStart.x, IO.MousePos.x);
-        plot.QueryRect.Max.x = IO.KeyAlt ? gp.BB_Plot.Max.x :   ImMax(plot.QueryStart.x, IO.MousePos.x);
-        plot.QueryRect.Min.y = IO.KeyShift ? gp.BB_Plot.Min.y : ImMin(plot.QueryStart.y, IO.MousePos.y);
-        plot.QueryRect.Max.y = IO.KeyShift ? gp.BB_Plot.Max.y : ImMax(plot.QueryStart.y, IO.MousePos.y);
+        plot.QueryRect.Min.x = IO.KeyMods == gi.HorizontalSizeMod ? gp.BB_Plot.Min.x : ImMin(plot.QueryStart.x, IO.MousePos.x);
+        plot.QueryRect.Max.x = IO.KeyMods == gi.HorizontalSizeMod ? gp.BB_Plot.Max.x : ImMax(plot.QueryStart.x, IO.MousePos.x);
+        plot.QueryRect.Min.y = IO.KeyMods == gi.HorizontalSizeMod ? gp.BB_Plot.Min.y : ImMin(plot.QueryStart.y, IO.MousePos.y);
+        plot.QueryRect.Max.y = IO.KeyMods == gi.HorizontalSizeMod ? gp.BB_Plot.Max.y : ImMax(plot.QueryStart.y, IO.MousePos.y);
 
         plot.QueryRect.Min -= gp.BB_Plot.Min;
         plot.QueryRect.Max -= gp.BB_Plot.Min;
@@ -1256,22 +1296,28 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             plot.Queried = false;
         }
     }
+
+    const bool isSelectInput = IO.MouseDown[gi.BoxSelectButton] && IO.KeyMods == gi.BoxSelectButton;
+    const bool isQueryInput = (IO.MouseDown[gi.QueryDragButton] && IO.KeyMods == gi.QueryDragMod) || (IO.MouseDown[gi.QueryDragButton2] && IO.KeyMods == gi.QueryDragMod2);
+    const bool isQueryInputBegin = (IO.MouseClicked[gi.QueryDragButton] && IO.KeyMods == gi.QueryDragMod) || (IO.MouseClicked[gi.QueryDragButton2] && IO.KeyMods == gi.QueryDragMod2);
+
+
     // begin query
-    if (HasFlag(plot.Flags, ImPlotFlags_Query) && (gp.Hov_Frame && gp.Hov_Plot && IO.MouseClicked[2])) {
+    if (HasFlag(plot.Flags, ImPlotFlags_Query) && (gp.Hov_Frame && gp.Hov_Plot && isQueryInputBegin)) {
         plot.QueryRect = ImRect(0,0,0,0);
         plot.Querying = true;
         plot.Queried  = true;
         plot.QueryStart = IO.MousePos;
     }
     // toggle between select/query
-    if (HasFlag(plot.Flags, ImPlotFlags_Query) && plot.Selecting && IO.KeyCtrl) {
+    if (HasFlag(plot.Flags, ImPlotFlags_Query) && plot.Selecting && isQueryInput) {
         plot.Selecting = false;
         plot.QueryRect = ImRect(0,0,0,0);
         plot.Querying = true;
         plot.Queried  = true;
         plot.QueryStart = plot.SelectStart;
     }
-    if (HasFlag(plot.Flags, ImPlotFlags_BoxSelect) && plot.Querying && !IO.KeyCtrl && !IO.MouseDown[2]) {
+    if (HasFlag(plot.Flags, ImPlotFlags_BoxSelect) && plot.Querying && isSelectInput) {
         plot.Selecting = true;
         plot.Querying = false;
         plot.Queried = false;

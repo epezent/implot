@@ -172,11 +172,37 @@ struct ImPlotStyle {
     ImPlotStyle();
 };
 
+// Input mapping structure. Comments show the default input mapping.
+struct ImPlotInputMap {
+    ImGuiMouseButton PanButton;             // left mouse
+    ImGuiKeyModFlags PanMod;                // none
+    
+    ImGuiMouseButton BoxSelectButton;       // right mouse
+    ImGuiKeyModFlags BoxSelectMod;          // none
+    
+    ImGuiMouseButton BoxCancelButton;       // left mouse
+
+    ImGuiMouseButton QueryClickButton;      // left mouse
+    ImGuiKeyModFlags QueryClickMod;         // ctrl
+
+    ImGuiMouseButton QueryDragButton;       // middle mouse
+    ImGuiKeyModFlags QueryDragMod;          // none
+
+    ImGuiMouseButton QueryDragButton2;      // right mouse, alternative way to query drag, useful when middle mouse is not available
+    ImGuiKeyModFlags QueryDragMod2;         // ctrl
+
+    ImGuiKeyModFlags HorizontalSizeMod;     // alt
+    ImGuiKeyModFlags VerticalSizeMod;       // shift
+};
+
 //-----------------------------------------------------------------------------
 // Begin/End Plot
 //-----------------------------------------------------------------------------
 
 namespace ImPlot {
+
+// Overrides the input mapping. Returns the previous input mapping.
+ImPlotInputMap SetInputMap(const ImPlotInputMap& inputMap);
 
 // Starts a 2D plotting context. If this function returns true, EndPlot() must
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }"". #title_id must
