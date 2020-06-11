@@ -3114,7 +3114,10 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
         ImPlotPoint itemData1 = getter(0);
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPoint itemData2 = getter(i);
-            if (NanOrInf(itemData1.y)) continue;
+            if (NanOrInf(itemData1.y)) {
+                itemData1 = itemData2;
+                continue;
+            }
             if (NanOrInf(itemData2.y)) itemData2.y = ConstrainNan(ConstrainInf(itemData2.y));
             int pixY_0 = (int)(line_weight);
             itemData1.y = ImMax(0.0, itemData1.y);
@@ -3133,6 +3136,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             while (((i+2) < getter.Count) && (itemData1.y == itemData2.y)) {
                 const int in = (i + 1);
                 itemData2 = getter(in);
+                if (NanOrInf(itemData2.y)) break;              
                 pMax.x = PlotToPixels(itemData2).x;
                 i++;
             }
