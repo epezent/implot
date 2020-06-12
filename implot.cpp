@@ -3379,7 +3379,7 @@ void ShowColormapScale(double scale_min, double scale_max, float height) {
 void SetColormap(ImPlotColormap colormap, int samples) {
     static int csizes[ImPlotColormap_COUNT] = {10,9,9,12,11,11,11,11,11,11};
     static OffsetCalculator<ImPlotCol_COUNT> coffs(csizes);
-    static ImVec4 cdata[] {
+    static ImVec4 cdata[] = {
         // ImPlotColormap_Default                                  // X11 Named Colors
         ImVec4(0.0f, 0.7490196228f, 1.0f, 1.0f),                   // Blues::DeepSkyBlue,
         ImVec4(1.0f, 0.0f, 0.0f, 1.0f),                            // Reds::Red,
