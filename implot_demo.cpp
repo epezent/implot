@@ -114,7 +114,7 @@ struct BenchmarkItem {
         }
         Col = ImVec4((float)RandomRange(0,1),(float)RandomRange(0,1),(float)RandomRange(0,1),1);
     }
-    ~BenchmarkItem() { delete Data; }
+    ~BenchmarkItem() { delete[] Data; }
     t_float2* Data;
     ImVec4 Col;
 };
@@ -164,7 +164,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Indent();
             ImGui::BulletText("Software AA can be enabled per plot with ImPlotFlags_AntiAliased.");
             ImGui::BulletText("AA for demo plots can be enabled from the plot's context menu.");
-            ImGui::BulletText("If allowable, you are better off using hardware AA (e.g. MSAA).");
+            ImGui::BulletText("If permitable, you are better off using hardware AA (e.g. MSAA).");
         ImGui::Unindent();
 #ifdef IMPLOT_DEMO_USE_DOUBLE
         ImGui::BulletText("The demo data precision is: double");
@@ -185,11 +185,15 @@ void ShowDemoWindow(bool* p_open) {
             xs2[i] = i * 0.1f;
             ys2[i] = xs2[i] * xs2[i];
         }
+        static float weight = ImPlot::GetStyle().LineWeight;
+        ImGui::BulletText("Anti-aliasing can be enabled from the plot's context menu (see Help).");
+        ImGui::DragFloat("Line Weight", &weight, 0.05f, 1.0f, 5.0f, "%.2f px");
         if (ImPlot::BeginPlot("Line Plot", "x", "f(x)")) {
+            ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, weight);
             ImPlot::PlotLine("0.5 + 0.5*sin(50*x)", xs1, ys1, 1001);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
             ImPlot::PlotLine("x^2", xs2, ys2, 11);
-            ImPlot::PopStyleVar();
+            ImPlot::PopStyleVar(2);
             ImPlot::EndPlot();
         }
     }
@@ -280,21 +284,37 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Error Bars")) {
         t_float xs[5]  = {1,2,3,4,5};
-        t_float lin[5] = {8,8,9,7,8};
         t_float bar[5] = {1,2,5,3,4};
+        t_float lin1[5] = {8,8,9,7,8};
+        t_float lin2[5] = {6,7,6,9,6};
         t_float err1[5] = {0.2f, 0.4f, 0.2f, 0.6f, 0.4f};
         t_float err2[5] = {0.4f, 0.2f, 0.4f, 0.8f, 0.6f};
+        t_float err3[5] = {0.09f, 0.14f, 0.09f, 0.12f, 0.16f};
+        t_float err4[5] = {0.02f, 0.08f, 0.15f, 0.05f, 0.2f};
+        static float size = ImPlot::GetStyle().ErrorBarSize;
+        static float weight = ImPlot::GetStyle().ErrorBarWeight;
+        ImGui::DragFloat("Error Bar Size", &size, 0.1f, 0, 10,"%.2f px");
+        ImGui::DragFloat("Error Bar Weight",&weight,0.01f,1,3,"%.2f px");
         ImPlot::SetNextPlotLimits(0, 6, 0, 10);
         if (ImPlot::BeginPlot("##ErrorBars",NULL,NULL)) {
+            ImPlot::PushStyleVar(ImPlotStyleVar_ErrorBarSize, size);
+            ImPlot::PushStyleVar(ImPlotStyleVar_ErrorBarWeight, weight);
             ImPlot::PlotBars("Bar", xs, bar, 5, 0.5f);
+            // error bars should have the same label ID as the associated plot
             ImPlot::PlotErrorBars("Bar", xs, bar, err1, 5);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 3);
-            ImPlot::PushStyleColor(ImPlotCol_ErrorBar, ImVec4(1,0,0,1));
-            ImPlot::PlotErrorBars("Line", xs, lin, err1, err2, 5);
-            ImPlot::PlotLine("Line", xs, lin, 5);
-            ImPlot::PopStyleVar(2);
-            ImPlot::PopStyleColor();
+            ImPlot::PushStyleColor(ImPlotCol_ErrorBar, ImPlot::GetColormapColor(1));
+            ImPlot::PlotErrorBars("Line1", xs, lin1, err1, err2, 5);
+            ImPlot::PlotLine("Line1", xs, lin1, 5);
+            ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);
+            ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 3);
+            ImPlot::PushStyleColor(ImPlotCol_ErrorBar, ImPlot::GetColormapColor(2));
+            ImPlot::PlotErrorBars("Line2", xs, lin2, err2, 5);
+            ImPlot::PlotErrorBarsH("Line2", xs, lin2,  err3, err4, 5);
+            ImPlot::PlotLine("Line2", xs, lin2, 5);
+            ImPlot::PopStyleVar(6);
+            ImPlot::PopStyleColor(2);
             ImPlot::EndPlot();
         }
     }
@@ -408,15 +428,21 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Markers and Text")) {
+    if (ImGui::CollapsingHeader("Colormaps, Markers, and Text")) {
         static ImPlotColormap map = ImPlotColormap_Default;
         if (ImGui::Button("Change Colormap##2"))
             map = (map + 1) % ImPlotColormap_COUNT;
         ImGui::SameLine();
         ImGui::LabelText("##Colormap Index", "%s", cmap_names[map]);
+        static float mk_size = ImPlot::GetStyle().MarkerSize;
+        static float mk_weight = ImPlot::GetStyle().MarkerWeight;
+        ImGui::DragFloat("Marker Size",&mk_size,0.1f,2.0f,10.0f,"%.2f px");
+        ImGui::DragFloat("Marker Weight", &mk_weight,0.05f,0.5f,3.0f,"%.2f px");
         ImGui::PushID(map); // NB: This is merely a workaround so that the demo can cycle color maps. You wouldn't need to do this in your own code!
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
         if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {
+            ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, mk_size);
+            ImPlot::PushStyleVar(ImPlotStyleVar_MarkerWeight, mk_weight);
             ImPlot::SetColormap(map);
             t_float xs[2] = {1,4};
             t_float ys[2] = {10,11};
@@ -480,7 +506,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(1,1,1,1));
             ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0,0,0,1));
             ImPlot::PlotLine("Circle|Cross", xs, ys, 2);
-            ImPlot::PopStyleVar(4);
+            ImPlot::PopStyleVar(6);
             ImPlot::PopStyleColor(3);
 
             ImPlot::PlotText("Filled Markers", 1.5, 11.75);
@@ -946,6 +972,7 @@ void ShowDemoWindow(bool* p_open) {
         static BenchmarkItem items[n_items];
         ImGui::BulletText("Make sure VSync is disabled.");
         ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
+        ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_Default | ImPlotFlags_NoChild)) {
             char buff[16];
             for (int i = 0; i < 100; ++i) {

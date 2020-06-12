@@ -655,6 +655,11 @@ ImPlotItem* GetLegendItem(int i) {
     return gp.CurrentPlot->Items.GetByIndex(gp.LegendIndices[i]);
 }
 
+ImPlotItem* GetLegendItem(const char* label_id) {
+    ImGuiID id = ImGui::GetID(label_id);
+    return gp.CurrentPlot->Items.GetByKey(id);
+}
+
 const char* GetLegendLabel(int i) {
     ImPlotItem* item  = gp.CurrentPlot->Items.GetByIndex(gp.LegendIndices[i]);
     IM_ASSERT(item->NameOffset != -1 && item->NameOffset < gp.LegendLabels.Buf.Size);
@@ -2371,11 +2376,6 @@ inline int PosMod(int l, int r) {
     return (l % r + r) % r;
 }
 
-// template <typename T>
-// inline T StrideIndex(const T* data, int idx, int stride) {
-//     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
-// }
-
 template <typename T>
 inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
     idx = PosMod(offset + idx, count);
@@ -2935,6 +2935,77 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 }
 
 //-----------------------------------------------------------------------------
+// PLOT ERROR BARS H
+//-----------------------------------------------------------------------------
+
+template <typename Getter>
+void PlotErrorBarsHEx(const char* label_id, Getter getter) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBarsH() needs to be called between BeginPlot() and EndPlot()!");
+
+    ImGuiID id = ImGui::GetID(label_id);
+    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
+    if (item != NULL && item->Show == false)
+        return;
+
+    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
+
+    PushPlotClipRect();
+
+    const ImU32 col = gp.Style.Colors[ImPlotCol_ErrorBar].w == -1 ? ImGui::GetColorU32(ImGuiCol_Text) : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_ErrorBar]);
+    const bool rend_whisker = gp.Style.ErrorBarSize > 0;
+
+    const float half_whisker = gp.Style.ErrorBarSize * 0.5f;
+
+    // find data extents
+    if (gp.FitThisFrame) {
+        for (int i = 0; i < getter.Count; ++i) {
+            ImPlotPointError e = getter(i);
+            FitPoint(ImPlotPoint(e.x - e.neg, e.y));
+            FitPoint(ImPlotPoint(e.x + e.pos, e.y));
+        }
+    }
+
+    for (int i = 0; i < getter.Count; ++i) {
+        ImPlotPointError e = getter(i);
+        ImVec2 p1 = PlotToPixels(e.x - e.neg, e.y);
+        ImVec2 p2 = PlotToPixels(e.x + e.pos, e.y);
+        DrawList.AddLine(p1, p2, col, gp.Style.ErrorBarWeight);
+        if (rend_whisker) {
+            DrawList.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
+            DrawList.AddLine(p2 - ImVec2(0, half_whisker), p2 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
+        }
+    }
+    PopPlotClipRect();
+}
+
+//-----------------------------------------------------------------------------
+// float
+
+void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset, int stride) {
+    GetterError<float> getter(xs, ys, err, err, count, offset, stride);
+    PlotErrorBarsHEx(label_id, getter);
+}
+
+void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset, int stride) {
+    GetterError<float> getter(xs, ys, neg, pos, count, offset, stride);
+    PlotErrorBarsHEx(label_id, getter);
+}
+
+//-----------------------------------------------------------------------------
+// double
+
+void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset, int stride) {
+    GetterError<double> getter(xs, ys, err, err, count, offset, stride);
+    PlotErrorBarsHEx(label_id, getter);
+}
+
+void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset, int stride) {
+    GetterError<double> getter(xs, ys, neg, pos, count, offset, stride);
+    PlotErrorBarsHEx(label_id, getter);
+}
+
+
+//-----------------------------------------------------------------------------
 // PLOT PIE CHART
 //-----------------------------------------------------------------------------
 
@@ -2988,14 +3059,17 @@ void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y
         a1 = angle0 * 2 * IM_PI / 360.0f;
         char buffer[32];
         for (int i = 0; i < count; ++i) {
+            ImPlotItem* item = GetLegendItem(label_ids[i]);
             T percent = normalize ? values[i] / sum : values[i];
             a1 = a0 + 2 * IM_PI * percent;
-            sprintf(buffer, fmt, values[i]);
-            ImVec2 size = ImGui::CalcTextSize(buffer);
-            T angle = a0 + (a1 - a0) * 0.5f;
-            ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
-            DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), IM_COL32(0,0,0,255), buffer);
-            DrawList.AddText(pos - size * 0.5f, IM_COL32(255,255,255,255), buffer);
+            if (item->Show) {
+                sprintf(buffer, fmt, values[i]);
+                ImVec2 size = ImGui::CalcTextSize(buffer);
+                T angle = a0 + (a1 - a0) * 0.5f;
+                ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
+                DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), IM_COL32(0,0,0,255), buffer);
+                DrawList.AddText(pos - size * 0.5f, IM_COL32(255,255,255,255), buffer);
+            }
             a0 = a1;
         }
     }
