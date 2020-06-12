@@ -2358,11 +2358,6 @@ inline int PosMod(int l, int r) {
     return (l % r + r) % r;
 }
 
-// template <typename T>
-// inline T StrideIndex(const T* data, int idx, int stride) {
-//     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
-// }
-
 template <typename T>
 inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
     idx = PosMod(offset + idx, count);
