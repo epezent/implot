@@ -655,6 +655,11 @@ ImPlotItem* GetLegendItem(int i) {
     return gp.CurrentPlot->Items.GetByIndex(gp.LegendIndices[i]);
 }
 
+ImPlotItem* GetLegendItem(const char* label_id) {
+    ImGuiID id = ImGui::GetID(label_id);
+    return gp.CurrentPlot->Items.GetByKey(id);
+}
+
 const char* GetLegendLabel(int i) {
     ImPlotItem* item  = gp.CurrentPlot->Items.GetByIndex(gp.LegendIndices[i]);
     IM_ASSERT(item->NameOffset != -1 && item->NameOffset < gp.LegendLabels.Buf.Size);
@@ -3041,14 +3046,17 @@ void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y
         a1 = angle0 * 2 * IM_PI / 360.0f;
         char buffer[32];
         for (int i = 0; i < count; ++i) {
+            ImPlotItem* item = GetLegendItem(label_ids[i]);
             T percent = normalize ? values[i] / sum : values[i];
             a1 = a0 + 2 * IM_PI * percent;
-            sprintf(buffer, fmt, values[i]);
-            ImVec2 size = ImGui::CalcTextSize(buffer);
-            T angle = a0 + (a1 - a0) * 0.5f;
-            ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
-            DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), IM_COL32(0,0,0,255), buffer);
-            DrawList.AddText(pos - size * 0.5f, IM_COL32(255,255,255,255), buffer);
+            if (item->Show) {
+                sprintf(buffer, fmt, values[i]);
+                ImVec2 size = ImGui::CalcTextSize(buffer);
+                T angle = a0 + (a1 - a0) * 0.5f;
+                ImVec2 pos = PlotToPixels(center.x + 0.5f * radius * cos(angle), center.y + 0.5f * radius * sin(angle));
+                DrawList.AddText(pos - size * 0.5f + ImVec2(1,1), IM_COL32(0,0,0,255), buffer);
+                DrawList.AddText(pos - size * 0.5f, IM_COL32(255,255,255,255), buffer);
+            }
             a0 = a1;
         }
     }
