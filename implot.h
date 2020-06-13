@@ -60,10 +60,9 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_Invert     = 1 << 3, // the axis will be inverted
     ImPlotAxisFlags_LockMin    = 1 << 4, // the axis minimum value will be locked when panning/zooming
     ImPlotAxisFlags_LockMax    = 1 << 5, // the axis maximum value will be locked when panning/zooming
-    ImPlotAxisFlags_Adaptive   = 1 << 6, // grid divisions will adapt to the current pixel size the axis
-    ImPlotAxisFlags_LogScale   = 1 << 7, // a logartithmic (base 10) axis scale will be used
-    ImPlotAxisFlags_Scientific = 1 << 8, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
-    ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels | ImPlotAxisFlags_Adaptive,
+    ImPlotAxisFlags_LogScale   = 1 << 6, // a logartithmic (base 10) axis scale will be used
+    ImPlotAxisFlags_Scientific = 1 << 7, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
+    ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
     ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_GridLines,
 };
 

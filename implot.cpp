@@ -956,17 +956,15 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // adaptive divisions
-    if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Adaptive)) {
-        plot.XAxis.Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetWidth());
-        if (plot.XAxis.Divisions < 2)
-            plot.XAxis.Divisions = 2;
-    }
+    plot.XAxis.Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetWidth());
+    if (plot.XAxis.Divisions < 2)
+        plot.XAxis.Divisions = 2;
+    
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        if (HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Adaptive)) {
-            plot.YAxis[i].Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight());
-            if (plot.YAxis[i].Divisions < 2)
-                plot.YAxis[i].Divisions = 2;
-        }
+        plot.YAxis[i].Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight());
+        if (plot.YAxis[i].Divisions < 2)
+            plot.YAxis[i].Divisions = 2;
+        
     }
 
     // COLORS -----------------------------------------------------------------
