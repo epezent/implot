@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.3 WIP
+// ImPlot v0.4 WIP
 
 #include "implot.h"
 #include <math.h>
@@ -198,32 +198,7 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Shaded Plots")) {
-        static t_float xs[1001], ys[1001], ys1[1001], ys2[1001], ys3[1001], ys4[1001];
-        srand(0);
-        for (int i = 0; i < 1001; ++i) {
-            xs[i] = i * 0.001f;
-            ys[i] = 0.25f + 0.25f * Sin(25 * xs[i]) * Sin(5 * xs[i]) + RandomRange(-0.01f, 0.01f);
-            ys1[i] = ys[i] + RandomRange(0.1f, 0.12f);
-            ys2[i] = ys[i] - RandomRange(0.1f, 0.12f);     
-            ys3[i] = 0.75f + 0.2f * Sin(25 * xs[i]); 
-            ys4[i] = 0.75f + 0.1f * Cos(25 * xs[i]); 
-        }
-        static float alpha = 0.25f;
-        ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
-        if (ImPlot::BeginPlot("Shaded Plots")) {
-            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
-            ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
-            ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
-            ImPlot::PlotShaded("Overlapping",xs,ys3,ys4,1001);
-            ImPlot::PlotLine("Overlapping",xs,ys3,1001);
-            ImPlot::PlotLine("Overlapping",xs,ys4,1001);
-            ImPlot::PopStyleVar();
-            ImPlot::EndPlot();
-        }
-    }
-    //-------------------------------------------------------------------------
-        if (ImGui::CollapsingHeader("Filled Plots")) {
+        if (ImGui::CollapsingHeader("Filled Line Plots")) {
         static t_float xs1[101], ys1[101], ys2[101], ys3[101];
         srand(0);
         for (int i = 0; i < 101; ++i) {
@@ -252,6 +227,31 @@ void ShowDemoWindow(bool* p_open) {
                 ImPlot::PlotLine("Stock 2", xs1, ys2, 101);
                 ImPlot::PlotLine("Stock 3", xs1, ys3, 101);
             }
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Shaded Plots")) {
+        static t_float xs[1001], ys[1001], ys1[1001], ys2[1001], ys3[1001], ys4[1001];
+        srand(0);
+        for (int i = 0; i < 1001; ++i) {
+            xs[i] = i * 0.001f;
+            ys[i] = 0.25f + 0.25f * Sin(25 * xs[i]) * Sin(5 * xs[i]) + RandomRange(-0.01f, 0.01f);
+            ys1[i] = ys[i] + RandomRange(0.1f, 0.12f);
+            ys2[i] = ys[i] - RandomRange(0.1f, 0.12f);     
+            ys3[i] = 0.75f + 0.2f * Sin(25 * xs[i]); 
+            ys4[i] = 0.75f + 0.1f * Cos(25 * xs[i]); 
+        }
+        static float alpha = 0.25f;
+        ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
+        if (ImPlot::BeginPlot("Shaded Plots")) {
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
+            ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
+            ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
+            ImPlot::PlotShaded("Overlapping",xs,ys3,ys4,1001);
+            ImPlot::PlotLine("Overlapping",xs,ys3,1001);
+            ImPlot::PlotLine("Overlapping",xs,ys4,1001);
+            ImPlot::PopStyleVar();
             ImPlot::EndPlot();
         }
     }
@@ -446,9 +446,9 @@ void ShowDemoWindow(bool* p_open) {
         static int rt_axis = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_TickLabels;
         if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
             ImPlot::PlotLine("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), sdata1.Offset, 2 * sizeof(t_float));
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,0,0.25f));
-            ImPlot::PlotLine("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2 * sizeof(t_float));
-            ImPlot::PopStyleColor();
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+            ImPlot::PlotShaded("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), 0, sdata2.Offset, 2 * sizeof(t_float));
+            ImPlot::PopStyleVar();
             ImPlot::EndPlot();
         }
         ImPlot::SetNextPlotLimitsX(0, history, ImGuiCond_Always);
