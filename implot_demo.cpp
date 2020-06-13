@@ -224,6 +224,25 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
     }
+    if (ImGui::CollapsingHeader("Shaded Plots")) {
+        static double xs[1001], ys[1001], ys1[1001], ys2[1001];
+        srand(0);
+        for (int i = 0; i < 1001; ++i) {
+            xs[i] = i * 0.001f;
+            ys[i] = 0.5f + 0.25f * Sin(25 * xs[i]) * Sin(5 * xs[i]) + RandomRange(-0.01f, 0.01f);
+            ys1[i] = ys[i] + RandomRange(0.1f, 0.12f);
+            ys2[i] = ys[i] - RandomRange(0.1f, 0.12f);           
+        }
+        static float alpha = 0.25f;
+        ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
+        if (ImPlot::BeginPlot("Shaded Plots")) {
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
+            ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
+            ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
+            ImPlot::PopStyleVar();
+            ImPlot::EndPlot();
+        }
+    }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Scatter Plots")) {
         srand(0);

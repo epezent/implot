@@ -318,6 +318,7 @@ struct ImPlotAxisColor {
 struct ImPlotItem {
     ImPlotItem() {
         Show = true;
+        SeenThisFrame = false;
         Highlight = false;
         Color = NextColor();
         NameOffset = -1;
@@ -325,6 +326,7 @@ struct ImPlotItem {
     }
     ~ImPlotItem() { ID = 0; }
     bool Show;
+    bool SeenThisFrame;
     bool Highlight;
     ImVec4 Color;
     int NameOffset;
@@ -637,6 +639,9 @@ struct TransformerLogLog {
 ImPlotItem* RegisterItem(const char* label_id) {
     ImGuiID id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);
+    if (item->SeenThisFrame)
+        return item;
+    item->SeenThisFrame = true;
     int idx = gp.CurrentPlot->Items.GetIndex(item);
     item->ID = id;
     gp.LegendIndices.push_back(idx);
@@ -1807,6 +1812,11 @@ void EndPlot() {
     }
     // CLEANUP ----------------------------------------------------------------
 
+    // reset the plot items for the next frame
+    for (int i = 0; i < gp.CurrentPlot->Items.GetSize(); ++i) {
+        gp.CurrentPlot->Items.GetByIndex(i)->SeenThisFrame = false;
+    }
+
     // Pop ImGui::PushID at the end of BeginPlot
     ImGui::PopID();
     // Reset context for next plot
@@ -1958,6 +1968,7 @@ static const ImPlotStyleVarInfo GPlotStyleVarInfo[] =
     { ImGuiDataType_S32,   1, (ImU32)IM_OFFSETOF(ImPlotStyle, Marker)             }, // ImPlotStyleVar_Marker
     { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, MarkerSize)         }, // ImPlotStyleVar_MarkerSize
     { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, MarkerWeight)       }, // ImPlotStyleVar_MarkerWeight
+    { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, FillAlpha)          }, // ImPlotStyleVar_FillAlpha
     { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, ErrorBarSize)       }, // ImPlotStyleVar_ErrorBarSize
     { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, ErrorBarWeight)     }, // ImPlotStyleVar_ErrorBarWeight
     { ImGuiDataType_Float, 1, (ImU32)IM_OFFSETOF(ImPlotStyle, DigitalBitHeight)   }, // ImPlotStyleVar_DigitalBitHeight
@@ -2231,14 +2242,17 @@ struct LineRenderer {
 
 template <typename Getter, typename Transformer>
 struct LineFillRenderer {
-    LineFillRenderer(Getter _getter, Transformer _transformer, ImU32 col, float zero) { 
-        getter = _getter;
-        transformer = _transformer;
-        Col = col; 
-        Zero = zero; 
+    LineFillRenderer(Getter _getter, Transformer _transformer, ImU32 col, float zero) :
+        getter(_getter),
+        transformer(_transformer),
+        Col(col),
+        Zero(zero)
+    { 
+        Prims = getter.Count - 1;
         p1 = transformer(getter(0));
     }
-    inline void operator()(ImDrawList& DrawList, ImVec2 uv) {
+    inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
+        ImVec2 p2 = transformer(getter(prim + 1));
         const int crosses_zero = (p1.y > Zero && p2.y < Zero) || (p1.y < Zero && p2.y > Zero); // could do y*y < 0 earlier on
         const float xmid = p1.x + (p2.x - p1.x) / (p2.y-p1.y) * (Zero - p1.y);
         DrawList._VtxWritePtr[0].pos = p1;
@@ -2265,13 +2279,70 @@ struct LineFillRenderer {
         DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 4);
         DrawList._IdxWritePtr += 6;
         DrawList._VtxCurrentIdx += 5;
+        p1 = p2;
+        return true;
     }
+    Getter getter;
+    Transformer transformer;
     int Prims;
     ImU32 Col;
     float Zero;
     ImVec2 p1;
     static const int IdxConsumed = 6;
     static const int VtxConsumed = 5;
+};
+
+template <typename Getter1, typename Getter2, typename Transformer>
+struct ShadedRenderer {
+
+    ShadedRenderer(Getter1 _getter1, Getter2 _getter2, Transformer _transformer, ImU32 col) :
+        getter1(_getter1),
+        getter2(_getter2),
+        transformer(_transformer),
+        Col(col)
+    {
+        Prims = ImMin(getter1.Count, getter2.Count) - 1;
+        p11 = transformer(getter1(0));
+        p12 = transformer(getter2(0));
+    }
+
+    inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
+        ImVec2 p21 = transformer(getter1(prim+1));
+        ImVec2 p22 = transformer(getter2(prim+1));
+        DrawList._VtxWritePtr[0].pos = p11;
+        DrawList._VtxWritePtr[0].uv  = uv;
+        DrawList._VtxWritePtr[0].col = Col;
+        DrawList._VtxWritePtr[1].pos = p12;
+        DrawList._VtxWritePtr[1].uv  = uv;
+        DrawList._VtxWritePtr[1].col = Col;
+        DrawList._VtxWritePtr[2].pos = p21;
+        DrawList._VtxWritePtr[2].uv  = uv;
+        DrawList._VtxWritePtr[2].col = Col;
+        DrawList._VtxWritePtr[3].pos = p22;
+        DrawList._VtxWritePtr[3].uv  = uv;
+        DrawList._VtxWritePtr[3].col = Col;
+        DrawList._VtxWritePtr += 4;
+        DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
+        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
+        DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
+        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+        DrawList._IdxWritePtr += 6;
+        DrawList._VtxCurrentIdx += 4;
+        p11 = p21;
+        p12 = p22;
+        return true;
+    }
+
+    Getter1 getter1;
+    Getter2 getter2;
+    Transformer transformer;
+    int Prims;
+    ImU32 Col;
+    ImVec2 p11, p12;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 4;
 };
 
 // struct RectRenderer {
@@ -2310,7 +2381,7 @@ struct LineFillRenderer {
 
 template <typename Renderer>
 inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList, bool cull) {
-    int prims_remain = renderer.Prims;
+    int prims = renderer.Prims;
     int prims_culled = 0;
     int idx = 0;
     const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
@@ -2365,6 +2436,7 @@ template <typename Getter, typename Transformer>
 inline void RenderLineFill(Getter getter, Transformer transformer, ImDrawList& DrawList, ImU32 col_fill) {
     // TODO: Culling
     float zero = transformer(0,0).y;
+    RenderPrimitives(LineFillRenderer<Getter,Transformer>(getter,transformer,col_fill,zero), DrawList, false);
     // RenderPrimitives(getter, transformer, LineFillRenderer(col_fill, zero), DrawList, false);
 }
 
@@ -2582,6 +2654,47 @@ void PlotLine(const char* label_id, ImPlotPoint (*getter_func)(void* data, int i
     GetterFuncPtrImPlotPoint getter(getter_func,data, count, offset);
     return PlotEx(label_id, getter);
 }
+
+//-----------------------------------------------------------------------------
+// PLOT SHADED
+//-----------------------------------------------------------------------------
+
+void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotShaded() needs to be called between BeginPlot() and EndPlot()!");
+
+    ImPlotState* plot = gp.CurrentPlot;
+    const int y_axis = plot->CurrentYAxis;
+    ImPlotItem* item = RegisterItem(label_id);
+    if (!item->Show)
+        return;
+    
+    GetterXsYs<double> getter1(xs, ys1, count, offset, stride);
+    GetterXsYs<double> getter2(xs, ys2, count, offset, stride);
+
+    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+
+    ImVec4 col_fill = gp.Style.Colors[ImPlotCol_Fill].w == -1 ? (item->Color) : (gp.Style.Colors[ImPlotCol_Fill]);
+    col_fill.w *= gp.Style.FillAlpha;    
+
+    if (gp.Style.Colors[ImPlotCol_Fill].w != -1)
+        item->Color = gp.Style.Colors[ImPlotCol_Fill];
+
+    bool cull = HasFlag(plot->Flags, ImPlotFlags_CullData);
+
+    if (gp.FitThisFrame) {
+        for (int i = 0; i < count; ++i) {
+            ImPlotPoint p1 = getter1(i);
+            ImPlotPoint p2 = getter2(i);
+            FitPoint(p1);
+            FitPoint(p2);
+        }
+    }
+
+    PushPlotClipRect();
+    RenderPrimitives(ShadedRenderer<GetterXsYs<double>,GetterXsYs<double>,TransformerLinLin>(getter1,getter2,TransformerLinLin(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
+    PopPlotClipRect();
+}
+
 
 //-----------------------------------------------------------------------------
 // PLOT SCATTER

@@ -93,6 +93,7 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_Marker,           // int,   marker specification
     ImPlotStyleVar_MarkerSize,       // float, marker size in pixels (roughly the marker's "radius")
     ImPlotStyleVar_MarkerWeight,     // float, outline weight of markers in pixels
+    ImPlotStyleVar_FillAlpha,        // float, alpha modifier applied to plot fills
     ImPlotStyleVar_ErrorBarSize,     // float, error bar whisker width in pixels
     ImPlotStyleVar_ErrorBarWeight,   // float, error bar whisker weight in pixels
     ImPlotStyleVar_DigitalBitHeight, // float, digital channels bit height (at 1) in pixels
@@ -164,6 +165,7 @@ struct ImPlotStyle {
     ImPlotMarker Marker;                  // = ImPlotMarker_None, marker specification
     float        MarkerSize;              // = 4, marker size in pixels (roughly the marker's "radius")
     float        MarkerWeight;            // = 1, outline weight of markers in pixels
+    float        FillAlpha;               // = 1, alpha modifier applied to plot fills
     float        ErrorBarSize;            // = 5, error bar whisker width in pixels
     float        ErrorBarWeight;          // = 1.5, error bar whisker weight in pixels
     float        DigitalBitHeight;        // = 8, digital channels bit height (at y = 1.0f) in pixels
@@ -208,6 +210,10 @@ void PlotLine(const char* label_id, const double* xs, const double* ys, int coun
 void PlotLine(const char* label_id, const ImVec2* data, int count, int offset = 0);
 void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
 void PlotLine(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+
+// Plots a shaded (filled) region between two lines. Intersecting lines are not currently supported. 
+void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset = 0, int stride = sizeof(double));
+
 
 // Plots a standard 2D scatter plot.
 void PlotScatter(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
