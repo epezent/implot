@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.3 WIP
+// ImPlot v0.4 WIP
 
 /*
 
@@ -88,6 +88,7 @@ ImPlotStyle::ImPlotStyle() {
     Marker = ImPlotMarker_None;
     MarkerSize = 4;
     MarkerWeight = 1;
+    FillAlpha = 1;
     ErrorBarSize = 5;
     ErrorBarWeight = 1.5;
     DigitalBitHeight = 8;
@@ -177,6 +178,11 @@ inline T Remap(T x, T x0, T x1, T y0, T y1) {
     return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
 }
 
+// Returns always positive modulo
+inline int PosMod(int l, int r) {
+    return (l % r + r) % r;
+}
+
 // Turns NANs to 0s
 inline double ConstrainNan(double val) {
     return isnan(val) ? 0 : val;
@@ -233,6 +239,11 @@ inline void AddTextVertical(ImDrawList *DrawList, const char *text, ImVec2 pos, 
 inline ImVec2 CalcTextSizeVertical(const char *text) {
     ImVec2 sz = ImGui::CalcTextSize(text);
     return ImVec2(sz.y, sz.x);
+}
+
+/// Returns white or black text given background color
+inline ImU32 CalcTextColor(const ImVec4& bg) {
+    return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE;
 }
 
 } // private namespace
@@ -2240,57 +2251,13 @@ struct LineRenderer {
     static const int VtxConsumed = 4;
 };
 
-template <typename Getter, typename Transformer>
-struct LineFillRenderer {
-    LineFillRenderer(Getter _getter, Transformer _transformer, ImU32 col, float zero) :
-        getter(_getter),
-        transformer(_transformer),
-        Col(col),
-        Zero(zero)
-    { 
-        Prims = getter.Count - 1;
-        p1 = transformer(getter(0));
-    }
-    inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
-        ImVec2 p2 = transformer(getter(prim + 1));
-        const int crosses_zero = (p1.y > Zero && p2.y < Zero) || (p1.y < Zero && p2.y > Zero); // could do y*y < 0 earlier on
-        const float xmid = p1.x + (p2.x - p1.x) / (p2.y-p1.y) * (Zero - p1.y);
-        DrawList._VtxWritePtr[0].pos = p1;
-        DrawList._VtxWritePtr[0].uv  = uv;
-        DrawList._VtxWritePtr[0].col = Col;
-        DrawList._VtxWritePtr[1].pos = p2;
-        DrawList._VtxWritePtr[1].uv  = uv;
-        DrawList._VtxWritePtr[1].col = Col;
-        DrawList._VtxWritePtr[2].pos = ImVec2(xmid, Zero);
-        DrawList._VtxWritePtr[2].uv  = uv;
-        DrawList._VtxWritePtr[2].col = Col;
-        DrawList._VtxWritePtr[3].pos = ImVec2(p1.x, Zero);
-        DrawList._VtxWritePtr[3].uv  = uv;
-        DrawList._VtxWritePtr[3].col = Col;
-        DrawList._VtxWritePtr[4].pos = ImVec2(p2.x, Zero);;
-        DrawList._VtxWritePtr[4].uv  = uv;
-        DrawList._VtxWritePtr[4].col = Col;
-        DrawList._VtxWritePtr += 5;
-        DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1 + crosses_zero);
-        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
-        DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3 - crosses_zero);
-        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 4);
-        DrawList._IdxWritePtr += 6;
-        DrawList._VtxCurrentIdx += 5;
-        p1 = p2;
-        return true;
-    }
-    Getter getter;
-    Transformer transformer;
-    int Prims;
-    ImU32 Col;
-    float Zero;
-    ImVec2 p1;
-    static const int IdxConsumed = 6;
-    static const int VtxConsumed = 5;
-};
+inline ImVec2 Intersection(const ImVec2& a1, const ImVec2& a2, const ImVec2& b1, const ImVec2& b2) {
+    float v1 = (a1.x * a2.y - a1.y * a2.x);
+    float v2 = (b1.x * b2.y - b1.y * b2.x);
+    float v3 = ((a1.x - a2.x) * (b1.y - b2.y) - (a1.y - a2.y) * (b1.x - b2.x));
+    return ImVec2((v1 * (b1.x - b2.x) - v2 * (a1.x - a2.x)) / v3,
+                  (v1 * (b1.y - b2.y) - v2 * (a1.y - a2.y)) / v3);
+}
 
 template <typename Getter1, typename Getter2, typename Transformer>
 struct ShadedRenderer {
@@ -2309,32 +2276,36 @@ struct ShadedRenderer {
     inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
         ImVec2 p21 = transformer(getter1(prim+1));
         ImVec2 p22 = transformer(getter2(prim+1));
+        const int intersect = (p11.y > p12.y && p22.y > p21.y) || (p12.y > p11.y && p21.y > p22.y);
+        ImVec2 intersection = Intersection(p11,p21,p12,p22); 
         DrawList._VtxWritePtr[0].pos = p11;
         DrawList._VtxWritePtr[0].uv  = uv;
         DrawList._VtxWritePtr[0].col = Col;
-        DrawList._VtxWritePtr[1].pos = p12;
+        DrawList._VtxWritePtr[1].pos = p21;
         DrawList._VtxWritePtr[1].uv  = uv;
         DrawList._VtxWritePtr[1].col = Col;
-        DrawList._VtxWritePtr[2].pos = p21;
+        DrawList._VtxWritePtr[2].pos = intersection;
         DrawList._VtxWritePtr[2].uv  = uv;
         DrawList._VtxWritePtr[2].col = Col;
-        DrawList._VtxWritePtr[3].pos = p22;
+        DrawList._VtxWritePtr[3].pos = p12;
         DrawList._VtxWritePtr[3].uv  = uv;
         DrawList._VtxWritePtr[3].col = Col;
-        DrawList._VtxWritePtr += 4;
+        DrawList._VtxWritePtr[4].pos = p22;
+        DrawList._VtxWritePtr[4].uv  = uv;
+        DrawList._VtxWritePtr[4].col = Col;
+        DrawList._VtxWritePtr += 5;
         DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
+        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1 + intersect);
+        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
         DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
-        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3 - intersect);
+        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 4);
         DrawList._IdxWritePtr += 6;
-        DrawList._VtxCurrentIdx += 4;
+        DrawList._VtxCurrentIdx += 5;
         p11 = p21;
         p12 = p22;
         return true;
     }
-
     Getter1 getter1;
     Getter2 getter2;
     Transformer transformer;
@@ -2342,7 +2313,7 @@ struct ShadedRenderer {
     ImU32 Col;
     ImVec2 p11, p12;
     static const int IdxConsumed = 6;
-    static const int VtxConsumed = 4;
+    static const int VtxConsumed = 5;
 };
 
 // struct RectRenderer {
@@ -2416,37 +2387,9 @@ inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList, bool cull)
         DrawList.PrimUnreserve(prims_culled * Renderer::IdxConsumed, prims_culled * Renderer::VtxConsumed);
 }
 
-template <typename Getter, typename Transformer>
-inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& DrawList, float line_weight, ImU32 col, bool cull) {
-    if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
-        ImVec2 p1 = transformer(getter(0));
-        for (int i = 0; i < getter.Count; ++i) {
-            ImVec2 p2 = transformer(getter(i));
-            if (!cull || gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
-                DrawList.AddLine(p1, p2, col, line_weight);
-            p1 = p2;
-        }
-    }
-    else {
-        RenderPrimitives(LineRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, cull);
-    }
-}
-
-template <typename Getter, typename Transformer>
-inline void RenderLineFill(Getter getter, Transformer transformer, ImDrawList& DrawList, ImU32 col_fill) {
-    // TODO: Culling
-    float zero = transformer(0,0).y;
-    RenderPrimitives(LineFillRenderer<Getter,Transformer>(getter,transformer,col_fill,zero), DrawList, false);
-    // RenderPrimitives(getter, transformer, LineFillRenderer(col_fill, zero), DrawList, false);
-}
-
 //-----------------------------------------------------------------------------
 // GETTERS
 //-----------------------------------------------------------------------------
-
-inline int PosMod(int l, int r) {
-    return (l % r + r) % r;
-}
 
 template <typename T>
 inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
@@ -2488,6 +2431,26 @@ struct GetterXsYs {
         return ImPlotPoint(OffsetAndStride(Xs, idx, Count, Offset, Stride), OffsetAndStride(Ys, idx, Count, Offset, Stride));
     }
 };
+
+template <typename T>
+struct GetterXsYRef {
+    GetterXsYRef(const T* xs, T y_ref, int count, int offset, int stride) {
+        Xs = xs; 
+        YRef = y_ref;
+        Count = count;
+        Offset = PosMod(offset, count);;
+        Stride = stride;
+    }
+    const T* Xs;
+    T YRef;
+    int Count;
+    int Offset;
+    int Stride;
+    inline ImPlotPoint operator()(int idx) {
+        return ImPlotPoint(OffsetAndStride(Xs, idx, Count, Offset, Stride), YRef);
+    }
+};
+
 
 struct GetterImVec2 {
     GetterImVec2(const ImVec2* data, int count, int offset) {
@@ -2531,10 +2494,26 @@ struct GetterFuncPtrImPlotPoint {
 // PLOT
 //-----------------------------------------------------------------------------
 
+template <typename Getter, typename Transformer>
+inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& DrawList, float line_weight, ImU32 col, bool cull) {
+    if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
+        ImVec2 p1 = transformer(getter(0));
+        for (int i = 0; i < getter.Count; ++i) {
+            ImVec2 p2 = transformer(getter(i));
+            if (!cull || gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+                DrawList.AddLine(p1, p2, col, line_weight);
+            p1 = p2;
+        }
+    }
+    else {
+        RenderPrimitives(LineRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, cull);
+    }
+}
+
 template <typename Getter>
 inline void PlotEx(const char* label_id, Getter getter)
 {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Plot() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotEx() needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotState* plot = gp.CurrentPlot;
     const int y_axis = plot->CurrentYAxis;
@@ -2545,7 +2524,6 @@ inline void PlotEx(const char* label_id, Getter getter)
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
     const bool rend_line    = gp.Style.Colors[ImPlotCol_Line].w != 0 && gp.Style.LineWeight > 0;
-    const bool rend_fill    = gp.Style.Colors[ImPlotCol_Fill].w > 0;
 
     ImU32 col_line    = gp.Style.Colors[ImPlotCol_Line].w == -1 ? ImGui::GetColorU32(item->Color) : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_Line]);
 
@@ -2560,26 +2538,8 @@ inline void PlotEx(const char* label_id, Getter getter)
             ImPlotPoint p = getter(i);
             FitPoint(p);
         }
-        if (rend_fill) {
-            ImPlotPoint p1 = getter(0);
-            ImPlotPoint p2 = getter(getter.Count - 1);
-            p1.y = 0; p2.y = 0;
-            FitPoint(p1); FitPoint(p2);
-        }
     }
     PushPlotClipRect();
-    // render fill
-    if (getter.Count > 1 && rend_fill) {
-        const ImU32 col_fill = ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_Fill]);
-        if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineFill(getter, TransformerLogLog(y_axis), DrawList, col_fill);
-        else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-            RenderLineFill(getter, TransformerLogLin(y_axis), DrawList, col_fill);
-        else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineFill(getter, TransformerLinLog(y_axis), DrawList, col_fill);
-        else
-            RenderLineFill(getter, TransformerLinLin(y_axis), DrawList, col_fill);
-    }
     // render line
     if (getter.Count > 1 && rend_line) {
         const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
@@ -2628,7 +2588,6 @@ void PlotLine(const char* label_id, const ImVec2* data, int count, int offset) {
     return PlotEx(label_id, getter);
 }
 
-
 //-----------------------------------------------------------------------------
 // double
 
@@ -2654,47 +2613,6 @@ void PlotLine(const char* label_id, ImPlotPoint (*getter_func)(void* data, int i
     GetterFuncPtrImPlotPoint getter(getter_func,data, count, offset);
     return PlotEx(label_id, getter);
 }
-
-//-----------------------------------------------------------------------------
-// PLOT SHADED
-//-----------------------------------------------------------------------------
-
-void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride) {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotShaded() needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotState* plot = gp.CurrentPlot;
-    const int y_axis = plot->CurrentYAxis;
-    ImPlotItem* item = RegisterItem(label_id);
-    if (!item->Show)
-        return;
-    
-    GetterXsYs<double> getter1(xs, ys1, count, offset, stride);
-    GetterXsYs<double> getter2(xs, ys2, count, offset, stride);
-
-    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
-
-    ImVec4 col_fill = gp.Style.Colors[ImPlotCol_Fill].w == -1 ? (item->Color) : (gp.Style.Colors[ImPlotCol_Fill]);
-    col_fill.w *= gp.Style.FillAlpha;    
-
-    if (gp.Style.Colors[ImPlotCol_Fill].w != -1)
-        item->Color = gp.Style.Colors[ImPlotCol_Fill];
-
-    bool cull = HasFlag(plot->Flags, ImPlotFlags_CullData);
-
-    if (gp.FitThisFrame) {
-        for (int i = 0; i < count; ++i) {
-            ImPlotPoint p1 = getter1(i);
-            ImPlotPoint p2 = getter2(i);
-            FitPoint(p1);
-            FitPoint(p2);
-        }
-    }
-
-    PushPlotClipRect();
-    RenderPrimitives(ShadedRenderer<GetterXsYs<double>,GetterXsYs<double>,TransformerLinLin>(getter1,getter2,TransformerLinLin(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
-    PopPlotClipRect();
-}
-
 
 //-----------------------------------------------------------------------------
 // PLOT SCATTER
@@ -2759,6 +2677,81 @@ void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx
     int vars = PushScatterStyle();
     PlotLine(label_id, getter, data, count, offset);
     PopStyleVar(vars);
+}
+
+//-----------------------------------------------------------------------------
+// PLOT SHADED
+//-----------------------------------------------------------------------------
+
+template <typename Getter1, typename Getter2>
+inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotShaded() needs to be called between BeginPlot() and EndPlot()!");
+
+    ImPlotState* plot = gp.CurrentPlot;
+    const int y_axis = plot->CurrentYAxis;
+    ImPlotItem* item = RegisterItem(label_id);
+    if (!item->Show)
+        return;  
+
+    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+
+    ImVec4 col_fill = gp.Style.Colors[ImPlotCol_Fill].w == -1 ? (item->Color) : (gp.Style.Colors[ImPlotCol_Fill]);
+    col_fill.w *= gp.Style.FillAlpha;    
+
+    if (gp.Style.Colors[ImPlotCol_Fill].w != -1)
+        item->Color = gp.Style.Colors[ImPlotCol_Fill];
+
+    bool cull = HasFlag(plot->Flags, ImPlotFlags_CullData);
+
+    if (gp.FitThisFrame) {
+        for (int i = 0; i < ImMin(getter1.Count, getter2.Count); ++i) {
+            ImPlotPoint p1 = getter1(i);
+            ImPlotPoint p2 = getter2(i);
+            FitPoint(p1);
+            FitPoint(p2);
+        }
+    }
+
+    PushPlotClipRect();
+    if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
+        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
+    else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
+        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
+    else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
+        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
+    else
+        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
+    PopPlotClipRect();
+}
+
+//-----------------------------------------------------------------------------
+// float
+
+void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset, int stride) {
+    GetterXsYs<float> getter1(xs, ys1, count, offset, stride);
+    GetterXsYs<float> getter2(xs, ys2, count, offset, stride);
+    PlotShadedEx(label_id, getter1, getter2);
+}
+
+void PlotShaded(const char* label_id, const float* xs, const float* ys, int count, float y_ref, int offset, int stride) {
+    GetterXsYs<float> getter1(xs, ys, count, offset, stride);
+    GetterXsYRef<float> getter2(xs, y_ref, count, offset, stride);
+    PlotShadedEx(label_id, getter1, getter2);
+}
+
+//-----------------------------------------------------------------------------
+// double
+
+void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride) {
+    GetterXsYs<double> getter1(xs, ys1, count, offset, stride);
+    GetterXsYs<double> getter2(xs, ys2, count, offset, stride);
+    PlotShadedEx(label_id, getter1, getter2);
+}
+
+void PlotShaded(const char* label_id, const double* xs, const double* ys, int count, double y_ref, int offset, int stride) {
+    GetterXsYs<double> getter1(xs, ys, count, offset, stride);
+    GetterXsYRef<double> getter2(xs, y_ref, count, offset, stride);
+    PlotShadedEx(label_id, getter1, getter2);
 }
 
 //-----------------------------------------------------------------------------
@@ -3239,7 +3232,10 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
                 char buff[32];
                 sprintf(buff, fmt, values[i]);
                 ImVec2 size = ImGui::CalcTextSize(buff);
-                DrawList.AddText(px - size * 0.5f, ImGui::GetColorU32(ImGuiCol_Text), buff);
+                float t = (float)Remap(values[i], scale_min, scale_max, T(0), T(1));
+                ImVec4 color = LerpColormap(t);
+                ImU32 col = CalcTextColor(color);
+                DrawList.AddText(px - size * 0.5f, col, buff);
                 i++;
             }
         }

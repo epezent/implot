@@ -137,7 +137,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::EndMenuBar();
     }
     //-------------------------------------------------------------------------
-    ImGui::Text("ImPlot says hello. (0.3 WIP)");
+    ImGui::Text("ImPlot says hello. (0.4 WIP)");
     if (ImGui::CollapsingHeader("Help")) {
         ImGui::Text("USER GUIDE:");
         ImGui::BulletText("Left click and drag within the plot area to pan X and Y axes.");
@@ -198,7 +198,32 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Filled Plots")) {
+    if (ImGui::CollapsingHeader("Shaded Plots")) {
+        static t_float xs[1001], ys[1001], ys1[1001], ys2[1001], ys3[1001], ys4[1001];
+        srand(0);
+        for (int i = 0; i < 1001; ++i) {
+            xs[i] = i * 0.001f;
+            ys[i] = 0.25f + 0.25f * Sin(25 * xs[i]) * Sin(5 * xs[i]) + RandomRange(-0.01f, 0.01f);
+            ys1[i] = ys[i] + RandomRange(0.1f, 0.12f);
+            ys2[i] = ys[i] - RandomRange(0.1f, 0.12f);     
+            ys3[i] = 0.75f + 0.2f * Sin(25 * xs[i]); 
+            ys4[i] = 0.75f + 0.1f * Cos(25 * xs[i]); 
+        }
+        static float alpha = 0.25f;
+        ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
+        if (ImPlot::BeginPlot("Shaded Plots")) {
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
+            ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
+            ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
+            ImPlot::PlotShaded("Overlapping",xs,ys3,ys4,1001);
+            ImPlot::PlotLine("Overlapping",xs,ys3,1001);
+            ImPlot::PlotLine("Overlapping",xs,ys4,1001);
+            ImPlot::PopStyleVar();
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
+        if (ImGui::CollapsingHeader("Filled Plots")) {
         static t_float xs1[101], ys1[101], ys2[101], ys3[101];
         srand(0);
         for (int i = 0; i < 101; ++i) {
@@ -207,39 +232,26 @@ void ShowDemoWindow(bool* p_open) {
             ys2[i] = RandomRange(275,350);
             ys3[i] = RandomRange(150,225);
         }
+        static bool show_lines = true;
+        static bool show_fills = true;
+        static float fill_ref = 0;
+        ImGui::Checkbox("Lines",&show_lines); ImGui::SameLine();
+        ImGui::Checkbox("Fills",&show_fills);
+        ImGui::DragFloat("Reference",&fill_ref, 1, -100, 500);
         ImPlot::SetNextPlotLimits(0,100,0,500);
         if (ImPlot::BeginPlot("Stock Prices", "Days", "Price")) {
-            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1,1,0,1));
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,1,0,0.25f));
-            ImPlot::PlotLine("Stock 1", xs1, ys1, 101);
-            ImPlot::PopStyleColor(2);
-            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1,0,1,1));
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,1,0.25f));
-            ImPlot::PlotLine("Stock 2", xs1, ys2, 101);
-            ImPlot::PopStyleColor(2);
-            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1,0,0,1));
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,0,0.25f));
-            ImPlot::PlotLine("Stock 3", xs1, ys3, 101);
-            ImPlot::PopStyleColor(2);
-            ImPlot::EndPlot();
-        }
-    }
-    if (ImGui::CollapsingHeader("Shaded Plots")) {
-        static double xs[1001], ys[1001], ys1[1001], ys2[1001];
-        srand(0);
-        for (int i = 0; i < 1001; ++i) {
-            xs[i] = i * 0.001f;
-            ys[i] = 0.5f + 0.25f * Sin(25 * xs[i]) * Sin(5 * xs[i]) + RandomRange(-0.01f, 0.01f);
-            ys1[i] = ys[i] + RandomRange(0.1f, 0.12f);
-            ys2[i] = ys[i] - RandomRange(0.1f, 0.12f);           
-        }
-        static float alpha = 0.25f;
-        ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
-        if (ImPlot::BeginPlot("Shaded Plots")) {
-            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
-            ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
-            ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
-            ImPlot::PopStyleVar();
+            if (show_fills) {
+                ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+                ImPlot::PlotShaded("Stock 1", xs1, ys1, 101, fill_ref);
+                ImPlot::PlotShaded("Stock 2", xs1, ys2, 101, fill_ref);
+                ImPlot::PlotShaded("Stock 3", xs1, ys3, 101, fill_ref);
+                ImPlot::PopStyleVar();
+            }
+            if (show_lines) {
+                ImPlot::PlotLine("Stock 1", xs1, ys1, 101);
+                ImPlot::PlotLine("Stock 2", xs1, ys2, 101);
+                ImPlot::PlotLine("Stock 3", xs1, ys3, 101);
+            }
             ImPlot::EndPlot();
         }
     }
@@ -731,6 +743,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImGui::EndGroup();
         ImGui::SameLine();
+        srand(ImGui::GetTime()*10000000);
         static t_float t = 0;
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;

@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.3 WIP
+// ImPlot v0.4 WIP
 
 #pragma once
 #include "imgui.h"
@@ -211,10 +211,6 @@ void PlotLine(const char* label_id, const ImVec2* data, int count, int offset = 
 void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
 void PlotLine(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
-// Plots a shaded (filled) region between two lines. Intersecting lines are not currently supported. 
-void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset = 0, int stride = sizeof(double));
-
-
 // Plots a standard 2D scatter plot.
 void PlotScatter(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void PlotScatter(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
@@ -223,6 +219,12 @@ void PlotScatter(const char* label_id, const double* xs, const double* ys, int c
 void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset = 0);
 void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
 void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+
+// Plots a shaded (filled) region between two lines, or a line and a horizontal reference.
+void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset = 0, int stride = sizeof(float));
+void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset = 0, int stride = sizeof(double));
+void PlotShaded(const char* label_id, const float* xs, const float* ys, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
+void PlotShaded(const char* label_id, const double* xs, const double* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
 
 // Plots a vertical bar graph.
 void PlotBars(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
