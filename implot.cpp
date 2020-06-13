@@ -1539,9 +1539,6 @@ void PlotContextMenu(ImPlotState& plot) {
         if (ImGui::MenuItem("Mouse Position",NULL,HasFlag(plot.Flags, ImPlotFlags_MousePos))) {
             FlipFlag(plot.Flags, ImPlotFlags_MousePos);
         }
-        if (ImGui::MenuItem("Cull Data",NULL,HasFlag(plot.Flags, ImPlotFlags_CullData))) {
-            FlipFlag(plot.Flags, ImPlotFlags_CullData);
-        }
         if (ImGui::MenuItem("Anti-Aliased Lines",NULL,HasFlag(plot.Flags, ImPlotFlags_AntiAliased))) {
             FlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
         }
@@ -2162,10 +2159,10 @@ inline void MarkerCross(ImDrawList& DrawList, const ImVec2& c, float s, bool /*o
 }
 
 template <typename Transformer, typename Getter>
-inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& DrawList, bool rend_mk_line, ImU32 col_mk_line, bool rend_mk_fill, ImU32 col_mk_fill, bool cull) {
+inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& DrawList, bool rend_mk_line, ImU32 col_mk_line, bool rend_mk_fill, ImU32 col_mk_fill) {
     for (int i = 0; i < getter.Count; ++i) {
         ImVec2 c = transformer(getter(i));
-        if (!cull || gp.BB_Plot.Contains(c)) {
+        if (gp.BB_Plot.Contains(c)) {
             // TODO: Optimize the loop and if statements, this is atrocious
             if (HasFlag(gp.Style.Marker, ImPlotMarker_Circle))
                 MarkerCircle(DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);
@@ -2351,7 +2348,7 @@ struct ShadedRenderer {
 // };
 
 template <typename Renderer>
-inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList, bool cull) {
+inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList) {
     int prims = renderer.Prims;
     int prims_culled = 0;
     int idx = 0;
@@ -2495,18 +2492,18 @@ struct GetterFuncPtrImPlotPoint {
 //-----------------------------------------------------------------------------
 
 template <typename Getter, typename Transformer>
-inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& DrawList, float line_weight, ImU32 col, bool cull) {
+inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& DrawList, float line_weight, ImU32 col) {
     if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
         ImVec2 p1 = transformer(getter(0));
         for (int i = 0; i < getter.Count; ++i) {
             ImVec2 p2 = transformer(getter(i));
-            if (!cull || gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+            if (gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
                 DrawList.AddLine(p1, p2, col, line_weight);
             p1 = p2;
         }
     }
     else {
-        RenderPrimitives(LineRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, cull);
+        RenderPrimitives(LineRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList);
     }
 }
 
@@ -2530,8 +2527,6 @@ inline void PlotEx(const char* label_id, Getter getter)
     if (gp.Style.Colors[ImPlotCol_Line].w != -1)
         item->Color = gp.Style.Colors[ImPlotCol_Line];
 
-    bool cull = HasFlag(plot->Flags, ImPlotFlags_CullData);
-
     // find data extents
     if (gp.FitThisFrame) {
         for (int i = 0; i < getter.Count; ++i) {
@@ -2544,13 +2539,13 @@ inline void PlotEx(const char* label_id, Getter getter)
     if (getter.Count > 1 && rend_line) {
         const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
         if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(getter, TransformerLogLog(y_axis), DrawList, line_weight, col_line, cull);
+            RenderLineStrip(getter, TransformerLogLog(y_axis), DrawList, line_weight, col_line);
         else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(getter, TransformerLogLin(y_axis), DrawList, line_weight, col_line, cull);
+            RenderLineStrip(getter, TransformerLogLin(y_axis), DrawList, line_weight, col_line);
         else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(getter, TransformerLinLog(y_axis), DrawList, line_weight, col_line, cull);
+            RenderLineStrip(getter, TransformerLinLog(y_axis), DrawList, line_weight, col_line);
         else
-            RenderLineStrip(getter, TransformerLinLin(y_axis), DrawList, line_weight, col_line, cull);
+            RenderLineStrip(getter, TransformerLinLin(y_axis), DrawList, line_weight, col_line);
     }
     // render markers
     if (gp.Style.Marker != ImPlotMarker_None) {
@@ -2559,13 +2554,13 @@ inline void PlotEx(const char* label_id, Getter getter)
         const ImU32 col_mk_line = gp.Style.Colors[ImPlotCol_MarkerOutline].w == -1 ? col_line : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_MarkerOutline]);
         const ImU32 col_mk_fill = gp.Style.Colors[ImPlotCol_MarkerFill].w == -1 ?    col_line : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_MarkerFill]);
         if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderMarkers(getter, TransformerLogLog(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
+            RenderMarkers(getter, TransformerLogLog(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill);
         else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-            RenderMarkers(getter, TransformerLogLin(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
+            RenderMarkers(getter, TransformerLogLin(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill);
         else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderMarkers(getter, TransformerLinLog(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
+            RenderMarkers(getter, TransformerLinLog(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill);
         else
-            RenderMarkers(getter, TransformerLinLin(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, cull);
+            RenderMarkers(getter, TransformerLinLin(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill);
     }
     PopPlotClipRect();
 }
@@ -2701,7 +2696,7 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
     if (gp.Style.Colors[ImPlotCol_Fill].w != -1)
         item->Color = gp.Style.Colors[ImPlotCol_Fill];
 
-    bool cull = HasFlag(plot->Flags, ImPlotFlags_CullData);
+    // bool cull = HasFlag(plot->Flags, ImPlotFlags_CullData);
 
     if (gp.FitThisFrame) {
         for (int i = 0; i < ImMin(getter1.Count, getter2.Count); ++i) {
@@ -2714,13 +2709,13 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
 
     PushPlotClipRect();
     if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
+        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(y_axis), ImGui::GetColorU32(col_fill)), DrawList);
     else if (HasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
+        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(y_axis), ImGui::GetColorU32(col_fill)), DrawList);
     else if (HasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
+        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(y_axis), ImGui::GetColorU32(col_fill)), DrawList);
     else
-        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(y_axis), ImGui::GetColorU32(col_fill)), DrawList, false);
+        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(y_axis), ImGui::GetColorU32(col_fill)), DrawList);
     PopPlotClipRect();
 }
 
@@ -3303,7 +3298,6 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
         item->Color = gp.Style.Colors[ImPlotCol_Line];
 
     ImGui::PushClipRect(gp.BB_Plot.Min, gp.BB_Plot.Max, true);
-    bool cull = HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_CullData);
 
     const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
 
@@ -3346,7 +3340,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             if (pMin.x > gp.PixelRange[ax].Max.x) pMin.x = gp.PixelRange[ax].Max.x;
             if (pMax.x > gp.PixelRange[ax].Max.x) pMax.x = gp.PixelRange[ax].Max.x;
             //plot a rectangle that extends up to x2 with y1 height
-            if ((pMax.x > pMin.x) && (!cull || gp.BB_Plot.Contains(pMin) || gp.BB_Plot.Contains(pMax))) {
+            if ((pMax.x > pMin.x) && (gp.BB_Plot.Contains(pMin) || gp.BB_Plot.Contains(pMax))) {
                 ImVec4 colAlpha = item->Color;
                 colAlpha.w = item->Highlight ? 1.0f : 0.9f;
                 DrawList.AddRectFilled(pMin, pMax, ImGui::GetColorU32(colAlpha));

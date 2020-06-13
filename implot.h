@@ -45,12 +45,11 @@ enum ImPlotFlags_ {
     ImPlotFlags_Query       = 1 << 4,  // the user will be able to draw query rects with middle-mouse
     ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open a context menu with double-right click
     ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_CullData    = 1 << 7,  // plot data outside the plot area will be culled from rendering
-    ImPlotFlags_AntiAliased = 1 << 8,  // lines and fills will be anti-aliased (not recommended)
-    ImPlotFlags_NoChild     = 1 << 9,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2      = 1 << 10, // enable a 2nd y-axis
-    ImPlotFlags_YAxis3      = 1 << 11, // enable a 3rd y-axis
-    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
+    ImPlotFlags_AntiAliased = 1 << 7,  // lines and fills will be anti-aliased (not recommended)
+    ImPlotFlags_NoChild     = 1 << 8,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_YAxis2      = 1 << 9, // enable a 2nd y-axis
+    ImPlotFlags_YAxis3      = 1 << 10, // enable a 3rd y-axis
+    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu
 };
 
 // Options for plot axes (X and Y).

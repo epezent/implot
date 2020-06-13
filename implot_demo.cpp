@@ -743,7 +743,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImGui::EndGroup();
         ImGui::SameLine();
-        srand(ImGui::GetTime()*10000000);
+        srand((unsigned int)ImGui::GetTime()*10000000);
         static t_float t = 0;
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;
