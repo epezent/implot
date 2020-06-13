@@ -303,7 +303,7 @@ void SetColormap(ImPlotColormap colormap, int samples = 0);
 void SetColormap(const ImVec4* colors, int num_colors);
 // Returns the size of the current colormap
 int GetColormapSize();
-// Returns a color from the Color map given an index > 0 (modulo will be performed)
+// Returns a color from the Color map given an index >= 0 (modulo will be performed)
 ImVec4 GetColormapColor(int index);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(float t);
