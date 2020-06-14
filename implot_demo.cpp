@@ -35,7 +35,7 @@
 /// NB: You don't ever need to typdef of define values for ImPlot. This
 /// is only being done here for the sake of demoing both precision types.
 
-// #define IMPLOT_DEMO_USE_DOUBLE
+#define IMPLOT_DEMO_USE_DOUBLE
 #ifdef IMPLOT_DEMO_USE_DOUBLE
 typedef double t_float;
 typedef ImPlotPoint t_float2;
@@ -171,7 +171,6 @@ void ShowDemoWindow(bool* p_open) {
 #else
         ImGui::BulletText("The demo data precision is: float");
 #endif
-
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Line Plots")) {
@@ -198,7 +197,7 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-        if (ImGui::CollapsingHeader("Filled Line Plots")) {
+    if (ImGui::CollapsingHeader("Filled Line Plots")) {
         static t_float xs1[101], ys1[101], ys2[101], ys3[101];
         srand(0);
         for (int i = 0; i < 101; ++i) {
@@ -238,9 +237,9 @@ void ShowDemoWindow(bool* p_open) {
             xs[i] = i * 0.001f;
             ys[i] = 0.25f + 0.25f * Sin(25 * xs[i]) * Sin(5 * xs[i]) + RandomRange(-0.01f, 0.01f);
             ys1[i] = ys[i] + RandomRange(0.1f, 0.12f);
-            ys2[i] = ys[i] - RandomRange(0.1f, 0.12f);     
-            ys3[i] = 0.75f + 0.2f * Sin(25 * xs[i]); 
-            ys4[i] = 0.75f + 0.1f * Cos(25 * xs[i]); 
+            ys2[i] = ys[i] - RandomRange(0.1f, 0.12f);
+            ys3[i] = 0.75f + 0.2f * Sin(25 * xs[i]);
+            ys4[i] = 0.75f + 0.1f * Cos(25 * xs[i]);
         }
         static float alpha = 0.25f;
         ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
@@ -272,11 +271,9 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 6);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);
-            ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(1,0,0,0.25f));
-            ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, ImVec4(0,0,0,0));
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
             ImPlot::PlotScatter("Data 2", xs2, ys2, 50);
-            ImPlot::PopStyleColor(2);
-            ImPlot::PopStyleVar(2);
+            ImPlot::PopStyleVar(3);
             ImPlot::EndPlot();
         }
     }
@@ -308,7 +305,6 @@ void ShowDemoWindow(bool* p_open) {
                 ImPlot::PlotBars("Final Exam", final, 10, 0.2f,  0);
                 ImPlot::PlotBars("Course Grade", grade, 10, 0.2f, 0.2f);
             }
-            ImPlot::SetColormap(ImPlotColormap_Default);
             ImPlot::EndPlot();
         }
     }
@@ -331,7 +327,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PushStyleVar(ImPlotStyleVar_ErrorBarSize, size);
             ImPlot::PushStyleVar(ImPlotStyleVar_ErrorBarWeight, weight);
             ImPlot::PlotBars("Bar", xs, bar, 5, 0.5f);
-            // error bars should have the same label ID as the associated plot
+            // error bars can be grouped with the associated item by using the same label ID
             ImPlot::PlotErrorBars("Bar", xs, bar, err1, 5);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 3);

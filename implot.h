@@ -91,7 +91,7 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_Marker,           // int,   marker specification
     ImPlotStyleVar_MarkerSize,       // float, marker size in pixels (roughly the marker's "radius")
     ImPlotStyleVar_MarkerWeight,     // float, outline weight of markers in pixels
-    ImPlotStyleVar_FillAlpha,        // float, alpha modifier applied to plot fills
+    ImPlotStyleVar_FillAlpha,        // float, alpha modifier applied to all plot item fills
     ImPlotStyleVar_ErrorBarSize,     // float, error bar whisker width in pixels
     ImPlotStyleVar_ErrorBarWeight,   // float, error bar whisker weight in pixels
     ImPlotStyleVar_DigitalBitHeight, // float, digital channels bit height (at 1) in pixels
@@ -289,6 +289,9 @@ ImPlotLimits GetPlotQuery(int y_axis = -1);
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
 
+// Special color used to indicate that a style color should be deduced automatically from defaults or colormaps.
+#define IMPLOT_COL_AUTO ImVec4(0,0,0,-1)
+
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, ImU32 col);
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
@@ -307,9 +310,9 @@ void PopStyleVar(int count = 1);
 void SetColormap(ImPlotColormap colormap, int samples = 0);
 // Sets a custom colormap.
 void SetColormap(const ImVec4* colors, int num_colors);
-// Returns the size of the current colormap
+// Returns the size of the current colormap.
 int GetColormapSize();
-// Returns a color from the Color map given an index > 0 (modulo will be performed)
+// Returns a color from the Color map given an index >= 0 (modulo will be performed)
 ImVec4 GetColormapColor(int index);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(float t);
