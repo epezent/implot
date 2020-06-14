@@ -3290,13 +3290,16 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
         const int segments  = count - 1;
         int    i1 = offset;
         int pixYMax = 0;
-        for (int s = 0; s < segments; ++s) {
-            const int i2 = (i1 + 1) % count;
-            ImPlotPoint itemData1 = getter(i1);
-            ImPlotPoint itemData2 = getter(i2);
-            i1 = i2;
+        ImPlotPoint itemData1 = getter(0);
+        for (int i = 0; i < getter.Count; ++i) {
+            ImPlotPoint itemData2 = getter(i);
+            if (NanOrInf(itemData1.y)) {
+                itemData1 = itemData2;
+                continue;
+            } 
+            if (NanOrInf(itemData2.y)) itemData2.y = ConstrainNan(ConstrainInf(itemData2.y));
             int pixY_0 = (int)(line_weight);
-            itemData1.y = itemData1.y < 0 ? 0 : itemData1.y;
+            itemData1.y = ImMax(0.0, itemData1.y);
             float pixY_1_float = gp.Style.DigitalBitHeight * (float)itemData1.y;
             int pixY_1 = (int)(pixY_1_float); //allow only positive values
             int pixY_chPosOffset = (int)(ImMax(gp.Style.DigitalBitHeight, pixY_1_float) + gp.Style.DigitalBitGap);
@@ -3307,12 +3310,12 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             pMin.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
             pMax.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
             //plot only one rectangle for same digital state
-            while (((s+2) < segments) && (itemData1.y == itemData2.y)) {
-                const int i3 = (i1 + 1) % count;
-                itemData2 = getter(i3);
+            while (((i+2) < getter.Count) && (itemData1.y == itemData2.y)) {
+                const int in = (i + 1);
+                itemData2 = getter(in);
+                if (NanOrInf(itemData2.y)) break;
                 pMax.x = PlotToPixels(itemData2).x;
-                i1 = i3;
-                s++;
+                i++;
             }
             //do not extend plot outside plot range
             if (pMin.x < gp.PixelRange[y_axis].Min.x) pMin.x = gp.PixelRange[y_axis].Min.x;
@@ -3325,6 +3328,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
                 colAlpha.w = item->Highlight ? 1.0f : 0.9f;
                 DrawList.AddRectFilled(pMin, pMax, ImGui::GetColorU32(colAlpha));
             }
+            itemData1 = itemData2;
         }
         gp.DigitalPlotItemCnt++;
         gp.DigitalPlotOffset += pixYMax;
