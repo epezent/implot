@@ -47,7 +47,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
     ImPlotFlags_AntiAliased = 1 << 7,  // lines and fills will be anti-aliased (not recommended)
     ImPlotFlags_NoChild     = 1 << 8,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2      = 1 << 9, // enable a 2nd y-axis
+    ImPlotFlags_YAxis2      = 1 << 9,  // enable a 2nd y-axis
     ImPlotFlags_YAxis3      = 1 << 10, // enable a 3rd y-axis
     ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu
 };
