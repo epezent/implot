@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.3 WIP
+// ImPlot v0.4 WIP
 
 #include "implot.h"
 #include <math.h>
@@ -30,6 +30,8 @@
 #ifdef _MSC_VER
 #define sprintf sprintf_s
 #endif
+
+namespace ImPlot {
 
 /// Choose whether the demo uses double or float versions of the ImPlot API.
 /// NB: You don't ever need to typdef of define values for ImPlot. This
@@ -53,8 +55,6 @@ typedef ImVec2 t_float2;
 #define Log logf
 #define Fmod fmodf
 #endif
-
-namespace ImPlot {
 
 t_float RandomRange(t_float min, t_float max) {
     t_float scale = rand() / (t_float) RAND_MAX;
@@ -114,7 +114,7 @@ struct BenchmarkItem {
         }
         Col = ImVec4((float)RandomRange(0,1),(float)RandomRange(0,1),(float)RandomRange(0,1),1);
     }
-    ~BenchmarkItem() { delete Data; }
+    ~BenchmarkItem() { delete[] Data; }
     t_float2* Data;
     ImVec4 Col;
 };
@@ -137,7 +137,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::EndMenuBar();
     }
     //-------------------------------------------------------------------------
-    ImGui::Text("ImPlot says hello. (0.3 WIP)");
+    ImGui::Text("ImPlot says hello. (0.4 WIP)");
     if (ImGui::CollapsingHeader("Help")) {
         ImGui::Text("USER GUIDE:");
         ImGui::BulletText("Left click and drag within the plot area to pan X and Y axes.");
@@ -171,7 +171,6 @@ void ShowDemoWindow(bool* p_open) {
 #else
         ImGui::BulletText("The demo data precision is: float");
 #endif
-
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Line Plots")) {
@@ -198,7 +197,7 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Filled Plots")) {
+    if (ImGui::CollapsingHeader("Filled Line Plots")) {
         static t_float xs1[101], ys1[101], ys2[101], ys3[101];
         srand(0);
         for (int i = 0; i < 101; ++i) {
@@ -207,20 +206,51 @@ void ShowDemoWindow(bool* p_open) {
             ys2[i] = RandomRange(275,350);
             ys3[i] = RandomRange(150,225);
         }
+        static bool show_lines = true;
+        static bool show_fills = true;
+        static float fill_ref = 0;
+        ImGui::Checkbox("Lines",&show_lines); ImGui::SameLine();
+        ImGui::Checkbox("Fills",&show_fills);
+        ImGui::DragFloat("Reference",&fill_ref, 1, -100, 500);
         ImPlot::SetNextPlotLimits(0,100,0,500);
         if (ImPlot::BeginPlot("Stock Prices", "Days", "Price")) {
-            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1,1,0,1));
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,1,0,0.25f));
-            ImPlot::PlotLine("Stock 1", xs1, ys1, 101);
-            ImPlot::PopStyleColor(2);
-            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1,0,1,1));
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,1,0.25f));
-            ImPlot::PlotLine("Stock 2", xs1, ys2, 101);
-            ImPlot::PopStyleColor(2);
-            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1,0,0,1));
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,0,0.25f));
-            ImPlot::PlotLine("Stock 3", xs1, ys3, 101);
-            ImPlot::PopStyleColor(2);
+            if (show_fills) {
+                ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+                ImPlot::PlotShaded("Stock 1", xs1, ys1, 101, fill_ref);
+                ImPlot::PlotShaded("Stock 2", xs1, ys2, 101, fill_ref);
+                ImPlot::PlotShaded("Stock 3", xs1, ys3, 101, fill_ref);
+                ImPlot::PopStyleVar();
+            }
+            if (show_lines) {
+                ImPlot::PlotLine("Stock 1", xs1, ys1, 101);
+                ImPlot::PlotLine("Stock 2", xs1, ys2, 101);
+                ImPlot::PlotLine("Stock 3", xs1, ys3, 101);
+            }
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Shaded Plots")) {
+        static t_float xs[1001], ys[1001], ys1[1001], ys2[1001], ys3[1001], ys4[1001];
+        srand(0);
+        for (int i = 0; i < 1001; ++i) {
+            xs[i] = i * 0.001f;
+            ys[i] = 0.25f + 0.25f * Sin(25 * xs[i]) * Sin(5 * xs[i]) + RandomRange(-0.01f, 0.01f);
+            ys1[i] = ys[i] + RandomRange(0.1f, 0.12f);
+            ys2[i] = ys[i] - RandomRange(0.1f, 0.12f);
+            ys3[i] = 0.75f + 0.2f * Sin(25 * xs[i]);
+            ys4[i] = 0.75f + 0.1f * Cos(25 * xs[i]);
+        }
+        static float alpha = 0.25f;
+        ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
+        if (ImPlot::BeginPlot("Shaded Plots")) {
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
+            ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
+            ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
+            ImPlot::PlotShaded("Overlapping",xs,ys3,ys4,1001);
+            ImPlot::PlotLine("Overlapping",xs,ys3,1001);
+            ImPlot::PlotLine("Overlapping",xs,ys4,1001);
+            ImPlot::PopStyleVar();
             ImPlot::EndPlot();
         }
     }
@@ -241,11 +271,9 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 6);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Square);
-            ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(1,0,0,0.25f));
-            ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, ImVec4(0,0,0,0));
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
             ImPlot::PlotScatter("Data 2", xs2, ys2, 50);
-            ImPlot::PopStyleColor(2);
-            ImPlot::PopStyleVar(2);
+            ImPlot::PopStyleVar(3);
             ImPlot::EndPlot();
         }
     }
@@ -277,7 +305,6 @@ void ShowDemoWindow(bool* p_open) {
                 ImPlot::PlotBars("Final Exam", final, 10, 0.2f,  0);
                 ImPlot::PlotBars("Course Grade", grade, 10, 0.2f, 0.2f);
             }
-            ImPlot::SetColormap(ImPlotColormap_Default);
             ImPlot::EndPlot();
         }
     }
@@ -300,7 +327,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PushStyleVar(ImPlotStyleVar_ErrorBarSize, size);
             ImPlot::PushStyleVar(ImPlotStyleVar_ErrorBarWeight, weight);
             ImPlot::PlotBars("Bar", xs, bar, 5, 0.5f);
-            // error bars should have the same label ID as the associated plot
+            // error bars can be grouped with the associated item by using the same label ID
             ImPlot::PlotErrorBars("Bar", xs, bar, err1, 5);
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 3);
@@ -415,9 +442,9 @@ void ShowDemoWindow(bool* p_open) {
         static int rt_axis = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_TickLabels;
         if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
             ImPlot::PlotLine("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), sdata1.Offset, 2 * sizeof(t_float));
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(1,0,0,0.25f));
-            ImPlot::PlotLine("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2 * sizeof(t_float));
-            ImPlot::PopStyleColor();
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+            ImPlot::PlotShaded("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), 0, sdata2.Offset, 2 * sizeof(t_float));
+            ImPlot::PopStyleVar();
             ImPlot::EndPlot();
         }
         ImPlot::SetNextPlotLimitsX(0, history, ImGuiCond_Always);
@@ -712,6 +739,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImGui::EndGroup();
         ImGui::SameLine();
+        srand((unsigned int)ImGui::GetTime()*10000000);
         static t_float t = 0;
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;
@@ -972,6 +1000,7 @@ void ShowDemoWindow(bool* p_open) {
         static BenchmarkItem items[n_items];
         ImGui::BulletText("Make sure VSync is disabled.");
         ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
+        ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_Default | ImPlotFlags_NoChild)) {
             char buff[16];
             for (int i = 0; i < 100; ++i) {

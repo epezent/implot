@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.3 WIP
+// ImPlot v0.4 WIP
 
 #pragma once
 #include "imgui.h"
@@ -45,12 +45,11 @@ enum ImPlotFlags_ {
     ImPlotFlags_Query       = 1 << 4,  // the user will be able to draw query rects with middle-mouse
     ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open a context menu with double-right click
     ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_CullData    = 1 << 7,  // plot data outside the plot area will be culled from rendering
-    ImPlotFlags_AntiAliased = 1 << 8,  // lines and fills will be anti-aliased (not recommended)
-    ImPlotFlags_NoChild     = 1 << 9,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2      = 1 << 10, // enable a 2nd y axis
-    ImPlotFlags_YAxis3      = 1 << 11, // enable a 3rd y axis
-    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu | ImPlotFlags_CullData
+    ImPlotFlags_AntiAliased = 1 << 7,  // lines and fills will be anti-aliased (not recommended)
+    ImPlotFlags_NoChild     = 1 << 8,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_YAxis2      = 1 << 9, // enable a 2nd y-axis
+    ImPlotFlags_YAxis3      = 1 << 10, // enable a 3rd y-axis
+    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu
 };
 
 // Options for plot axes (X and Y).
@@ -61,10 +60,9 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_Invert     = 1 << 3, // the axis will be inverted
     ImPlotAxisFlags_LockMin    = 1 << 4, // the axis minimum value will be locked when panning/zooming
     ImPlotAxisFlags_LockMax    = 1 << 5, // the axis maximum value will be locked when panning/zooming
-    ImPlotAxisFlags_Adaptive   = 1 << 6, // grid divisions will adapt to the current pixel size the axis
-    ImPlotAxisFlags_LogScale   = 1 << 7, // a logartithmic (base 10) axis scale will be used
-    ImPlotAxisFlags_Scientific = 1 << 8, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
-    ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels | ImPlotAxisFlags_Adaptive,
+    ImPlotAxisFlags_LogScale   = 1 << 6, // a logartithmic (base 10) axis scale will be used
+    ImPlotAxisFlags_Scientific = 1 << 7, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
+    ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
     ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_GridLines,
 };
 
@@ -93,6 +91,7 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_Marker,           // int,   marker specification
     ImPlotStyleVar_MarkerSize,       // float, marker size in pixels (roughly the marker's "radius")
     ImPlotStyleVar_MarkerWeight,     // float, outline weight of markers in pixels
+    ImPlotStyleVar_FillAlpha,        // float, alpha modifier applied to all plot item fills
     ImPlotStyleVar_ErrorBarSize,     // float, error bar whisker width in pixels
     ImPlotStyleVar_ErrorBarWeight,   // float, error bar whisker weight in pixels
     ImPlotStyleVar_DigitalBitHeight, // float, digital channels bit height (at 1) in pixels
@@ -164,6 +163,7 @@ struct ImPlotStyle {
     ImPlotMarker Marker;                  // = ImPlotMarker_None, marker specification
     float        MarkerSize;              // = 4, marker size in pixels (roughly the marker's "radius")
     float        MarkerWeight;            // = 1, outline weight of markers in pixels
+    float        FillAlpha;               // = 1, alpha modifier applied to plot fills
     float        ErrorBarSize;            // = 5, error bar whisker width in pixels
     float        ErrorBarWeight;          // = 1.5, error bar whisker weight in pixels
     float        DigitalBitHeight;        // = 8, digital channels bit height (at y = 1.0f) in pixels
@@ -172,27 +172,27 @@ struct ImPlotStyle {
     ImPlotStyle();
 };
 
-// Input mapping structure. Comments show the default input mapping.
+// Input mapping structure, and their default values.
 struct ImPlotInputMap {
-    ImGuiMouseButton PanButton;             // left mouse
-    ImGuiKeyModFlags PanMod;                // none
-    
-    ImGuiMouseButton BoxSelectButton;       // right mouse
-    ImGuiKeyModFlags BoxSelectMod;          // none
-    
-    ImGuiMouseButton BoxCancelButton;       // left mouse
+    ImGuiMouseButton PanButton = ImGuiMouseButton_Left;
+    ImGuiKeyModFlags PanMod = ImGuiKeyModFlags_None;
 
-    ImGuiMouseButton QueryClickButton;      // left mouse
-    ImGuiKeyModFlags QueryClickMod;         // ctrl
+    ImGuiMouseButton BoxSelectButton = ImGuiMouseButton_Right;
+    ImGuiKeyModFlags BoxSelectMod = ImGuiKeyModFlags_None;
 
-    ImGuiMouseButton QueryDragButton;       // middle mouse
-    ImGuiKeyModFlags QueryDragMod;          // none
+    ImGuiMouseButton BoxCancelButton = ImGuiMouseButton_Left;
 
-    ImGuiMouseButton QueryDragButton2;      // right mouse, alternative way to query drag, useful when middle mouse is not available
-    ImGuiKeyModFlags QueryDragMod2;         // ctrl
+    ImGuiMouseButton QueryClickButton = ImGuiMouseButton_Left;
+    ImGuiKeyModFlags QueryClickMod = ImGuiKeyModFlags_Ctrl;
 
-    ImGuiKeyModFlags HorizontalSizeMod;     // alt
-    ImGuiKeyModFlags VerticalSizeMod;       // shift
+    ImGuiMouseButton QueryDragButton = ImGuiMouseButton_Middle;
+    ImGuiKeyModFlags QueryDragMod = ImGuiKeyModFlags_None;
+
+    ImGuiMouseButton QueryDragButton2 = ImGuiMouseButton_Right;
+    ImGuiKeyModFlags QueryDragMod2 = ImGuiKeyModFlags_Ctrl;
+
+    ImGuiKeyModFlags HorizontalSizeMod = ImGuiKeyModFlags_Alt;
+    ImGuiKeyModFlags VerticalSizeMod = ImGuiKeyModFlags_Shift;
 };
 
 //-----------------------------------------------------------------------------
@@ -200,9 +200,6 @@ struct ImPlotInputMap {
 //-----------------------------------------------------------------------------
 
 namespace ImPlot {
-
-// Overrides the input mapping. Returns the previous input mapping.
-ImPlotInputMap SetInputMap(const ImPlotInputMap& inputMap);
 
 // Starts a 2D plotting context. If this function returns true, EndPlot() must
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }"". #title_id must
@@ -243,6 +240,12 @@ void PlotScatter(const char* label_id, const double* xs, const double* ys, int c
 void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset = 0);
 void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
 void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+
+// Plots a shaded (filled) region between two lines, or a line and a horizontal reference.
+void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset = 0, int stride = sizeof(float));
+void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset = 0, int stride = sizeof(double));
+void PlotShaded(const char* label_id, const float* xs, const float* ys, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
+void PlotShaded(const char* label_id, const double* xs, const double* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
 
 // Plots a vertical bar graph.
 void PlotBars(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
@@ -303,11 +306,21 @@ bool IsPlotQueried();
 ImPlotLimits GetPlotQuery(int y_axis = -1);
 
 //-----------------------------------------------------------------------------
-// Plot Styling
+// Plot Input Mapping
+//-----------------------------------------------------------------------------
+
+// Allows changing how keyboard/mouse interaction works.
+ImPlotInputMap& GetInputMap();
+
+//-----------------------------------------------------------------------------
+// Plot Styling and Behaviour
 //-----------------------------------------------------------------------------
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
+
+// Special color used to indicate that a style color should be deduced automatically from defaults or colormaps.
+#define IMPLOT_COL_AUTO ImVec4(0,0,0,-1)
 
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, ImU32 col);
@@ -327,9 +340,9 @@ void PopStyleVar(int count = 1);
 void SetColormap(ImPlotColormap colormap, int samples = 0);
 // Sets a custom colormap.
 void SetColormap(const ImVec4* colors, int num_colors);
-// Returns the size of the current colormap
+// Returns the size of the current colormap.
 int GetColormapSize();
-// Returns a color from the Color map given an index > 0 (modulo will be performed)
+// Returns a color from the Color map given an index >= 0 (modulo will be performed)
 ImVec4 GetColormapColor(int index);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(float t);

@@ -13,6 +13,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 
 - multiple plot types: 
     - line plots
+    - shaded plots
     - scatter plots
     - vertical/horizontal bars graphs
     - vertical/horizontal error bars
