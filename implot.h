@@ -172,27 +172,30 @@ struct ImPlotStyle {
     ImPlotStyle();
 };
 
-// Input mapping structure, and their default values.
+// Input mapping structure, default values listed in the comments.
 struct ImPlotInputMap {
-    ImGuiMouseButton PanButton = ImGuiMouseButton_Left;
-    ImGuiKeyModFlags PanMod = ImGuiKeyModFlags_None;
 
-    ImGuiMouseButton BoxSelectButton = ImGuiMouseButton_Right;
-    ImGuiKeyModFlags BoxSelectMod = ImGuiKeyModFlags_None;
+    ImPlotInputMap();
 
-    ImGuiMouseButton BoxCancelButton = ImGuiMouseButton_Left;
-
-    ImGuiMouseButton QueryClickButton = ImGuiMouseButton_Left;
-    ImGuiKeyModFlags QueryClickMod = ImGuiKeyModFlags_Ctrl;
-
-    ImGuiMouseButton QueryDragButton = ImGuiMouseButton_Middle;
-    ImGuiKeyModFlags QueryDragMod = ImGuiKeyModFlags_None;
-
-    ImGuiMouseButton QueryDragButton2 = ImGuiMouseButton_Right;
-    ImGuiKeyModFlags QueryDragMod2 = ImGuiKeyModFlags_Ctrl;
-
-    ImGuiKeyModFlags HorizontalSizeMod = ImGuiKeyModFlags_Alt;
-    ImGuiKeyModFlags VerticalSizeMod = ImGuiKeyModFlags_Shift;
+    ImGuiMouseButton PanButton;             // left mouse
+    ImGuiKeyModFlags PanMod;                // none
+    
+    ImGuiMouseButton BoxSelectButton;       // right mouse
+    ImGuiKeyModFlags BoxSelectMod;          // none
+    
+    ImGuiMouseButton BoxCancelButton;       // left mouse
+    
+    ImGuiMouseButton QueryClickButton;      // left mouse
+    ImGuiKeyModFlags QueryClickMod;         // ctrl
+    
+    ImGuiMouseButton QueryDragButton;       // middle mouse
+    ImGuiKeyModFlags QueryDragMod;          // none
+    
+    ImGuiMouseButton QueryDragButton2;      // right mouse, alternative way to query drag, useful when middle mouse is not available
+    ImGuiKeyModFlags QueryDragMod2;         // ctrl
+    
+    ImGuiKeyModFlags HorizontalSizeMod;     // alt
+    ImGuiKeyModFlags VerticalSizeMod;       // shift    
 };
 
 //-----------------------------------------------------------------------------

@@ -133,6 +133,30 @@ bool ImPlotLimits::Contains(double x, double y) const {
     return X.Contains(x) && Y.Contains(y);
 }
 
+ImPlotInputMap::ImPlotInputMap() {
+
+    PanButton = ImGuiMouseButton_Left;
+    PanMod = ImGuiKeyModFlags_None;
+
+    BoxSelectButton = ImGuiMouseButton_Right;
+    BoxSelectMod = ImGuiKeyModFlags_None;
+
+    BoxCancelButton = ImGuiMouseButton_Left;
+
+    QueryClickButton = ImGuiMouseButton_Left;
+    QueryClickMod = ImGuiKeyModFlags_Ctrl;
+
+    QueryDragButton = ImGuiMouseButton_Middle;
+    QueryDragMod = ImGuiKeyModFlags_None;
+
+    QueryDragButton2 = ImGuiMouseButton_Right;
+    QueryDragMod2 = ImGuiKeyModFlags_Ctrl;
+
+    HorizontalSizeMod = ImGuiKeyModFlags_Alt;
+    VerticalSizeMod = ImGuiKeyModFlags_Shift;
+}
+
+
 namespace ImPlot {
 
 namespace {
