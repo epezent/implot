@@ -172,6 +172,32 @@ struct ImPlotStyle {
     ImPlotStyle();
 };
 
+// Input mapping structure, default values listed in the comments.
+struct ImPlotInputMap {
+
+    ImPlotInputMap();
+
+    ImGuiMouseButton PanButton;             // left mouse
+    ImGuiKeyModFlags PanMod;                // none
+    
+    ImGuiMouseButton BoxSelectButton;       // right mouse
+    ImGuiKeyModFlags BoxSelectMod;          // none
+    
+    ImGuiMouseButton BoxCancelButton;       // left mouse
+    
+    ImGuiMouseButton QueryClickButton;      // left mouse
+    ImGuiKeyModFlags QueryClickMod;         // ctrl
+    
+    ImGuiMouseButton QueryDragButton;       // middle mouse
+    ImGuiKeyModFlags QueryDragMod;          // none
+    
+    ImGuiMouseButton QueryDragButton2;      // right mouse, alternative way to query drag, useful when middle mouse is not available
+    ImGuiKeyModFlags QueryDragMod2;         // ctrl
+    
+    ImGuiKeyModFlags HorizontalSizeMod;     // alt
+    ImGuiKeyModFlags VerticalSizeMod;       // shift    
+};
+
 //-----------------------------------------------------------------------------
 // Begin/End Plot
 //-----------------------------------------------------------------------------
@@ -283,7 +309,14 @@ bool IsPlotQueried();
 ImPlotLimits GetPlotQuery(int y_axis = -1);
 
 //-----------------------------------------------------------------------------
-// Plot Styling
+// Plot Input Mapping
+//-----------------------------------------------------------------------------
+
+// Allows changing how keyboard/mouse interaction works.
+ImPlotInputMap& GetInputMap();
+
+//-----------------------------------------------------------------------------
+// Plot Styling and Behaviour
 //-----------------------------------------------------------------------------
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
