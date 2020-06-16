@@ -47,7 +47,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
     ImPlotFlags_AntiAliased = 1 << 7,  // plot lines will be software anti-aliased (not recommended, prefer MSAA)
     ImPlotFlags_NoChild     = 1 << 8,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2      = 1 << 9, // enable a 2nd y-axis
+    ImPlotFlags_YAxis2      = 1 << 9,  // enable a 2nd y-axis
     ImPlotFlags_YAxis3      = 1 << 10, // enable a 3rd y-axis
     ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu
 };
@@ -172,6 +172,23 @@ struct ImPlotStyle {
     ImPlotStyle();
 };
 
+// Input mapping structure, default values listed in the comments.
+struct ImPlotInputMap {
+    ImGuiMouseButton PanButton;             // LMB      enables panning when held
+    ImGuiKeyModFlags PanMod;                // none     optional modifier that must be held for panning
+    ImGuiMouseButton FitButton;             // LMB      fits visible data when double clicked
+    ImGuiMouseButton ContextMenuButton;     // RMB      opens plot context menu (if enabled) when double clicked
+    ImGuiMouseButton BoxSelectButton;       // RMB      begins box selection when pressed and confirms selection when released
+    ImGuiKeyModFlags BoxSelectMod;          // none     optional modifier that must be held for box selection
+    ImGuiMouseButton BoxSelectCancelButton; // LMB      cancels active box selection when pressed
+    ImGuiMouseButton QueryButton;           // MMB      begins query selection when pressed and end query selection when released
+    ImGuiKeyModFlags QueryMod;              // none     optional modifier that must be held for query selection
+    ImGuiKeyModFlags QueryToggleMod;        // Ctrl     when held, active box selections turn into queries
+    ImGuiKeyModFlags HorizontalMod;         // Alt      expands active box selection/query horizontally to plot edge when held
+    ImGuiKeyModFlags VerticalMod;           // Shift    expands active box selection/query vertically to plot edge when held
+    ImPlotInputMap();
+};
+
 //-----------------------------------------------------------------------------
 // Begin/End Plot
 //-----------------------------------------------------------------------------
@@ -283,7 +300,14 @@ bool IsPlotQueried();
 ImPlotLimits GetPlotQuery(int y_axis = -1);
 
 //-----------------------------------------------------------------------------
-// Plot Styling
+// Plot Input Mapping
+//-----------------------------------------------------------------------------
+
+// Allows changing how keyboard/mouse interaction works.
+ImPlotInputMap& GetInputMap();
+
+//-----------------------------------------------------------------------------
+// Plot Styling and Behaviour
 //-----------------------------------------------------------------------------
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
