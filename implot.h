@@ -174,28 +174,19 @@ struct ImPlotStyle {
 
 // Input mapping structure, default values listed in the comments.
 struct ImPlotInputMap {
-
+    ImGuiMouseButton PanButton;             // LMB      enables panning when held
+    ImGuiKeyModFlags PanMod;                // none     optional modifier that must be held for panning
+    ImGuiMouseButton FitButton;             // LMB      fits visible data when double clicked
+    ImGuiMouseButton ContextMenuButton;     // RMB      opens plot context menu (if enabled) when double clicked
+    ImGuiMouseButton BoxSelectButton;       // RMB      begins box selection when pressed and confirms selection when released
+    ImGuiKeyModFlags BoxSelectMod;          // none     optional modifier that must be held for box selection
+    ImGuiMouseButton BoxSelectCancelButton; // LMB      cancels active box selection when pressed
+    ImGuiMouseButton QueryButton;           // MMB      begins query selection when pressed and end query selection when released
+    ImGuiKeyModFlags QueryMod;              // none     optional modifier that must be held for query selection
+    ImGuiKeyModFlags QueryToggleMod;        // Ctrl     when held, active box selections turn into queries
+    ImGuiKeyModFlags HorizontalMod;         // Alt      expands active box selection/query horizontally to plot edge when held
+    ImGuiKeyModFlags VerticalMod;           // Shift    expands active box selection/query vertically to plot edge when held
     ImPlotInputMap();
-
-    ImGuiMouseButton PanButton;             // left mouse
-    ImGuiKeyModFlags PanMod;                // none
-    
-    ImGuiMouseButton BoxSelectButton;       // right mouse
-    ImGuiKeyModFlags BoxSelectMod;          // none
-    
-    ImGuiMouseButton BoxCancelButton;       // left mouse
-    
-    ImGuiMouseButton QueryClickButton;      // left mouse
-    ImGuiKeyModFlags QueryClickMod;         // ctrl
-    
-    ImGuiMouseButton QueryDragButton;       // middle mouse
-    ImGuiKeyModFlags QueryDragMod;          // none
-    
-    ImGuiMouseButton QueryDragButton2;      // right mouse, alternative way to query drag, useful when middle mouse is not available
-    ImGuiKeyModFlags QueryDragMod2;         // ctrl
-    
-    ImGuiKeyModFlags HorizontalSizeMod;     // alt
-    ImGuiKeyModFlags VerticalSizeMod;       // shift    
 };
 
 //-----------------------------------------------------------------------------
