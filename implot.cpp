@@ -3293,7 +3293,7 @@ void PlotHeatmap(const char* label_id, const double* values, int rows, int cols,
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
-inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int offset)
+inline void PlotDigitalEx(const char* label_id, Getter getter)
 {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotDigital() needs to be called between BeginPlot() and EndPlot()!");
 
@@ -3304,12 +3304,10 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
 
     // render digital signals as "pixel bases" rectangles
     PushPlotClipRect();
-    if (count > 1 && WillLineRender()) {
+    if (getter.Count > 1 && WillLineRender()) {
         ImDrawList & DrawList = *ImGui::GetWindowDrawList();
         const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
         const int y_axis = gp.CurrentPlot->CurrentYAxis;
-        const int segments  = count - 1;
-        int    i1 = offset;
         int pixYMax = 0;
         ImPlotPoint itemData1 = getter(0);
         for (int i = 0; i < getter.Count; ++i) {
@@ -3317,7 +3315,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
             if (NanOrInf(itemData1.y)) {
                 itemData1 = itemData2;
                 continue;
-            } 
+            }
             if (NanOrInf(itemData2.y)) itemData2.y = ConstrainNan(ConstrainInf(itemData2.y));
             int pixY_0 = (int)(line_weight);
             itemData1.y = ImMax(0.0, itemData1.y);
@@ -3362,7 +3360,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter, int count, int of
 
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
     GetterXsYs<float> getter(xs,ys,count,offset,stride);
-    return PlotDigitalEx(label_id, getter, count, offset);
+    return PlotDigitalEx(label_id, getter);
 }
 
 //-----------------------------------------------------------------------------
@@ -3370,7 +3368,7 @@ void PlotDigital(const char* label_id, const float* xs, const float* ys, int cou
 
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride) {
     GetterXsYs<double> getter(xs,ys,count,offset,stride);
-    return PlotDigitalEx(label_id, getter, count, offset);
+    return PlotDigitalEx(label_id, getter);
 }
 
 //-----------------------------------------------------------------------------
@@ -3378,7 +3376,7 @@ void PlotDigital(const char* label_id, const double* xs, const double* ys, int c
 
 void PlotDigital(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func,data,count,offset);
-    return PlotDigitalEx(label_id, getter, count, offset);
+    return PlotDigitalEx(label_id, getter);
 }
 
 //-----------------------------------------------------------------------------
