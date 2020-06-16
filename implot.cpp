@@ -213,14 +213,19 @@ inline bool NanOrInf(double val) {
 }
 
 // Computes order of magnitude of double.
-// inline int OrderOfMagnitude(double val) {
-//     return val == 0 ? 0 : (int)(floor(log10(fabs(val))));
-// }
+inline int OrderOfMagnitude(double val) {
+    return val == 0 ? 0 : (int)(floor(log10(fabs(val))));
+}
 
 // Returns the precision required for a order of magnitude.
-// inline int OrderToPrecision(int order) {
-//     return order > 0 ? 0 : 1 - order;
-// }
+inline int OrderToPrecision(int order) {
+    return order > 0 ? 0 : 1 - order;
+}
+
+// Returns a floating point precision to use given a value
+inline int Precision(double val) {
+    return OrderToPrecision(OrderOfMagnitude(val));
+}
 
 // Draws vertical text. The position is the bottom left of the text rect.
 inline void AddTextVertical(ImDrawList *DrawList, const char *text, ImVec2 pos, ImU32 text_color) {
@@ -290,14 +295,10 @@ struct ImPlotAxis {
         Dragging = false;
         Range.Min = 0;
         Range.Max = 1;
-        Divisions = 3;
-        Subdivisions = 10;
         Flags = PreviousFlags = ImPlotAxisFlags_Default;
     }
     bool Dragging;
     ImPlotRange Range;
-    int Divisions;
-    int Subdivisions;
     ImPlotAxisFlags Flags, PreviousFlags;
 };
 
@@ -908,15 +909,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // adaptive divisions
-    plot.XAxis.Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetWidth());
-    if (plot.XAxis.Divisions < 2)
-        plot.XAxis.Divisions = 2;
-
+    int x_divisions = ImMax(2, (int)IM_ROUND(0.003 * gp.BB_Canvas.GetWidth()));
+    int y_divisions[MAX_Y_AXES];
     for (int i = 0; i < MAX_Y_AXES; i++) {
-        plot.YAxis[i].Divisions = (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight());
-        if (plot.YAxis[i].Divisions < 2)
-            plot.YAxis[i].Divisions = 2;
-
+        y_divisions[i] = ImMax(2, (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight()));
     }
 
     // COLORS -----------------------------------------------------------------
@@ -955,21 +951,20 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     gp.RenderX = (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_GridLines) ||
                     HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickMarks) ||
-                    HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels)) &&  plot.XAxis.Divisions > 1;
+                    HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels)) &&  x_divisions > 1;
     for (int i = 0; i < MAX_Y_AXES; i++) {
         gp.RenderY[i] =
                 gp.Y[i].Present &&
                 (HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_GridLines) ||
                  HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks) ||
-                 HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) &&  plot.YAxis[i].Divisions > 1;
+                 HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) &&  y_divisions[i] > 1;
     }
-
     // get ticks
     if (gp.RenderX && gp.NextPlotData.ShowDefaultTicksX)
-        AddDefaultTicks(plot.XAxis.Range, plot.XAxis.Divisions, plot.XAxis.Subdivisions, HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale), gp.XTicks);
+        AddDefaultTicks(plot.XAxis.Range, x_divisions, 10, HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale), gp.XTicks);
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (gp.RenderY[i] && gp.NextPlotData.ShowDefaultTicksY[i]) {
-            AddDefaultTicks(plot.YAxis[i].Range, plot.YAxis[i].Divisions, plot.YAxis[i].Subdivisions, HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale), gp.YTicks[i]);
+            AddDefaultTicks(plot.YAxis[i].Range, y_divisions[i], 10, HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale), gp.YTicks[i]);
         }
     }
 
@@ -1724,12 +1719,17 @@ void EndPlot() {
         char buffer[128] = {};
         BufferWriter writer(buffer, sizeof(buffer));
 
-        writer.Write("%.2f,%.2f", gp.LastMousePos[0].x, gp.LastMousePos[0].y);
+        double range_x = gp.XTicks.Size > 1 ? (gp.XTicks[1].PlotPos - gp.XTicks[0].PlotPos) : plot.XAxis.Range.Size();
+        double range_y = gp.YTicks[0].Size > 1 ? (gp.YTicks[0][1].PlotPos - gp.YTicks[0][0].PlotPos) : plot.YAxis[0].Range.Size();
+
+        writer.Write("%.*f,%.*f", Precision(range_x), gp.LastMousePos[0].x, Precision(range_y), gp.LastMousePos[0].y);
         if (HasFlag(plot.Flags, ImPlotFlags_YAxis2)) {
-            writer.Write(",(%.2f)", gp.LastMousePos[1].y);
+            range_y = gp.YTicks[1].Size > 1 ? (gp.YTicks[1][1].PlotPos - gp.YTicks[1][0].PlotPos) : plot.YAxis[1].Range.Size();
+            writer.Write(",(%.*f)", Precision(range_y), gp.LastMousePos[1].y);
         }
         if (HasFlag(plot.Flags, ImPlotFlags_YAxis3)) {
-            writer.Write(",(%.2f)", gp.LastMousePos[2].y);
+            range_y = gp.YTicks[2].Size > 1 ? (gp.YTicks[2][1].PlotPos - gp.YTicks[2][0].PlotPos) : plot.YAxis[2].Range.Size();
+            writer.Write(",(%.*f)", Precision(range_y), gp.LastMousePos[2].y);
         }
         ImVec2 size = ImGui::CalcTextSize(buffer);
         ImVec2 pos  = gp.BB_Plot.Max - size - ImVec2(5, 5);
