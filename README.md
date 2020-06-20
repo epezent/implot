@@ -12,12 +12,13 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 ## Features
 
 - multiple plot types: 
-    - line
-    - scatter
-    - vertical/horizontal bars
-    - error bars
+    - line plots
+    - shaded plots
+    - scatter plots
+    - vertical/horizontal bars graphs
+    - vertical/horizontal error bars
     - pie charts
-    - heatmaps
+    - heatmap charts
     - and more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
@@ -25,6 +26,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 - support for up to three independent y-axes
 - controls for zooming, panning, box selection, and auto-fitting data
 - controls for creating persistent query ranges (see demo)
+- remappable input controls
 - several plot styling options: 10 marker types, adjustable marker sizes, line weights, outline colors, fill colors, etc.
 - built-in and user definable colormaps
 - optional plot titles, axis labels, and grid labels
