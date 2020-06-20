@@ -131,6 +131,38 @@ enum ImPlotColormap_ {
     ImPlotColormap_COUNT
 };
 
+enum ImTimeUnit_ {
+    ImTimeUnit_US = 0,
+    ImTimeUnit_MS,
+    ImTimeUnit_SEC,
+    ImTimeUnit_MIN,
+    ImTimeUnit_HR,
+    ImTimeUnit_DAY,
+    ImTimeUnit_WK,
+    ImTimeUnit_MON,
+    ImTimeUnit_QUATER,
+    ImTimeUnit_YEAR,
+    ImTimeUnit_COUNT
+};
+
+static const long long ImTimeUnits_Size[] = { 1, 1000, 1000000 , 60000000, 3600000000 , 86400000000, 604800000000, 2628000000000, 7884000000000, 31540000000000 };
+static const long long ImTimeUnits_Steps[] = { 1000, 1000, 60, 60, 24, 30, 4, 12, 4, 100000000 };
+static const int ImTimeUnits_Common[] = { 1, 1, 1, 1, 1, 1, 0, 1, 0, 1 };
+static const char* ImTimeUnits_ValueFormats[] = {"%S." , "%M:%S.", "%H:%M:%S", "%H:%M", "%e %H", "%m/%e", "%m/%e", "%Y/%m/%e", "%Y/%m", "%Y"};
+static const char* ImTimeUnits_PrefixValueFormats[] = { "%Y/%m/%e %H:%M" , "%Y/%m/%e %I", "%Y/%m/%e",  "%Y/%m", "%Y/%m" , "%Y", "%Y", "%Y", "%Y", "%Y"};
+#define IM_MAX_SEC_TIME_LIMIT 32503683600
+#define IM_MIN_SEC_TIME_LIMIT 0
+
+struct ImTimeStepper {
+    ImTimeStepper(double microSecondTimeStamp, ImTimeUnit_ unit, int roundedToUnits);
+    void Floor(int step_size);   // Round down timestamp to nearest step size units multiple (Internal only )
+    void Step(int step_size);
+    double GetIntegral();
+    time_t _s;
+    long long  _us;   
+    ImTimeUnit_ unit;
+};
+
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
 struct ImPlotPoint {
     double x, y;

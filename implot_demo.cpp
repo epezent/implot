@@ -202,7 +202,7 @@ void ShowDemoWindow(bool* p_open) {
         double baseMicroTimestamp = 1589954190000000;
         ImPlot::SetNextPlotLimitsX(baseMicroTimestamp, baseMicroTimestamp + 1001 * 100, ImGuiCond_Once);
         for (int i = 0; i < 1001; ++i) {
-            txs1[i] = baseMicroTimestamp + i * 100;
+            txs1[i] = baseMicroTimestamp + i * 10000;
             tys1[i] = 0.5f + 0.5f * sin(50 * txs1[i]);
         }
         
