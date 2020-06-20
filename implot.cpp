@@ -2077,7 +2077,7 @@ void EndPlot() {
      if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
         char buffer[128] = {};
         BufferWriter writer(buffer, sizeof(buffer));
-        ImTimeUnit_ unit = DetermineTimeScaleUnitForAutoTicks(plot.XAxis.Range.Min, plot.XAxis.Range.Max, 5);
+        ImTimeUnit_ unit = gp.XTicks.Size > 1 ? gp.XTicks[0].DisplayUnit : ImTimeUnit_US;
         writer.Write("%s", ImTimeFormatter{ plot.XAxis.Range.Min }.GetRangeFormatterPrefixString(unit));
         ImVec2 size = ImGui::CalcTextSize(buffer);
         ImVec2 pos  = ImVec2{gp.BB_Plot.Min.x + 5, gp.BB_Plot.Max.y - 5 - size.y} ;
@@ -2093,10 +2093,10 @@ void EndPlot() {
         double range_y = gp.YTicks[0].Size > 1 ? (gp.YTicks[0][1].PlotPos - gp.YTicks[0][0].PlotPos) : plot.YAxis[0].Range.Size();
 
         if (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Time)) {
-            ImTimeUnit_ unit = DetermineTimeScaleUnitForAutoTicks(plot.XAxis.Range.Min, plot.XAxis.Range.Max, 5);
-            writer.Write("%s,%.*f", ImTimeFormatter{gp.LastMousePos[0].x}.GetRangeFormattedString(unit), Precision(range_y),gp.LastMousePos[0].y);
+            ImTimeUnit_ unit = gp.XTicks.Size > 1 ? gp.XTicks[0].DisplayUnit : ImTimeUnit_US;
+            writer.Write("%s,%.*f", ImTimeFormatter{gp.LastMousePos[0].x}.GetRangeFormattedString(unit), Precision(range_y), gp.LastMousePos[0].y);
         } else {
-	    writer.Write("%.*f,%.*f", Precision(range_x), gp.LastMousePos[0].x, Precision(range_y), gp.LastMousePos[0].y);
+	        writer.Write("%.*f,%.*f", Precision(range_x), gp.LastMousePos[0].x, Precision(range_y), gp.LastMousePos[0].y);
         }
         if (HasFlag(plot.Flags, ImPlotFlags_YAxis2)) {
             range_y = gp.YTicks[1].Size > 1 ? (gp.YTicks[1][1].PlotPos - gp.YTicks[1][0].PlotPos) : plot.YAxis[1].Range.Size();
