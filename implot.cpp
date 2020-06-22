@@ -199,7 +199,9 @@ struct ImTimeFormatter {
     char* GetFullFormattedString() {
         ResetBuf();
         if (_s < 0) {
-            WriteRawTimeToBuf();
+            // Do Nothing
+            //WriteRawTimeToBuf();
+            return buf;
         } else {
             WriteFormattedTimeToBuf("%Y/%m/%e %I:%M:%S.");
             WritePaddedMicroSecondsToBuf();
@@ -210,7 +212,7 @@ struct ImTimeFormatter {
     char* GetRangeFormatterPrefixString(ImTimeUnit_ unit) {
         ResetBuf();
         if (_s < 0) {
-            WriteRawTimeToBuf();
+            // WriteRawTimeToBuf();
             return buf;
         }
         WriteFormattedTimeToBuf(ImTimeUnits_PrefixValueFormats[unit]);
@@ -220,7 +222,7 @@ struct ImTimeFormatter {
     char* GetRangeFormattedString(ImTimeUnit_ unit) {
         ResetBuf();
         if (_s < 0) {
-            WriteRawTimeToBuf();
+            //WriteRawTimeToBuf();
             return buf;
         }
 
@@ -905,12 +907,64 @@ inline double NiceNum(double x, bool round) {
 
 inline int NiceNumTime(double x, ImTimeUnit_ unit) {
     int f = (int)x;
-    if (unit < ImTimeUnit_SEC || f < 15) {
+    if (unit < ImTimeUnit_SEC) {
         return (int)NiceNum(x, 1);
-    }    
-    int fgt15 = (f / 15) * 15;
-    return fgt15;
+     
+    }
+    if (unit == ImTimeUnit_SEC || unit == ImTimeUnit_MIN) {
+        if (f < 2)
+            return 1;
+        if (f < 4)
+            return 2;
+        if (f < 10)
+            return 5;
+        if (f < 15) {
+            return 10;
+        } 
+        if (f < 22.5) { // Next upper threshold mid (15, 30)
+            return 15;
+        } 
+        if (f < 45) {
+            return 30;
+        }
+        if (f < 60) {
+            return 60;
+        }
+        int fgt60 = (f / 60) * 60;
+        return fgt60;
+    }
+    if (unit == ImTimeUnit_HR) {
+        if (f < 2)
+            return 1;
+        if (f < 4)
+            return 2;
+        if (f < 6)
+            return 4;
+        if (f < 12)
+            return 6;
+        if (f < 24)
+            return 12;
+        return (f / 24) * 24;
+    } 
+    if (unit == ImTimeUnit_DAY) {
+        if (f < 30)     // 2 months approx [too much overlapping in we go by ]
+            return (int)NiceNum(x, 1);
+        
+        // Still an issue [months have different length]
+        return (f / 30) * 30;
 
+    } 
+    if (unit == ImTimeUnit_MON) {
+        if (f < 2)
+            return 1;
+        if (f < 6)
+            return 6;
+        if (f < 12)
+            return 12;
+        return (f / 12) * 12;
+    }
+    // Years 
+    return (int)NiceNum(x, 1);
 }
 
 inline void AddDefaultTimeScaleTicks(const ImPlotRange& range, int nMajor, int nMinor, ImVector<ImPlotTick>& out) {
