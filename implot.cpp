@@ -628,9 +628,11 @@ ImPlotItem* RegisterItem(const char* label_id) {
     item->SeenThisFrame = true;
     int idx = gp.CurrentPlot->Items.GetIndex(item);
     item->ID = id;
-    gp.LegendIndices.push_back(idx);
-    item->NameOffset = gp.LegendLabels.size();
-    gp.LegendLabels.append(label_id, label_id + strlen(label_id) + 1);
+    if (ImGui::FindRenderedTextEnd(label_id, NULL) != label_id) {
+        gp.LegendIndices.push_back(idx);
+        item->NameOffset = gp.LegendLabels.size();
+        gp.LegendLabels.append(label_id, label_id + strlen(label_id) + 1);
+    }
     if (item->Show)
         gp.VisibleItemCount++;
     return item;
