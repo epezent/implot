@@ -633,6 +633,9 @@ ImPlotItem* RegisterItem(const char* label_id) {
         item->NameOffset = gp.LegendLabels.size();
         gp.LegendLabels.append(label_id, label_id + strlen(label_id) + 1);
     }
+    else {
+        item->Show = true;
+    }
     if (item->Show)
         gp.VisibleItemCount++;
     return item;
