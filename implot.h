@@ -195,6 +195,12 @@ struct ImPlotInputMap {
 
 namespace ImPlot {
 
+struct ImPlotContext;
+
+ImPlotContext *createContext();
+void destroyContext(ImPlotContext *context);
+void setGlobalContext(ImPlotContext *context);
+
 // Starts a 2D plotting context. If this function returns true, EndPlot() must
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }"". #title_id must
 // be unique. If you need to avoid ID collisions or don't want to display a
@@ -331,7 +337,7 @@ void PushStyleVar(ImPlotStyleVar idx, int val);
 void PopStyleVar(int count = 1);
 
 // Switch to one of the built-in colormaps. If samples is greater than 1, the map will be linearly resampled.
-void SetColormap(ImPlotColormap colormap, int samples = 0);
+void SetColormap(ImPlotContext &context, ImPlotColormap colormap, int samples = 0);
 // Sets a custom colormap.
 void SetColormap(const ImVec4* colors, int num_colors);
 // Returns the size of the current colormap.
