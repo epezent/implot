@@ -298,6 +298,8 @@ ImPlotLimits GetPlotLimits(int y_axis = -1);
 bool IsPlotQueried();
 // Returns the current or most recent plot query bounds.
 ImPlotLimits GetPlotQuery(int y_axis = -1);
+// Returns true if plot item is highlight
+bool IsPlotItemHighlight(const char* label_id);
 
 //-----------------------------------------------------------------------------
 // Plot Input Mapping

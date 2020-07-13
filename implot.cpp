@@ -195,7 +195,10 @@ inline T Remap(T x, T x0, T x1, T y0, T y1) {
 
 // Returns always positive modulo
 inline int PosMod(int l, int r) {
-    return (l % r + r) % r;
+	if (r == 0) 
+		return 0;
+    else
+		return (l % r + r) % r;
 }
 
 // Returns the intersection point of two lines A and B (assumes they are not parallel!)
@@ -1933,6 +1936,17 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
     result.Y.Min = ImMin(p1.y, p2.y);
     result.Y.Max = ImMax(p1.y, p2.y);
     return result;
+}
+
+bool IsPlotItemHighlight(const char* label_id) {
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotItemHighlight() needs to be called between BeginPlot() and EndPlot()!");
+
+	ImGuiID id = ImGui::GetID(label_id);
+    ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);
+	if (item && item->Highlight)
+		return true;
+	else
+		return false;
 }
 
 //-----------------------------------------------------------------------------
