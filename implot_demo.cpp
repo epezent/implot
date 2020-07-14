@@ -709,13 +709,15 @@ void ShowDemoWindow(bool* p_open) {
         static bool init = true;
         static ScrollingData data[K_CHANNELS];
         static bool show[K_CHANNELS];
+        static int yAxis[K_CHANNELS];
         if (init) {
             for (int i = 0; i < K_CHANNELS; ++i) {
                 show[i] = false;
+				yAxis[i] = 0;
             }
             init = false;
         }
-        ImGui::BulletText("Drag data items from the left column onto the plot.");
+        ImGui::BulletText("Drag data items from the left column onto the plot or onto y axis");
         ImGui::BeginGroup();
         if (ImGui::Button("Clear", ImVec2(100, 0))) {
             for (int i = 0; i < K_CHANNELS; ++i) {
@@ -749,22 +751,27 @@ void ShowDemoWindow(bool* p_open) {
             }
         }
         ImPlot::SetNextPlotLimitsX((double)t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##DND")) {
+        if (ImPlot::BeginPlot("##DND", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu | ImPlotFlags_NoChild | ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
             for (int i = 0; i < K_CHANNELS; ++i) {
                 if (show[i] && data[i].Data.size() > 0) {
                     char label[K_CHANNELS];
                     sprintf(label, "data_%d", i);
+					ImPlot::SetPlotYAxis(yAxis[i]);
                     ImPlot::PlotLine(label, &data[i].Data[0].x, &data[i].Data[0].y, data[i].Data.size(), data[i].Offset, 2 * sizeof(t_float));
                 }
             }
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
+					int i = *(int*)payload->Data;
+					show[i] = true;
+					for (int y = 0; y < 3; y++) {
+						if (ImPlot::IsPlotYAxisHovered(y))
+							yAxis[i] = y;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
             ImPlot::EndPlot();
-        }
-        if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
-                int i = *(int*)payload->Data;
-                show[i] = true;
-            }
-            ImGui::EndDragDropTarget();
         }
     }
     //-------------------------------------------------------------------------
