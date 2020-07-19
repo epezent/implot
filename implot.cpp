@@ -2059,7 +2059,7 @@ struct GetterYs {
     GetterYs(const T* ys, int count, int offset, int stride) {
         Ys = ys;
         Count = count;
-        Offset = PosMod(offset, count);;
+        Offset = count ? PosMod(offset, count) : 0;
         Stride = stride;
     }
     const T* Ys;
@@ -2076,7 +2076,7 @@ struct GetterXsYs {
     GetterXsYs(const T* xs, const T* ys, int count, int offset, int stride) {
         Xs = xs; Ys = ys;
         Count = count;
-        Offset = PosMod(offset, count);;
+        Offset = count ? PosMod(offset, count) : 0;
         Stride = stride;
     }
     const T* Xs;
@@ -2095,7 +2095,7 @@ struct GetterXsYRef {
         Xs = xs;
         YRef = y_ref;
         Count = count;
-        Offset = PosMod(offset, count);;
+        Offset = count ? PosMod(offset, count) : 0;
         Stride = stride;
     }
     const T* Xs;
@@ -2112,7 +2112,7 @@ struct GetterImVec2 {
     GetterImVec2(const ImVec2* data, int count, int offset) {
         Data = data;
         Count = count;
-        Offset = PosMod(offset, count);
+        Offset = count ? PosMod(offset, count) : 0;
     }
     inline ImPlotPoint operator()(int idx) { return ImPlotPoint(Data[idx].x, Data[idx].y); }
     const ImVec2* Data;
@@ -2124,7 +2124,7 @@ struct GetterImPlotPoint {
     GetterImPlotPoint(const ImPlotPoint* data, int count, int offset) {
         Data = data;
         Count = count;
-        Offset = PosMod(offset, count);
+        Offset = count ? PosMod(offset, count) : 0;
     }
     inline ImPlotPoint operator()(int idx) { return Data[idx]; }
     const ImPlotPoint* Data;
@@ -2137,7 +2137,7 @@ struct GetterFuncPtrImPlotPoint {
         getter = g;
         Data = d;
         Count = count;
-        Offset = PosMod(offset, count);
+        Offset = count ? PosMod(offset, count) : 0;
     }
     inline ImPlotPoint operator()(int idx) { return getter(Data, idx); }
     ImPlotPoint (*getter)(void* data, int idx);
