@@ -64,6 +64,10 @@ Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sour
     2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file.
 - By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
 
+## Interactive Demo
+
+An online version of the demo is hosted [here](https://traineq.org/implot_demo/src/implot_demo.html). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implemention, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this! 
+
 ## FAQ
 
 **Q: Why?**
