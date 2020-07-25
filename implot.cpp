@@ -3221,7 +3221,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
         for (int c = 0; c < cols; ++c) {
             ImPlotPoint p;
             p.x = bounds_min.x + 0.5*w + c*w;
-            p.y = bounds_min.y + 1 - (0.5*h + r*h);
+            p.y = bounds_max.y - (0.5*h + r*h);
             ImVec2 a  = transformer(p.x - half_size.x, p.y - half_size.y);
             ImVec2 b  = transformer(p.x + half_size.x, p.y + half_size.y);
             float t = (float)Remap(values[i], scale_min, scale_max, T(0), T(1));
