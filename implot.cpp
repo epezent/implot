@@ -933,13 +933,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             plot.YAxis[i].Range.Max = plot.YAxis[i].Range.Min + DBL_EPSILON;
     }
 
-    // adaptive divisions
-    int x_divisions = ImMax(2, (int)IM_ROUND(0.003 * gp.BB_Canvas.GetWidth()));
-    int y_divisions[MAX_Y_AXES];
-    for (int i = 0; i < MAX_Y_AXES; i++) {
-        y_divisions[i] = ImMax(2, (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight()));
-    }
-
     // COLORS -----------------------------------------------------------------
 
     gp.Col_Frame  = gp.Style.Colors[ImPlotCol_FrameBg].w     == -1 ? ImGui::GetColorU32(ImGuiCol_FrameBg)    : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_FrameBg]);
@@ -973,6 +966,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // canvas bb
     gp.BB_Canvas = ImRect(gp.BB_Frame.Min + Style.WindowPadding, gp.BB_Frame.Max - Style.WindowPadding);
+
+    // adaptive divisions
+    int x_divisions = ImMax(2, (int)IM_ROUND(0.003 * gp.BB_Canvas.GetWidth()));
+    int y_divisions[MAX_Y_AXES];
+    for (int i = 0; i < MAX_Y_AXES; i++) {
+        y_divisions[i] = ImMax(2, (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight()));
+    }
 
     gp.RenderX = (HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_GridLines) ||
                     HasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickMarks) ||

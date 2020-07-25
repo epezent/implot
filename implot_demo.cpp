@@ -415,7 +415,7 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
         if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),ImPlotFlags_ContextMenu,0,0)) {
             ImPlot::PlotHeatmap("heat1",values2,100,100,0,1,NULL);
-            ImPlot::PlotHeatmap("heat1",values2,100,100,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
+            ImPlot::PlotHeatmap("heat2",values2,100,100,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
             ImPlot::EndPlot();
         }
         ImPlot::SetColormap(ImPlotColormap_Default);
