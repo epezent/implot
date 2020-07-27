@@ -290,6 +290,10 @@ void PlotText(const char* text, double x, double y, bool vertical = false, const
 
 // Returns true if the plot area in the current or most recent plot is hovered.
 bool IsPlotHovered();
+// Returns true if the XAxis plot area in the current or most recent plot is hovered.
+bool IsPlotXAxisHovered();
+// Returns true if the YAxis[n] plot area in the current or most recent plot is hovered.
+bool IsPlotYAxisHovered(int y_axis = 0);
 // Returns the mouse position in x,y coordinates of the current or most recent plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImPlotPoint GetPlotMousePos(int y_axis = -1);
 // Returns the current or most recent plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
@@ -298,6 +302,8 @@ ImPlotLimits GetPlotLimits(int y_axis = -1);
 bool IsPlotQueried();
 // Returns the current or most recent plot query bounds.
 ImPlotLimits GetPlotQuery(int y_axis = -1);
+// Returns true if plot item is highlight
+bool IsPlotItemHighlight(const char* label_id);
 
 //-----------------------------------------------------------------------------
 // Plot Input Mapping
