@@ -1964,7 +1964,7 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
     return result;
 }
 
-bool IsPlotItemHighlighted(const char* label_id) {
+bool IsLegendEntryHovered(const char* label_id) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotItemHighlight() needs to be called between BeginPlot() and EndPlot()!");
     ImGuiID id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
