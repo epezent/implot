@@ -1918,7 +1918,7 @@ bool IsPlotYAxisHovered(int y_axis_in) {
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImRect bb_plot_pad = gp.BB_Plot;
     bb_plot_pad.Min.x += 5; bb_plot_pad.Max.x -= 5;
-    return gp.CurrentPlot->YAxis[y_axis].Hovered && !!bb_plot_pad.Contains(ImGui::GetMousePos());
+    return gp.CurrentPlot->YAxis[y_axis].Hovered && !bb_plot_pad.Contains(ImGui::GetMousePos());
 }
 
 ImPlotPoint GetPlotMousePos(int y_axis_in) {

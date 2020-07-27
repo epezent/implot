@@ -719,7 +719,7 @@ void ShowDemoWindow(bool* p_open) {
             }
             init = false;
         }
-        ImGui::BulletText("Drag data items from the left column onto the plot or onto y axis");
+        ImGui::BulletText("Drag data items from the left column onto the plot or onto a specific y-axis.");
         ImGui::BeginGroup();
         if (ImGui::Button("Clear", ImVec2(100, 0))) {
             for (int i = 0; i < K_CHANNELS; ++i) {
