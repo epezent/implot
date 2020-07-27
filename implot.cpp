@@ -193,12 +193,9 @@ inline T Remap(T x, T x0, T x1, T y0, T y1) {
     return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
 }
 
-// Returns always positive modulo
+// Returns always positive modulo (r != 0)
 inline int PosMod(int l, int r) {
-    if (r == 0) 
-        return 0;
-    else
-        return (l % r + r) % r;
+    return (l % r + r) % r;
 }
 
 // Returns the intersection point of two lines A and B (assumes they are not parallel!)
@@ -1041,13 +1038,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     ImRect yAxisRegion_bb[MAX_Y_AXES];
     yAxisRegion_bb[0] = ImRect(ImVec2(gp.BB_Frame.Min.x, gp.BB_Plot.Min.y), ImVec2(gp.BB_Plot.Min.x + 6, gp.BB_Plot.Max.y - 10));
     // The auxiliary y axes are off to the right of the BB grid.
-    yAxisRegion_bb[1] = ImRect(ImVec2(gp.BB_Plot.Max.x - 6, gp.BB_Plot.Min.y),
-                               gp.BB_Plot.Max + ImVec2(y_axis_pad(1), 0));
-    yAxisRegion_bb[2] = ImRect(ImVec2(gp.AxisLabelReference[2] - 6, gp.BB_Plot.Min.y),
-                               yAxisRegion_bb[1].Max + ImVec2(y_axis_pad(2), 0));
+    yAxisRegion_bb[1] = ImRect(ImVec2(gp.BB_Plot.Max.x - 6, gp.BB_Plot.Min.y), gp.BB_Plot.Max + ImVec2(y_axis_pad(1), -10));
+    yAxisRegion_bb[2] = ImRect(ImVec2(gp.AxisLabelReference[2] - 6, gp.BB_Plot.Min.y), yAxisRegion_bb[1].Max + ImVec2(y_axis_pad(2), -10));
 
-    ImRect centralRegion(ImVec2(gp.BB_Plot.Min.x + 6, gp.BB_Plot.Min.y),
-                         ImVec2(gp.BB_Plot.Max.x - 6, gp.BB_Plot.Max.y));
+    ImRect centralRegion(ImVec2(gp.BB_Plot.Min.x + 6, gp.BB_Plot.Min.y), ImVec2(gp.BB_Plot.Max.x - 6, gp.BB_Plot.Max.y));
 
     plot.YAxis[0].Hovered = gp.Y[0].Present && (yAxisRegion_bb[0].Contains(IO.MousePos) || centralRegion.Contains(IO.MousePos));
     plot.YAxis[1].Hovered = gp.Y[1].Present && (yAxisRegion_bb[1].Contains(IO.MousePos) || centralRegion.Contains(IO.MousePos));
@@ -1369,7 +1363,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         DrawList.AddText(xLabel_pos, gp.Col_X.Txt, x_label);
     }
     ImGui::PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
-    bool yAxisAllOvered = plot.YAxis[0].Hovered && plot.YAxis[1].Hovered && plot.YAxis[2].Hovered;
     for (int i = 0; i < MAX_Y_AXES; i++) {
         if (gp.Y[i].Present && HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) {
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
@@ -1381,9 +1374,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 }
             }
         }
-        if (plot.YAxis[i].Hovered && !yAxisAllOvered && ImGui::IsDragDropPayloadBeingAccepted()) {
-            DrawList.AddRect(yAxisRegion_bb[i].Min, yAxisRegion_bb[i].Max, ImGui::GetColorU32(ImGuiCol_DragDropTarget));
-        }
     }
     ImGui::PopClipRect();
     if (y_label) {
@@ -1391,8 +1381,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         const ImVec2 yLabel_pos(gp.BB_Canvas.Min.x, gp.BB_Plot.GetCenter().y + yLabel_size.y * 0.5f);
         AddTextVertical(&DrawList, y_label, yLabel_pos, gp.Col_Y[0].Txt);
     }
-
-    // PREP -------------------------------------------------------------------
 
     // push plot ID into stack
     ImGui::PushID(ID);
@@ -1602,20 +1590,20 @@ void EndPlot() {
         if (!gp.Y[i].Present) { continue; }
         axis_count++;
 
-        if (!HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks)) { continue; }
-
         float x_start = gp.AxisLabelReference[i];
-        float direction = (i == 0) ? 1.0f : -1.0f;
-        bool no_major = axis_count >= 3;
+        if (HasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks)) { 
+            float direction = (i == 0) ? 1.0f : -1.0f;
+            bool no_major = axis_count >= 3;
 
-        for (int t = 0; t < gp.YTicks[i].Size; t++) {
-            ImPlotTick *yt = &gp.YTicks[i][t];
-            ImVec2 start = ImVec2(x_start, yt->PixelPos);
+            for (int t = 0; t < gp.YTicks[i].Size; t++) {
+                ImPlotTick *yt = &gp.YTicks[i][t];
+                ImVec2 start = ImVec2(x_start, yt->PixelPos);
 
-            DrawList.AddLine(
-                    start,
-                    start + ImVec2(direction * ((!no_major && yt->Major) ? 10.0f : 5.0f), 0),
-                    gp.Col_Border, 1);
+                DrawList.AddLine(
+                        start,
+                        start + ImVec2(direction * ((!no_major && yt->Major) ? 10.0f : 5.0f), 0),
+                        gp.Col_Border, 1);
+            }
         }
 
         if (axis_count >= 3) {
@@ -1627,6 +1615,23 @@ void EndPlot() {
         }
     }
     ImGui::PopClipRect();
+
+    // render y-axis drag/drop hover 
+    if (ImGui::IsDragDropPayloadBeingAccepted()) {
+        ImRect bb_plot_pad = gp.BB_Plot;
+        bb_plot_pad.Min.x += 5; bb_plot_pad.Max.x -= 5;
+        if (!bb_plot_pad.Contains(IO.MousePos)) {
+            for (int i = 0; i < MAX_Y_AXES; ++i) {
+                if (plot.YAxis[i].Hovered) {
+                    float x_loc = gp.AxisLabelReference[i];
+                    ImVec2 p1(x_loc - 5, gp.BB_Plot.Min.y - 5);
+                    ImVec2 p2(x_loc + 5, gp.BB_Plot.Max.y + 5);
+                    DrawList.AddRect(p1, p2, ImGui::GetColorU32(ImGuiCol_DragDropTarget), 0.0f,  ImDrawCornerFlags_All, 2.0f);
+                }
+            }
+        }
+    }
+
 
     PushPlotClipRect();
     // render selection/query
@@ -1903,15 +1908,17 @@ bool IsPlotHovered() {
 
 bool IsPlotXAxisHovered() {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotXAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
-    return gp.CurrentPlot->XAxis.Hovered;
+    ImRect bb_plot_pad = gp.BB_Plot; bb_plot_pad.Max.y -= 5;
+    return gp.CurrentPlot->XAxis.Hovered && !bb_plot_pad.Contains(ImGui::GetMousePos());
 }
 
 bool IsPlotYAxisHovered(int y_axis_in) {
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < MAX_Y_AXES, "y_axis needs to between -1 and MAX_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotYAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
-    bool yAxisAllOvered = gp.CurrentPlot->YAxis[0].Hovered && gp.CurrentPlot->YAxis[1].Hovered && gp.CurrentPlot->YAxis[2].Hovered;
-    return !yAxisAllOvered && gp.CurrentPlot->YAxis[y_axis].Hovered;
+    ImRect bb_plot_pad = gp.BB_Plot;
+    bb_plot_pad.Min.x += 5; bb_plot_pad.Max.x -= 5;
+    return gp.CurrentPlot->YAxis[y_axis].Hovered && !!bb_plot_pad.Contains(ImGui::GetMousePos());
 }
 
 ImPlotPoint GetPlotMousePos(int y_axis_in) {
@@ -1957,11 +1964,10 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
     return result;
 }
 
-bool IsPlotItemHighlight(const char* label_id) {
+bool IsPlotItemHighlighted(const char* label_id) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotItemHighlight() needs to be called between BeginPlot() and EndPlot()!");
-
     ImGuiID id = ImGui::GetID(label_id);
-    ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);
+    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
     if (item && item->Highlight)
         return true;
     else
