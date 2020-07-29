@@ -214,7 +214,7 @@ bool BeginPlot(const char* title_id,
 void EndPlot();
 
 //-----------------------------------------------------------------------------
-// Plot Items (single precision data)
+// Plot Items
 //-----------------------------------------------------------------------------
 
 // Plots a standard 2D line plot.
