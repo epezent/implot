@@ -1,23 +1,24 @@
 # ImPlot
 ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that will make ImGui users feel right at home. ImPlot is well suited for visualizing program data in real-time and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself. 
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="285">
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="270">
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/query.gif" width="285"> 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/views.gif" width="285"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/query.gif" width="270"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/views.gif" width="270"> 
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/noise.gif" width="285"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/stock.gif" width="285"> 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/multiy.gif" width="285"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/noise.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/stock.gif" width="270"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/multiy.gif" width="270"> 
 
 ## Features
 
 - multiple plot types: 
-    - line
-    - scatter
-    - vertical/horizontal bars
-    - error bars
+    - line plots
+    - shaded plots
+    - scatter plots
+    - vertical/horizontal bars graphs
+    - vertical/horizontal error bars
     - pie charts
-    - heatmaps
+    - heatmap charts
     - and more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
@@ -25,6 +26,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 - support for up to three independent y-axes
 - controls for zooming, panning, box selection, and auto-fitting data
 - controls for creating persistent query ranges (see demo)
+- remappable input controls
 - several plot styling options: 10 marker types, adjustable marker sizes, line weights, outline colors, fill colors, etc.
 - built-in and user definable colormaps
 - optional plot titles, axis labels, and grid labels
@@ -61,6 +63,10 @@ Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sour
     1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be).
     2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file.
 - By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
+
+## Interactive Demo
+
+An online version of the demo is hosted [here](https://traineq.org/implot_demo/src/implot_demo.html). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implemention, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this! 
 
 ## FAQ
 
