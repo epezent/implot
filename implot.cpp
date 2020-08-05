@@ -3439,10 +3439,11 @@ void PlotText(const char* text, double x, double y, bool vertical, const ImVec2&
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
     PushPlotClipRect();
     ImVec2 pos = PlotToPixels(ImPlotPoint(x,y)) + pixel_offset;
+    ImU32 colTxt = ImGui::GetColorU32(ImGuiCol_Text);
     if (vertical)
-        AddTextVertical(&DrawList, text, pos, gp.Col_Txt);
+        AddTextVertical(&DrawList, text, pos, colTxt);
     else
-        DrawList.AddText(pos, gp.Col_Txt, text);
+        DrawList.AddText(pos, colTxt, text);
     PopPlotClipRect();
 }
 
