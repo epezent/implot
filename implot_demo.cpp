@@ -605,6 +605,31 @@ void ShowDemoWindow(bool* p_open) {
                              ImPlotFlags_Default |
                              (y2_axis ? ImPlotFlags_YAxis2 : 0) |
                              (y3_axis ? ImPlotFlags_YAxis3 : 0))) {
+            if (ImGui::Button("Fit X"))
+            {
+                ImPlot::FitData(true, false, false, false);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Fit Y1"))
+            {
+                ImPlot::FitData(false, true, false, false);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Fit Y2"))
+            {
+                ImPlot::FitData(false, false, true, false);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Fit Y3"))
+            {
+                ImPlot::FitData(false, false, false, true);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Fit All"))
+            {
+                ImPlot::FitData();
+            }
+        	
             ImPlot::PlotLine("f(x) = x", xs, xs, 1001);
             ImPlot::PlotLine("f(x) = sin(x)*3+1", xs, ys1, 1001);
 
