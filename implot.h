@@ -368,7 +368,8 @@ void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** lab
 // Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
 void SetPlotYAxis(int y_axis);
 
-void FitData(bool fit_x_axis = true, bool fit_y1_axis = true, bool fit_y2_axis = true, bool fit_y3_axis = true);
+// Fits the data for a given axis. Needs to be placed within the BeginPlot scope and before any plots are defined.
+void FitAxes(bool fit_x_axis = true, bool fit_y1_axis = true, bool fit_y2_axis = true, bool fit_y3_axis = true);
 
 // Get the current Plot position (top-left) in pixels.
 ImVec2 GetPlotPos();

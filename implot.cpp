@@ -1882,24 +1882,13 @@ void SetPlotYAxis(int y_axis) {
     gp.CurrentPlot->CurrentYAxis = y_axis;
 }
 
-void FitData(bool fit_x_axis, bool fit_y1_axis, bool fit_y2_axis, bool fit_y3_axis) {
+void FitAxes(bool fit_x_axis, bool fit_y1_axis, bool fit_y2_axis, bool fit_y3_axis) {
     gp.FitThisFrame = true;
     
-    if (fit_x_axis){
-        gp.FitX = true;
-    }
-
-    if (fit_y1_axis){
-        gp.FitY[0] = true;
-    }
-
-    if (fit_y2_axis){
-        gp.FitY[1] = true;
-    }
-
-    if (fit_y3_axis){
-        gp.FitY[2] = true;
-    }
+    gp.FitX = fit_x_axis;
+    gp.FitY[0] = fit_y1_axis;
+    gp.FitY[1] = fit_y2_axis;
+    gp.FitY[2] = fit_y3_axis;
 }
 
 ImVec2 GetPlotPos() {

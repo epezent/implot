@@ -587,6 +587,38 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::ColorEdit4("##Col2", &y2_col.x, ImGuiColorEditFlags_NoInputs);
         ImGui::SameLine();
         ImGui::ColorEdit4("##Col3", &y3_col.x, ImGuiColorEditFlags_NoInputs);
+    	
+        bool fit_x = false;
+        bool fit_y1 = false;
+        bool fit_y2 = false;
+        bool fit_y3 = false;
+        bool fit_all = false;
+
+        if (ImGui::Button("Fit X"))
+        {
+            fit_x = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Fit Y1"))
+        {
+            fit_y1 = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Fit Y2"))
+        {
+            fit_y2 = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Fit Y3"))
+        {
+            fit_y3 = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Fit All"))
+        {
+            fit_all = true;
+        }
+
         for (int i = 0; i < 1001; ++i) {
             xs[i]  = (i*0.1f);
             ys1[i] = Sin(xs[i]) * 3 + 1;
@@ -605,29 +637,25 @@ void ShowDemoWindow(bool* p_open) {
                              ImPlotFlags_Default |
                              (y2_axis ? ImPlotFlags_YAxis2 : 0) |
                              (y3_axis ? ImPlotFlags_YAxis3 : 0))) {
-            if (ImGui::Button("Fit X"))
+            if (fit_x)
             {
-                ImPlot::FitData(true, false, false, false);
+                ImPlot::FitAxes(true, false, false, false);
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Fit Y1"))
+            if (fit_y1)
             {
-                ImPlot::FitData(false, true, false, false);
+                ImPlot::FitAxes(false, true, false, false);
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Fit Y2"))
+            if (fit_y2)
             {
-                ImPlot::FitData(false, false, true, false);
+                ImPlot::FitAxes(false, false, true, false);
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Fit Y3"))
+            if (fit_y3)
             {
-                ImPlot::FitData(false, false, false, true);
+                ImPlot::FitAxes(false, false, false, true);
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Fit All"))
+            if (fit_all)
             {
-                ImPlot::FitData();
+                ImPlot::FitAxes();
             }
         	
             ImPlot::PlotLine("f(x) = x", xs, xs, 1001);
@@ -642,7 +670,7 @@ void ShowDemoWindow(bool* p_open) {
                 ImPlot::SetPlotYAxis(2);
                 ImPlot::PlotLine("f(x) = sin(x+.5)*100+200 (Y3)", xs2, ys3, 1001);
             }
-
+        	
             ImPlot::EndPlot();
         }
         ImPlot::PopStyleColor(3);
