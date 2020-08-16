@@ -1012,7 +1012,7 @@ void ShowDemoWindow(bool* p_open) {
         static BenchmarkItem items[n_items];
         ImGui::BulletText("Make sure VSync is disabled.");
         ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
-        ImGui::BulletText("ImDrawIdx: %d-bit", sizeof(ImDrawIdx) * 8);
+        ImGui::BulletText("ImDrawIdx: %d-bit", (int)(sizeof(ImDrawIdx) * 8));
         ImGui::BulletText("ImGuiBackendFlags_RendererHasVtxOffset: %s", (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) ? "True" : "False");
         ImGui::BulletText("If you see visual artifacts, do one of the following:");
         ImGui::Indent();
