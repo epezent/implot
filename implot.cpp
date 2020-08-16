@@ -1511,7 +1511,7 @@ ImPlotInputMap& GetInputMap() {
 }
 
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond) {
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotLimits() needs to be called before BeginPlot()!");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot == NULL, "SetNextPlotLimits() needs to be called before BeginPlot()!");
     SetNextPlotLimitsX(x_min, x_max, cond);
     SetNextPlotLimitsY(y_min, y_max, cond);
 }
