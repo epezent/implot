@@ -1,17 +1,17 @@
 # ImPlot
-ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that will make ImGui users feel right at home. ImPlot is well suited for visualizing program data in real-time and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself. 
+ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that will make ImGui users feel right at home. ImPlot is well suited for visualizing program data in real-time and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself.
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="270">
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/query.gif" width="270"> 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/views.gif" width="270"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/bar.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/query.gif" width="270">
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/views.gif" width="270">
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/noise.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/stock.gif" width="270"> 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/multiy.gif" width="270"> 
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/noise.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/stock.gif" width="270">
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/multiy.gif" width="270">
 
 ## Features
 
-- multiple plot types: 
+- multiple plot types:
     - line plots
     - shaded plots
     - scatter plots
@@ -32,7 +32,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 - optional plot titles, axis labels, and grid labels
 - optional legend with toggle buttons to quickly show/hide items
 - size-aware grid with smart labels that are always power-of-ten multiples of 1, 2, and 5
-- default styling based on current ImGui theme, but most elements can be customized independently 
+- default styling based on current ImGui theme, but most elements can be customized independently
 - mouse cursor location display and optional crosshairs cursor
 - customizable data getters and data striding (just like ImGui:PlotLine)
 - relatively good performance for high density plots
@@ -40,7 +40,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
 
 ## Usage
 
-The API is used just like any other ImGui `BeginX`/`EndX` pair. First, start a plotting context with `ImPlot::BeginPlot()`. Next, plot as many items as you want with the provided `PlotX` functions (e.g. `PlotLine()`, `PlotBars()`, `PlotErrorBars()`, etc). Finally, wrap things up with a call to `ImPlot::EndPlot()`. That's it! 
+The API is used just like any other ImGui `BeginX`/`EndX` pair. First, start a new plot with `ImPlot::BeginPlot()`. Next, plot as many items as you want with the provided `PlotX` functions (e.g. `PlotLine()`, `PlotBars()`, `PlotErrorBars()`, etc). Finally, wrap things up with a call to `ImPlot::EndPlot()`. That's it!
 
 ```cpp
 if (ImPlot::BeginPlot("My Plot")) {
@@ -51,22 +51,33 @@ if (ImPlot::BeginPlot("My Plot")) {
 }
 ```
 
-Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features. 
+Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features.
 
 ## Integration
 
-Just add `implot.h`, `implot.cpp`, and optionally `implot_demo.cpp` to your sources. This assumes you already have an ImGui-ready environment. If not, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
+1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources.
+2) Create and destroy an `ImPlotContext` wherever you create your `ImGuiContext`:
+
+```cpp
+ImGui::CreateContext();
+ImPlot::CreateContext();
+...
+ImPlot::DestroyContext();
+ImGui::DestroyContext();
+```
+
+Of course, this assumes you already have an ImGui-ready environment. If not, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
 
 ## Special Notes
 
-- If you experience data truncation and/or visual glitches, it is **HIGHLY** recommended that you either: 
+- If you experience data truncation and/or visual glitches, it is **HIGHLY** recommended that you EITHER:
     1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be).
     2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file.
 - By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
 
 ## Interactive Demo
 
-An online version of the demo is hosted [here](https://traineq.org/implot_demo/src/implot_demo.html). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implemention, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this! 
+An online version of the demo is hosted [here](https://traineq.org/implot_demo/src/implot_demo.html). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implemention, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this!
 
 ## FAQ
 
@@ -76,7 +87,7 @@ A: ImGui is an incredibly powerful tool for rapid prototyping and development, b
 
 **Q: Is ImPlot suitable for real-time plotting?**
 
-A: Yes, within reason. You can plot tens to hundreds of thousands of points without issue, but don't expect plotting over a million to be a buttery smooth experience. We do our best to keep it fast and avoid memory allocations. 
+A: Yes, within reason. You can plot tens to hundreds of thousands of points without issue, but don't expect plotting over a million to be a buttery smooth experience. We do our best to keep it fast and avoid memory allocations.
 
 **Q: Can plot styles be modified?**
 
@@ -104,7 +115,7 @@ A: See the note about anti-aliasing under **Special Notes** above.
 
 **Q: Does ImPlot provide analytic tools?**
 
-A: Not exactly, but it does give you the ability to query plot sub-ranges, with which you can process your data however you like. 
+A: Not exactly, but it does give you the ability to query plot sub-ranges, with which you can process your data however you like.
 
 **Q: Can plots be exported/saved to image?**
 
@@ -116,6 +127,6 @@ A: Yes, ImPlot accepts both `float` and `double` for all of its plotting functio
 
 **Q: Can ImPlot be used with other languages/bindings?**
 
-A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. 
+A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages.
 
 

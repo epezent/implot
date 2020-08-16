@@ -25,16 +25,22 @@
 #pragma once
 #include "imgui.h"
 
+#define IMPLOT_VERSION "0.5 WIP"
+
 //-----------------------------------------------------------------------------
-// Basic types and flags
+// Forward Declarations and Basic Types
 //-----------------------------------------------------------------------------
 
-typedef int ImPlotFlags;
-typedef int ImPlotAxisFlags;
-typedef int ImPlotCol;
-typedef int ImPlotStyleVar;
-typedef int ImPlotMarker;
-typedef int ImPlotColormap;
+// Forward declarations
+struct ImPlotContext;          // ImPlot context (opaque struct, see implot_internal.h)
+
+// Enums/Flags
+typedef int ImPlotFlags;       // -> enum ImPlotFlags_
+typedef int ImPlotAxisFlags;   // -> enum ImPlotAxisFlags_
+typedef int ImPlotCol;         // -> enum ImPlotCol_
+typedef int ImPlotStyleVar;    // -> enum ImPlotStyleVar_
+typedef int ImPlotMarker;      // -> enum ImPlotMarker_
+typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -133,7 +139,7 @@ enum ImPlotColormap_ {
 struct ImPlotPoint {
     double x, y;
     ImPlotPoint()  { x = y = 0.0; }
-    ImPlotPoint(double _x, double _y) { x = _x; y = _y; }
+    ImPlotPoint(double _x, double _y)     { x = _x; y = _y; }
     double  operator[] (size_t idx) const { return (&x)[idx]; }
     double& operator[] (size_t idx)       { return (&x)[idx]; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
@@ -145,16 +151,15 @@ struct ImPlotPoint {
 struct ImPlotRange {
     double Min, Max;
     ImPlotRange();
-    bool Contains(double value) const;
-    double Size() const;
+    bool Contains(double value) const { return value >= Min && value <= Max; };
+    double Size() const               { return Max - Min; };
 };
 
 // Combination of two ranges for X and Y axes.
 struct ImPlotLimits {
     ImPlotRange X, Y;
-    ImPlotLimits();
-    bool Contains(const ImPlotPoint& p) const;
-    bool Contains(double x, double y) const;
+    bool Contains(const ImPlotPoint& p) const { return Contains(p.x, p.y); }
+    bool Contains(double x, double y) const   { return X.Contains(x) && Y.Contains(y); }
 };
 
 // Plot style structure
@@ -190,10 +195,27 @@ struct ImPlotInputMap {
 };
 
 //-----------------------------------------------------------------------------
-// Begin/End Plot
+// ImPlot End-User API
 //-----------------------------------------------------------------------------
 
 namespace ImPlot {
+
+//-----------------------------------------------------------------------------
+// ImPlot Context
+//-----------------------------------------------------------------------------
+
+// Creates a new ImPlot context. Call this after ImGui::CreateContext.
+ImPlotContext* CreateContext();
+// Destroys an ImPlot context. Call this before ImGui::DestroyContext. NULL = destroy current context
+void DestroyContext(ImPlotContext* ctx = NULL);
+// Returns the current context. NULL if not context has ben set.
+ImPlotContext* GetCurrentContext();
+// Sets the current context.
+void SetCurrentContext(ImPlotContext* ctx);
+
+//-----------------------------------------------------------------------------
+// Begin/End Plot
+//-----------------------------------------------------------------------------
 
 // Starts a 2D plotting context. If this function returns true, EndPlot() must
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }". #title_id must
@@ -346,7 +368,7 @@ int GetColormapSize();
 ImVec4 GetColormapColor(int index);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(float t);
-// Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired. 
+// Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
 ImVec4 NextColormapColor();
 
 //-----------------------------------------------------------------------------
@@ -363,6 +385,7 @@ void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_O
 // Set the X axis ticks and optionally the labels for the next plot.
 void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false);
 void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** labels = NULL, bool show_default = false);
+
 // Set the Y axis ticks and optionally the labels for the next plot.
 void SetNextPlotTicksY(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
 void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
@@ -377,8 +400,11 @@ ImVec2 GetPlotSize();
 
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
+ImPlotPoint PixelsToPlot(float x, float y, int y_axis = -1);
+
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = -1);
+ImVec2 PlotToPixels(double x, double y, int y_axis = -1);
 
 // Renders a vertical color scale using the current color map
 void ShowColormapScale(double scale_min, double scale_max, float height);
