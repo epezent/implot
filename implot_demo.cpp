@@ -1009,6 +1009,13 @@ void ShowDemoWindow(bool* p_open) {
         static BenchmarkItem items[n_items];
         ImGui::BulletText("Make sure VSync is disabled.");
         ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
+        ImGui::BulletText("ImDrawIdx: %d-bit", sizeof(ImDrawIdx) * 8);
+        ImGui::BulletText("ImGuiBackendFlags_RendererHasVtxOffset: %s", (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) ? "True" : "False");
+        ImGui::BulletText("If you see visual artifacts, do one of the following:");
+        ImGui::Indent();
+        ImGui::BulletText("Handle ImGuiBackendFlags_RendererHasVtxOffset for 16-bit indices in your backend.");
+        ImGui::BulletText("Enable 32-bit indices in imconfig.h.");
+        ImGui::Unindent();
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_Default | ImPlotFlags_NoChild)) {
             char buff[16];
