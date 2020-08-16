@@ -540,7 +540,10 @@ void ShowDemoWindow(bool* p_open) {
 
             ImPlot::PlotText("Filled Markers", 1.5, 11.75);
             ImPlot::PlotText("Open Markers", 6.75, 11.75);
+
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,1,0,1));
             ImPlot::PlotText("Fancy Markers", 4.5, 4.25, true);
+            ImGui::PopStyleColor();
 
             ImPlot::SetColormap(ImPlotColormap_Default);
 

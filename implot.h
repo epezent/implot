@@ -280,7 +280,7 @@ void PlotDigital(const char* label_id, const float* xs, const float* ys, int cou
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
 void PlotDigital(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
-// Plots a text label at point x,y.
+// Plots a text label at point x,y. Text color can be changed with ImGui::PushStyleColor(ImGuiCol_Text, ...).
 void PlotText(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 void PlotText(const char* text, double x, double y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 
