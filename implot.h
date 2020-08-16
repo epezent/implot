@@ -196,7 +196,7 @@ struct ImPlotInputMap {
 namespace ImPlot {
 
 // Starts a 2D plotting context. If this function returns true, EndPlot() must
-// be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }"". #title_id must
+// be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }". #title_id must
 // be unique. If you need to avoid ID collisions or don't want to display a
 // title in the plot, use double hashes (e.g. "MyPlot##Hidden"). If #x_label
 // and/or #y_label are provided, axes labels will be displayed.
@@ -346,6 +346,8 @@ int GetColormapSize();
 ImVec4 GetColormapColor(int index);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(float t);
+// Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired. 
+ImVec4 NextColormapColor();
 
 //-----------------------------------------------------------------------------
 // Plot Utils

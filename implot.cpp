@@ -278,12 +278,6 @@ inline ImU32 CalcTextColor(const ImVec4& bg) {
 } // private namespace
 
 //-----------------------------------------------------------------------------
-// Forwards
-//-----------------------------------------------------------------------------
-
-ImVec4 NextColor();
-
-//-----------------------------------------------------------------------------
 // Structs
 //-----------------------------------------------------------------------------
 
@@ -358,7 +352,7 @@ struct ImPlotItem {
         Show = true;
         SeenThisFrame = false;
         Highlight = false;
-        Color = NextColor();
+        Color = ImPlot::NextColormapColor();
         NameOffset = -1;
         ID = 0;
     }
@@ -531,13 +525,6 @@ static ImPlotContext gp;
 
 ImPlotInputMap& GetInputMap() {
     return gp.InputMap;
-}
-
-// Returns the next unused default plot color
-ImVec4 NextColor() {
-    ImVec4 col  = gp.Colormap[gp.CurrentPlot->ColorIdx % gp.ColormapSize];
-    gp.CurrentPlot->ColorIdx++;
-    return col;
 }
 
 inline void FitPoint(const ImPlotPoint& p) {
@@ -3484,6 +3471,12 @@ ImVec4 LerpColormap(float t) {
     float t2 = (float)i2 / (float)(gp.ColormapSize - 1);
     float tr = Remap(t, t1, t2, 0.0f, 1.0f);
     return ImLerp(gp.Colormap[i1], gp.Colormap[i2], tr);
+}
+
+ImVec4 NextColormapColor() {
+    ImVec4 col  = gp.Colormap[gp.CurrentPlot->ColorIdx % gp.ColormapSize];
+    gp.CurrentPlot->ColorIdx++;
+    return col;
 }
 
 void ShowColormapScale(double scale_min, double scale_max, float height) {
