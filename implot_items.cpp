@@ -1167,8 +1167,7 @@ inline void RenderPieSlice(ImDrawList& DrawList, const ImPlotPoint& center, doub
 
 template <typename T>
 void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y, T radius, bool normalize, const char* fmt, T angle0) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
     T sum = 0;
@@ -1426,8 +1425,7 @@ void PlotText(const char* text, float x, float y, bool vertical, const ImVec2& p
 //-----------------------------------------------------------------------------
 // double
 void PlotText(const char* text, double x, double y, bool vertical, const ImVec2& pixel_offset) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
     PushPlotClipRect();
     ImVec2 pos = PlotToPixels(ImPlotPoint(x,y)) + pixel_offset;

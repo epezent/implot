@@ -733,10 +733,9 @@ void ShowDemoWindow(bool* p_open) {
         }
         if (ImGui::Button(paused ? "Resume" : "Pause", ImVec2(100,0)))
             paused = !paused;
-        ImGui::Separator();
         for (int i = 0; i < K_CHANNELS; ++i) {
-            char label[8];
-            sprintf(label, show[i] ? "data_%d*" : "data_%d", i);
+            char label[16];
+            sprintf(label, show[i] ? "data_%d (Y%d)" : "data_%d", i, yAxis[i]+1);
             ImGui::Selectable(label, false, 0, ImVec2(100, 0));
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 ImGui::SetDragDropPayload("DND_PLOT", &i, sizeof(int));
@@ -809,7 +808,6 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SetNextItemWidth(100);
         static float bitGap = 4;
         ImGui::DragFloat("##Bit Gap", &bitGap, 1, 2, 20, "%.0f px");
-        ImGui::Separator();
         for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
             char label[32];
             sprintf(label, "digital_%d", i);

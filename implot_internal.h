@@ -22,7 +22,8 @@
 
 // ImPlot v0.5 WIP
 
-// You may use this file to debug, understand or extend ImPlot features but we don't provide any guarantee of forward compatibility!
+// You may use this file to debug, understand or extend ImPlot features but we 
+// don't provide any guarantee of forward compatibility!
 
 //-----------------------------------------------------------------------------
 // [SECTION] Header mess
@@ -85,7 +86,7 @@ inline void ImFlipFlag(TSet& set, TFlag flag) { ImHasFlag(set, flag) ? set &= ~f
 template <typename T>
 inline T ImRemap(T x, T x0, T x1, T y0, T y1) { return y0 + (x - x0) * (y1 - y0) / (x1 - x0); }
 
-// Returns always positive modulo (r != 0)
+// Returns always positive modulo (assumes r != 0)
 inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
 
 // Offset calculator helper
@@ -102,11 +103,15 @@ struct ImOffsetCalculator {
 // Character buffer writer helper
 struct ImBufferWriter
 {
-    char* const  Buffer;
-    size_t       Pos;
-    const size_t Size;
+    char*  Buffer;
+    size_t Size;
+    size_t Pos;
 
-    ImBufferWriter(char* buffer, size_t size) : Buffer(buffer), Pos(0), Size(size) {}
+    ImBufferWriter(char* buffer, size_t size) {
+        Buffer = buffer;
+        Size = size;
+        Pos = 0;
+    }
 
     void Write(const char* fmt, ...) IM_FMTARGS(2) {
         va_list argp;
@@ -144,16 +149,18 @@ struct ImPlotTick
 // Axis state information that must persist after EndPlot
 struct ImPlotAxis
 {
+    ImPlotAxisFlags Flags;
+    ImPlotAxisFlags PreviousFlags;
+    ImPlotRange     Range;
     bool            Dragging;
     bool            Hovered;
-    ImPlotRange     Range;
-    ImPlotAxisFlags Flags, PreviousFlags;
+
     ImPlotAxis() {
-        Dragging  = false;
-        Hovered   = false;
+        Flags     = PreviousFlags = ImPlotAxisFlags_Default;
         Range.Min = 0;
         Range.Max = 1;
-        Flags     = PreviousFlags = ImPlotAxisFlags_Default;
+        Dragging  = false;
+        Hovered   = false;
     }
 };
 
@@ -161,30 +168,28 @@ struct ImPlotAxis
 struct ImPlotAxisState
 {
     ImPlotAxis* Axis;
-    bool        HasRange;
     ImGuiCond   RangeCond;
-    bool        Present;
     int         PresentSoFar;
+    bool        HasRange;
+    bool        Present;
     bool        Invert;
     bool        LockMin;
     bool        LockMax;
     bool        Lock;
 
-    ImPlotAxisState(ImPlotAxis& axis, bool has_range, ImGuiCond range_cond, bool present, int previous_present) :
-        Axis(&axis),
-        HasRange(has_range),
-        RangeCond(range_cond),
-        Present(present),
-        PresentSoFar(previous_present + (Present ? 1 : 0)),
-        Invert(ImHasFlag(Axis->Flags, ImPlotAxisFlags_Invert)),
-        LockMin(ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always)),
-        LockMax(ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always)),
-        Lock(!Present || ((LockMin && LockMax) || (HasRange && RangeCond == ImGuiCond_Always)))
-    {}
+    ImPlotAxisState(ImPlotAxis* axis, bool has_range, ImGuiCond range_cond, bool present, int previous_present) {
+        Axis         = axis;
+        HasRange     = has_range;
+        RangeCond    = range_cond;
+        Present      = present;
+        PresentSoFar = previous_present + (Present ? 1 : 0);
+        Invert       = ImHasFlag(Axis->Flags, ImPlotAxisFlags_Invert);
+        LockMin      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always);
+        LockMax      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always);
+        Lock         = !Present || ((LockMin && LockMax) || (HasRange && RangeCond == ImGuiCond_Always));
+    }
 
-    ImPlotAxisState() :
-        Axis(), HasRange(), RangeCond(), Present(), PresentSoFar(),Invert(),LockMin(), LockMax(), Lock()
-    {}
+    ImPlotAxisState() { }
 };
 
 struct ImPlotAxisColor
@@ -196,20 +201,20 @@ struct ImPlotAxisColor
 // State information for Plot items
 struct ImPlotItem
 {
-    bool    Show;
-    bool    SeenThisFrame;
-    bool    Highlight;
-    ImVec4  Color;
-    int     NameOffset;
     ImGuiID ID;
+    ImVec4  Color;
+    bool    Show;
+    bool    Highlight;
+    bool    SeenThisFrame;
+    int     NameOffset;
 
     ImPlotItem() {
+        ID            = 0;
+        Color         = ImPlot::NextColormapColor();
         Show          = true;
         SeenThisFrame = false;
         Highlight     = false;
-        Color         = ImPlot::NextColormapColor();
         NameOffset    = -1;
-        ID            = 0;
     }
 
     ~ImPlotItem() { ID = 0; }
@@ -218,27 +223,27 @@ struct ImPlotItem
 // Holds Plot state information that must persist after EndPlot
 struct ImPlotState
 {
+    ImPlotFlags        Flags;
+    ImPlotFlags        PreviousFlags;
+    ImPlotAxis         XAxis;
+    ImPlotAxis         YAxis[MAX_Y_AXES];
     ImPool<ImPlotItem> Items;
-    ImRect             BB_Legend;
     ImVec2             SelectStart;
+    ImVec2             QueryStart;
+    ImRect             QueryRect;
+    ImRect             BB_Legend;
     bool               Selecting;
     bool               Querying;
     bool               Queried;
     bool               DraggingQuery;
-    ImVec2             QueryStart;
-    ImRect             QueryRect;
-    ImPlotAxis         XAxis;
-    ImPlotAxis         YAxis[MAX_Y_AXES];
-    ImPlotFlags        Flags, PreviousFlags;
-    int                ColorIdx;
+    int                ColormapIdx;
     int                CurrentYAxis;
 
     ImPlotState() {
-        Selecting    = Querying = Queried = DraggingQuery = false;
-        SelectStart  =  QueryStart = ImVec2(0,0);
         Flags        = PreviousFlags = ImPlotFlags_Default;
-        ColorIdx     = 0;
-        CurrentYAxis = 0;
+        SelectStart  = QueryStart = ImVec2(0,0);
+        Selecting    = Querying = Queried = DraggingQuery = false;
+        ColormapIdx  = CurrentYAxis = 0;
     }
 };
 
@@ -345,13 +350,15 @@ struct ImPlotContext {
     ImPlotPoint        LastMousePos[MAX_Y_AXES];
 };
 
-struct ImPlotAxisScale {
+struct ImPlotAxisScale 
+{
+    ImPlotPoint Min, Max;
+
     ImPlotAxisScale(int y_axis, float tx, float ty, float zoom_rate) {
         ImPlotContext& gp = *GImPlot;
         Min = ImPlot::PixelsToPlot(gp.BB_Plot.Min - gp.BB_Plot.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), y_axis);
         Max = ImPlot::PixelsToPlot(gp.BB_Plot.Max + gp.BB_Plot.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), y_axis);
     }
-    ImPlotPoint Min, Max;
 };
 
 //-----------------------------------------------------------------------------
@@ -365,14 +372,17 @@ namespace ImPlot {
 void Initialize(ImPlotContext* ctx);
 // Resets an ImPlot context for the next call to BeginPlot
 void Reset(ImPlotContext* ctx);
+
 // Gets a plot from the current ImPlotContext
 ImPlotState* GetPlot(const char* title);
 // Gets the current plot from the current ImPlotContext
 ImPlotState* GetCurrentPlot();
-// Updates pixel space to plot space transformation variables for the current plot
+
+// Updates plot-to-pixel space transformation variables for the current plot
 void UpdateTransformCache();
 // Extends the current plots axes so that it encompasses point p
 void FitPoint(const ImPlotPoint& p);
+
 // Register or get an existing item from the current plot
 ImPlotItem* RegisterItem(const char* label_id);
 // Get the ith plot item from the current plot
@@ -381,46 +391,52 @@ ImPlotItem* GetItem(int i);
 ImPlotItem* GetItem(const char* label_id);
 // Gets a plot item from a specific plot
 ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
+
 // Returns the number of entries in the current legend
 int GetLegendCount();
 // Gets the ith entry string for the current legend
 const char* GetLegendLabel(int i);
+
 // Populates a list of ImPlotTicks with automatically spaced ticks
-void  AddDefaultTicks(const ImPlotRange& range, int nMajor, int nMinor, bool logscale, ImVector<ImPlotTick> &out);
+void AddDefaultTicks(const ImPlotRange& range, int nMajor, int nMinor, bool logscale, ImVector<ImPlotTick> &out);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
-void  AddCustomTicks(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer);
+void AddCustomTicks(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer);
 // Creates label information for a list of ImPlotTick
-void  LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, ImGuiTextBuffer& buffer);
+void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, ImGuiTextBuffer& buffer);
 // Calculates the maximum width of a list of ImPlotTick
 float MaxTickLabelWidth(ImVector<ImPlotTick>& ticks);
+// Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
+double NiceNum(double x, bool round);
+
 // Updates axis ticks, lins, and label colors
 void UpdateAxisColor(int axis_flag, ImPlotAxisColor* col);
 // Sets the colormap for a particular ImPlotContext
 void SetColormapEx(ImPlotColormap colormap, int samples, ImPlotContext* ctx);
 void SetColormapEx(const ImVec4* colors, int num_colors, ImPlotContext* ctx);
+
 // Draws vertical text. The position is the bottom left of the text rect.
 void AddTextVertical(ImDrawList *DrawList, const char *text, ImVec2 pos, ImU32 text_color);
 // Calculates the size of vertical text
 ImVec2 CalcTextSizeVertical(const char *text);
 // Returns white or black text given background color
 inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE; }
-// Rounds x to powers of 2,5 and 10 for generating axis labels
-// Taken from Graphics Gems 1 Chapter 11.2, "Nice Numbers for Graph Labels"
-double NiceNum(double x, bool round);
+
+// Returns true if val is NAN or INFINITY
+inline bool NanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
 // Turns NANs to 0s
 inline double ConstrainNan(double val) { return isnan(val) ? 0 : val; }
 // Turns infinity to floating point maximums
 inline double ConstrainInf(double val) { return val == HUGE_VAL ?  DBL_MAX : val == -HUGE_VAL ? - DBL_MAX : val; }
 // Turns numbers less than or equal to 0 to 0.001 (sort of arbitrary, is there a better way?)
 inline double ConstrainLog(double val) { return val <= 0 ? 0.001f : val; }
-// Returns true if val is NAN or INFINITY
-inline bool NanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
+
 // Computes order of magnitude of double.
 inline int OrderOfMagnitude(double val) { return val == 0 ? 0 : (int)(floor(log10(fabs(val)))); }
 // Returns the precision required for a order of magnitude.
 inline int OrderToPrecision(int order) { return order > 0 ? 0 : 1 - order; }
 // Returns a floating point precision to use given a value
 inline int Precision(double val) { return OrderToPrecision(OrderOfMagnitude(val)); }
+
 // Returns the intersection point of two lines A and B (assumes they are not parallel!)
 inline ImVec2 Intersection(const ImVec2& a1, const ImVec2& a2, const ImVec2& b1, const ImVec2& b2) {
     float v1 = (a1.x * a2.y - a1.y * a2.x);
@@ -428,6 +444,7 @@ inline ImVec2 Intersection(const ImVec2& a1, const ImVec2& a2, const ImVec2& b1,
     float v3 = ((a1.x - a2.x) * (b1.y - b2.y) - (a1.y - a2.y) * (b1.x - b2.x));
     return ImVec2((v1 * (b1.x - b2.x) - v2 * (a1.x - a2.x)) / v3, (v1 * (b1.y - b2.y) - v2 * (a1.y - a2.y)) / v3);
 }
+
 // Fills a buffer with n samples linear interpolated from vmin to vmax
 template <typename T>
 void FillRange(ImVector<T>& buffer, int n, T vmin, T vmax) {
@@ -437,6 +454,7 @@ void FillRange(ImVector<T>& buffer, int n, T vmin, T vmax) {
         buffer[i] = vmin + i * step;
     }
 }
+
 // Offsets and strides a data buffer
 template <typename T>
 inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
