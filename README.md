@@ -56,7 +56,7 @@ Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features.
 ## Integration
 
 1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources.
-2) Create and destroy an `ImPlotContext` wherever you create your `ImGuiContext`:
+2) Create and destroy an `ImPlotContext` wherever you do so for your `ImGuiContext`:
 
 ```cpp
 ImGui::CreateContext();
