@@ -852,11 +852,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         if (flags != plot.PreviousFlags)
             plot.Flags = flags;
         if (y_flags != plot.YAxis[0].PreviousFlags)
-            plot.YAxis[0].PreviousFlags = y_flags;
+            plot.YAxis[0].Flags = y_flags;
         if (y2_flags != plot.YAxis[1].PreviousFlags)
-            plot.YAxis[1].PreviousFlags = y2_flags;
+            plot.YAxis[1].Flags = y2_flags;
         if (y3_flags != plot.YAxis[2].PreviousFlags)
-            plot.YAxis[2].PreviousFlags = y3_flags;
+            plot.YAxis[2].Flags = y3_flags;
     }
 
     plot.PreviousFlags          = flags;
