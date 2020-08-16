@@ -2286,15 +2286,16 @@ struct TransformerLogLog {
 /// Renders primitive shapes in bulk as efficiently as possible.
 template <typename Renderer>
 inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList) {
-    int prims = renderer.Prims;
-    int prims_culled = 0;
-    int idx = 0;
+    unsigned int prims = renderer.Prims;
+    unsigned int prims_culled = 0;
+    unsigned int idx = 0;
+    static const unsigned int max_idx = (unsigned int)(ImPow(2.0f, (float)(sizeof(ImDrawIdx) * 8)) - 1);
     const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
     while (prims) {
         // find how many can be reserved up to end of current draw command's limit
-        int cnt = (int)ImMin(size_t(prims), (((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - DrawList._VtxCurrentIdx) / Renderer::VtxConsumed));
+        unsigned int cnt = (unsigned int)ImMin(prims, (max_idx - DrawList._VtxCurrentIdx) / Renderer::VtxConsumed);
         // make sure at least this many elements can be rendered to avoid situations where at the end of buffer this slow path is not taken all the time
-        if (cnt >= ImMin(64, prims)) {
+        if (cnt >= ImMin(64u, prims)) {
             if (prims_culled >= cnt)
                 prims_culled -= cnt; // reuse previous reservation
             else {
@@ -2308,11 +2309,11 @@ inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList) {
                 DrawList.PrimUnreserve(prims_culled * Renderer::IdxConsumed, prims_culled * Renderer::VtxConsumed);
                 prims_culled = 0;
             }
-            cnt = (int)ImMin(size_t(prims), (((size_t(1) << sizeof(ImDrawIdx) * 8) - 1 - 0/*DrawList._VtxCurrentIdx*/) / Renderer::VtxConsumed));
+            cnt = (unsigned int)ImMin(prims, (max_idx - 0/*DrawList._VtxCurrentIdx*/) / Renderer::VtxConsumed);
             DrawList.PrimReserve(cnt * Renderer::IdxConsumed, cnt * Renderer::VtxConsumed); // reserve new draw command
         }
         prims -= cnt;
-        for (int ie = idx + cnt; idx != ie; ++idx) {
+        for (unsigned int ie = idx + cnt; idx != ie; ++idx) {
             if (!renderer(DrawList, uv, idx))
                 prims_culled++;
         }
