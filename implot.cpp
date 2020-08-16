@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2020/08/16 (0.5) - An ImPlotContext must be explicitly created and destroyed now with `CreateContext` and `DestroyContext`. Previously, the context was statically initialized in this source file.
 - 2020/06/13 (0.4) - The flags `ImPlotAxisFlag_Adaptive` and `ImPlotFlags_Cull` were removed. Both are now done internally by default.
 - 2020/06/03 (0.3) - The signature and behavior of PlotPieChart was changed so that data with sum less than 1 can optionally be normalized. The label format can now be specified as well.
 - 2020/06/01 (0.3) - SetPalette was changed to `SetColormap` for consistency with other plotting libraries. `RestorePalette` was removed. Use `SetColormap(ImPlotColormap_Default)`.
@@ -148,7 +149,7 @@ ImPlotInputMap::ImPlotInputMap() {
     VerticalMod = ImGuiKeyModFlags_Shift;
 }
 
-namespace ImPlot {
+
 
 namespace {
 
@@ -412,12 +413,16 @@ struct ImPlotNextPlotData {
     bool ShowDefaultTicksY[MAX_Y_AXES];
 };
 
+namespace ImPlot { 
+    void SetColormapEx(ImPlotColormap colormap, int samples, ImPlotContext* ctx); // TODO
+}
+
 // Holds Plot state information that must persist only between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
     ImPlotContext() : RenderX(), RenderY() {
         ChildWindowMade = false;
         Reset();
-        SetColormap(ImPlotColormap_Default);
+        ImPlot::SetColormapEx(ImPlotColormap_Default, 0, this);
     }
 
     void Reset() {
@@ -517,17 +522,43 @@ struct ImPlotContext {
 };
 
 // Global plot context
-static ImPlotContext gp;
+ImPlotContext* GImPlot = NULL;
+
+namespace ImPlot {
+
+ImPlotContext* CreateContext() {
+    ImPlotContext* ctx = IM_NEW(ImPlotContext)();
+    if (GImPlot == NULL)
+        SetCurrentContext(ctx);
+    return ctx;
+}
+
+void DestroyContext(ImPlotContext* ctx) {
+    if (ctx == NULL)
+        ctx = GImPlot;
+    if (GImPlot == ctx)
+        SetCurrentContext(NULL);
+    IM_DELETE(ctx);
+}  
+
+ImPlotContext* GetCurrentContext() {
+    return GImPlot;
+}
+
+void SetCurrentContext(ImPlotContext* ctx) {
+    GImPlot = ctx;
+}
 
 //-----------------------------------------------------------------------------
 // Context Utils
 //-----------------------------------------------------------------------------
 
 ImPlotInputMap& GetInputMap() {
-    return gp.InputMap;
+    return GImPlot->InputMap;
 }
 
 inline void FitPoint(const ImPlotPoint& p) {
+    ImPlotContext& gp = *GImPlot;
     ImPlotRange* extents_x = &gp.ExtentsX;
     ImPlotRange* extents_y = &gp.ExtentsY[gp.CurrentPlot->CurrentYAxis];
     if (!NanOrInf(p.x)) {
@@ -545,6 +576,7 @@ inline void FitPoint(const ImPlotPoint& p) {
 //-----------------------------------------------------------------------------
 
 inline void UpdateTransformCache() {
+    ImPlotContext& gp = *GImPlot;
     // get pixels for transforms
     for (int i = 0; i < MAX_Y_AXES; i++) {
         gp.PixelRange[i] = ImRect(HasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_Invert) ? gp.BB_Plot.Max.x : gp.BB_Plot.Min.x,
@@ -562,6 +594,7 @@ inline void UpdateTransformCache() {
 }
 
 inline ImPlotPoint PixelsToPlot(float x, float y, int y_axis_in = -1) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImPlotPoint plt;
@@ -584,6 +617,7 @@ ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis) {
 
 // This function is convenient but should not be used to process a high volume of points. Use the Transformer structs below instead.
 inline ImVec2 PlotToPixels(double x, double y, int y_axis_in = -1) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 pix;
@@ -610,6 +644,7 @@ ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis) {
 //-----------------------------------------------------------------------------
 
 ImPlotItem* RegisterItem(const char* label_id) {
+    ImPlotContext& gp = *GImPlot;
     ImGuiID id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);
     if (item->SeenThisFrame)
@@ -631,19 +666,23 @@ ImPlotItem* RegisterItem(const char* label_id) {
 }
 
 int GetLegendCount() {
+    ImPlotContext& gp = *GImPlot;
     return gp.LegendIndices.size();
 }
 
 ImPlotItem* GetLegendItem(int i) {
+    ImPlotContext& gp = *GImPlot;
     return gp.CurrentPlot->Items.GetByIndex(gp.LegendIndices[i]);
 }
 
 ImPlotItem* GetLegendItem(const char* label_id) {
+    ImPlotContext& gp = *GImPlot;
     ImGuiID id = ImGui::GetID(label_id);
     return gp.CurrentPlot->Items.GetByKey(id);
 }
 
 const char* GetLegendLabel(int i) {
+    ImPlotContext& gp = *GImPlot;
     ImPlotItem* item  = gp.CurrentPlot->Items.GetByIndex(gp.LegendIndices[i]);
     IM_ASSERT(item->NameOffset != -1 && item->NameOffset < gp.LegendLabels.Buf.Size);
     return gp.LegendLabels.Buf.Data + item->NameOffset;
@@ -759,6 +798,7 @@ class YPadCalculator {
             : ImPlotAxisStates(axis_states), MaxLabelWidths(max_label_widths), TxtOff(txt_off) {}
 
     float operator()(int y_axis) {
+        ImPlotContext& gp = *GImPlot;
         ImPlotState& plot = *gp.CurrentPlot;
         if (!ImPlotAxisStates[y_axis].Present) { return 0; }
         // If we have more than 1 axis present before us, then we need
@@ -785,6 +825,7 @@ class YPadCalculator {
 //-----------------------------------------------------------------------------
 
 void UpdateAxisColor(int axis_flag, ImPlotAxisColor* col) {
+    ImPlotContext& gp = *GImPlot;
     const ImVec4 col_Axis = gp.Style.Colors[axis_flag].w == -1 ? ImGui::GetStyle().Colors[ImGuiCol_Text] * ImVec4(1, 1, 1, 0.25f) : gp.Style.Colors[axis_flag];
     col->Major = ImGui::GetColorU32(col_Axis);
     col->Minor = ImGui::GetColorU32(col_Axis * ImVec4(1, 1, 1, 0.25f));
@@ -793,6 +834,7 @@ void UpdateAxisColor(int axis_flag, ImPlotAxisColor* col) {
 
 struct ImPlotAxisScale {
     ImPlotAxisScale(int y_axis, float tx, float ty, float zoom_rate) {
+        ImPlotContext& gp = *GImPlot;
         Min = PixelsToPlot(gp.BB_Plot.Min - gp.BB_Plot.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), y_axis);
         Max = PixelsToPlot(gp.BB_Plot.Max + gp.BB_Plot.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), y_axis);
     }
@@ -804,7 +846,7 @@ struct ImPlotAxisScale {
 //-----------------------------------------------------------------------------
 
 bool BeginPlot(const char* title, const char* x_label, const char* y_label, const ImVec2& size, ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags) {
-
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "Mismatched BeginPlot()/EndPlot()!");
 
     // FRONT MATTER  -----------------------------------------------------------
@@ -1452,6 +1494,7 @@ inline void AxisMenu(ImPlotAxisState& state) {
 }
 
 void PlotContextMenu(ImPlotState& plot) {
+    ImPlotContext& gp = *GImPlot;
     if (ImGui::BeginMenu("X-Axis")) {
         ImGui::PushID("X");
         AxisMenu(gp.X);
@@ -1544,11 +1587,10 @@ class BufferWriter {
 //-----------------------------------------------------------------------------
 
 void EndPlot() {
-
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Mismatched BeginPlot()/EndPlot()!");
-
-    ImPlotState &plot = *gp.CurrentPlot;
     ImGuiContext &G      = *GImGui;
+    ImPlotState &plot = *gp.CurrentPlot;
     ImGuiWindow * Window = G.CurrentWindow;
     ImDrawList & DrawList = *Window->DrawList;
     const ImGuiIO &   IO = ImGui::GetIO();
@@ -1812,12 +1854,14 @@ void EndPlot() {
 //-----------------------------------------------------------------------------
 
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotLimits() needs to be called before BeginPlot()!");
     SetNextPlotLimitsX(x_min, x_max, cond);
     SetNextPlotLimitsY(y_min, y_max, cond);
 }
 
 void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotLSetNextPlotLimitsXimitsY() needs to be called before BeginPlot()!");
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
     gp.NextPlotData.HasXRange = true;
@@ -1827,6 +1871,7 @@ void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond) {
 }
 
 void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond, int y_axis) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotLimitsY() needs to be called before BeginPlot()!");
     IM_ASSERT_USER_ERROR(y_axis >= 0 && y_axis < MAX_Y_AXES, "y_axis needs to be between 0 and MAX_Y_AXES");
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
@@ -1837,12 +1882,14 @@ void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond, int y_axis) 
 }
 
 void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels, bool show_default) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksX() needs to be called before BeginPlot()!");
     gp.NextPlotData.ShowDefaultTicksX = show_default;
     AddCustomTicks(values, labels, n_ticks, gp.XTicks, gp.XTickLabels);
 }
 
 void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** labels, bool show_default) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
     static ImVector<double> buffer;
     FillRange(buffer, n_ticks, x_min, x_max);
@@ -1850,6 +1897,7 @@ void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** lab
 }
 
 void SetNextPlotTicksY(const double* values, int n_ticks, const char** labels, bool show_default, int y_axis) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksY() needs to be called before BeginPlot()!");
     IM_ASSERT_USER_ERROR(y_axis >= 0 && y_axis < MAX_Y_AXES, "y_axis needs to be between 0 and MAX_Y_AXES");
     gp.NextPlotData.ShowDefaultTicksY[y_axis] = show_default;
@@ -1864,22 +1912,26 @@ void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** lab
 }
 
 void SetPlotYAxis(int y_axis) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetPlotYAxis() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(y_axis >= 0 && y_axis < MAX_Y_AXES, "y_axis needs to be between 0 and MAX_Y_AXES");
     gp.CurrentPlot->CurrentYAxis = y_axis;
 }
 
 ImVec2 GetPlotPos() {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotPos() needs to be called between BeginPlot() and EndPlot()!");
     return gp.BB_Plot.Min;
 }
 
 ImVec2 GetPlotSize() {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotSize() needs to be called between BeginPlot() and EndPlot()!");
     return gp.BB_Plot.GetSize();
 }
 
 void PushPlotClipRect() {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PushPlotClipRect() needs to be called between BeginPlot() and EndPlot()!");
     ImGui::PushClipRect(gp.BB_Plot.Min, gp.BB_Plot.Max, true);
 }
@@ -1889,17 +1941,20 @@ void PopPlotClipRect() {
 }
 
 bool IsPlotHovered() {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotHovered() needs to be called between BeginPlot() and EndPlot()!");
     return gp.Hov_Plot;
 }
 
 bool IsPlotXAxisHovered() {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotXAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
     ImRect bb_plot_pad = gp.BB_Plot; bb_plot_pad.Max.y -= 5;
     return gp.CurrentPlot->XAxis.Hovered && !bb_plot_pad.Contains(ImGui::GetMousePos());
 }
 
 bool IsPlotYAxisHovered(int y_axis_in) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < MAX_Y_AXES, "y_axis needs to between -1 and MAX_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotYAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
@@ -1909,6 +1964,7 @@ bool IsPlotYAxisHovered(int y_axis_in) {
 }
 
 ImPlotPoint GetPlotMousePos(int y_axis_in) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < MAX_Y_AXES, "y_axis needs to between -1 and MAX_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotMousePos() needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
@@ -1917,6 +1973,7 @@ ImPlotPoint GetPlotMousePos(int y_axis_in) {
 
 
 ImPlotLimits GetPlotLimits(int y_axis_in) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < MAX_Y_AXES, "y_axis needs to between -1 and MAX_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotLimits() needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
@@ -1929,11 +1986,13 @@ ImPlotLimits GetPlotLimits(int y_axis_in) {
 }
 
 bool IsPlotQueried() {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotQueried() needs to be called between BeginPlot() and EndPlot()!");
     return gp.CurrentPlot->Queried;
 }
 
 ImPlotLimits GetPlotQuery(int y_axis_in) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < MAX_Y_AXES, "y_axis needs to between -1 and MAX_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
     ImPlotState& plot = *gp.CurrentPlot;
@@ -1952,6 +2011,7 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
 }
 
 bool IsLegendEntryHovered(const char* label_id) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotItemHighlight() needs to be called between BeginPlot() and EndPlot()!");
     ImGuiID id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
@@ -1993,10 +2053,12 @@ static const ImPlotStyleVarInfo* GetPlotStyleVarInfo(ImPlotStyleVar idx)
 }
 
 ImPlotStyle& GetStyle() {
+    ImPlotContext& gp = *GImPlot;
     return gp.Style;
 }
 
 void PushStyleColor(ImPlotCol idx, ImU32 col) {
+    ImPlotContext& gp = *GImPlot;
     ImGuiColorMod backup;
     backup.Col = idx;
     backup.BackupValue = gp.Style.Colors[idx];
@@ -2005,6 +2067,7 @@ void PushStyleColor(ImPlotCol idx, ImU32 col) {
 }
 
 void PushStyleColor(ImPlotCol idx, const ImVec4& col) {
+    ImPlotContext& gp = *GImPlot;
     ImGuiColorMod backup;
     backup.Col = idx;
     backup.BackupValue = gp.Style.Colors[idx];
@@ -2013,6 +2076,7 @@ void PushStyleColor(ImPlotCol idx, const ImVec4& col) {
 }
 
 void PopStyleColor(int count) {
+    ImPlotContext& gp = *GImPlot;
     while (count > 0)
     {
         ImGuiColorMod& backup = gp.ColorModifiers.back();
@@ -2023,6 +2087,7 @@ void PopStyleColor(int count) {
 }
 
 void PushStyleVar(ImPlotStyleVar idx, float val) {
+    ImPlotContext& gp = *GImPlot;
     const ImPlotStyleVarInfo* var_info = GetPlotStyleVarInfo(idx);
     if (var_info->Type == ImGuiDataType_Float && var_info->Count == 1) {
         float* pvar = (float*)var_info->GetVarPtr(&gp.Style);
@@ -2034,6 +2099,7 @@ void PushStyleVar(ImPlotStyleVar idx, float val) {
 }
 
 void PushStyleVar(ImPlotStyleVar idx, int val) {
+    ImPlotContext& gp = *GImPlot;
     const ImPlotStyleVarInfo* var_info = GetPlotStyleVarInfo(idx);
     if (var_info->Type == ImGuiDataType_S32 && var_info->Count == 1) {
         int* pvar = (int*)var_info->GetVarPtr(&gp.Style);
@@ -2051,6 +2117,7 @@ void PushStyleVar(ImPlotStyleVar idx, int val) {
 }
 
 void PopStyleVar(int count) {
+    ImPlotContext& gp = *GImPlot;
     while (count > 0) {
         ImGuiStyleMod& backup = gp.StyleModifiers.back();
         const ImPlotStyleVarInfo* info = GetPlotStyleVarInfo(backup.VarIdx);
@@ -2216,6 +2283,7 @@ struct TransformerLinLin {
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
+        ImPlotContext& gp = *GImPlot;
         return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
                        (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
@@ -2228,6 +2296,7 @@ struct TransformerLogLin {
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
+        ImPlotContext& gp = *GImPlot;
         double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x        = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
         return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
@@ -2242,6 +2311,7 @@ struct TransformerLinLog {
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
+        ImPlotContext& gp = *GImPlot;
         double t = ImLog10(y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
         y        = ImLerp(gp.CurrentPlot->YAxis[YAxis].Range.Min, gp.CurrentPlot->YAxis[YAxis].Range.Max, (float)t);
         return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
@@ -2255,6 +2325,7 @@ struct TransformerLogLog {
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
+        ImPlotContext& gp = *GImPlot;
         double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
         x        = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
         t        = ImLog10(y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
@@ -2397,6 +2468,7 @@ inline void MarkerCross(ImDrawList& DrawList, const ImVec2& c, float s, bool /*o
 
 template <typename Transformer, typename Getter>
 inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& DrawList, bool rend_mk_line, ImU32 col_mk_line, bool rend_mk_fill, ImU32 col_mk_fill) {
+    ImPlotContext& gp = *GImPlot;
     for (int i = 0; i < getter.Count; ++i) {
         ImVec2 c = transformer(getter(i));
         if (gp.BB_Plot.Contains(c)) {
@@ -2437,6 +2509,7 @@ struct LineRenderer {
         p1 = transformer(getter(0));
     }
     inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
+        ImPlotContext& gp = *GImPlot;
         ImVec2 p2 = transformer(getter(prim + 1));
         if (!gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2)))) {
             p1 = p2;
@@ -2487,6 +2560,7 @@ struct LineRenderer {
 
 template <typename Getter, typename Transformer>
 inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& DrawList, float line_weight, ImU32 col) {
+    ImPlotContext& gp = *GImPlot;
     if (HasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
         ImVec2 p1 = transformer(getter(0));
         for (int i = 0; i < getter.Count; ++i) {
@@ -2563,51 +2637,62 @@ struct ShadedRenderer {
 
 // Returns true if a style color is set to be automaticaly determined
 inline bool ColorIsAuto(ImPlotCol idx) {
+    ImPlotContext& gp = *GImPlot;
     return gp.Style.Colors[idx].w == -1;
 }
 // Recolors an item from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
 inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
+    ImPlotContext& gp = *GImPlot;
     if (gp.Style.Colors[idx].w != -1)
         item->Color = gp.Style.Colors[idx];
 }
 // Returns true if lines will render (e.g. basic lines, bar outlines)
 inline bool WillLineRender() {
+    ImPlotContext& gp = *GImPlot;
     return gp.Style.Colors[ImPlotCol_Line].w != 0 && gp.Style.LineWeight > 0;
 }
 // Returns true if fills will render (e.g. shaded plots, bar fills)
 inline bool WillFillRender() {
+    ImPlotContext& gp = *GImPlot;
     return gp.Style.Colors[ImPlotCol_Fill].w != 0 && gp.Style.FillAlpha > 0;
 }
 // Returns true if marker outlines will render
 inline bool WillMarkerOutlineRender() {
+    ImPlotContext& gp = *GImPlot;
     return gp.Style.Colors[ImPlotCol_MarkerOutline].w != 0 && gp.Style.MarkerWeight > 0;
 }
 // Returns true if mark fill will render
 inline bool WillMarkerFillRender() {
+    ImPlotContext& gp = *GImPlot;
     return gp.Style.Colors[ImPlotCol_MarkerFill].w != 0 && gp.Style.FillAlpha > 0;
 }
 // Gets the line color for an item
 inline ImVec4 GetLineColor(ImPlotItem* item) {
+    ImPlotContext& gp = *GImPlot;
     return ColorIsAuto(ImPlotCol_Line) ? item->Color : gp.Style.Colors[ImPlotCol_Line];
 }
 // Gets the fill color for an item
 inline ImVec4 GetItemFillColor(ImPlotItem* item) {
+    ImPlotContext& gp = *GImPlot;
     ImVec4 col = ColorIsAuto(ImPlotCol_Fill) ? item->Color : gp.Style.Colors[ImPlotCol_Fill];
     col.w *= gp.Style.FillAlpha;
     return col;
 }
 // Gets the marker outline color for an item
 inline ImVec4 GetMarkerOutlineColor(ImPlotItem* item) {
+    ImPlotContext& gp = *GImPlot;
     return ColorIsAuto(ImPlotCol_MarkerOutline) ? GetLineColor(item) : gp.Style.Colors[ImPlotCol_MarkerOutline];
 }
 // Gets the marker fill color for an item
 inline ImVec4 GetMarkerFillColor(ImPlotItem* item) {
+    ImPlotContext& gp = *GImPlot;
     ImVec4 col = ColorIsAuto(ImPlotCol_MarkerFill) ?  GetLineColor(item) :gp.Style.Colors[ImPlotCol_MarkerFill];
     col.w *= gp.Style.FillAlpha;
     return col;
 }
 // Gets the error bar color
 inline ImVec4 GetErrorBarColor() {
+    ImPlotContext& gp = *GImPlot;
     return ColorIsAuto(ImPlotCol_ErrorBar) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : gp.Style.Colors[ImPlotCol_ErrorBar];
 }
 
@@ -2618,6 +2703,7 @@ inline ImVec4 GetErrorBarColor() {
 template <typename Getter>
 inline void PlotEx(const char* label_id, Getter getter)
 {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotEx() needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
@@ -2784,6 +2870,7 @@ void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx
 
 template <typename Getter1, typename Getter2>
 inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotShaded() needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
@@ -2858,6 +2945,7 @@ void PlotShaded(const char* label_id, const double* xs, const double* ys, int co
 
 template <typename Getter, typename TWidth>
 void PlotBarsEx(const char* label_id, Getter getter, TWidth width) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBars() needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
@@ -2940,6 +3028,7 @@ void PlotBars(const char* label_id, ImPlotPoint (*getter_func)(void* data, int i
 
 template <typename Getter, typename THeight>
 void PlotBarsHEx(const char* label_id, Getter getter, THeight height) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBarsH() needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
@@ -3020,6 +3109,7 @@ void PlotBarsH(const char* label_id, ImPlotPoint (*getter_func)(void* data, int 
 
 template <typename Getter>
 void PlotErrorBarsEx(const char* label_id, Getter getter) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBars() needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
@@ -3087,6 +3177,7 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 
 template <typename Getter>
 void PlotErrorBarsHEx(const char* label_id, Getter getter) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBarsH() needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
@@ -3168,6 +3259,7 @@ inline void RenderPieSlice(ImDrawList& DrawList, const ImPlotPoint& center, doub
 
 template <typename T>
 void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y, T radius, bool normalize, const char* fmt, T angle0) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
 
@@ -3240,6 +3332,7 @@ void PlotPieChart(const char** label_ids, const double* values, int count, doubl
 
 template <typename T, typename Transformer>
 void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* values, int rows, int cols, T scale_min, T scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+    ImPlotContext& gp = *GImPlot;
     const double w = (bounds_max.x - bounds_min.x) / cols;
     const double h = (bounds_max.y - bounds_min.y) / rows;
     const ImPlotPoint half_size(w*0.5,h*0.5);
@@ -3282,6 +3375,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
 
 template <typename T>
 void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T scale_min, T scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotHeatmap() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(scale_min != scale_max, "Scale values must be different!");
     ImPlotItem* item = RegisterItem(label_id);
@@ -3327,6 +3421,7 @@ void PlotHeatmap(const char* label_id, const double* values, int rows, int cols,
 template <typename Getter>
 inline void PlotDigitalEx(const char* label_id, Getter getter)
 {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotDigital() needs to be called between BeginPlot() and EndPlot()!");
 
     ImPlotItem* item = RegisterItem(label_id);
@@ -3423,6 +3518,7 @@ void PlotText(const char* text, float x, float y, bool vertical, const ImVec2& p
 //-----------------------------------------------------------------------------
 // double
 void PlotText(const char* text, double x, double y, bool vertical, const ImVec2& pixel_offset) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
     PushPlotClipRect();
@@ -3440,6 +3536,7 @@ void PlotText(const char* text, double x, double y, bool vertical, const ImVec2&
 //------------------------------------------------------------------------------
 
 void SetColormap(const ImVec4* colors, int num_colors) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(num_colors > 1, "The number of colors must be greater than 1!");
     static ImVector<ImVec4> user_colormap;
     user_colormap.shrink(0);
@@ -3452,16 +3549,19 @@ void SetColormap(const ImVec4* colors, int num_colors) {
 
 // Returns the size of the current colormap
 int GetColormapSize() {
+    ImPlotContext& gp = *GImPlot;
     return gp.ColormapSize;
 }
 
 // Returns a color from the Color map given an index > 0
 ImVec4 GetColormapColor(int index) {
+    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(index >= 0, "The Colormap index must be greater than zero!");
     return gp.Colormap[index % gp.ColormapSize];
 }
 
 ImVec4 LerpColormap(float t) {
+    ImPlotContext& gp = *GImPlot;
     float tc = ImClamp(t,0.0f,1.0f);
     int i1 = (int)((gp.ColormapSize -1 ) * tc);
     int i2 = i1 + 1;
@@ -3474,12 +3574,14 @@ ImVec4 LerpColormap(float t) {
 }
 
 ImVec4 NextColormapColor() {
+    ImPlotContext& gp = *GImPlot;
     ImVec4 col  = gp.Colormap[gp.CurrentPlot->ColorIdx % gp.ColormapSize];
     gp.CurrentPlot->ColorIdx++;
     return col;
 }
 
 void ShowColormapScale(double scale_min, double scale_max, float height) {
+    ImPlotContext& gp = *GImPlot;
     static ImVector<ImPlotTick> ticks;
     static ImGuiTextBuffer txt_buff;
     ImPlotRange range;
@@ -3533,7 +3635,7 @@ void ShowColormapScale(double scale_min, double scale_max, float height) {
 
 }
 
-void SetColormap(ImPlotColormap colormap, int samples) {
+void SetColormapEx(ImPlotColormap colormap, int samples, ImPlotContext* ctx) {
     static int csizes[ImPlotColormap_COUNT] = {10,9,9,12,11,11,11,11,11,11};
     static OffsetCalculator<ImPlotColormap_COUNT> coffs(csizes);
     static ImVec4 cdata[] = {
@@ -3654,8 +3756,8 @@ void SetColormap(ImPlotColormap colormap, int samples) {
         ImVec4(1.0000f,    0.3333f,        0.f, 1.0f),
         ImVec4(1.0000f,        0.f,        0.f, 1.0f)
     };
-    gp.Colormap     = &cdata[coffs.Offsets[colormap]];
-    gp.ColormapSize = csizes[colormap];
+    ctx->Colormap     = &cdata[coffs.Offsets[colormap]];
+    ctx->ColormapSize = csizes[colormap];
     if (samples > 1) {
         static ImVector<ImVec4> resampled;
         resampled.resize(samples);
@@ -3665,6 +3767,10 @@ void SetColormap(ImPlotColormap colormap, int samples) {
         }
         SetColormap(&resampled[0], samples);
     }
+}
+
+void SetColormap(ImPlotColormap colormap, int samples) {
+    SetColormapEx(colormap, samples, GImPlot);
 }
 
 }  // namespace ImPlot

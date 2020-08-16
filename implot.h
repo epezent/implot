@@ -26,15 +26,19 @@
 #include "imgui.h"
 
 //-----------------------------------------------------------------------------
-// Basic types and flags
+// Forward declarations and basic types
 //-----------------------------------------------------------------------------
 
-typedef int ImPlotFlags;
-typedef int ImPlotAxisFlags;
-typedef int ImPlotCol;
-typedef int ImPlotStyleVar;
-typedef int ImPlotMarker;
-typedef int ImPlotColormap;
+// Forward declarations
+struct ImPlotContext;  // ImPlot context (opaque struct)
+
+// Enums/Flags
+typedef int ImPlotFlags;       // -> enum ImPlotFlags_
+typedef int ImPlotAxisFlags;   // -> enum ImPlotAxisFlags_
+typedef int ImPlotCol;         // -> enum ImPlotCol_
+typedef int ImPlotStyleVar;    // -> enum ImPlotStyleVar_
+typedef int ImPlotMarker;      // -> enum ImPlotMarker_
+typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -189,11 +193,29 @@ struct ImPlotInputMap {
     ImPlotInputMap();
 };
 
+
 //-----------------------------------------------------------------------------
-// Begin/End Plot
+// ImPlot end-user API
 //-----------------------------------------------------------------------------
 
 namespace ImPlot {
+
+//-----------------------------------------------------------------------------
+// ImPlot Context
+//-----------------------------------------------------------------------------
+
+// Creates a new ImPlot context. Call this after ImGui::CreateContext.
+ImPlotContext* CreateContext();
+// Destroys an ImPlot context. Call this before ImGui::DestroyContext. NULL = destroy current context
+void DestroyContext(ImPlotContext* ctx = NULL);  
+// Returns the current context. NULL if not context has ben set.
+ImPlotContext* GetCurrentContext();
+// Sets the current context. 
+void SetCurrentContext(ImPlotContext* ctx);
+
+//-----------------------------------------------------------------------------
+// Begin/End Plot
+//-----------------------------------------------------------------------------
 
 // Starts a 2D plotting context. If this function returns true, EndPlot() must
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }". #title_id must
