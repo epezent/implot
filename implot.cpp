@@ -1889,7 +1889,6 @@ void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels, b
 }
 
 void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** labels, bool show_default) {
-    ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
     static ImVector<double> buffer;
     FillRange(buffer, n_ticks, x_min, x_max);
