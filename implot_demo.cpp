@@ -538,11 +538,11 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PopStyleVar(6);
             ImPlot::PopStyleColor(3);
 
-            ImPlot::PlotText("Filled Markers", 1.5, 11.75);
-            ImPlot::PlotText("Open Markers", 6.75, 11.75);
+            ImPlot::PlotText("Filled Markers", 2.5f, 6.0f);
+            ImPlot::PlotText("Open Markers", 7.5f, 6.0f);
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,1,0,1));
-            ImPlot::PlotText("Fancy Markers", 4.5, 4.25, true);
+            ImPlot::PlotText("Fancy Markers", 5.0f, 6.0f, true);
             ImGui::PopStyleColor();
 
             ImPlot::SetColormap(ImPlotColormap_Default);
@@ -993,7 +993,6 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Rendering")) {
-        static t_float xs[] = {0.1f,0.2f,0.3f,0.4f};
         if (ImPlot::BeginPlot("##CustomRend")) {
             ImVec2 cntr = ImPlot::PlotToPixels(ImPlotPoint(0.5f,  0.5f));
             ImVec2 rmin = ImPlot::PlotToPixels(ImPlotPoint(0.25f, 0.75f));
@@ -1002,7 +1001,6 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::GetWindowDrawList()->AddCircleFilled(cntr,20,IM_COL32(255,255,0,255),20);
             ImGui::GetWindowDrawList()->AddRect(rmin, rmax, IM_COL32(128,0,255,255));
             ImPlot::PopPlotClipRect();
-            ImPlot::PlotRects("rects", xs, xs, 4);
             ImPlot::EndPlot();
         }
     }

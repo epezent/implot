@@ -541,4 +541,14 @@ inline ImVec4 GetErrorBarColor() {
     return ColorIsAuto(ImPlotCol_ErrorBar) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : GImPlot->Style.Colors[ImPlotCol_ErrorBar];
 }
 
+//-----------------------------------------------------------------------------
+// [SECTION] Internal / Experimental Plotters
+// No guarantee of forward compatibility here!
+//-----------------------------------------------------------------------------
+
+// Plots axis-aligned, filled rectangles. Every two consecutive points defines opposite corners of a single rectangle.
+void PlotRects(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
+void PlotRects(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
+void PlotRects(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+
 } // namespace ImPlot
