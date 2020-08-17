@@ -237,8 +237,8 @@ struct TransformerLogLog {
 
 template <typename T>
 struct MaxIdx { static const unsigned int Value; };
-const unsigned int MaxIdx<unsigned short>::Value = 65535;
-const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
+template <> const unsigned int MaxIdx<unsigned short>::Value = 65535;
+template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
 
 /// Renders primitive shapes in bulk as efficiently as possible.
 template <typename Renderer>
