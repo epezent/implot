@@ -993,6 +993,7 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Rendering")) {
+        static t_float xs[] = {0.1f,0.2f,0.3f,0.4f};
         if (ImPlot::BeginPlot("##CustomRend")) {
             ImVec2 cntr = ImPlot::PlotToPixels(ImPlotPoint(0.5f,  0.5f));
             ImVec2 rmin = ImPlot::PlotToPixels(ImPlotPoint(0.25f, 0.75f));
@@ -1001,6 +1002,7 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::GetWindowDrawList()->AddCircleFilled(cntr,20,IM_COL32(255,255,0,255),20);
             ImGui::GetWindowDrawList()->AddRect(rmin, rmax, IM_COL32(128,0,255,255));
             ImPlot::PopPlotClipRect();
+            ImPlot::PlotRects("rects", xs, xs, 4);
             ImPlot::EndPlot();
         }
     }

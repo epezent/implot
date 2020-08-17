@@ -154,13 +154,6 @@ struct GetterBarH {
     inline ImPlotPoint operator()(int idx) { return ImPlotPoint(OffsetAndStride(Xs, idx, Count, Offset, Stride), (T)idx + YShift); }
 };
 
-struct ImPlotPointError {
-    ImPlotPointError(double _x, double _y, double _neg, double _pos) {
-        x = _x; y = _y; neg = _neg; pos = _pos;
-    }
-    double x, y, neg, pos;
-};
-
 template <typename T>
 struct GetterError {
     const T* Xs; const T* Ys; const T* Neg; const T* Pos; int Count; int Offset; int Stride;
@@ -399,43 +392,43 @@ inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& Dr
     }
 }
 
-template <typename Getter, typename Transformer>
+template <typename TGetter, typename TTransformer>
 struct LineRenderer {
-    inline LineRenderer(Getter _getter, Transformer _transformer, ImU32 col, float weight) :
-        getter(_getter),
-        transformer(_transformer)
+    inline LineRenderer(TGetter getter, TTransformer transformer, ImU32 col, float weight) :
+        Getter(getter),
+        Transformer(transformer)
     {
-        Prims = getter.Count - 1;
+        Prims = Getter.Count - 1;
         Col = col;
         Weight = weight;
-        p1 = transformer(getter(0));
+        P1 = Transformer(Getter(0));
     }
     inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
         ImPlotContext& gp = *GImPlot;
-        ImVec2 p2 = transformer(getter(prim + 1));
-        if (!gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2)))) {
-            p1 = p2;
+        ImVec2 P2 = Transformer(Getter(prim + 1));
+        if (!gp.BB_Plot.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2)))) {
+            P1 = P2;
             return false;
         }
-        float dx = p2.x - p1.x;
-        float dy = p2.y - p1.y;
+        float dx = P2.x - P1.x;
+        float dy = P2.y - P1.y;
         IM_NORMALIZE2F_OVER_ZERO(dx, dy);
         dx *= (Weight * 0.5f);
         dy *= (Weight * 0.5f);
-        DrawList._VtxWritePtr[0].pos.x = p1.x + dy;
-        DrawList._VtxWritePtr[0].pos.y = p1.y - dx;
+        DrawList._VtxWritePtr[0].pos.x = P1.x + dy;
+        DrawList._VtxWritePtr[0].pos.y = P1.y - dx;
         DrawList._VtxWritePtr[0].uv    = uv;
         DrawList._VtxWritePtr[0].col   = Col;
-        DrawList._VtxWritePtr[1].pos.x = p2.x + dy;
-        DrawList._VtxWritePtr[1].pos.y = p2.y - dx;
+        DrawList._VtxWritePtr[1].pos.x = P2.x + dy;
+        DrawList._VtxWritePtr[1].pos.y = P2.y - dx;
         DrawList._VtxWritePtr[1].uv    = uv;
         DrawList._VtxWritePtr[1].col   = Col;
-        DrawList._VtxWritePtr[2].pos.x = p2.x - dy;
-        DrawList._VtxWritePtr[2].pos.y = p2.y + dx;
+        DrawList._VtxWritePtr[2].pos.x = P2.x - dy;
+        DrawList._VtxWritePtr[2].pos.y = P2.y + dx;
         DrawList._VtxWritePtr[2].uv    = uv;
         DrawList._VtxWritePtr[2].col   = Col;
-        DrawList._VtxWritePtr[3].pos.x = p1.x - dy;
-        DrawList._VtxWritePtr[3].pos.y = p1.y + dx;
+        DrawList._VtxWritePtr[3].pos.x = P1.x - dy;
+        DrawList._VtxWritePtr[3].pos.y = P1.y + dx;
         DrawList._VtxWritePtr[3].uv    = uv;
         DrawList._VtxWritePtr[3].col   = Col;
         DrawList._VtxWritePtr += 4;
@@ -447,15 +440,15 @@ struct LineRenderer {
         DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
         DrawList._IdxWritePtr += 6;
         DrawList._VtxCurrentIdx += 4;
-        p1 = p2;
+        P1 = P2;
         return true;
     }
-    Getter getter;
-    Transformer transformer;
+    TGetter Getter;
+    TTransformer Transformer;
     int Prims;
     ImU32 Col;
     float Weight;
-    ImVec2 p1;
+    ImVec2 P1;
     static const int IdxConsumed = 6;
     static const int VtxConsumed = 4;
 };
@@ -477,37 +470,38 @@ inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& 
     }
 }
 
-template <typename Getter1, typename Getter2, typename Transformer>
+template <typename TGetter1, typename TGetter2, typename TTransformer>
 struct ShadedRenderer {
-    ShadedRenderer(Getter1 _getter1, Getter2 _getter2, Transformer _transformer, ImU32 col) :
-        getter1(_getter1),
-        getter2(_getter2),
-        transformer(_transformer),
+    ShadedRenderer(TGetter1 getter1, TGetter2 getter2, TTransformer transformer, ImU32 col) :
+        Getter1(getter1),
+        Getter2(getter2),
+        Transformer(transformer),
         Col(col)
     {
-        Prims = ImMin(getter1.Count, getter2.Count) - 1;
-        p11 = transformer(getter1(0));
-        p12 = transformer(getter2(0));
+        Prims = ImMin(Getter1.Count, Getter2.Count) - 1;
+        P11 = Transformer(Getter1(0));
+        P12 = Transformer(Getter2(0));
     }
 
     inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
-        ImVec2 p21 = transformer(getter1(prim+1));
-        ImVec2 p22 = transformer(getter2(prim+1));
-        const int intersect = (p11.y > p12.y && p22.y > p21.y) || (p12.y > p11.y && p21.y > p22.y);
-        ImVec2 intersection = Intersection(p11,p21,p12,p22);
-        DrawList._VtxWritePtr[0].pos = p11;
+        // TODO: Culling
+        ImVec2 P21 = Transformer(Getter1(prim+1));
+        ImVec2 P22 = Transformer(Getter2(prim+1));
+        const int intersect = (P11.y > P12.y && P22.y > P21.y) || (P12.y > P11.y && P21.y > P22.y);
+        ImVec2 intersection = Intersection(P11,P21,P12,P22);
+        DrawList._VtxWritePtr[0].pos = P11;
         DrawList._VtxWritePtr[0].uv  = uv;
         DrawList._VtxWritePtr[0].col = Col;
-        DrawList._VtxWritePtr[1].pos = p21;
+        DrawList._VtxWritePtr[1].pos = P21;
         DrawList._VtxWritePtr[1].uv  = uv;
         DrawList._VtxWritePtr[1].col = Col;
         DrawList._VtxWritePtr[2].pos = intersection;
         DrawList._VtxWritePtr[2].uv  = uv;
         DrawList._VtxWritePtr[2].col = Col;
-        DrawList._VtxWritePtr[3].pos = p12;
+        DrawList._VtxWritePtr[3].pos = P12;
         DrawList._VtxWritePtr[3].uv  = uv;
         DrawList._VtxWritePtr[3].col = Col;
-        DrawList._VtxWritePtr[4].pos = p22;
+        DrawList._VtxWritePtr[4].pos = P22;
         DrawList._VtxWritePtr[4].uv  = uv;
         DrawList._VtxWritePtr[4].col = Col;
         DrawList._VtxWritePtr += 5;
@@ -519,94 +513,65 @@ struct ShadedRenderer {
         DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 4);
         DrawList._IdxWritePtr += 6;
         DrawList._VtxCurrentIdx += 5;
-        p11 = p21;
-        p12 = p22;
+        P11 = P21;
+        P12 = P22;
         return true;
     }
-    Getter1 getter1;
-    Getter2 getter2;
-    Transformer transformer;
+    TGetter1 Getter1;
+    TGetter2 Getter2;
+    TTransformer Transformer;
     int Prims;
     ImU32 Col;
-    ImVec2 p11, p12;
+    ImVec2 P11, P12;
     static const int IdxConsumed = 6;
     static const int VtxConsumed = 5;
 };
 
-//-----------------------------------------------------------------------------
-// RENDERING UTILS
-//-----------------------------------------------------------------------------
-
-// Returns true if a style color is set to be automaticaly determined
-inline bool ColorIsAuto(ImPlotCol idx) {
-    ImPlotContext& gp = *GImPlot;
-    return gp.Style.Colors[idx].w == -1;
-}
-
-// Recolors an item from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
-inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
-    ImPlotContext& gp = *GImPlot;
-    if (gp.Style.Colors[idx].w != -1)
-        item->Color = gp.Style.Colors[idx];
-}
-
-// Returns true if lines will render (e.g. basic lines, bar outlines)
-inline bool WillLineRender() {
-    ImPlotContext& gp = *GImPlot;
-    return gp.Style.Colors[ImPlotCol_Line].w != 0 && gp.Style.LineWeight > 0;
-}
-
-// Returns true if fills will render (e.g. shaded plots, bar fills)
-inline bool WillFillRender() {
-    ImPlotContext& gp = *GImPlot;
-    return gp.Style.Colors[ImPlotCol_Fill].w != 0 && gp.Style.FillAlpha > 0;
-}
-
-// Returns true if marker outlines will render
-inline bool WillMarkerOutlineRender() {
-    ImPlotContext& gp = *GImPlot;
-    return gp.Style.Colors[ImPlotCol_MarkerOutline].w != 0 && gp.Style.MarkerWeight > 0;
-}
-
-// Returns true if mark fill will render
-inline bool WillMarkerFillRender() {
-    ImPlotContext& gp = *GImPlot;
-    return gp.Style.Colors[ImPlotCol_MarkerFill].w != 0 && gp.Style.FillAlpha > 0;
-}
-
-// Gets the line color for an item
-inline ImVec4 GetLineColor(ImPlotItem* item) {
-    ImPlotContext& gp = *GImPlot;
-    return ColorIsAuto(ImPlotCol_Line) ? item->Color : gp.Style.Colors[ImPlotCol_Line];
-}
-
-// Gets the fill color for an item
-inline ImVec4 GetItemFillColor(ImPlotItem* item) {
-    ImPlotContext& gp = *GImPlot;
-    ImVec4 col = ColorIsAuto(ImPlotCol_Fill) ? item->Color : gp.Style.Colors[ImPlotCol_Fill];
-    col.w *= gp.Style.FillAlpha;
-    return col;
-}
-
-// Gets the marker outline color for an item
-inline ImVec4 GetMarkerOutlineColor(ImPlotItem* item) {
-    ImPlotContext& gp = *GImPlot;
-    return ColorIsAuto(ImPlotCol_MarkerOutline) ? GetLineColor(item) : gp.Style.Colors[ImPlotCol_MarkerOutline];
-}
-
-// Gets the marker fill color for an item
-inline ImVec4 GetMarkerFillColor(ImPlotItem* item) {
-    ImPlotContext& gp = *GImPlot;
-    ImVec4 col = ColorIsAuto(ImPlotCol_MarkerFill) ?  GetLineColor(item) :gp.Style.Colors[ImPlotCol_MarkerFill];
-    col.w *= gp.Style.FillAlpha;
-    return col;
-}
-
-// Gets the error bar color
-inline ImVec4 GetErrorBarColor() {
-    ImPlotContext& gp = *GImPlot;
-    return ColorIsAuto(ImPlotCol_ErrorBar) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : gp.Style.Colors[ImPlotCol_ErrorBar];
-}
+template <typename TGetter, typename TTransformer>
+struct RectRenderer {
+    inline RectRenderer(TGetter getter, TTransformer transformer, ImU32 col) :
+        Getter(getter),
+        Transformer(transformer)
+    {
+        Prims = Getter.Count / 2;
+        Col = col;
+    }
+    inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
+        // TODO: Culling
+        ImVec2 P1 = Transformer(Getter(2*prim));
+        ImVec2 P2 = Transformer(Getter(2*prim+1));
+        DrawList._VtxWritePtr[0].pos   = P1;
+        DrawList._VtxWritePtr[0].uv    = uv;
+        DrawList._VtxWritePtr[0].col   = Col;
+        DrawList._VtxWritePtr[1].pos.x = P1.x;
+        DrawList._VtxWritePtr[1].pos.y = P2.y;
+        DrawList._VtxWritePtr[1].uv    = uv;
+        DrawList._VtxWritePtr[1].col   = Col;
+        DrawList._VtxWritePtr[2].pos   = P2;
+        DrawList._VtxWritePtr[2].uv    = uv;
+        DrawList._VtxWritePtr[2].col   = Col;
+        DrawList._VtxWritePtr[3].pos.x = P2.x;
+        DrawList._VtxWritePtr[3].pos.y = P1.y;
+        DrawList._VtxWritePtr[3].uv    = uv;
+        DrawList._VtxWritePtr[3].col   = Col;
+        DrawList._VtxWritePtr += 4;
+        DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
+        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+        DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
+        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+        DrawList._IdxWritePtr   += 6;
+        DrawList._VtxCurrentIdx += 4;
+        return true;
+    }
+    TGetter Getter;
+    TTransformer Transformer;
+    int Prims;
+    ImU32 Col;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 4;
+};
 
 //-----------------------------------------------------------------------------
 // PLOT LINES / MARKERS
@@ -667,9 +632,8 @@ inline void PlotEx(const char* label_id, Getter getter)
     PopPlotClipRect();
 }
 
-//-----------------------------------------------------------------------------
-// float
 
+// float
 void PlotLine(const char* label_id, const float* values, int count, int offset, int stride) {
     GetterYs<float> getter(values,count,offset,stride);
     PlotEx(label_id, getter);
@@ -685,9 +649,8 @@ void PlotLine(const char* label_id, const ImVec2* data, int count, int offset) {
     return PlotEx(label_id, getter);
 }
 
-//-----------------------------------------------------------------------------
-// double
 
+// double
 void PlotLine(const char* label_id, const double* values, int count, int offset, int stride) {
     GetterYs<double> getter(values,count,offset,stride);
     PlotEx(label_id, getter);
@@ -703,9 +666,8 @@ void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offs
     return PlotEx(label_id, getter);
 }
 
-//-----------------------------------------------------------------------------
-// custom
 
+// custom
 void PlotLine(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func,data, count, offset);
     return PlotEx(label_id, getter);
@@ -725,9 +687,8 @@ inline int PushScatterStyle() {
     return vars;
 }
 
-//-----------------------------------------------------------------------------
-// float
 
+// float
 void PlotScatter(const char* label_id, const float* values, int count, int offset, int stride) {
     int vars = PushScatterStyle();
     PlotLine(label_id, values, count, offset, stride);
@@ -746,9 +707,8 @@ void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset
     PopStyleVar(vars);
 }
 
-//-----------------------------------------------------------------------------
-// double
 
+// double
 void PlotScatter(const char* label_id, const double* values, int count, int offset, int stride) {
     int vars = PushScatterStyle();
     PlotLine(label_id, values, count, offset, stride);
@@ -767,9 +727,8 @@ void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int o
     PopStyleVar(vars);
 }
 
-//-----------------------------------------------------------------------------
-// custom
 
+// custom
 void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset) {
     int vars = PushScatterStyle();
     PlotLine(label_id, getter, data, count, offset);
@@ -821,9 +780,8 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
     PopPlotClipRect();
 }
 
-//-----------------------------------------------------------------------------
-// float
 
+// float
 void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset, int stride) {
     GetterXsYs<float> getter1(xs, ys1, count, offset, stride);
     GetterXsYs<float> getter2(xs, ys2, count, offset, stride);
@@ -836,9 +794,8 @@ void PlotShaded(const char* label_id, const float* xs, const float* ys, int coun
     PlotShadedEx(label_id, getter1, getter2);
 }
 
-//-----------------------------------------------------------------------------
-// double
 
+// double
 void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride) {
     GetterXsYs<double> getter1(xs, ys1, count, offset, stride);
     GetterXsYs<double> getter2(xs, ys2, count, offset, stride);
@@ -898,9 +855,7 @@ void PlotBarsEx(const char* label_id, Getter getter, TWidth width) {
     PopPlotClipRect();
 }
 
-//-----------------------------------------------------------------------------
 // float
-
 void PlotBars(const char* label_id, const float* values, int count, float width, float shift, int offset, int stride) {
     GetterBarV<float> getter(values,shift,count,offset,stride);
     PlotBarsEx(label_id, getter, width);
@@ -911,9 +866,8 @@ void PlotBars(const char* label_id, const float* xs, const float* ys, int count,
     PlotBarsEx(label_id, getter, width);
 }
 
-//-----------------------------------------------------------------------------
-// double
 
+// double
 void PlotBars(const char* label_id, const double* values, int count, double width, double shift, int offset, int stride) {
     GetterBarV<double> getter(values,shift,count,offset,stride);
     PlotBarsEx(label_id, getter, width);
@@ -924,9 +878,8 @@ void PlotBars(const char* label_id, const double* xs, const double* ys, int coun
     PlotBarsEx(label_id, getter, width);
 }
 
-//-----------------------------------------------------------------------------
-// custom
 
+// custom
 void PlotBars(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double width, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func, data, count, offset);
     PlotBarsEx(label_id, getter, width);
@@ -981,9 +934,8 @@ void PlotBarsHEx(const char* label_id, Getter getter, THeight height) {
     PopPlotClipRect();
 }
 
-//-----------------------------------------------------------------------------
-// float
 
+// float
 void PlotBarsH(const char* label_id, const float* values, int count, float height, float shift, int offset, int stride) {
     GetterBarH<float> getter(values,shift,count,offset,stride);
     PlotBarsHEx(label_id, getter, height);
@@ -994,9 +946,8 @@ void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count
     PlotBarsHEx(label_id, getter, height);
 }
 
-//-----------------------------------------------------------------------------
-// double
 
+// double
 void PlotBarsH(const char* label_id, const double* values, int count, double height, double shift, int offset, int stride) {
     GetterBarH<double> getter(values,shift,count,offset,stride);
     PlotBarsHEx(label_id, getter, height);
@@ -1007,9 +958,8 @@ void PlotBarsH(const char* label_id, const double* xs, const double* ys, int cou
     PlotBarsHEx(label_id, getter, height);
 }
 
-//-----------------------------------------------------------------------------
-// custom
 
+// custom
 void PlotBarsH(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double height,  int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func, data, count, offset);
     PlotBarsHEx(label_id, getter, height);
@@ -1032,8 +982,8 @@ void PlotErrorBarsEx(const char* label_id, Getter getter) {
     if (gp.FitThisFrame) {
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPointError e = getter(i);
-            FitPoint(ImPlotPoint(e.x , e.y - e.neg));
-            FitPoint(ImPlotPoint(e.x , e.y + e.pos ));
+            FitPoint(ImPlotPoint(e.X , e.Y - e.Neg));
+            FitPoint(ImPlotPoint(e.X , e.Y + e.Pos ));
         }
     }
 
@@ -1046,8 +996,8 @@ void PlotErrorBarsEx(const char* label_id, Getter getter) {
     PushPlotClipRect();
     for (int i = 0; i < getter.Count; ++i) {
         ImPlotPointError e = getter(i);
-        ImVec2 p1 = PlotToPixels(e.x, e.y - e.neg);
-        ImVec2 p2 = PlotToPixels(e.x, e.y + e.pos);
+        ImVec2 p1 = PlotToPixels(e.X, e.Y - e.Neg);
+        ImVec2 p2 = PlotToPixels(e.X, e.Y + e.Pos);
         DrawList.AddLine(p1,p2,col, gp.Style.ErrorBarWeight);
         if (rend_whisker) {
             DrawList.AddLine(p1 - ImVec2(half_whisker, 0), p1 + ImVec2(half_whisker, 0), col, gp.Style.ErrorBarWeight);
@@ -1057,9 +1007,8 @@ void PlotErrorBarsEx(const char* label_id, Getter getter) {
     PopPlotClipRect();
 }
 
-//-----------------------------------------------------------------------------
-// float
 
+// float
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset, int stride) {
     GetterError<float> getter(xs, ys, err, err, count, offset, stride);
     PlotErrorBarsEx(label_id, getter);
@@ -1070,9 +1019,8 @@ void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const
     PlotErrorBarsEx(label_id, getter);
 }
 
-//-----------------------------------------------------------------------------
-// double
 
+// double
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset, int stride) {
     GetterError<double> getter(xs, ys, err, err, count, offset, stride);
     PlotErrorBarsEx(label_id, getter);
@@ -1100,8 +1048,8 @@ void PlotErrorBarsHEx(const char* label_id, Getter getter) {
     if (gp.FitThisFrame) {
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPointError e = getter(i);
-            FitPoint(ImPlotPoint(e.x - e.neg, e.y));
-            FitPoint(ImPlotPoint(e.x + e.pos, e.y));
+            FitPoint(ImPlotPoint(e.X - e.Neg, e.Y));
+            FitPoint(ImPlotPoint(e.X + e.Pos, e.Y));
         }
     }
 
@@ -1114,8 +1062,8 @@ void PlotErrorBarsHEx(const char* label_id, Getter getter) {
     PushPlotClipRect();
     for (int i = 0; i < getter.Count; ++i) {
         ImPlotPointError e = getter(i);
-        ImVec2 p1 = PlotToPixels(e.x - e.neg, e.y);
-        ImVec2 p2 = PlotToPixels(e.x + e.pos, e.y);
+        ImVec2 p1 = PlotToPixels(e.X - e.Neg, e.Y);
+        ImVec2 p2 = PlotToPixels(e.X + e.Pos, e.Y);
         DrawList.AddLine(p1, p2, col, gp.Style.ErrorBarWeight);
         if (rend_whisker) {
             DrawList.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
@@ -1125,9 +1073,8 @@ void PlotErrorBarsHEx(const char* label_id, Getter getter) {
     PopPlotClipRect();
 }
 
-//-----------------------------------------------------------------------------
-// float
 
+// float
 void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset, int stride) {
     GetterError<float> getter(xs, ys, err, err, count, offset, stride);
     PlotErrorBarsHEx(label_id, getter);
@@ -1138,9 +1085,8 @@ void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, cons
     PlotErrorBarsHEx(label_id, getter);
 }
 
-//-----------------------------------------------------------------------------
-// double
 
+// double
 void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset, int stride) {
     GetterError<double> getter(xs, ys, err, err, count, offset, stride);
     PlotErrorBarsHEx(label_id, getter);
@@ -1151,6 +1097,13 @@ void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, co
     PlotErrorBarsHEx(label_id, getter);
 }
 
+//-----------------------------------------------------------------------------
+// PLOT CANDLESTICK
+//-----------------------------------------------------------------------------
+
+void PlotCandlestick(const char* label_id, const float* xs, const float* opens, const float* closes, const float* lows, const float* highs, int count, float width1 = 2, float width2 = 10, int offset = 0, int stride = sizeof(float)) {
+
+}
 
 //-----------------------------------------------------------------------------
 // PLOT PIE CHART
@@ -1223,16 +1176,13 @@ void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y
     PopPlotClipRect();
 }
 
-//-----------------------------------------------------------------------------
-// float
 
+// float
 void PlotPieChart(const char** label_ids, const float* values, int count, float x, float y, float radius, bool normalize, const char* fmt, float angle0) {
     return PlotPieChartEx(label_ids, values, count, x, y, radius, normalize, fmt, angle0);
 }
 
-//-----------------------------------------------------------------------------
 // double
-
 void PlotPieChart(const char** label_ids, const double* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0) {
     return PlotPieChartEx(label_ids, values, count, x, y, radius, normalize, fmt, angle0);
 }
@@ -1311,16 +1261,12 @@ void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T 
     ImGui::PopClipRect();
 }
 
-//-----------------------------------------------------------------------------
 // float
-
 void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
     return PlotHeatmapEx(label_id, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
 }
 
-//-----------------------------------------------------------------------------
 // double
-
 void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
     return PlotHeatmapEx(label_id, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
 }
@@ -1393,40 +1339,91 @@ inline void PlotDigitalEx(const char* label_id, Getter getter)
     PopPlotClipRect();
 }
 
-//-----------------------------------------------------------------------------
 // float
-
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
     GetterXsYs<float> getter(xs,ys,count,offset,stride);
     return PlotDigitalEx(label_id, getter);
 }
 
-//-----------------------------------------------------------------------------
 // double
-
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride) {
     GetterXsYs<double> getter(xs,ys,count,offset,stride);
     return PlotDigitalEx(label_id, getter);
 }
 
-//-----------------------------------------------------------------------------
 // custom
-
 void PlotDigital(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func,data,count,offset);
     return PlotDigitalEx(label_id, getter);
 }
 
 //-----------------------------------------------------------------------------
+// PLOT RECTS
+//-----------------------------------------------------------------------------
+template <typename Getter>
+void PlotRectsEx(const char* label_id, Getter getter) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotRects() needs to be called between BeginPlot() and EndPlot()!");
+
+    ImPlotItem* item = RegisterItem(label_id);
+    if (!item->Show)
+        return;
+    TryRecolorItem(item, ImPlotCol_Fill);
+
+    if (!WillFillRender())
+        return;
+
+    if (gp.FitThisFrame) {
+        for (int i = 0; i < getter.Count; ++i) {
+            ImPlotPoint p = getter(i);
+            FitPoint(p);
+        }
+    }
+
+    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+    ImPlotState* plot = gp.CurrentPlot;
+    const int y_axis = plot->CurrentYAxis;
+    ImU32 col = ImGui::GetColorU32(GetItemFillColor(item));
+
+    PushPlotClipRect();
+    if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
+        RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(y_axis), col), DrawList);
+    else if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
+        RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(y_axis), col), DrawList);
+    else if (ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
+        RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(y_axis), col), DrawList);
+    else
+        RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(y_axis), col), DrawList);
+    PopPlotClipRect();
+}
+
+// float
+void PlotRects(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
+    GetterXsYs<float> getter(xs,ys,count,offset,stride);
+    PlotRectsEx(label_id, getter);
+}
+
+// double
+void PlotRects(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride) {
+    GetterXsYs<double> getter(xs,ys,count,offset,stride);
+    PlotRectsEx(label_id, getter);
+}
+
+// custom
+void PlotRects(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
+    GetterFuncPtrImPlotPoint getter(getter_func,data,count,offset);
+    return PlotRectsEx(label_id, getter);
+}
+
+//-----------------------------------------------------------------------------
 // PLOT TEXT
 //-----------------------------------------------------------------------------
-// float
 
+// float
 void PlotText(const char* text, float x, float y, bool vertical, const ImVec2& pixel_offset) {
     return PlotText(text, (double)x, (double)y, vertical, pixel_offset);
 }
 
-//-----------------------------------------------------------------------------
 // double
 void PlotText(const char* text, double x, double y, bool vertical, const ImVec2& pixel_offset) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotText() needs to be called between BeginPlot() and EndPlot()!");

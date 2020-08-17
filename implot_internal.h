@@ -123,9 +123,28 @@ struct ImBufferWriter
     }
 };
 
+// Fixed size array
+template <typename T, int N>
+struct ImArray {
+    inline T&           operator[](int i)       { return Data[i]; }
+    inline const T&     operator[](int i) const { return Data[i]; }
+    T Data[N];
+    const int Size = N;
+};
+
 //-----------------------------------------------------------------------------
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
+
+// ImPlotPoint with positive/negative error values
+struct ImPlotPointError 
+{
+    double X, Y, Neg, Pos;
+
+    ImPlotPointError(double x, double y, double neg, double pos) {
+        X = x; Y = y; Neg = neg; Pos = pos;
+    }
+};
 
 // Tick mark info
 struct ImPlotTick
@@ -460,6 +479,66 @@ template <typename T>
 inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
     idx = ImPosMod(offset + idx, count);
     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
+}
+
+// Returns true if a style color is set to be automaticaly determined
+inline bool ColorIsAuto(ImPlotCol idx) {
+    return GImPlot->Style.Colors[idx].w == -1;
+}
+
+// Recolors an item from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
+inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
+    if (GImPlot->Style.Colors[idx].w != -1)
+        item->Color = GImPlot->Style.Colors[idx];
+}
+
+// Returns true if lines will render (e.g. basic lines, bar outlines)
+inline bool WillLineRender() {
+    return GImPlot->Style.Colors[ImPlotCol_Line].w != 0 && GImPlot->Style.LineWeight > 0;
+}
+
+// Returns true if fills will render (e.g. shaded plots, bar fills)
+inline bool WillFillRender() {
+    return GImPlot->Style.Colors[ImPlotCol_Fill].w != 0 && GImPlot->Style.FillAlpha > 0;
+}
+
+// Returns true if marker outlines will render
+inline bool WillMarkerOutlineRender() {
+    return GImPlot->Style.Colors[ImPlotCol_MarkerOutline].w != 0 && GImPlot->Style.MarkerWeight > 0;
+}
+
+// Returns true if mark fill will render
+inline bool WillMarkerFillRender() {
+    return GImPlot->Style.Colors[ImPlotCol_MarkerFill].w != 0 && GImPlot->Style.FillAlpha > 0;
+}
+
+// Gets the line color for an item
+inline ImVec4 GetLineColor(ImPlotItem* item) {
+    return ColorIsAuto(ImPlotCol_Line) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Line];
+}
+
+// Gets the fill color for an item
+inline ImVec4 GetItemFillColor(ImPlotItem* item) {
+    ImVec4 col = ColorIsAuto(ImPlotCol_Fill) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Fill];
+    col.w *= GImPlot->Style.FillAlpha;
+    return col;
+}
+
+// Gets the marker outline color for an item
+inline ImVec4 GetMarkerOutlineColor(ImPlotItem* item) {
+    return ColorIsAuto(ImPlotCol_MarkerOutline) ? GetLineColor(item) : GImPlot->Style.Colors[ImPlotCol_MarkerOutline];
+}
+
+// Gets the marker fill color for an item
+inline ImVec4 GetMarkerFillColor(ImPlotItem* item) {
+    ImVec4 col = ColorIsAuto(ImPlotCol_MarkerFill) ?  GetLineColor(item) :GImPlot->Style.Colors[ImPlotCol_MarkerFill];
+    col.w *= GImPlot->Style.FillAlpha;
+    return col;
+}
+
+// Gets the error bar color
+inline ImVec4 GetErrorBarColor() {
+    return ColorIsAuto(ImPlotCol_ErrorBar) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : GImPlot->Style.Colors[ImPlotCol_ErrorBar];
 }
 
 } // namespace ImPlot

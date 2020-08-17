@@ -289,6 +289,10 @@ void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, co
 void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
 
+// Plots a vertical candlestick chart for financial data.
+void PlotCandlestick(const char* label_id, const float* xs, const float* opens, const float* closes, const float* lows, const float* highs, int count, float width1 = 2, float width2 = 10, int offset = 0, int stride = sizeof(float));
+
+
 // Plots a pie chart. If the sum of values > 1 or normalize is true, each value will be normalized. Center and radius are in plot coordinates.
 void PlotPieChart(const char** label_ids, const float* values, int count, float x, float y, float radius, bool normalize = false, const char* label_fmt = "%.1f", float angle0 = 90);
 void PlotPieChart(const char** label_ids, const double* values, int count, double x, double y, double radius, bool normalize = false, const char* label_fmt = "%.1f", double angle0 = 90);
@@ -301,6 +305,11 @@ void PlotHeatmap(const char* label_id, const double* values, int rows, int cols,
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
 void PlotDigital(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+
+// Plots axis-aligned, filled rectangles. Every two consecutive points defines opposite corners of a single rectangle.
+void PlotRects(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
+void PlotRects(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
+void PlotRects(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 // Plots a text label at point x,y. Text color can be changed with ImGui::PushStyleColor(ImGuiCol_Text, ...).
 void PlotText(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
