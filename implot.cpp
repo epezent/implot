@@ -1513,7 +1513,7 @@ ImPlotInputMap& GetInputMap() {
 
 void SetNextPlotDragDisable() {
     ImPlotContext& gp = *GImPlot;
-	IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotExternalDragInProgress() needs to be called before BeginPlot()!");
+	IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotDragDisable() needs to be called before BeginPlot()!");
 	gp.NextPlotData.DragDisable = true;
 }
 
