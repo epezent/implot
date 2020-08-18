@@ -31,6 +31,14 @@
 #define sprintf sprintf_s
 #endif
 
+namespace MyImPlot {
+
+// Example for Custom Plotters section. Plots a candlestick chart for financial data. See implementatoin at bottom. 
+void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, 
+                     float tail_width = 1, float real_width = 5, ImVec4 bullCol = ImVec4(0,1,0,1), ImVec4 bearCol = ImVec4(1,0,0,1));
+
+}
+
 namespace ImPlot {
 
 /// Choose whether the demo uses double or float versions of the ImPlot API.
@@ -1005,6 +1013,23 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Custom Plotters")) {
+
+        ImGui::BulletText("You can create customer plotters or extend ImPlot using implot_internal.h.");
+
+        double dates[]  = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49};
+        double opens[]  = {1284.7,1319.9,1318.7,1328,1317.6,1321.6,1314.3,1325,1319.3,1323.1,1324.7,1321.3,1323.5,1322,1281.3,1281.95,1311.1,1315,1314,1313.1,1331.9,1334.2,1341.3,1350.6,1349.8,1346.4,1343.4,1344.9,1335.6,1337.9,1342.5,1337,1338.6,1337,1340.4,1324.65,1324.35,1349.5,1371.3,1367.9,1351.3,1357.8,1356.1,1356,1347.6,1339.1,1320.6,1311.8,1314,1312.4,};
+        double closes[] = {1283.35,1315.3,1326.1,1317.4,1321.5,1317.4,1323.5,1319.2,1321.3,1323.3,1319.7,1325.1,1323.6,1313.8,1282.05,1279.05,1314.2,1315.2,1310.8,1329.1,1334.5,1340.2,1340.5,1350,1347.1,1344.3,1344.6,1339.7,1339.4,1343.7,1337,1338.9,1340.1,1338.7,1346.8,1324.25,1329.55,1369.6,1372.5,1352.4,1357.6,1354.2,1353.4,1346,1341,1323.8,1311.9,1309.1,1312.2,1310.7};
+        double lows[]   = {1282.85,1315,1318.7,1309.6,1317.6,1312.9,1312.4,1319.1,1319,1321,1318.1,1321.3,1319.9,1312,1280.5,1276.15,1308,1309.9,1308.5,1312.3,1329.3,1333.1,1340.2,1347,1345.9,1338,1340.8,1335,1332,1337.9,1333,1336.8,1333.2,1329.9,1340.4,1323.85,1324.05,1349,1366.3,1351.2,1349.1,1352.4,1350.7,1344.3,1338.9,1316.3,1308.4,1306.9,1309.6,1306.7};
+        double highs[]  = {1284.75,1320.6,1327,1330.8,1326.8,1321.6,1326,1328,1325.8,1327.1,1326,1326,1323.5,1322.1,1282.7,1282.95,1315.8,1316.3,1314,1333.2,1334.7,1341.7,1353.2,1354.6,1352.2,1346.4,1345.7,1344.9,1340.7,1344.2,1342.7,1342.1,1345.2,1342,1350,1324.95,1330.75,1369.6,1374.3,1368.4,1359.8,1359,1357,1356,1353.4,1340.6,1322.3,1314.1,1316.1,1312.9};
+        
+        ImPlot::SetNextPlotLimits(0, 50, 1260, 1380);
+        if (ImPlot::BeginPlot("##CustomPlotter","Day","Price [USD]")) {
+            MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 50);
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Benchmark")) {
         static const int n_items = 100;
         static BenchmarkItem items[n_items];
@@ -1034,3 +1059,51 @@ void ShowDemoWindow(bool* p_open) {
 }
 
 } // namespace ImPlot
+
+// WARNING:
+//
+// You can use "implot_internal.h" to build custom plotting fuctions or extend ImPlot.
+// However, note that forward compatibility of this file is not guaranteed and the
+// internal API is subject to change. At some point we hope to bring more of this
+// into the public API and expose the necessary building blocks to fully support
+// custom plotters. For now, proceed at your own risk!
+
+#include <implot_internal.h>
+
+namespace MyImPlot {
+
+void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, float tail_width, float real_width, ImVec4 bullCol, ImVec4 bearCol) {
+    // get current implot context
+    ImPlotContext* implot = ImPlot::GetCurrentContext();
+    // register item
+    ImPlotItem* item = ImPlot::RegisterOrGetItem(label_id); 
+    // override legend icon color
+    item->Color = ImVec4(1,1,1,1); 
+    // return if item not shown (i.e. hidden by legend button)
+    if (!item->Show)
+        return;
+    // fit data if requested
+    if (implot->FitThisFrame) {
+        for (int i = 0; i < count; ++i) {
+            ImPlot::FitPoint(ImPlotPoint(xs[i], lows[i]));
+            ImPlot::FitPoint(ImPlotPoint(xs[i], highs[i]));
+        }
+    }
+    // get ImGui window DrawList
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    // push clip rect for the current plot
+    ImPlot::PushPlotClipRect();
+    for (int i = 0; i < count; ++i) {
+        ImVec2 open_pos  = ImPlot::PlotToPixels(xs[i], opens[i]);
+        ImVec2 close_pos = ImPlot::PlotToPixels(xs[i], closes[i]);
+        ImVec2 low_pos   = ImPlot::PlotToPixels(xs[i], lows[i]);
+        ImVec2 high_pos  = ImPlot::PlotToPixels(xs[i], highs[i]);
+        ImU32 col = ImGui::GetColorU32(opens[i] > closes[i] ? bearCol : bullCol);
+        draw_list->AddLine(low_pos, high_pos, col, tail_width);
+        draw_list->AddLine(open_pos, close_pos, col, real_width);
+    }
+    // pop clip  rect for the current plot
+    ImPlot::PopPlotClipRect();
+}
+
+}

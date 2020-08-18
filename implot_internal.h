@@ -403,7 +403,7 @@ void UpdateTransformCache();
 void FitPoint(const ImPlotPoint& p);
 
 // Register or get an existing item from the current plot
-ImPlotItem* RegisterItem(const char* label_id);
+ImPlotItem* RegisterOrGetItem(const char* label_id);
 // Get the ith plot item from the current plot
 ImPlotItem* GetItem(int i);
 // Get a plot item from the current plot
@@ -486,7 +486,7 @@ inline bool ColorIsAuto(ImPlotCol idx) {
     return GImPlot->Style.Colors[idx].w == -1;
 }
 
-// Recolors an item from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
+// Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
 inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
     if (GImPlot->Style.Colors[idx].w != -1)
         item->Color = GImPlot->Style.Colors[idx];

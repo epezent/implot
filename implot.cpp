@@ -343,7 +343,7 @@ ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis) {
 // Item Utils
 //-----------------------------------------------------------------------------
 
-ImPlotItem* RegisterItem(const char* label_id) {
+ImPlotItem* RegisterOrGetItem(const char* label_id) {
     ImPlotContext& gp = *GImPlot;
     ImGuiID id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);

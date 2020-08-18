@@ -603,7 +603,7 @@ inline void PlotEx(const char* label_id, Getter getter)
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotEx() needs to be called between BeginPlot() and EndPlot()!");
 
-    ImPlotItem* item = RegisterItem(label_id);
+    ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show)
         return;
     TryRecolorItem(item, ImPlotCol_Line);
@@ -762,7 +762,7 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotShaded() needs to be called between BeginPlot() and EndPlot()!");
 
-    ImPlotItem* item = RegisterItem(label_id);
+    ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show)
         return;
     TryRecolorItem(item, ImPlotCol_Fill);
@@ -833,7 +833,7 @@ void PlotBarsEx(const char* label_id, Getter getter, TWidth width) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBars() needs to be called between BeginPlot() and EndPlot()!");
 
-    ImPlotItem* item = RegisterItem(label_id);
+    ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show)
         return;
     TryRecolorItem(item, ImPlotCol_Fill);
@@ -910,7 +910,7 @@ void PlotBarsHEx(const char* label_id, Getter getter, THeight height) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBarsH() needs to be called between BeginPlot() and EndPlot()!");
 
-    ImPlotItem* item = RegisterItem(label_id);
+    ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show)
         return;
     TryRecolorItem(item, ImPlotCol_Fill);
@@ -985,7 +985,7 @@ void PlotErrorBarsEx(const char* label_id, Getter getter) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBars() needs to be called between BeginPlot() and EndPlot()!");
 
-    ImPlotItem* item = RegisterItem(label_id);
+    ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show)
         return;
 
@@ -1049,7 +1049,7 @@ void PlotErrorBarsHEx(const char* label_id, Getter getter) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBarsH() needs to be called between BeginPlot() and EndPlot()!");
 
-    ImPlotItem* item = RegisterItem(label_id);
+    ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show)
         return;
 
@@ -1138,7 +1138,7 @@ void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y
     T a0 = angle0 * 2 * IM_PI / 360.0f;
     T a1 = angle0 * 2 * IM_PI / 360.0f;
     for (int i = 0; i < count; ++i) {
-        ImPlotItem* item = RegisterItem(label_ids[i]);
+        ImPlotItem* item = RegisterOrGetItem(label_ids[i]);
         ImU32 col = ImGui::GetColorU32(GetItemFillColor(item));
         T percent = normalize ? values[i] / sum : values[i];
         a1 = a0 + 2 * IM_PI * percent;
@@ -1237,7 +1237,7 @@ void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T 
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotHeatmap() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(scale_min != scale_max, "Scale values must be different!");
-    ImPlotItem* item = RegisterItem(label_id);
+    ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show)
         return;
     if (gp.FitThisFrame) {
@@ -1279,7 +1279,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter)
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotDigital() needs to be called between BeginPlot() and EndPlot()!");
 
-    ImPlotItem* item = RegisterItem(label_id);
+    ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show)
         return;
     TryRecolorItem(item, ImPlotCol_Line);
@@ -1363,7 +1363,7 @@ void PlotRectsEx(const char* label_id, Getter getter) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotRects() needs to be called between BeginPlot() and EndPlot()!");
 
-    ImPlotItem* item = RegisterItem(label_id);
+    ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show)
         return;
     TryRecolorItem(item, ImPlotCol_Fill);
