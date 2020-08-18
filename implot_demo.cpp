@@ -34,8 +34,7 @@
 namespace MyImPlot {
 
 // Example for Custom Plotters section. Plots a candlestick chart for financial data. See implementatoin at bottom. 
-void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, 
-                     float tail_width = 1, float real_width = 5, ImVec4 bullCol = ImVec4(0,1,0,1), ImVec4 bearCol = ImVec4(1,0,0,1));
+void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, float width_percent = 0.25f, ImVec4 bullCol = ImVec4(0,1,0,1), ImVec4 bearCol = ImVec4(1,0,0,1));
 
 }
 
@@ -1024,7 +1023,7 @@ void ShowDemoWindow(bool* p_open) {
         double highs[]  = {1284.75,1320.6,1327,1330.8,1326.8,1321.6,1326,1328,1325.8,1327.1,1326,1326,1323.5,1322.1,1282.7,1282.95,1315.8,1316.3,1314,1333.2,1334.7,1341.7,1353.2,1354.6,1352.2,1346.4,1345.7,1344.9,1340.7,1344.2,1342.7,1342.1,1345.2,1342,1350,1324.95,1330.75,1369.6,1374.3,1368.4,1359.8,1359,1357,1356,1353.4,1340.6,1322.3,1314.1,1316.1,1312.9};
         
         ImPlot::SetNextPlotLimits(0, 50, 1260, 1380);
-        if (ImPlot::BeginPlot("##CustomPlotter","Day","Price [USD]")) {
+        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD")) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 50);
             ImPlot::EndPlot();
         }
@@ -1072,7 +1071,7 @@ void ShowDemoWindow(bool* p_open) {
 
 namespace MyImPlot {
 
-void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, float tail_width, float real_width, ImVec4 bullCol, ImVec4 bearCol) {
+void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, float width_percent, ImVec4 bullCol, ImVec4 bearCol) {
     // get current implot context
     ImPlotContext* implot = ImPlot::GetCurrentContext();
     // register item
@@ -1092,15 +1091,16 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
     // get ImGui window DrawList
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     // push clip rect for the current plot
+    double half_width = (xs[1] - xs[0]) * width_percent;
     ImPlot::PushPlotClipRect();
     for (int i = 0; i < count; ++i) {
-        ImVec2 open_pos  = ImPlot::PlotToPixels(xs[i], opens[i]);
-        ImVec2 close_pos = ImPlot::PlotToPixels(xs[i], closes[i]);
+        ImVec2 open_pos  = ImPlot::PlotToPixels(xs[i] - half_width, opens[i]);
+        ImVec2 close_pos = ImPlot::PlotToPixels(xs[i] + half_width, closes[i]);
         ImVec2 low_pos   = ImPlot::PlotToPixels(xs[i], lows[i]);
         ImVec2 high_pos  = ImPlot::PlotToPixels(xs[i], highs[i]);
         ImU32 col = ImGui::GetColorU32(opens[i] > closes[i] ? bearCol : bullCol);
-        draw_list->AddLine(low_pos, high_pos, col, tail_width);
-        draw_list->AddLine(open_pos, close_pos, col, real_width);
+        draw_list->AddLine(low_pos, high_pos, col);
+        draw_list->AddRectFilled(open_pos, close_pos, col);
     }
     // pop clip  rect for the current plot
     ImPlot::PopPlotClipRect();
