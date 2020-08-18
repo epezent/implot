@@ -1091,16 +1091,18 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
     // get ImGui window DrawList
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     // push clip rect for the current plot
-    double half_width = (xs[1] - xs[0]) * width_percent;
     ImPlot::PushPlotClipRect();
+    // calc real value width
+    double half_width = count > 1 ? (xs[1] - xs[0]) * width_percent : width_percent;
+    // render data
     for (int i = 0; i < count; ++i) {
         ImVec2 open_pos  = ImPlot::PlotToPixels(xs[i] - half_width, opens[i]);
         ImVec2 close_pos = ImPlot::PlotToPixels(xs[i] + half_width, closes[i]);
         ImVec2 low_pos   = ImPlot::PlotToPixels(xs[i], lows[i]);
         ImVec2 high_pos  = ImPlot::PlotToPixels(xs[i], highs[i]);
-        ImU32 col = ImGui::GetColorU32(opens[i] > closes[i] ? bearCol : bullCol);
-        draw_list->AddLine(low_pos, high_pos, col);
-        draw_list->AddRectFilled(open_pos, close_pos, col);
+        ImU32 color      = ImGui::GetColorU32(opens[i] > closes[i] ? bearCol : bullCol);
+        draw_list->AddLine(low_pos, high_pos, color);
+        draw_list->AddRectFilled(open_pos, close_pos, color);
     }
     // pop clip  rect for the current plot
     ImPlot::PopPlotClipRect();
