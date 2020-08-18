@@ -778,7 +778,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.QueryRect.Min += IO.MouseDelta;
         plot.QueryRect.Max += IO.MouseDelta;
     }
-    if (gp.Hov_Frame && gp.Hov_Plot && hov_query && !plot.DraggingQuery && !plot.Selecting && !hov_legend) {
+    if (!gp.NextPlotData.DragDisable && gp.Hov_Frame && gp.Hov_Plot && hov_query && !plot.DraggingQuery && !plot.Selecting && !hov_legend) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
         const bool any_y_dragging = plot.YAxis[0].Dragging || plot.YAxis[1].Dragging || plot.YAxis[2].Dragging;
         if (IO.MouseDown[gp.InputMap.PanButton] && !plot.XAxis.Dragging && !any_y_dragging) {
@@ -851,7 +851,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     // start drag
-    if (!drag_in_progress && gp.Hov_Frame && IO.MouseClicked[gp.InputMap.PanButton] && ImHasFlag(IO.KeyMods, gp.InputMap.PanMod) && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
+    if (!gp.NextPlotData.DragDisable && !drag_in_progress && gp.Hov_Frame && IO.MouseClicked[gp.InputMap.PanButton] && ImHasFlag(IO.KeyMods, gp.InputMap.PanMod) && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
         if (plot.XAxis.Hovered) {
             plot.XAxis.Dragging = true;
         }
@@ -1509,6 +1509,12 @@ void EndPlot() {
 
 ImPlotInputMap& GetInputMap() {
     return GImPlot->InputMap;
+}
+
+void SetNextPlotDragDisable() {
+    ImPlotContext& gp = *GImPlot;
+	IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotExternalDragInProgress() needs to be called before BeginPlot()!");
+	gp.NextPlotData.DragDisable = true;
 }
 
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond) {
