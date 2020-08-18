@@ -127,6 +127,6 @@ A: Yes, ImPlot accepts both `float` and `double` for all of its plotting functio
 
 **Q: Can ImPlot be used with other languages/bindings?**
 
-A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages.
+A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. [DearPyGui](https://github.com/hoffstadt/DearPyGui) provides a Python wrapper, among other things. A Rust binding, [implot-rs](https://github.com/4bb4/implot-rs), is currently in the works. An example using Emscripten can be found [here](https://github.com/pthom/implot_demo). 
 
 
