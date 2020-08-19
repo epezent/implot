@@ -1133,7 +1133,7 @@ inline void EndDisabledControls(bool cond) {
     }
 }
 
-inline void AxisMenu(ImPlotAxisState& state) {
+inline void ShowAxisContextMenu(ImPlotAxisState& state) {
     ImGui::PushItemWidth(75);
     bool total_lock = state.HasRange && state.RangeCond == ImGuiCond_Always;
     bool logscale = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_LogScale);
@@ -1177,11 +1177,11 @@ inline void AxisMenu(ImPlotAxisState& state) {
 
 }
 
-void PlotContextMenu(ImPlotState& plot) {
+void ShowPlotContextMenu(ImPlotState& plot) {
     ImPlotContext& gp = *GImPlot;
     if (ImGui::BeginMenu("X-Axis")) {
         ImGui::PushID("X");
-        AxisMenu(gp.X);
+        ShowAxisContextMenu(gp.X);
         ImGui::PopID();
         ImGui::EndMenu();
     }
@@ -1200,7 +1200,7 @@ void PlotContextMenu(ImPlotState& plot) {
         }
         if (ImGui::BeginMenu(buf)) {
             ImGui::PushID(i);
-            AxisMenu(gp.Y[i]);
+            ShowAxisContextMenu(gp.Y[i]);
             ImGui::PopID();
             ImGui::EndMenu();
         }
@@ -1486,14 +1486,40 @@ void EndPlot() {
         }
     }
 
-    // CONTEXT MENU -----------------------------------------------------------
+    // CONTEXT MENUS -----------------------------------------------------------
 
     if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && gp.Hov_Plot && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend)
-        ImGui::OpenPopup("##Context");
-    if (ImGui::BeginPopup("##Context")) {
-        PlotContextMenu(plot);
+        ImGui::OpenPopup("##PlotContext");
+    if (ImGui::BeginPopup("##PlotContext")) {
+        ShowPlotContextMenu(plot);
         ImGui::EndPopup();
     }
+
+    if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && IsPlotXAxisHovered() && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend) 
+        ImGui::OpenPopup("##XContext");    
+    if (ImGui::BeginPopup("##XContext")) {
+        ImGui::Text("X-Axis"); ImGui::Separator();
+        ShowAxisContextMenu(gp.X);
+        ImGui::EndPopup();
+    }
+
+    for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+        ImGui::PushID(i);
+        if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && IsPlotYAxisHovered(i) && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend) 
+            ImGui::OpenPopup("##YContext");    
+        if (ImGui::BeginPopup("##YContext")) {
+            if (i == 0) {
+                ImGui::Text("Y-Axis"); ImGui::Separator();
+            }
+            else {
+                ImGui::Text("Y-Axis %d", i + 1); ImGui::Separator();
+            }
+            ShowAxisContextMenu(gp.Y[i]);
+            ImGui::EndPopup();
+        }
+        ImGui::PopID();
+    }
+
     // CLEANUP ----------------------------------------------------------------
 
     // reset the plot items for the next frame
