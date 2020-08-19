@@ -151,8 +151,9 @@ struct ImPlotPoint {
 struct ImPlotRange {
     double Min, Max;
     ImPlotRange();
-    bool Contains(double value) const { return value >= Min && value <= Max; };
-    double Size() const               { return Max - Min; };
+    ImPlotRange(double _min, double _max) { Min = _min; Max = _max; }
+    bool Contains(double value) const     { return value >= Min && value <= Max; };
+    double Size() const                   { return Max - Min; };
 };
 
 // Combination of two ranges for X and Y axes.
