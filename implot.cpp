@@ -1323,20 +1323,23 @@ void EndPlot() {
         }
     }
 
-    if (plot.Querying || plot.Queried) {
-        if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
-            DrawList.AddRectFilled(plot.QueryRect.Min + gp.BB_Plot.Min, plot.QueryRect.Max + gp.BB_Plot.Min, gp.Col_QryBg);
-            DrawList.AddRect(      plot.QueryRect.Min + gp.BB_Plot.Min, plot.QueryRect.Max + gp.BB_Plot.Min, gp.Col_QryBd);
+    if (ImHasFlag(plot.Flags, ImPlotFlags_Query)) // draw query rect only when query enabled.
+    {
+        if (plot.Querying || plot.Queried) {
+            if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
+                DrawList.AddRectFilled(plot.QueryRect.Min + gp.BB_Plot.Min, plot.QueryRect.Max + gp.BB_Plot.Min, gp.Col_QryBg);
+                DrawList.AddRect(      plot.QueryRect.Min + gp.BB_Plot.Min, plot.QueryRect.Max + gp.BB_Plot.Min, gp.Col_QryBd);
+            }
         }
-    }
-    else if (plot.Queried) {
-        ImRect bb_query = plot.QueryRect;
+        else if (plot.Queried) {
+            ImRect bb_query = plot.QueryRect;
 
-        bb_query.Min += gp.BB_Plot.Min;
-        bb_query.Max += gp.BB_Plot.Min;
+            bb_query.Min += gp.BB_Plot.Min;
+            bb_query.Max += gp.BB_Plot.Min;
 
-        DrawList.AddRectFilled(bb_query.Min, bb_query.Max, gp.Col_QryBg);
-        DrawList.AddRect(      bb_query.Min, bb_query.Max, gp.Col_QryBd);
+            DrawList.AddRectFilled(bb_query.Min, bb_query.Max, gp.Col_QryBg);
+            DrawList.AddRect(      bb_query.Min, bb_query.Max, gp.Col_QryBd);
+        }
     }
 
     // render legend
