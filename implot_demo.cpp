@@ -33,8 +33,8 @@
 
 namespace MyImPlot {
 
-// Example for Custom Plotters section. Plots a candlestick chart for financial data. See implementatoin at bottom. 
-void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, float width_percent = 0.25f, ImVec4 bullCol = ImVec4(0,1,0,1), ImVec4 bearCol = ImVec4(1,0,0,1));
+// Example for Custom Plotters and Tooltips section. Plots a candlestick chart for financial data. See implementatoin at bottom. 
+void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip = true, float width_percent = 0.25f, ImVec4 bullCol = ImVec4(0,1,0,1), ImVec4 bearCol = ImVec4(1,0,0,1));
 
 }
 
@@ -1015,7 +1015,7 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Custom Plotters")) {
+    if (ImGui::CollapsingHeader("Custom Plotters and Tooltips")) {
 
         ImGui::BulletText("You can create custom plotters or extend ImPlot using implot_internal.h.");
 
@@ -1024,10 +1024,11 @@ void ShowDemoWindow(bool* p_open) {
         double closes[] = {1283.35,1315.3,1326.1,1317.4,1321.5,1317.4,1323.5,1319.2,1321.3,1323.3,1319.7,1325.1,1323.6,1313.8,1282.05,1279.05,1314.2,1315.2,1310.8,1329.1,1334.5,1340.2,1340.5,1350,1347.1,1344.3,1344.6,1339.7,1339.4,1343.7,1337,1338.9,1340.1,1338.7,1346.8,1324.25,1329.55,1369.6,1372.5,1352.4,1357.6,1354.2,1353.4,1346,1341,1323.8,1311.9,1309.1,1312.2,1310.7};
         double lows[]   = {1282.85,1315,1318.7,1309.6,1317.6,1312.9,1312.4,1319.1,1319,1321,1318.1,1321.3,1319.9,1312,1280.5,1276.15,1308,1309.9,1308.5,1312.3,1329.3,1333.1,1340.2,1347,1345.9,1338,1340.8,1335,1332,1337.9,1333,1336.8,1333.2,1329.9,1340.4,1323.85,1324.05,1349,1366.3,1351.2,1349.1,1352.4,1350.7,1344.3,1338.9,1316.3,1308.4,1306.9,1309.6,1306.7};
         double highs[]  = {1284.75,1320.6,1327,1330.8,1326.8,1321.6,1326,1328,1325.8,1327.1,1326,1326,1323.5,1322.1,1282.7,1282.95,1315.8,1316.3,1314,1333.2,1334.7,1341.7,1353.2,1354.6,1352.2,1346.4,1345.7,1344.9,1340.7,1344.2,1342.7,1342.1,1345.2,1342,1350,1324.95,1330.75,1369.6,1374.3,1368.4,1359.8,1359,1357,1356,1353.4,1340.6,1322.3,1314.1,1316.1,1312.9};
-        
+        static bool tooltip = true;
+        ImGui::Checkbox("Show Tooltip", &tooltip);
         ImPlot::SetNextPlotLimits(0, 50, 1260, 1380);
         if (ImPlot::BeginPlot("Candlestick Chart","Day","USD")) {
-            MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 50);
+            MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 50, tooltip);
             ImPlot::EndPlot();
         }
     }
@@ -1074,7 +1075,7 @@ void ShowDemoWindow(bool* p_open) {
 
 namespace MyImPlot {
 
-void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, float width_percent, ImVec4 bullCol, ImVec4 bearCol) {
+void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip, float width_percent, ImVec4 bullCol, ImVec4 bearCol) {
     // get current implot context
     ImPlotContext* implot = ImPlot::GetCurrentContext();
     // register item
@@ -1109,6 +1110,31 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
     }
     // pop clip  rect for the current plot
     ImPlot::PopPlotClipRect();
+    // custom tool
+    if (!ImPlot::IsPlotHovered() || !tooltip)
+        return;
+    ImPlotPoint mouse   = ImPlot::GetPlotMousePos();
+    mouse.x             = round(mouse.x);
+    float  tool_l       = ImPlot::PlotToPixels(mouse.x - half_width * 1.5, mouse.y).x;
+    float  tool_r       = ImPlot::PlotToPixels(mouse.x + half_width * 1.5, mouse.y).x;
+    float  tool_t       = ImPlot::GetPlotPos().y;
+    float  tool_b       = tool_t + ImPlot::GetPlotSize().y;
+    ImPlot::PushPlotClipRect();
+    draw_list->AddRectFilled(ImVec2(tool_l, tool_t), ImVec2(tool_r, tool_b), IM_COL32(0,255,255,64));
+    ImPlot::PopPlotClipRect();
+    // render tool tip
+    for (int i = 0; i < count; ++i) {
+        if (xs[i] == mouse.x) {
+            ImGui::BeginTooltip();
+            ImGui::Text("Day:   %.0f", xs[i]);
+            ImGui::Text("Open:  $%.2f",  opens[i]);
+            ImGui::Text("Close: $%.2f", closes[i]);
+            ImGui::Text("Low:   $%.2f",   lows[i]);
+            ImGui::Text("High:  $%.2f",  highs[i]);
+            ImGui::EndTooltip();
+            break;
+        }
+    }
 }
 
 }
