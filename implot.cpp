@@ -965,6 +965,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.Queried = false;
         plot.QueryRect = ImRect(0,0,0,0);
     }
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_Query)) {
+        plot.Queried  = false;
+        plot.Querying = false;
+        plot.QueryRect = ImRect(0,0,0,0);
+    }
 
     // DOUBLE CLICK -----------------------------------------------------------
 
