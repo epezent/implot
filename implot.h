@@ -195,6 +195,18 @@ struct ImPlotInputMap {
     ImPlotInputMap();
 };
 
+// State information for Plot items
+struct ImPlotItem {
+    ImPlotItem();
+    ~ImPlotItem();
+    bool Show;
+    bool SeenThisFrame;
+    bool Highlight;
+    ImVec4 Color;
+    int NameOffset;
+    ImGuiID ID;
+};
+
 //-----------------------------------------------------------------------------
 // ImPlot End-User API
 //-----------------------------------------------------------------------------
@@ -414,6 +426,9 @@ void ShowColormapScale(double scale_min, double scale_max, float height);
 void PushPlotClipRect();
 // Pop plot clip rect.
 void PopPlotClipRect();
+
+// Register item. Useful for showing custom rendering in the legend. Check 'Show' to decide if the draw custom items
+ImPlotItem* RegisterItem(const char* label_id);
 
 //-----------------------------------------------------------------------------
 // Demo

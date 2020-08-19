@@ -240,26 +240,17 @@ struct ImPlotAxisColor
 };
 
 // State information for Plot items
-struct ImPlotItem
-{
-    ImGuiID ID;
-    ImVec4  Color;
-    bool    Show;
-    bool    Highlight;
-    bool    SeenThisFrame;
-    int     NameOffset;
+ImPlotItem::ImPlotItem() {
+    ID            = 0;
+    Color         = ImPlot::NextColormapColor();
+    Show          = true;
+    SeenThisFrame = false;
+    Highlight     = false;
+    NameOffset    = -1;
+}
 
-    ImPlotItem() {
-        ID            = 0;
-        Color         = ImPlot::NextColormapColor();
-        Show          = true;
-        SeenThisFrame = false;
-        Highlight     = false;
-        NameOffset    = -1;
-    }
+ImPlotItem::~ImPlotItem() { ID = 0; }
 
-    ~ImPlotItem() { ID = 0; }
-};
 
 // Holds Plot state information that must persist after EndPlot
 struct ImPlotState
