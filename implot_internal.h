@@ -299,6 +299,7 @@ struct ImPlotNextPlotData
     bool        HasYRange[IMPLOT_Y_AXES];
     bool        ShowDefaultTicksX;
     bool        ShowDefaultTicksY[IMPLOT_Y_AXES];
+    bool        DragDisable;
 
     ImPlotNextPlotData() {
         HasXRange         = false;
@@ -307,6 +308,7 @@ struct ImPlotNextPlotData
             HasYRange[i]         = false;
             ShowDefaultTicksY[i] = true;
         }
+        DragDisable = false;
     }
 };
 

@@ -375,7 +375,8 @@ ImVec4 NextColormapColor();
 //-----------------------------------------------------------------------------
 // Plot Utils
 //-----------------------------------------------------------------------------
-
+//Set drag operations disable for the next plot. Call right before BeginPlot(). 
+void SetNextPlotDragDisable();
 // Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
 // Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
