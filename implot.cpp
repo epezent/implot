@@ -845,7 +845,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
     // start drag
     if (!gp.NextPlotData.DragDisable && !drag_in_progress && gp.Hov_Frame && IO.MouseClicked[gp.InputMap.PanButton] && ImHasFlag(IO.KeyMods, gp.InputMap.PanMod) && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
-        if (plot.XAxis.Hovered) {
+        if (plot.XAxis.HoveredTot) {
             plot.XAxis.Dragging = true;
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
