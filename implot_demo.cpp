@@ -165,7 +165,10 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Indent();
             ImGui::BulletText("Double left click on an axis to fit the individual axis.");
         ImGui::Unindent();
-        ImGui::BulletText("Double right click to open the plot context menu.");
+        ImGui::BulletText("Double right click to open the full plot context menu.");
+        ImGui::Indent();
+            ImGui::BulletText("Double right click on an axis to open the axis context menu.");
+        ImGui::Unindent();
         ImGui::BulletText("Click legend label icons to show/hide plot items.");
         ImGui::BulletText("IMPORTANT: By default, anti-aliased lines are turned OFF.");
         ImGui::Indent();
