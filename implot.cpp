@@ -492,34 +492,6 @@ float SumTickLabelHeight(const ImVector<ImPlotTick>& ticks) {
     return sum;
 }
 
-class YPadCalculator {
-  public:
-    YPadCalculator(const ImPlotAxisState* axis_states, const float* max_label_widths, float txt_off)
-            : ImPlotAxisStates(axis_states), MaxLabelWidths(max_label_widths), TxtOff(txt_off) {}
-
-    float operator()(int y_axis) {
-        ImPlotContext& gp = *GImPlot;
-        ImPlotState& plot = *gp.CurrentPlot;
-        if (!ImPlotAxisStates[y_axis].Present) { return 0; }
-        // If we have more than 1 axis present before us, then we need
-        // extra space to account for our tick bar.
-        float pad_result = 0;
-        if (ImPlotAxisStates[y_axis].PresentSoFar >= 3) {
-            pad_result += 6.0f;
-        }
-        if (!ImHasFlag(plot.YAxis[y_axis].Flags, ImPlotAxisFlags_TickLabels)) {
-            return pad_result;
-        }
-        pad_result += MaxLabelWidths[y_axis] + TxtOff;
-        return pad_result;
-    }
-
-  private:
-    const ImPlotAxisState* const ImPlotAxisStates;
-    const float* const MaxLabelWidths;
-    const float TxtOff;
-};
-
 //-----------------------------------------------------------------------------
 // Axis Utils
 //-----------------------------------------------------------------------------
@@ -617,12 +589,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // AXIS STATES ------------------------------------------------------------
-    gp.X    = ImPlotAxisState(&plot.XAxis, gp.NextPlotData.HasXRange, gp.NextPlotData.XRangeCond, true, 0);
-    gp.Y[0] = ImPlotAxisState(&plot.YAxis[0], gp.NextPlotData.HasYRange[0], gp.NextPlotData.YRangeCond[0], true, 0);
-    gp.Y[1] = ImPlotAxisState(&plot.YAxis[1], gp.NextPlotData.HasYRange[1], gp.NextPlotData.YRangeCond[1],
-                              ImHasFlag(plot.Flags, ImPlotFlags_YAxis2), gp.Y[0].PresentSoFar);
-    gp.Y[2] = ImPlotAxisState(&plot.YAxis[2], gp.NextPlotData.HasYRange[2], gp.NextPlotData.YRangeCond[2],
-                              ImHasFlag(plot.Flags, ImPlotFlags_YAxis3), gp.Y[1].PresentSoFar);
+    gp.X    = ImPlotAxisState(&plot.XAxis,    gp.NextPlotData.HasXRange,    gp.NextPlotData.XRangeCond,    true);
+    gp.Y[0] = ImPlotAxisState(&plot.YAxis[0], gp.NextPlotData.HasYRange[0], gp.NextPlotData.YRangeCond[0], true);
+    gp.Y[1] = ImPlotAxisState(&plot.YAxis[1], gp.NextPlotData.HasYRange[1], gp.NextPlotData.YRangeCond[1], ImHasFlag(plot.Flags, ImPlotFlags_YAxis2));
+    gp.Y[2] = ImPlotAxisState(&plot.YAxis[2], gp.NextPlotData.HasYRange[2], gp.NextPlotData.YRangeCond[2], ImHasFlag(plot.Flags, ImPlotFlags_YAxis3));
 
     gp.LockPlot = gp.X.Lock && gp.Y[0].Lock && gp.Y[1].Lock && gp.Y[2].Lock;
 
@@ -718,57 +688,70 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // label ticks
-    if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels))
+    if (gp.X.HasLabels)
         LabelTicks(gp.XTicks, ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Scientific), gp.XTickLabels);
 
-    float max_label_width[IMPLOT_Y_AXES] = {};
+    float max_label_widths[IMPLOT_Y_AXES];
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        if (gp.Y[i].Present && ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) {
+        if (gp.Y[i].Present && gp.Y[i].HasLabels) {
             LabelTicks(gp.YTicks[i], ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Scientific), gp.YTickLabels[i]);
-            max_label_width[i] = MaxTickLabelWidth(gp.YTicks[i]);
+            max_label_widths[i] = MaxTickLabelWidth(gp.YTicks[i]);
+        }
+        else {
+            max_label_widths[i] = 0;
         }
     }
 
-    // grid bb
+    // plot bb
     const ImVec2 title_size = ImGui::CalcTextSize(title, NULL, true);
     const float txt_height  = ImGui::GetTextLineHeight();
     const float pad_top     = title_size.x > 0.0f ? txt_height + IMPLOT_LABEL_PAD : 0;
-    const float pad_bot     = (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels) ? txt_height + IMPLOT_LABEL_PAD : 0) + (x_label ? txt_height + IMPLOT_LABEL_PAD : 0);
-    YPadCalculator y_axis_pad(gp.Y, max_label_width, IMPLOT_LABEL_PAD);
-    const float pad_left    = y_axis_pad(0) + (y_label ? txt_height + IMPLOT_LABEL_PAD : 0);
-    const float pad_right   = y_axis_pad(1) + y_axis_pad(2);
+    const float pad_bot     = (gp.X.HasLabels ? txt_height + IMPLOT_LABEL_PAD : 0) + (x_label ? txt_height + IMPLOT_LABEL_PAD : 0);
+    const float pad_left    = (y_label ? txt_height + IMPLOT_LABEL_PAD : 0)
+                            + (gp.Y[0].HasLabels ? max_label_widths[0] + IMPLOT_LABEL_PAD : 0);      
+    const float pad_right   = ((gp.Y[1].Present && gp.Y[1].HasLabels) ? max_label_widths[1] + IMPLOT_LABEL_PAD : 0)
+                            + ((gp.Y[1].Present && gp.Y[2].Present) ? IMPLOT_LABEL_PAD + IMPLOT_MINOR_SIZE : 0)
+                            + ((gp.Y[2].Present && gp.Y[2].HasLabels) ? max_label_widths[2] + IMPLOT_LABEL_PAD : 0);
+
+
     gp.BB_Plot              = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(pad_right, pad_bot));
     gp.Hov_Plot             = gp.BB_Plot.Contains(IO.MousePos);
 
-    // axis region bbs
-    const ImRect xAxisRegion_bb(gp.BB_Plot.Min + ImVec2(10, 0), ImVec2(gp.BB_Plot.Max.x, gp.BB_Frame.Max.y) - ImVec2(10, 0));
-    plot.XAxis.Hovered = xAxisRegion_bb.Contains(IO.MousePos);
+    // x axis region bb and hover
+    const ImRect xAxisRegion_bb(gp.BB_Plot.GetBL(), ImVec2(gp.BB_Plot.Max.x, gp.BB_Frame.Max.y));
+    plot.XAxis.HoveredExt = xAxisRegion_bb.Contains(IO.MousePos);
+    plot.XAxis.HoveredTot = plot.XAxis.HoveredExt || gp.Hov_Plot;
 
-    // The left labels are referenced to the left of the bounding box.
-    gp.AxisLabelReference[0] = gp.BB_Plot.Min.x;
-    // If Y axis 1 is present, its labels will be referenced to the
-    // right of the bounding box.
-    gp.AxisLabelReference[1] = gp.BB_Plot.Max.x;
-    // The third axis may be either referenced to the right of the
-    // bounding box, or 6 pixels further past the end of the 2nd axis.
-    gp.AxisLabelReference[2] =
-            !gp.Y[1].Present ?
-            gp.BB_Plot.Max.x :
-            (gp.AxisLabelReference[1] + y_axis_pad(1) + 6);
+    // axis label reference
+    gp.YAxisReference[0] = gp.BB_Plot.Min.x;
+    gp.YAxisReference[1] = gp.BB_Plot.Max.x;
+    gp.YAxisReference[2] = !gp.Y[1].Present ? gp.BB_Plot.Max.x : (gp.YAxisReference[1] + (gp.Y[1].HasLabels ? IMPLOT_LABEL_PAD + max_label_widths[1] : 0) + IMPLOT_LABEL_PAD + IMPLOT_MINOR_SIZE);
 
+    // y axis regions bb and hover
     ImRect yAxisRegion_bb[IMPLOT_Y_AXES];
-    yAxisRegion_bb[0] = ImRect(ImVec2(gp.BB_Frame.Min.x, gp.BB_Plot.Min.y), ImVec2(gp.BB_Plot.Min.x + 6, gp.BB_Plot.Max.y - 10));
-    // The auxiliary y axes are off to the right of the BB grid.
-    yAxisRegion_bb[1] = ImRect(ImVec2(gp.BB_Plot.Max.x - 6, gp.BB_Plot.Min.y), gp.BB_Plot.Max + ImVec2(y_axis_pad(1), -10));
-    yAxisRegion_bb[2] = ImRect(ImVec2(gp.AxisLabelReference[2] - 6, gp.BB_Plot.Min.y), yAxisRegion_bb[1].Max + ImVec2(y_axis_pad(2), -10));
+    yAxisRegion_bb[0] = ImRect(ImVec2(gp.BB_Frame.Min.x, gp.BB_Plot.Min.y), ImVec2(gp.BB_Plot.Min.x, gp.BB_Plot.Max.y));
+    yAxisRegion_bb[1] = gp.Y[2].Present 
+                      ? ImRect(gp.BB_Plot.GetTR(), ImVec2(gp.YAxisReference[2], gp.BB_Plot.Max.y)) 
+                      : ImRect(gp.BB_Plot.GetTR(), ImVec2(gp.BB_Frame.Max.x, gp.BB_Plot.Max.y));
+                     
+    yAxisRegion_bb[2] = ImRect(ImVec2(gp.YAxisReference[2], gp.BB_Plot.Min.y), ImVec2(gp.BB_Frame.Max.x, gp.BB_Plot.Max.y));
 
-    ImRect centralRegion(ImVec2(gp.BB_Plot.Min.x + 6, gp.BB_Plot.Min.y), ImVec2(gp.BB_Plot.Max.x - 6, gp.BB_Plot.Max.y));
+    for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+        plot.YAxis[i].HoveredExt = gp.Y[i].Present && yAxisRegion_bb[i].Contains(IO.MousePos);
+        plot.YAxis[i].HoveredTot = plot.YAxis[i].HoveredExt || gp.Hov_Plot;
+    }
 
-    plot.YAxis[0].Hovered = gp.Y[0].Present && (yAxisRegion_bb[0].Contains(IO.MousePos) || centralRegion.Contains(IO.MousePos));
-    plot.YAxis[1].Hovered = gp.Y[1].Present && (yAxisRegion_bb[1].Contains(IO.MousePos) || centralRegion.Contains(IO.MousePos));
-    plot.YAxis[2].Hovered = gp.Y[2].Present && (yAxisRegion_bb[2].Contains(IO.MousePos) || centralRegion.Contains(IO.MousePos));
+#if 0
+    ImGui::GetForegroundDrawList()->AddRect(gp.BB_Canvas.Min, gp.BB_Canvas.Max, IM_COL32_WHITE);
+    ImGui::GetForegroundDrawList()->AddRectFilled(xAxisRegion_bb.Min, xAxisRegion_bb.Max, IM_COL32(255,0,0,plot.XAxis.HoveredTot ? 128 : 64));
+    ImGui::GetForegroundDrawList()->AddRectFilled(yAxisRegion_bb[0].Min, yAxisRegion_bb[0].Max, IM_COL32(255,255,0,plot.YAxis[0].HoveredTot ? 128 : 64));
+    if (gp.Y[1].Present)
+        ImGui::GetForegroundDrawList()->AddRectFilled(yAxisRegion_bb[1].Min, yAxisRegion_bb[1].Max, IM_COL32(0,255,0,plot.YAxis[1].HoveredTot ? 128 : 64));
+    if (gp.Y[2].Present)
+        ImGui::GetForegroundDrawList()->AddRectFilled(yAxisRegion_bb[2].Min, yAxisRegion_bb[2].Max, IM_COL32(0,0,255,plot.YAxis[2].HoveredTot ? 128 : 64));
+#endif
 
-    const bool any_hov_y_axis_region = plot.YAxis[0].Hovered || plot.YAxis[1].Hovered || plot.YAxis[2].Hovered;
+    const bool any_hov_y_axis_region = plot.YAxis[0].HoveredTot || plot.YAxis[1].HoveredTot || plot.YAxis[2].HoveredTot;
 
     // legend hovered from last frame
     const bool hov_legend = ImHasFlag(plot.Flags, ImPlotFlags_Legend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;
@@ -862,11 +845,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
     // start drag
     if (!drag_in_progress && gp.Hov_Frame && IO.MouseClicked[gp.InputMap.PanButton] && ImHasFlag(IO.KeyMods, gp.InputMap.PanMod) && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
-        if (plot.XAxis.Hovered) {
+        if (plot.XAxis.HoveredTot) {
             plot.XAxis.Dragging = true;
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-            if (plot.YAxis[i].Hovered) {
+            if (plot.YAxis[i].HoveredTot) {
                 plot.YAxis[i].Dragging = true;
             }
         }
@@ -874,14 +857,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // SCROLL INPUT -----------------------------------------------------------
 
-    if (gp.Hov_Frame && (plot.XAxis.Hovered || any_hov_y_axis_region) && IO.MouseWheel != 0) {
+    if (gp.Hov_Frame && (plot.XAxis.HoveredTot || any_hov_y_axis_region) && IO.MouseWheel != 0) {
         UpdateTransformCache();
         float zoom_rate = IMPLOT_ZOOM_RATE;
         if (IO.MouseWheel > 0)
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));
         float tx = ImRemap(IO.MousePos.x, gp.BB_Plot.Min.x, gp.BB_Plot.Max.x, 0.0f, 1.0f);
         float ty = ImRemap(IO.MousePos.y, gp.BB_Plot.Min.y, gp.BB_Plot.Max.y, 0.0f, 1.0f);
-        if (plot.XAxis.Hovered && !gp.X.Lock) {
+        if (plot.XAxis.HoveredTot && !gp.X.Lock) {
             ImPlotAxisScale axis_scale(0, tx, ty, zoom_rate);
             const ImPlotPoint& plot_tl = axis_scale.Min;
             const ImPlotPoint& plot_br = axis_scale.Max;
@@ -892,7 +875,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 plot.XAxis.Range.Max = gp.X.Invert ? plot_tl.x : plot_br.x;
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-            if (plot.YAxis[i].Hovered && !gp.Y[i].Lock) {
+            if (plot.YAxis[i].HoveredTot && !gp.Y[i].Lock) {
                 ImPlotAxisScale axis_scale(i, tx, ty, zoom_rate);
                 const ImPlotPoint& plot_tl = axis_scale.Min;
                 const ImPlotPoint& plot_br = axis_scale.Max;
@@ -985,11 +968,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // DOUBLE CLICK -----------------------------------------------------------
 
-    if ( IO.MouseDoubleClicked[gp.InputMap.FitButton] && gp.Hov_Frame && (plot.XAxis.Hovered || any_hov_y_axis_region) && !hov_legend && !hov_query) {
+    if ( IO.MouseDoubleClicked[gp.InputMap.FitButton] && gp.Hov_Frame && (plot.XAxis.HoveredTot || any_hov_y_axis_region) && !hov_legend && !hov_query) {
         gp.FitThisFrame = true;
-        gp.FitX = plot.XAxis.Hovered;
+        gp.FitX = plot.XAxis.HoveredTot;
         for (int i = 0; i < IMPLOT_Y_AXES; i++) 
-            gp.FitY[i] = plot.YAxis[i].Hovered;        
+            gp.FitY[i] = plot.YAxis[i].HoveredTot;        
     }
     else {
         gp.FitThisFrame = false;
@@ -1079,7 +1062,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
         if (gp.Y[i].Present && ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) {
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
-                const float x_start = gp.AxisLabelReference[i] + (i == 0 ?  (-IMPLOT_LABEL_PAD - gp.YTicks[i][t].LabelSize.x) : IMPLOT_LABEL_PAD);
+                const float x_start = gp.YAxisReference[i] + (i == 0 ?  (-IMPLOT_LABEL_PAD - gp.YTicks[i][t].LabelSize.x) : IMPLOT_LABEL_PAD);
                 ImPlotTick *yt = &gp.YTicks[i][t];
                 if (yt->ShowLabel && yt->PixelPos >= gp.BB_Plot.Min.y - 1 && yt->PixelPos <= gp.BB_Plot.Max.y + 1) {
                     ImVec2 start(x_start, yt->PixelPos - 0.5f * yt->LabelSize.y);
@@ -1279,14 +1262,13 @@ void EndPlot() {
         if (!gp.Y[i].Present) { continue; }
         axis_count++;
 
-        float x_start = gp.AxisLabelReference[i];
+        float x_start = gp.YAxisReference[i];
         if (ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks)) {
             float direction = (i == 0) ? 1.0f : -1.0f;
             bool no_major = axis_count >= 3;
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
                 ImPlotTick *yt = &gp.YTicks[i][t];
                 ImVec2 start = ImVec2(x_start, yt->PixelPos);
-
                 DrawList.AddLine(
                         start,
                         start + ImVec2(direction * ((!no_major && yt->Major) ? IMPLOT_MAJOR_SIZE : IMPLOT_MINOR_SIZE), 0),
@@ -1305,19 +1287,15 @@ void EndPlot() {
     ImGui::PopClipRect();
 
     // render y-axis drag/drop hover
-    if (ImGui::IsDragDropPayloadBeingAccepted()) {
-        ImRect bb_plot_pad = gp.BB_Plot;
-        bb_plot_pad.Min.x += 5; bb_plot_pad.Max.x -= 5;
-        if (!bb_plot_pad.Contains(IO.MousePos)) {
-            for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
-                if (plot.YAxis[i].Hovered) {
-                    float x_loc = gp.AxisLabelReference[i];
-                    ImVec2 p1(x_loc - 5, gp.BB_Plot.Min.y - 5);
-                    ImVec2 p2(x_loc + 5, gp.BB_Plot.Max.y + 5);
-                    DrawList.AddRect(p1, p2, ImGui::GetColorU32(ImGuiCol_DragDropTarget), 0.0f,  ImDrawCornerFlags_All, 2.0f);
-                }
+    if ((gp.Y[1].Present || gp.Y[2].Present) && ImGui::IsDragDropPayloadBeingAccepted()) {
+        for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+            if (plot.YAxis[i].HoveredExt) {
+                float x_loc = gp.YAxisReference[i];
+                ImVec2 p1(x_loc - 5, gp.BB_Plot.Min.y - 5);
+                ImVec2 p2(x_loc + 5, gp.BB_Plot.Max.y + 5);
+                DrawList.AddRect(p1, p2, ImGui::GetColorU32(ImGuiCol_DragDropTarget), 0.0f,  ImDrawCornerFlags_All, 2.0f);
             }
-        }
+        }        
     }
 
     PushPlotClipRect();
@@ -1495,7 +1473,7 @@ void EndPlot() {
         ImGui::EndPopup();
     }
 
-    if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && IsPlotXAxisHovered() && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend) 
+    if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && plot.XAxis.HoveredExt && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend) 
         ImGui::OpenPopup("##XContext");    
     if (ImGui::BeginPopup("##XContext")) {
         ImGui::Text("X-Axis"); ImGui::Separator();
@@ -1505,7 +1483,7 @@ void EndPlot() {
 
     for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
         ImGui::PushID(i);
-        if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && IsPlotYAxisHovered(i) && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend) 
+        if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && plot.YAxis[i].HoveredExt && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend) 
             ImGui::OpenPopup("##YContext");    
         if (ImGui::BeginPopup("##YContext")) {
             if (i == 0) {
@@ -1635,8 +1613,7 @@ bool IsPlotHovered() {
 bool IsPlotXAxisHovered() {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotXAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
-    ImRect bb_plot_pad = gp.BB_Plot; bb_plot_pad.Max.y -= 5;
-    return gp.CurrentPlot->XAxis.Hovered && !bb_plot_pad.Contains(ImGui::GetMousePos());
+    return gp.CurrentPlot->XAxis.HoveredExt;
 }
 
 bool IsPlotYAxisHovered(int y_axis_in) {
@@ -1644,9 +1621,7 @@ bool IsPlotYAxisHovered(int y_axis_in) {
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotYAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
-    ImRect bb_plot_pad = gp.BB_Plot;
-    bb_plot_pad.Min.x += 5; bb_plot_pad.Max.x -= 5;
-    return gp.CurrentPlot->YAxis[y_axis].Hovered && !bb_plot_pad.Contains(ImGui::GetMousePos());
+    return gp.CurrentPlot->YAxis[y_axis].HoveredExt;
 }
 
 ImPlotPoint GetPlotMousePos(int y_axis_in) {

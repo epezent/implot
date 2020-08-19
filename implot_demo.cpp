@@ -590,7 +590,7 @@ void ShowDemoWindow(bool* p_open) {
 
         static t_float xs[1001], xs2[1001], ys1[1001], ys2[1001], ys3[1001];
         static bool y2_axis = true;
-        static bool y3_axis = false;
+        static bool y3_axis = true;
         ImGui::Checkbox("Y-Axis 2", &y2_axis);
         ImGui::SameLine();
         ImGui::Checkbox("Y-Axis 3", &y3_axis);

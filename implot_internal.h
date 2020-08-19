@@ -192,14 +192,16 @@ struct ImPlotAxis
     ImPlotAxisFlags PreviousFlags;
     ImPlotRange     Range;
     bool            Dragging;
-    bool            Hovered;
+    bool            HoveredExt;
+    bool            HoveredTot;
 
     ImPlotAxis() {
-        Flags     = PreviousFlags = ImPlotAxisFlags_Default;
-        Range.Min = 0;
-        Range.Max = 1;
-        Dragging  = false;
-        Hovered   = false;
+        Flags      = PreviousFlags = ImPlotAxisFlags_Default;
+        Range.Min  = 0;
+        Range.Max  = 1;
+        Dragging   = false;
+        HoveredExt = false;
+        HoveredTot = false;
     }
 };
 
@@ -208,20 +210,20 @@ struct ImPlotAxisState
 {
     ImPlotAxis* Axis;
     ImGuiCond   RangeCond;
-    int         PresentSoFar;
-    bool        HasRange;
+    bool        HasRange;    
     bool        Present;
+    bool        HasLabels;
     bool        Invert;
     bool        LockMin;
     bool        LockMax;
     bool        Lock;
 
-    ImPlotAxisState(ImPlotAxis* axis, bool has_range, ImGuiCond range_cond, bool present, int previous_present) {
+    ImPlotAxisState(ImPlotAxis* axis, bool has_range, ImGuiCond range_cond, bool present) {
         Axis         = axis;
         HasRange     = has_range;
         RangeCond    = range_cond;
         Present      = present;
-        PresentSoFar = previous_present + (Present ? 1 : 0);
+        HasLabels    = ImHasFlag(Axis->Flags, ImPlotAxisFlags_TickLabels);
         Invert       = ImHasFlag(Axis->Flags, ImPlotAxisFlags_Invert);
         LockMin      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always);
         LockMax      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always);
@@ -345,7 +347,7 @@ struct ImPlotContext {
     ImVector<ImPlotTick> YTicks[IMPLOT_Y_AXES];
     ImGuiTextBuffer      XTickLabels;
     ImGuiTextBuffer      YTickLabels[IMPLOT_Y_AXES];
-    float                AxisLabelReference[IMPLOT_Y_AXES];
+    float                YAxisReference[IMPLOT_Y_AXES];
 
     // Transformations and Data Extents
     ImRect      PixelRange[IMPLOT_Y_AXES];
