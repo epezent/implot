@@ -26,7 +26,7 @@
 // don't provide any guarantee of forward compatibility!
 
 //-----------------------------------------------------------------------------
-// [SECTION] Header mess
+// [SECTION] Header Mess
 //-----------------------------------------------------------------------------
 
 #pragma once
@@ -42,7 +42,7 @@
 #endif
 
 //-----------------------------------------------------------------------------
-// [SECTION] Forward declarations
+// [SECTION] Forward Declarations
 //-----------------------------------------------------------------------------
 
 struct ImPlotTick;
@@ -54,20 +54,40 @@ struct ImPlotState;
 struct ImPlotNextPlotData;
 
 //-----------------------------------------------------------------------------
-// [SECTION] Context pointer
+// [SECTION] Context Pointer
 //-----------------------------------------------------------------------------
 
 extern ImPlotContext* GImPlot; // Current implicit context pointer
 
 //-----------------------------------------------------------------------------
-// [SECTION] Macros
+// [SECTION] Macros and Constants
 //-----------------------------------------------------------------------------
 
+// Constants can be changed unless stated otherwise
+
+// Default plot frame width when requested width is auto (i.e. 0). This is not the plot area width!
+#define IMPLOT_DEFAULT_W  400
+// Default plot frame height when requested height is auto (i.e. 0). This is not the plot area height!
+#define IMPLOT_DEFAULT_H  300
+// Minimum plot frame width when requested width is to edge (i.e. -1). This is not the plot area width!
+#define IMPLOT_MIN_W      300
+// Minimum plot frame height when requested height is to edge (i.e. -1). This is not the plot area height!
+#define IMPLOT_MIN_H      225
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
-#define MAX_Y_AXES 3
+#define IMPLOT_Y_AXES     3
+// The number of times to subdivided grid divisions (best if a multiple of 1, 2, and 5)
+#define IMPLOT_SUB_DIV    10 
+// Pixel padding used for labels/titles
+#define IMPLOT_LABEL_PAD  5
+// Major tick size in pixels
+#define IMPLOT_MAJOR_SIZE 10
+// Minor tick size in pixels
+#define IMPLOT_MINOR_SIZE 5
+// Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
+#define IMPLOT_ZOOM_RATE  0.1f
 
 //-----------------------------------------------------------------------------
-// [SECTION] Generic helpers
+// [SECTION] Generic Helpers
 //-----------------------------------------------------------------------------
 
 // Computes the common (base-10) logarithm
@@ -151,17 +171,17 @@ struct ImPlotTick
 {
     double PlotPos;
     float  PixelPos;
-    ImVec2 Size;
-    int    TextOffset;
+    ImVec2 LabelSize;
+    int    BufferOffset;
     bool   Major;
-    bool   RenderLabel;
+    bool   ShowLabel;
     bool   Labeled;
 
-    ImPlotTick(double value, bool major, bool render_label = true) {
-        PlotPos     = value;
-        Major       = major;
-        RenderLabel = render_label;
-        Labeled     = false;
+    ImPlotTick(double value, bool major, bool show_label) {
+        PlotPos   = value;
+        Major     = major;
+        ShowLabel = show_label;
+        Labeled   = false;
     }
 };
 
@@ -213,8 +233,8 @@ struct ImPlotAxisState
 
 struct ImPlotAxisColor
 {
-    ImU32 Major, Minor, Txt;
-    ImPlotAxisColor() { Major = Minor = Txt = 0; }
+    ImU32 Major, Minor, MajTxt, MinTxt;
+    ImPlotAxisColor() { Major = Minor = MajTxt = MinTxt = 0; }
 };
 
 // State information for Plot items
@@ -245,7 +265,7 @@ struct ImPlotState
     ImPlotFlags        Flags;
     ImPlotFlags        PreviousFlags;
     ImPlotAxis         XAxis;
-    ImPlotAxis         YAxis[MAX_Y_AXES];
+    ImPlotAxis         YAxis[IMPLOT_Y_AXES];
     ImPool<ImPlotItem> Items;
     ImVec2             SelectStart;
     ImVec2             QueryStart;
@@ -270,18 +290,18 @@ struct ImPlotState
 struct ImPlotNextPlotData
 {
     ImGuiCond   XRangeCond;
-    ImGuiCond   YRangeCond[MAX_Y_AXES];
+    ImGuiCond   YRangeCond[IMPLOT_Y_AXES];
     ImPlotRange X;
-    ImPlotRange Y[MAX_Y_AXES];
+    ImPlotRange Y[IMPLOT_Y_AXES];
     bool        HasXRange;
-    bool        HasYRange[MAX_Y_AXES];
+    bool        HasYRange[IMPLOT_Y_AXES];
     bool        ShowDefaultTicksX;
-    bool        ShowDefaultTicksY[MAX_Y_AXES];
+    bool        ShowDefaultTicksY[IMPLOT_Y_AXES];
 
     ImPlotNextPlotData() {
         HasXRange         = false;
         ShowDefaultTicksX = true;
-        for (int i = 0; i < MAX_Y_AXES; ++i) {
+        for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
             HasYRange[i]         = false;
             ShowDefaultTicksY[i] = true;
         }
@@ -316,30 +336,30 @@ struct ImPlotContext {
 
     // Axis States
     ImPlotAxisColor Col_X;
-    ImPlotAxisColor Col_Y[MAX_Y_AXES];
+    ImPlotAxisColor Col_Y[IMPLOT_Y_AXES];
     ImPlotAxisState X;
-    ImPlotAxisState Y[MAX_Y_AXES];
+    ImPlotAxisState Y[IMPLOT_Y_AXES];
 
     // Tick Marks and Labels
     ImVector<ImPlotTick> XTicks;
-    ImVector<ImPlotTick> YTicks[MAX_Y_AXES];
+    ImVector<ImPlotTick> YTicks[IMPLOT_Y_AXES];
     ImGuiTextBuffer      XTickLabels;
-    ImGuiTextBuffer      YTickLabels[MAX_Y_AXES];
-    float                AxisLabelReference[MAX_Y_AXES];
+    ImGuiTextBuffer      YTickLabels[IMPLOT_Y_AXES];
+    float                AxisLabelReference[IMPLOT_Y_AXES];
 
     // Transformations and Data Extents
-    ImRect      PixelRange[MAX_Y_AXES];
+    ImRect      PixelRange[IMPLOT_Y_AXES];
     double      Mx;
-    double      My[MAX_Y_AXES];
+    double      My[IMPLOT_Y_AXES];
     double      LogDenX;
-    double      LogDenY[MAX_Y_AXES];
+    double      LogDenY[IMPLOT_Y_AXES];
     ImPlotRange ExtentsX;
-    ImPlotRange ExtentsY[MAX_Y_AXES];
+    ImPlotRange ExtentsY[IMPLOT_Y_AXES];
 
     // Data Fitting Flags
     bool FitThisFrame;
     bool FitX;
-    bool FitY[MAX_Y_AXES];
+    bool FitY[IMPLOT_Y_AXES];
 
     // Hover states
     bool Hov_Frame;
@@ -347,7 +367,7 @@ struct ImPlotContext {
 
     // Axis Rendering Flags
     bool RenderX;
-    bool RenderY[MAX_Y_AXES];
+    bool RenderY[IMPLOT_Y_AXES];
 
     // Axis Locking Flags
     bool LockPlot;
@@ -366,7 +386,7 @@ struct ImPlotContext {
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
     ImPlotInputMap     InputMap;
-    ImPlotPoint        LastMousePos[MAX_Y_AXES];
+    ImPlotPoint        LastMousePos[IMPLOT_Y_AXES];
 };
 
 struct ImPlotAxisScale 
@@ -422,8 +442,13 @@ void AddDefaultTicks(const ImPlotRange& range, int nMajor, int nMinor, bool logs
 void AddCustomTicks(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer);
 // Creates label information for a list of ImPlotTick
 void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, ImGuiTextBuffer& buffer);
-// Calculates the maximum width of a list of ImPlotTick
-float MaxTickLabelWidth(ImVector<ImPlotTick>& ticks);
+// Gets the widest visible (i.e. ShowLabel = true) label size from a list of ticks
+float MaxTickLabelWidth(const ImVector<ImPlotTick>& ticks);
+// Sums the widths of visible ticks (i.e. ShowLabel = true) ticks
+float SumTickLabelWidth(const ImVector<ImPlotTick>& ticks);
+// Sums the heights of visible (i.e. ShowLabel = true) ticks
+float SumTickLabelHeight(const ImVector<ImPlotTick>& ticks);
+
 // Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
 double NiceNum(double x, bool round);
 

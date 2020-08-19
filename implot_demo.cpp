@@ -762,7 +762,7 @@ void ShowDemoWindow(bool* p_open) {
             }
         }
         ImPlot::SetNextPlotLimitsX((double)t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##DND", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu | ImPlotFlags_NoChild | ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
+        if (ImPlot::BeginPlot("##DND", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu | ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
             for (int i = 0; i < K_CHANNELS; ++i) {
                 if (show[i] && data[i].Data.size() > 0) {
                     char label[K_CHANNELS];
