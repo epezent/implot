@@ -600,6 +600,11 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::ColorEdit4("##Col2", &y2_col.x, ImGuiColorEditFlags_NoInputs);
         ImGui::SameLine();
         ImGui::ColorEdit4("##Col3", &y3_col.x, ImGuiColorEditFlags_NoInputs);
+        // you can fit axes programatically 
+        ImGui::SameLine(); if (ImGui::Button("Fit X"))  ImPlot::FitNextPlotAxes(true, false, false, false);
+        ImGui::SameLine(); if (ImGui::Button("Fit Y"))  ImPlot::FitNextPlotAxes(false, true, false, false);
+        ImGui::SameLine(); if (ImGui::Button("Fit Y2")) ImPlot::FitNextPlotAxes(false, false, true, false);
+        ImGui::SameLine(); if (ImGui::Button("Fit Y3")) ImPlot::FitNextPlotAxes(false, false, false, true);
         for (int i = 0; i < 1001; ++i) {
             xs[i]  = (i*0.1f);
             ys1[i] = Sin(xs[i]) * 3 + 1;
