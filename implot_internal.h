@@ -299,13 +299,17 @@ struct ImPlotNextPlotData
     bool        HasYRange[IMPLOT_Y_AXES];
     bool        ShowDefaultTicksX;
     bool        ShowDefaultTicksY[IMPLOT_Y_AXES];
+    bool        FitX;
+    bool        FitY[IMPLOT_Y_AXES];
 
     ImPlotNextPlotData() {
         HasXRange         = false;
         ShowDefaultTicksX = true;
+        FitX              = false;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
             HasYRange[i]         = false;
             ShowDefaultTicksY[i] = true;
+            FitY[i]              = false;
         }
     }
 };

@@ -227,7 +227,8 @@ void Reset(ImPlotContext* ctx) {
         ctx->YTicks[i].shrink(0);
         ctx->YTickLabels[i].Buf.shrink(0);
     }
-    // reset extents
+    // reset extents/fit
+    ctx->FitThisFrame = false;
     ctx->FitX = false;
     ctx->ExtentsX.Min = HUGE_VAL;
     ctx->ExtentsX.Max = -HUGE_VAL;
@@ -971,19 +972,25 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.QueryRect = ImRect(0,0,0,0);
     }
 
-    // DOUBLE CLICK -----------------------------------------------------------
+    // FIT -----------------------------------------------------------
 
-    if ( IO.MouseDoubleClicked[gp.InputMap.FitButton] && gp.Hov_Frame && (plot.XAxis.HoveredTot || any_hov_y_axis_region) && !hov_legend && !hov_query) {
+    // fit from double click
+    if ( IO.MouseDoubleClicked[gp.InputMap.FitButton] && gp.Hov_Frame && (plot.XAxis.HoveredTot || any_hov_y_axis_region) && !hov_legend && !hov_query ) {
         gp.FitThisFrame = true;
         gp.FitX = plot.XAxis.HoveredTot;
         for (int i = 0; i < IMPLOT_Y_AXES; i++) 
             gp.FitY[i] = plot.YAxis[i].HoveredTot;        
     }
-    else {
-        gp.FitThisFrame = false;
-        gp.FitX = false;
-        for (int i = 0; i < IMPLOT_Y_AXES; i++) 
-            gp.FitY[i] = false;        
+    // fit from FitNextPlotAxes
+    if (gp.NextPlotData.FitX) {
+        gp.FitThisFrame = true;
+        gp.FitX         = true;
+    }
+    for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+        if (gp.NextPlotData.FitY[i]) {
+            gp.FitThisFrame = true;
+            gp.FitY[i]      = true;
+        }
     }
 
     // FOCUS ------------------------------------------------------------------
@@ -1552,6 +1559,15 @@ void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond, int y_axis) 
     gp.NextPlotData.YRangeCond[y_axis] = cond;
     gp.NextPlotData.Y[y_axis].Min = y_min;
     gp.NextPlotData.Y[y_axis].Max = y_max;
+}
+
+void FitNextPlotAxes(bool x, bool y, bool y2, bool y3) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "FitNextPlotAxes() needs to be called before BeginPlot()!");
+    gp.NextPlotData.FitX = x;
+    gp.NextPlotData.FitY[0] = y;
+    gp.NextPlotData.FitY[1] = y2;
+    gp.NextPlotData.FitY[2] = y3;
 }
 
 void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels, bool show_default) {
