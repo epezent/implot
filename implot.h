@@ -382,7 +382,7 @@ void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, I
 void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_Once);
 // Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
 void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
-// Fits the next plot axes if they are unlocked.
+// Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
 void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true);
 
 // Set the X axis ticks and optionally the labels for the next plot.
