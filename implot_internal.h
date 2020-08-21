@@ -63,7 +63,8 @@ extern ImPlotContext* GImPlot; // Current implicit context pointer
 // [SECTION] Macros and Constants
 //-----------------------------------------------------------------------------
 
-// Constants can be changed unless stated otherwise
+// Constants can be changed unless stated otherwise. We may move some of these
+// to ImPlotStyleVar_ over time.
 
 // Default plot frame width when requested width is auto (i.e. 0). This is not the plot area width!
 #define IMPLOT_DEFAULT_W  400

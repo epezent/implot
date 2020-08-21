@@ -33,8 +33,11 @@
 
 namespace MyImPlot {
 
-// Example for Custom Plotters and Tooltips section. Plots a candlestick chart for financial data. See implementatoin at bottom. 
+// Example for Custom Plotters and Tooltips section. Plots a candlestick chart for financial data. See implementation at bottom. 
 void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip = true, float width_percent = 0.25f, ImVec4 bullCol = ImVec4(0,1,0,1), ImVec4 bearCol = ImVec4(1,0,0,1));
+
+// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom. 
+void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size);
 
 }
 
@@ -404,7 +407,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SameLine();
         ImGui::LabelText("##Colormap Index", "%s", cmap_names[map]);
         ImGui::SetNextItemWidth(225);
-        ImGui::DragFloat("Max",&scale_max,0.01f,0.1f,20);
+        ImGui::DragFloatRange2("Min / Max",&scale_min, &scale_max, 0.01f, -20, 20);
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax | ImPlotAxisFlags_TickLabels;
         static const char* xlabels[] = {"C1","C2","C3","C4","C5","C6","C7"};
         static const char* ylabels[] = {"R1","R2","R3","R4","R5","R6","R7"};
@@ -915,6 +918,45 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::EndDragDropTarget();
         }
     }
+    if (ImGui::CollapsingHeader("Tables")) {
+#ifdef IMGUI_HAS_TABLE
+        static ImGuiTableFlags flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_RowBg;
+        static bool anim = true;
+        static int offset = 0;
+        ImGui::BulletText("Plots can be used inside of ImGui tables.");
+        ImGui::Checkbox("Animate",&anim);
+        if (anim)
+            offset = (offset + 1) % 100;
+        if (ImGui::BeginTable("##table", 3, flags, ImVec2(-1,0))) { 
+            ImGui::TableSetupColumn("Electrode", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+            ImGui::TableSetupColumn("Voltage", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+            ImGui::TableSetupColumn("EMG Signal");
+            ImGui::TableAutoHeaders();
+            ImPlot::SetColormap(ImPlotColormap_Cool, 10);
+
+            for (int row = 0; row < 10; row++)
+            {
+                ImGui::TableNextRow();
+                static float data[100];
+                srand(row);
+                for (int i = 0; i < 100; ++i)
+                    data[i] = RandomRange(0,10);
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("EMG %d", row);
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%.3f V", data[offset]);
+                ImGui::TableSetColumnIndex(2);
+                ImGui::PushID(row);
+                MyImPlot::Sparkline("##spark",data,100,0,11.0f,offset,ImPlot::GetColormapColor(row),ImVec2(-1, 35));
+                ImGui::PopID();
+            }
+            ImPlot::SetColormap(ImPlotColormap_Default);
+            ImGui::EndTable();
+        }
+#else
+    ImGui::BulletText("You need to merge the ImGui 'tables' branch for this section.");
+#endif
+    }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Offset and Stride")) {
         static const int k_circles    = 11;
@@ -1036,7 +1078,7 @@ void ShowDemoWindow(bool* p_open) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 50, tooltip);
             ImPlot::EndPlot();
         }
-    }
+    }    
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Benchmark")) {
         static const int n_items = 100;
@@ -1140,6 +1182,22 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
             break;
         }
     }
+}
+
+// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom. 
+void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size) {
+    ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
+    ImPlot::SetNextPlotLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
+    if (ImPlot::BeginPlot(id,0,0,size,ImPlotFlags_NoChild,0,0,0,0)) {
+        ImPlot::PushStyleColor(ImPlotCol_Line, col);
+        ImPlot::PlotLine(id, values, count, offset);
+        ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+        ImPlot::PlotShaded(id, values, count, 0, offset);
+        ImPlot::PopStyleVar();
+        ImPlot::PopStyleColor();
+        ImPlot::EndPlot();
+    }
+    ImPlot::PopStyleVar();
 }
 
 }

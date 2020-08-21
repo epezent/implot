@@ -102,6 +102,7 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_ErrorBarWeight,   // float, error bar whisker weight in pixels
     ImPlotStyleVar_DigitalBitHeight, // float, digital channels bit height (at 1) in pixels
     ImPlotStyleVar_DigitalBitGap,    // float, digital channels bit padding gap in pixels
+    ImPlotStyleVar_PlotPadding,      // ImVec2, padding between widget frame and plot area and/or labels
     ImPlotStyleVar_COUNT
 };
 
@@ -174,6 +175,7 @@ struct ImPlotStyle {
     float        ErrorBarWeight;          // = 1.5, error bar whisker weight in pixels
     float        DigitalBitHeight;        // = 8, digital channels bit height (at y = 1.0f) in pixels
     float        DigitalBitGap;           // = 4, digital channels bit padding gap in pixels
+    ImVec2       PlotPadding;             // = (8,8), padding between widget frame and plot area and/or labels
     ImVec4       Colors[ImPlotCol_COUNT]; // array of plot specific colors
     ImPlotStyle();
 };
@@ -259,10 +261,12 @@ void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int o
 void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 // Plots a shaded (filled) region between two lines, or a line and a horizontal reference.
-void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset = 0, int stride = sizeof(float));
-void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset = 0, int stride = sizeof(double));
+void PlotShaded(const char* label_id, const float* values, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
+void PlotShaded(const char* label_id, const double* values, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
 void PlotShaded(const char* label_id, const float* xs, const float* ys, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
 void PlotShaded(const char* label_id, const double* xs, const double* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
+void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset = 0, int stride = sizeof(float));
+void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset = 0, int stride = sizeof(double));
 
 // Plots a vertical bar graph. #width and #shift are in X units.
 void PlotBars(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
@@ -356,6 +360,8 @@ void PopStyleColor(int count = 1);
 void PushStyleVar(ImPlotStyleVar idx, float val);
 // Temporarily modify a style variable of int type. Don't forget to call PopStyleVar!
 void PushStyleVar(ImPlotStyleVar idx, int val);
+// Temporarily modify a style variable of ImVec2 type. Don't forget to call PopStyleVar!
+void PushStyleVar(ImPlotStyleVar idx, const ImVec2& val);
 // Undo temporary style modification.
 void PopStyleVar(int count = 1);
 

@@ -88,7 +88,18 @@ struct GetterXsYs {
     }
 };
 
-/// Interprets an array of X points as ImPlotPoints where the Y value is a constant reference value
+// Always returns a constant Y reference value where the X value is the index
+template <typename T>
+struct GetterYRef {
+    GetterYRef(T y_ref, int count) { YRef = y_ref; Count = count; }
+    inline ImPlotPoint operator()(int idx) {
+        return ImPlotPoint((T)idx, YRef);
+    }
+    T YRef;
+    int Count;
+};
+
+// Interprets an array of X points as ImPlotPoints where the Y value is a constant reference value
 template <typename T>
 struct GetterXsYRef {
     GetterXsYRef(const T* xs, T y_ref, int count, int offset, int stride) {
@@ -799,6 +810,12 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
 }
 
 // float
+
+void PlotShaded(const char* label_id, const float* values, int count, float y_ref, int offset, int stride) {
+    GetterYs<float> getter1(values,count,offset,stride);
+    GetterYRef<float> getter2(y_ref, count);
+    PlotShadedEx(label_id, getter1, getter2);}
+
 void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset, int stride) {
     GetterXsYs<float> getter1(xs, ys1, count, offset, stride);
     GetterXsYs<float> getter2(xs, ys2, count, offset, stride);
@@ -812,6 +829,12 @@ void PlotShaded(const char* label_id, const float* xs, const float* ys, int coun
 }
 
 // double
+void PlotShaded(const char* label_id, const double* values, int count, double y_ref, int offset, int stride) {
+    GetterYs<double> getter1(values,count,offset,stride);
+    GetterYRef<double> getter2(y_ref, count);
+    PlotShadedEx(label_id, getter1, getter2);
+}
+
 void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride) {
     GetterXsYs<double> getter1(xs, ys1, count, offset, stride);
     GetterXsYs<double> getter2(xs, ys2, count, offset, stride);
