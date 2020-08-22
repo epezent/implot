@@ -113,7 +113,7 @@ inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
 // Offset calculator helper
 template <int Count>
 struct ImOffsetCalculator {
-    ImOffsetCalculator(int* sizes) {
+    ImOffsetCalculator(const int* sizes) {
         Offsets[0] = 0;
         for (int i = 1; i < Count; ++i)
             Offsets[i] = Offsets[i-1] + sizes[i-1];
@@ -156,6 +156,16 @@ struct ImArray {
 //-----------------------------------------------------------------------------
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
+
+// Storage for colormap modifiers 
+struct ImPlotColormapMod {
+    ImPlotColormapMod(const ImVec4* colormap, int colormap_size) {
+        Colormap     = colormap; 
+        ColormapSize = colormap_size;
+    }
+    const ImVec4* Colormap;
+    int ColormapSize;
+};
 
 // ImPlotPoint with positive/negative error values
 struct ImPlotPointError 
@@ -381,11 +391,12 @@ struct ImPlotContext {
     bool ChildWindowMade;
 
     // Style and Colormaps
-    ImPlotStyle             Style;
-    ImVector<ImGuiColorMod> ColorModifiers;
-    ImVector<ImGuiStyleMod> StyleModifiers;
-    ImVec4*                 Colormap;
-    int                     ColormapSize;
+    ImPlotStyle                 Style;
+    ImVector<ImGuiColorMod>     ColorModifiers;
+    ImVector<ImGuiStyleMod>     StyleModifiers;
+    const ImVec4*               Colormap;
+    int                         ColormapSize;
+    ImVector<ImPlotColormapMod> ColormapModifiers;
 
     // Misc
     int                VisibleItemCount;
@@ -458,13 +469,8 @@ float SumTickLabelHeight(const ImVector<ImPlotTick>& ticks);
 
 // Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
 double NiceNum(double x, bool round);
-
 // Updates axis ticks, lins, and label colors
 void UpdateAxisColor(int axis_flag, ImPlotAxisColor* col);
-// Sets the colormap for a particular ImPlotContext
-void SetColormapEx(ImPlotColormap colormap, int samples, ImPlotContext* ctx);
-void SetColormapEx(const ImVec4* colors, int num_colors, ImPlotContext* ctx);
-
 // Draws vertical text. The position is the bottom left of the text rect.
 void AddTextVertical(ImDrawList *DrawList, const char *text, ImVec2 pos, ImU32 text_color);
 // Calculates the size of vertical text
@@ -513,10 +519,15 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
 }
 
+// Get built-in colormap data and size
+const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out);
+// Linearly interpolates a color from the current colormap given t between 0 and 1.
+ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
+// Resamples a colormap. #size_out must be greater than 1. 
+void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
+
 // Returns true if a style color is set to be automaticaly determined
-inline bool ColorIsAuto(ImPlotCol idx) {
-    return GImPlot->Style.Colors[idx].w == -1;
-}
+inline bool ColorIsAuto(ImPlotCol idx) { return GImPlot->Style.Colors[idx].w == -1; }
 
 // Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
 inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {

@@ -375,7 +375,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
-        ImPlot::SetColormap(ImPlotColormap_Cool, 5);
+        ImPlot::PushColormap(ImPlotColormap_Pastel);
         SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         static const char* labels2[]   = {"A","B","C","D","E"};
         static t_float data2[] = {1,1,2,3,5};
@@ -383,7 +383,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotPieChart(labels2, data2, 5, 0.5f, 0.5f, 0.4f, true, "%.0f", 180);
             ImPlot::EndPlot();
         }
-        ImPlot::SetColormap(ImPlotColormap_Default);
+        ImPlot::PopColormap();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Heatmaps")) {
@@ -403,7 +403,7 @@ void ShowDemoWindow(bool* p_open) {
         static ImPlotColormap map = ImPlotColormap_Viridis;
         if (ImGui::Button("Change Colormap",ImVec2(225,0)))
             map = (map + 1) % ImPlotColormap_COUNT;
-        ImPlot::SetColormap(map);
+        ImPlot::PushColormap(map);
         ImGui::SameLine();
         ImGui::LabelText("##Colormap Index", "%s", cmap_names[map]);
         ImGui::SetNextItemWidth(225);
@@ -421,17 +421,17 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImGui::SameLine();
         ImPlot::ShowColormapScale(scale_min, scale_max, 225);
-        ImPlot::SetColormap(ImPlotColormap_Default);
+        ImPlot::PopColormap();
         ImGui::SameLine();
         static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
-        ImPlot::SetColormap(&gray[0], 2);
+        ImPlot::PushColormap(&gray[0], 2);
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
         if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),ImPlotFlags_ContextMenu,0,0)) {
             ImPlot::PlotHeatmap("heat1",values2,100,100,0,1,NULL);
             ImPlot::PlotHeatmap("heat2",values2,100,100,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
             ImPlot::EndPlot();
         }
-        ImPlot::SetColormap(ImPlotColormap_Default);
+        ImPlot::PopColormap();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Realtime Plots")) {
@@ -485,7 +485,7 @@ void ShowDemoWindow(bool* p_open) {
         if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, mk_size);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerWeight, mk_weight);
-            ImPlot::SetColormap(map);
+            ImPlot::PushColormap(map);
             t_float xs[2] = {1,4};
             t_float ys[2] = {10,11};
             // filled
@@ -558,7 +558,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotText("Fancy Markers", 5.0f, 6.0f, true);
             ImGui::PopStyleColor();
 
-            ImPlot::SetColormap(ImPlotColormap_Default);
+            ImPlot::PopColormap();
 
             ImPlot::EndPlot();
         }
@@ -932,7 +932,7 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::TableSetupColumn("Voltage", ImGuiTableColumnFlags_WidthFixed, 75.0f);
             ImGui::TableSetupColumn("EMG Signal");
             ImGui::TableAutoHeaders();
-            ImPlot::SetColormap(ImPlotColormap_Cool, 10);
+            ImPlot::PushColormap(ImPlotColormap_Cool);
 
             for (int row = 0; row < 10; row++)
             {
@@ -950,7 +950,7 @@ void ShowDemoWindow(bool* p_open) {
                 MyImPlot::Sparkline("##spark",data,100,0,11.0f,offset,ImPlot::GetColormapColor(row),ImVec2(-1, 35));
                 ImGui::PopID();
             }
-            ImPlot::SetColormap(ImPlotColormap_Default);
+            ImPlot::PopColormap();
             ImGui::EndTable();
         }
 #else
@@ -979,14 +979,14 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("Offsets can be negative and/or larger than the actual data count.");
         ImGui::SliderInt("Offset", &offset, -2*k_points_per, 2*k_points_per);
         if (ImPlot::BeginPlot("##strideoffset")) {
-            ImPlot::SetColormap(ImPlotColormap_Jet);
+            ImPlot::PushColormap(ImPlotColormap_Jet);
             char buff[16];
             for (int c = 0; c < k_circles; ++c) {
                 sprintf(buff, "Circle %d", c);
                 ImPlot::PlotLine(buff, &interleaved_data[c*2 + 0], &interleaved_data[c*2 + 1], k_points_per, offset, 2*k_circles*sizeof(t_float));
             }
             ImPlot::EndPlot();
-            ImPlot::SetColormap(ImPlotColormap_Default);
+            ImPlot::PopColormap();
         }
         // offset++; uncomment for animation!
     }
@@ -1024,7 +1024,7 @@ void ShowDemoWindow(bool* p_open) {
             ImVec4(0.996f, 0.278f, 0.380f, 1.0f),
             ImVec4(0.1176470593f, 0.5647059083f, 1.0f, 1.0f),
         };
-        ImPlot::SetColormap(my_map, 3);
+        ImPlot::PushColormap(my_map, 3);
         ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(32,51,77,255));
         ImPlot::PushStyleColor(ImPlotCol_PlotBg, ImVec4(0,0,0,0));
         ImPlot::PushStyleColor(ImPlotCol_PlotBorder, ImVec4(0,0,0,0));
@@ -1046,7 +1046,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImPlot::PopStyleColor(5);
         ImPlot::PopStyleVar();
-        ImPlot::SetColormap(ImPlotColormap_Default);
+        ImPlot::PopColormap();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Rendering")) {

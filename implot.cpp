@@ -206,7 +206,7 @@ void SetCurrentContext(ImPlotContext* ctx) {
 
 void Initialize(ImPlotContext* ctx) {
     Reset(ctx);
-    SetColormapEx(ImPlotColormap_Default, 0, ctx);
+    ctx->Colormap = GetColormap(ImPlotColormap_Default, &ctx->ColormapSize);
 }
 
 void Reset(ImPlotContext* ctx) {
@@ -1842,98 +1842,58 @@ void PopStyleVar(int count) {
 // COLORMAPS
 //------------------------------------------------------------------------------
 
-// Returns the size of the current colormap
-int GetColormapSize() {
+
+void PushColormap(ImPlotColormap colormap) {
     ImPlotContext& gp = *GImPlot;
-    return gp.ColormapSize;
+    gp.ColormapModifiers.push_back(ImPlotColormapMod(gp.Colormap, gp.ColormapSize));
+    gp.Colormap = GetColormap(colormap, &gp.ColormapSize);
 }
 
-// Returns a color from the Color map given an index > 0
-ImVec4 GetColormapColor(int index) {
+void PushColormap(const ImVec4* colormap, int size) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(index >= 0, "The Colormap index must be greater than zero!");
-    return gp.Colormap[index % gp.ColormapSize];
+    gp.ColormapModifiers.push_back(ImPlotColormapMod(gp.Colormap, gp.ColormapSize));
+    gp.Colormap = colormap;
+    gp.ColormapSize = size;
 }
 
-ImVec4 LerpColormap(float t) {
+void PopColormap(int count) {
     ImPlotContext& gp = *GImPlot;
-    float tc = ImClamp(t,0.0f,1.0f);
-    int i1 = (int)((gp.ColormapSize -1 ) * tc);
-    int i2 = i1 + 1;
-    if (i2 == gp.ColormapSize)
-        return gp.Colormap[i1];
-    float t1 = (float)i1 / (float)(gp.ColormapSize - 1);
-    float t2 = (float)i2 / (float)(gp.ColormapSize - 1);
-    float tr = ImRemap(t, t1, t2, 0.0f, 1.0f);
-    return ImLerp(gp.Colormap[i1], gp.Colormap[i2], tr);
-}
-
-ImVec4 NextColormapColor() {
-    ImPlotContext& gp = *GImPlot;
-    ImVec4 col  = gp.Colormap[gp.CurrentPlot->ColormapIdx % gp.ColormapSize];
-    gp.CurrentPlot->ColormapIdx++;
-    return col;
-}
-
-void ShowColormapScale(double scale_min, double scale_max, float height) {
-    ImPlotContext& gp = *GImPlot;
-    static ImVector<ImPlotTick> ticks;
-    static ImGuiTextBuffer txt_buff;
-    ImPlotRange range;
-    range.Min = scale_min;
-    range.Max = scale_max;
-    ticks.shrink(0);
-    txt_buff.Buf.shrink(0);
-    AddDefaultTicks(range, 10, 0, false, ticks);
-    LabelTicks(ticks, false, txt_buff);
-    float max_width = 0;
-    for (int i = 0; i < ticks.Size; ++i)
-        max_width = ticks[i].LabelSize.x > max_width ? ticks[i].LabelSize.x : max_width;
-
-    ImGuiContext &G      = *GImGui;
-    ImGuiWindow * Window = G.CurrentWindow;
-    if (Window->SkipItems)
-        return;
-    const ImGuiStyle &Style    = G.Style;
-    const float txt_off = 5;
-    const float bar_w   = 20;
-
-    ImDrawList &DrawList = *Window->DrawList;
-    ImVec2 size(bar_w + txt_off + max_width + 2 * gp.Style.PlotPadding.x, height);
-    ImRect bb_frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + size);
-    ImGui::ItemSize(bb_frame);
-    if (!ImGui::ItemAdd(bb_frame, 0, &bb_frame))
-        return;
-    ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, ImGui::GetColorU32(ImGuiCol_FrameBg));
-    ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding, bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x, height - gp.Style.PlotPadding.y));
-
-    int num_cols = GetColormapSize();
-    float h_step = (height - 2 * gp.Style.PlotPadding.y) / (num_cols - 1);
-    for (int i = 0; i < num_cols-1; ++i) {
-        ImRect rect(bb_grad.Min.x, bb_grad.Min.y + h_step * i, bb_grad.Max.x, bb_grad.Min.y + h_step * (i + 1));
-        ImU32 col1 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - i));
-        ImU32 col2 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - (i+1)));
-        DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col1, col2, col2);
+    while (count > 0) {
+        const ImPlotColormapMod& backup = gp.ColormapModifiers.back();
+        gp.Colormap     = backup.Colormap;
+        gp.ColormapSize = backup.ColormapSize;
+        gp.ColormapModifiers.pop_back();
+        count--;
     }
-    ImU32 col_border = gp.Style.Colors[ImPlotCol_PlotBorder].w  == -1 ? ImGui::GetColorU32(ImGuiCol_Text, 0.5f) : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_PlotBorder]);
-
-    ImGui::PushClipRect(bb_frame.Min, bb_frame.Max, true);
-    for (int i = 0; i < ticks.Size; ++i) {
-        float ypos = ImRemap((float)ticks[i].PlotPos, (float)range.Max, (float)range.Min, bb_grad.Min.y, bb_grad.Max.y);
-        if (ypos < bb_grad.Max.y - 2 && ypos > bb_grad.Min.y + 2)
-            DrawList.AddLine(ImVec2(bb_grad.Max.x-1, ypos), ImVec2(bb_grad.Max.x - (ticks[i].Major ? 10.0f : 5.0f), ypos), col_border, 1.0f);
-        DrawList.AddText(ImVec2(bb_grad.Max.x-1, ypos) + ImVec2(txt_off, -ticks[i].LabelSize.y * 0.5f), ImGui::GetColorU32(ImGuiCol_Text), txt_buff.Buf.Data + ticks[i].BufferOffset);
-    }
-    ImGui::PopClipRect();
-
-    DrawList.AddRect(bb_grad.Min, bb_grad.Max, col_border);
-
 }
 
-void SetColormapEx(ImPlotColormap colormap, int samples, ImPlotContext* ctx) {
-    static int csizes[ImPlotColormap_COUNT] = {10,9,9,12,11,11,11,11,11,11};
-    static ImOffsetCalculator<ImPlotColormap_COUNT> coffs(csizes);
-    static ImVec4 cdata[] = {
+void SetColormap(ImPlotColormap colormap, int samples) {
+    ImPlotContext& gp = *GImPlot;
+    gp.Colormap = GetColormap(colormap, &gp.ColormapSize);
+    if (samples > 1) {
+        static ImVector<ImVec4> resampled;
+        resampled.resize(samples);
+        ResampleColormap(gp.Colormap, gp.ColormapSize, &resampled[0], samples);
+        SetColormap(&resampled[0], samples);
+    }
+}
+
+void SetColormap(const ImVec4* colors, int size) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(size > 1, "The number of colors must be greater than 1!");
+    static ImVector<ImVec4> user_colormap;
+    user_colormap.shrink(0);
+    user_colormap.reserve(size);
+    for (int i = 0; i < size; ++i)
+        user_colormap.push_back(colors[i]);
+    gp.Colormap = &user_colormap[0];
+    gp.ColormapSize = size;
+}
+
+const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out) {
+    static const int csizes[ImPlotColormap_COUNT] = {10,9,9,12,11,11,11,11,11,11};
+    static const ImOffsetCalculator<ImPlotColormap_COUNT> coffs(csizes);
+    static const ImVec4 cdata[] = {
         // ImPlotColormap_Default                                  // X11 Named Colors
         ImVec4(0.0f, 0.7490196228f, 1.0f, 1.0f),                   // Blues::DeepSkyBlue,
         ImVec4(1.0f, 0.0f, 0.0f, 1.0f),                            // Reds::Red,
@@ -2051,36 +2011,106 @@ void SetColormapEx(ImPlotColormap colormap, int samples, ImPlotContext* ctx) {
         ImVec4(1.0000f,    0.3333f,        0.f, 1.0f),
         ImVec4(1.0000f,        0.f,        0.f, 1.0f)
     };
-    ctx->Colormap     = &cdata[coffs.Offsets[colormap]];
-    ctx->ColormapSize = csizes[colormap];
-    if (samples > 1) {
-        static ImVector<ImVec4> resampled;
-        resampled.resize(samples);
-        for (int i = 0; i < samples; ++i) {
-            float t = i * 1.0f / (samples - 1);
-            resampled[i] = LerpColormap(t);
-        }
-        SetColormapEx(&resampled[0], samples, ctx);
+    *size_out =  csizes[colormap];
+    return &cdata[coffs.Offsets[colormap]];
+}
+
+void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out) {
+    for (int i = 0; i < size_out; ++i) {
+        float t = i * 1.0f / (size_out - 1);
+        colormap_out[i] = LerpColormap(colormap_in, size_in, t);
     }
 }
 
-void SetColormapEx(const ImVec4* colors, int num_colors, ImPlotContext* ctx) {
-    IM_ASSERT_USER_ERROR(num_colors > 1, "The number of colors must be greater than 1!");
-    static ImVector<ImVec4> user_colormap;
-    user_colormap.shrink(0);
-    user_colormap.reserve(num_colors);
-    for (int i = 0; i < num_colors; ++i)
-        user_colormap.push_back(colors[i]);
-    ctx->Colormap = &user_colormap[0];
-    ctx->ColormapSize = num_colors;
+int GetColormapSize() {
+    ImPlotContext& gp = *GImPlot;
+    return gp.ColormapSize;
 }
 
-void SetColormap(ImPlotColormap colormap, int samples) {
-    SetColormapEx(colormap, samples, GImPlot);
+ImVec4 GetColormapColor(int index) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(index >= 0, "The Colormap index must be greater than zero!");
+    return gp.Colormap[index % gp.ColormapSize];
 }
 
-void SetColormap(const ImVec4* colors, int num_colors) {
-    SetColormapEx(colors, num_colors, GImPlot);
+ImVec4 LerpColormap(const ImVec4* colormap, int size, float t) {
+    float tc = ImClamp(t,0.0f,1.0f);
+    int i1 = (int)((size -1 ) * tc);
+    int i2 = i1 + 1;
+    if (i2 == size)
+        return colormap[i1];
+    float t1 = (float)i1 / (float)(size - 1);
+    float t2 = (float)i2 / (float)(size - 1);
+    float tr = ImRemap(t, t1, t2, 0.0f, 1.0f);
+    return ImLerp(colormap[i1], colormap[i2], tr);
 }
+
+ImVec4 LerpColormap(float t) {
+    ImPlotContext& gp = *GImPlot;
+    return LerpColormap(gp.Colormap, gp.ColormapSize, t);
+}
+
+ImVec4 NextColormapColor() {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "NextColormapColor() needs to be called between BeginPlot() and EndPlot()!");
+    ImVec4 col  = gp.Colormap[gp.CurrentPlot->ColormapIdx % gp.ColormapSize];
+    gp.CurrentPlot->ColormapIdx++;
+    return col;
+}
+
+void ShowColormapScale(double scale_min, double scale_max, float height) {
+    ImPlotContext& gp = *GImPlot;
+    static ImVector<ImPlotTick> ticks;
+    static ImGuiTextBuffer txt_buff;
+    ImPlotRange range;
+    range.Min = scale_min;
+    range.Max = scale_max;
+    ticks.shrink(0);
+    txt_buff.Buf.shrink(0);
+    AddDefaultTicks(range, 10, 0, false, ticks);
+    LabelTicks(ticks, false, txt_buff);
+    float max_width = 0;
+    for (int i = 0; i < ticks.Size; ++i)
+        max_width = ticks[i].LabelSize.x > max_width ? ticks[i].LabelSize.x : max_width;
+
+    ImGuiContext &G      = *GImGui;
+    ImGuiWindow * Window = G.CurrentWindow;
+    if (Window->SkipItems)
+        return;
+    const ImGuiStyle &Style    = G.Style;
+    const float txt_off = 5;
+    const float bar_w   = 20;
+
+    ImDrawList &DrawList = *Window->DrawList;
+    ImVec2 size(bar_w + txt_off + max_width + 2 * gp.Style.PlotPadding.x, height);
+    ImRect bb_frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + size);
+    ImGui::ItemSize(bb_frame);
+    if (!ImGui::ItemAdd(bb_frame, 0, &bb_frame))
+        return;
+    ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, ImGui::GetColorU32(ImGuiCol_FrameBg));
+    ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding, bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x, height - gp.Style.PlotPadding.y));
+
+    int num_cols = GetColormapSize();
+    float h_step = (height - 2 * gp.Style.PlotPadding.y) / (num_cols - 1);
+    for (int i = 0; i < num_cols-1; ++i) {
+        ImRect rect(bb_grad.Min.x, bb_grad.Min.y + h_step * i, bb_grad.Max.x, bb_grad.Min.y + h_step * (i + 1));
+        ImU32 col1 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - i));
+        ImU32 col2 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - (i+1)));
+        DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col1, col2, col2);
+    }
+    ImU32 col_border = gp.Style.Colors[ImPlotCol_PlotBorder].w  == -1 ? ImGui::GetColorU32(ImGuiCol_Text, 0.5f) : ImGui::GetColorU32(gp.Style.Colors[ImPlotCol_PlotBorder]);
+
+    ImGui::PushClipRect(bb_frame.Min, bb_frame.Max, true);
+    for (int i = 0; i < ticks.Size; ++i) {
+        float ypos = ImRemap((float)ticks[i].PlotPos, (float)range.Max, (float)range.Min, bb_grad.Min.y, bb_grad.Max.y);
+        if (ypos < bb_grad.Max.y - 2 && ypos > bb_grad.Min.y + 2)
+            DrawList.AddLine(ImVec2(bb_grad.Max.x-1, ypos), ImVec2(bb_grad.Max.x - (ticks[i].Major ? 10.0f : 5.0f), ypos), col_border, 1.0f);
+        DrawList.AddText(ImVec2(bb_grad.Max.x-1, ypos) + ImVec2(txt_off, -ticks[i].LabelSize.y * 0.5f), ImGui::GetColorU32(ImGuiCol_Text), txt_buff.Buf.Data + ticks[i].BufferOffset);
+    }
+    ImGui::PopClipRect();
+
+    DrawList.AddRect(bb_grad.Min, bb_grad.Max, col_border);
+}
+
 
 }  // namespace ImPlot

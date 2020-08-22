@@ -847,6 +847,13 @@ void PlotShaded(const char* label_id, const double* xs, const double* ys, int co
     PlotShadedEx(label_id, getter1, getter2);
 }
 
+// custom
+void PlotShaded(const char* label_id, ImPlotPoint (*g1)(void* data, int idx), void* data1, ImPlotPoint (*g2)(void* data, int idx), void* data2, int count, int offset) {
+    GetterFuncPtrImPlotPoint getter1(g1, data1, count, offset);
+    GetterFuncPtrImPlotPoint getter2(g2, data2, count, offset);
+    PlotShadedEx(label_id, getter1, getter2);
+}
+
 //-----------------------------------------------------------------------------
 // PLOT BAR V
 //-----------------------------------------------------------------------------

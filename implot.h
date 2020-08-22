@@ -267,6 +267,7 @@ void PlotShaded(const char* label_id, const float* xs, const float* ys, int coun
 void PlotShaded(const char* label_id, const double* xs, const double* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
 void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset = 0, int stride = sizeof(float));
 void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset = 0, int stride = sizeof(double));
+void PlotShaded(const char* label_id, ImPlotPoint (*getter1)(void* data, int idx), void* data1, ImPlotPoint (*getter2)(void* data, int idx), void* data2, int count, int offset = 0);
 
 // Plots a vertical bar graph. #width and #shift are in X units.
 void PlotBars(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
@@ -340,7 +341,7 @@ bool IsLegendEntryHovered(const char* label_id);
 ImPlotInputMap& GetInputMap();
 
 //-----------------------------------------------------------------------------
-// Plot Styling and Behaviour
+// Plot Styling and Colormaps
 //-----------------------------------------------------------------------------
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
@@ -365,17 +366,24 @@ void PushStyleVar(ImPlotStyleVar idx, const ImVec2& val);
 // Undo temporary style modification.
 void PopStyleVar(int count = 1);
 
-// Switch to one of the built-in colormaps. If samples is greater than 1, the map will be linearly resampled.
+// Temporarily switch to one of the built-in colormaps.
+void PushColormap(ImPlotColormap colormap);
+// Temporarily switch to your custom colormap. The pointer data must persist until the matching call to PopColormap. 
+void PushColormap(const ImVec4* colormap, int size); 
+// Undo temporary colormap modification.
+void PopColormap(int count = 1);
+// Permanently sets a custom colormap. The colors will be copied to internal memory. Prefer PushColormap instead of calling this each frame.
+void SetColormap(const ImVec4* colormap, int size);
+// Permanently switch to one of the built-in colormaps. If samples is greater than 1, the map will be linearly resampled. Don't call this each frame.
 void SetColormap(ImPlotColormap colormap, int samples = 0);
-// Sets a custom colormap.
-void SetColormap(const ImVec4* colors, int num_colors);
+
 // Returns the size of the current colormap.
 int GetColormapSize();
 // Returns a color from the Color map given an index >= 0 (modulo will be performed)
 ImVec4 GetColormapColor(int index);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(float t);
-// Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
+// Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired. Call between BeginPlot/EndPlot.
 ImVec4 NextColormapColor();
 
 //-----------------------------------------------------------------------------
