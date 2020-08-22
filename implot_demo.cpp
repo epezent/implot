@@ -1140,16 +1140,6 @@ void ShowDemoWindow(bool* p_open) {
 
 } // namespace ImPlot
 
-// WARNING:
-//
-// You can use "implot_internal.h" to build custom plotting fuctions or extend ImPlot.
-// However, note that forward compatibility of this file is not guaranteed and the
-// internal API is subject to change. At some point we hope to bring more of this
-// into the public API and expose the necessary building blocks to fully support
-// custom plotters. For now, proceed at your own risk!
-
-#include <implot_internal.h>
-
 namespace MyImPlot {
 
 ImPlotPoint SineWave(void* data , int idx) {
@@ -1190,6 +1180,20 @@ void Sparkline(const char* id, const float* values, int count, float min_v, floa
     }
     ImPlot::PopStyleVar();
 }
+
+} // namespaece MyImPlot
+
+// WARNING:
+//
+// You can use "implot_internal.h" to build custom plotting fuctions or extend ImPlot.
+// However, note that forward compatibility of this file is not guaranteed and the
+// internal API is subject to change. At some point we hope to bring more of this
+// into the public API and expose the necessary building blocks to fully support
+// custom plotters. For now, proceed at your own risk!
+
+#include <implot_internal.h>
+
+namespace MyImPlot {
 
 void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip, float width_percent, ImVec4 bullCol, ImVec4 bearCol) {
     // get current implot context
@@ -1253,4 +1257,5 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
     }
 }
 
-}
+} // namespace MyImplot
+
