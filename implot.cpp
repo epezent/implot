@@ -1632,7 +1632,7 @@ void PopPlotClipRect() {
 bool IsPlotHovered() {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotHovered() needs to be called between BeginPlot() and EndPlot()!");
-    return gp.Hov_Plot;
+    return gp.Hov_Frame && gp.Hov_Plot;
 }
 
 bool IsPlotXAxisHovered() {
