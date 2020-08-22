@@ -2077,7 +2077,6 @@ void ShowColormapScale(double scale_min, double scale_max, float height) {
     ImGuiWindow * Window = G.CurrentWindow;
     if (Window->SkipItems)
         return;
-    const ImGuiStyle &Style    = G.Style;
     const float txt_off = 5;
     const float bar_w   = 20;
 

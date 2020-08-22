@@ -33,13 +33,20 @@
 
 namespace MyImPlot {
 
+// Examples for passing custom function pointers to ImPlot in Custom Getters section.
+struct WaveData {
+    double X, Amp, Freq, Offset;
+    WaveData(double x, double amp, double freq, double offset) { X = x; Amp = amp; Freq = freq; Offset = offset; }       
+};
+ImPlotPoint SineWave(void* wave_data, int idx);
+ImPlotPoint SawWave(void* wave_data, int idx);
+ImPlotPoint Spiral(void*, int idx);
+// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom. 
+void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size);
 // Example for Custom Plotters and Tooltips section. Plots a candlestick chart for financial data. See implementation at bottom. 
 void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip = true, float width_percent = 0.25f, ImVec4 bullCol = ImVec4(0,1,0,1), ImVec4 bearCol = ImVec4(1,0,0,1));
 
-// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom. 
-void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size);
-
-}
+} // namespace MyImPlot
 
 namespace ImPlot {
 
@@ -991,6 +998,26 @@ void ShowDemoWindow(bool* p_open) {
         // offset++; uncomment for animation!
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Custom Getters")) {
+        ImGui::BulletText("Most plotters can be passed a function pointer for getting data.");
+        ImGui::BulletText("You can optionally pass user data to be given to your getter.");
+        ImGui::BulletText("C++ lambdas can be passed as function pointers as well.");
+        if (ImPlot::BeginPlot("##Custom Getters")) {
+            ImPlot::PlotLine("Spiral", MyImPlot::Spiral, NULL, 1000);
+            static MyImPlot::WaveData data1(0.001, 0.2, 2, 0.75);
+            static MyImPlot::WaveData data2(0.001, 0.2, 4, 0.25);
+            ImPlot::PlotLine("Waves", MyImPlot::SineWave, &data1, 1000);
+            ImPlot::PlotLine("Waves", MyImPlot::SawWave, &data2, 1000);
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+            ImPlot::PlotShaded("Waves", MyImPlot::SineWave, &data1, MyImPlot::SawWave, &data2, 1000);
+            ImPlot::PopStyleVar();
+            // you can also pass C++ lambdas:
+            // auto lamda = [](void* data, int idx) { ... return ImPlotPoint(x,y); };
+            // ImPlot::PlotLine("My Lambda", lambda, data, 1000);
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Ticks")) {
         static bool custom_ticks  = true;
         static bool custom_labels = true;
@@ -1013,7 +1040,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImPlot::SetNextPlotLimits(2.5,5,0,10);
         if (ImPlot::BeginPlot("Custom Ticks", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Default | ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
-
+            // nothing to see here, just the ticks
             ImPlot::EndPlot();
         }
     }
@@ -1122,6 +1149,45 @@ void ShowDemoWindow(bool* p_open) {
 
 namespace MyImPlot {
 
+ImPlotPoint SineWave(void* data , int idx) {
+    WaveData* wd = (WaveData*)data;
+    double x = idx * wd->X;
+    return ImPlotPoint(x, wd->Offset + wd->Amp * sin(2 * 3.14 * wd->Freq * x));
+}
+
+ImPlotPoint SawWave(void* data, int idx) {
+    WaveData* wd = (WaveData*)data;
+    double x = idx * wd->X;
+    return ImPlotPoint(x, wd->Offset + wd->Amp * (-2 / 3.14 * atan(cos(3.14 * wd->Freq * x) / sin(3.14 * wd->Freq * x))));
+}
+
+ImPlotPoint Spiral(void*, int idx) {
+    float r = 0.9f;            // outer radius
+    float a = 0;               // inner radius
+    float b = 0.05f;           // increment per rev
+    float n = (r - a) / b;     // number  of revolutions
+    double th = 2 * n * 3.14;  // angle
+    float Th = float(th * idx / (1000 - 1));
+    return ImPlotPoint(0.5f+(a + b*Th / (2.0f * (float) 3.14))*Cos(Th), 
+                       0.5f + (a + b*Th / (2.0f * (float)3.14))*Sin(Th));
+}
+
+// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom. 
+void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size) {
+    ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
+    ImPlot::SetNextPlotLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
+    if (ImPlot::BeginPlot(id,0,0,size,ImPlotFlags_NoChild,0,0,0,0)) {
+        ImPlot::PushStyleColor(ImPlotCol_Line, col);
+        ImPlot::PlotLine(id, values, count, offset);
+        ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+        ImPlot::PlotShaded(id, values, count, 0, offset);
+        ImPlot::PopStyleVar();
+        ImPlot::PopStyleColor();
+        ImPlot::EndPlot();
+    }
+    ImPlot::PopStyleVar();
+}
+
 void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip, float width_percent, ImVec4 bullCol, ImVec4 bearCol) {
     // get current implot context
     ImPlotContext* implot = ImPlot::GetCurrentContext();
@@ -1182,22 +1248,6 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
             break;
         }
     }
-}
-
-// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom. 
-void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size) {
-    ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
-    ImPlot::SetNextPlotLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
-    if (ImPlot::BeginPlot(id,0,0,size,ImPlotFlags_NoChild,0,0,0,0)) {
-        ImPlot::PushStyleColor(ImPlotCol_Line, col);
-        ImPlot::PlotLine(id, values, count, offset);
-        ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-        ImPlot::PlotShaded(id, values, count, 0, offset);
-        ImPlot::PopStyleVar();
-        ImPlot::PopStyleColor();
-        ImPlot::EndPlot();
-    }
-    ImPlot::PopStyleVar();
 }
 
 }
