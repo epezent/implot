@@ -463,7 +463,7 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimitsX(t - history, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         static int rt_axis = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_TickLabels;
         if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
-            ImPlot::PlotLine("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), sdata1.Offset, 2 * sizeof(t_float));
+            ImPlot::PlotLine("Data 1", &sdata1.Data[0], sdata1.Data.size(), sdata1.Offset);
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
             ImPlot::PlotShaded("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), 0, sdata2.Offset, 2 * sizeof(t_float));
             ImPlot::PopStyleVar();
@@ -471,7 +471,10 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImPlot::SetNextPlotLimitsX(0, history, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Rolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis)) {
-            ImPlot::PlotLine("Data 1", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 2 * sizeof(t_float));
+            // two methods of plotting Data
+            // as ImVec2* (or ImPlot*):
+            ImPlot::PlotLine("Data 1", &rdata1.Data[0], rdata1.Data.size()); 
+            // as float*, float* (or double*, double*)
             ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(t_float));
             ImPlot::EndPlot();
         }
@@ -947,7 +950,7 @@ void ShowDemoWindow(bool* p_open) {
                 static float data[100];
                 srand(row);
                 for (int i = 0; i < 100; ++i)
-                    data[i] = RandomRange(0,10);
+                    data[i] = (float)RandomRange(0,10);
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("EMG %d", row);
                 ImGui::TableSetColumnIndex(1);
