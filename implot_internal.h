@@ -22,7 +22,7 @@
 
 // ImPlot v0.5 WIP
 
-// You may use this file to debug, understand or extend ImPlot features but we 
+// You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
 
 //-----------------------------------------------------------------------------
@@ -77,7 +77,7 @@ extern ImPlotContext* GImPlot; // Current implicit context pointer
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
 #define IMPLOT_Y_AXES     3
 // The number of times to subdivided grid divisions (best if a multiple of 1, 2, and 5)
-#define IMPLOT_SUB_DIV    10 
+#define IMPLOT_SUB_DIV    10
 // Pixel padding used for labels/titles
 #define IMPLOT_LABEL_PAD  5
 // Major tick size in pixels
@@ -157,10 +157,10 @@ struct ImArray {
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
 
-// Storage for colormap modifiers 
+// Storage for colormap modifiers
 struct ImPlotColormapMod {
     ImPlotColormapMod(const ImVec4* colormap, int colormap_size) {
-        Colormap     = colormap; 
+        Colormap     = colormap;
         ColormapSize = colormap_size;
     }
     const ImVec4* Colormap;
@@ -168,7 +168,7 @@ struct ImPlotColormapMod {
 };
 
 // ImPlotPoint with positive/negative error values
-struct ImPlotPointError 
+struct ImPlotPointError
 {
     double X, Y, Neg, Pos;
 
@@ -221,7 +221,7 @@ struct ImPlotAxisState
 {
     ImPlotAxis* Axis;
     ImGuiCond   RangeCond;
-    bool        HasRange;    
+    bool        HasRange;
     bool        Present;
     bool        HasLabels;
     bool        Invert;
@@ -404,10 +404,10 @@ struct ImPlotContext {
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
     ImPlotInputMap     InputMap;
-    ImPlotPoint        LastMousePos[IMPLOT_Y_AXES];
+    ImPlotPoint        MousePos[IMPLOT_Y_AXES];
 };
 
-struct ImPlotAxisScale 
+struct ImPlotAxisScale
 {
     ImPlotPoint Min, Max;
 
@@ -448,14 +448,18 @@ ImPlotItem* GetItem(int i);
 ImPlotItem* GetItem(const char* label_id);
 // Gets a plot item from a specific plot
 ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
+// Busts the cached color for the every item (i.e. sets ImPlotItem.Color to IMPLOT_COL_AUTO) for every plot in the current context
+void BustItemColorCache();
 
 // Returns the number of entries in the current legend
 int GetLegendCount();
 // Gets the ith entry string for the current legend
 const char* GetLegendLabel(int i);
 
-// Populates a list of ImPlotTicks with automatically spaced ticks
-void AddDefaultTicks(const ImPlotRange& range, int nMajor, int nMinor, bool logscale, ImVector<ImPlotTick> &out);
+// Populates a list of ImPlotTicks with normal spaced and formatted ticks
+void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImVector<ImPlotTick> &out);
+// Populates a list of ImPlotTicks with logarithmic space and formatted ticks
+void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImVector<ImPlotTick>& out);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
 void AddCustomTicks(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer);
 // Creates label information for a list of ImPlotTick
@@ -523,7 +527,7 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
 const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
-// Resamples a colormap. #size_out must be greater than 1. 
+// Resamples a colormap. #size_out must be greater than 1.
 void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
 
 // Returns true if a style color is set to be automaticaly determined

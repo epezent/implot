@@ -137,18 +137,17 @@ struct BenchmarkItem {
 };
 
 void ShowDemoWindow(bool* p_open) {
-    static const char* cmap_names[]   = {"Default","Dark","Pastel","Paired","Viridis","Plasma","Hot","Cool","Pink","Jet"};
-    static bool show_app_metrics = false;
-    static bool show_app_style_editor = false;
-    if (show_app_metrics)             { ImGui::ShowMetricsWindow(&show_app_metrics); }
-    if (show_app_style_editor)        { ImGui::Begin("Style Editor", &show_app_style_editor); ImGui::ShowStyleEditor(); ImGui::End(); }
+    static bool show_imgui_metrics = false;
+    static bool show_imgui_style_editor = false;
+    if (show_imgui_metrics)             { ImGui::ShowMetricsWindow(&show_imgui_metrics); }
+    if (show_imgui_style_editor)        { ImGui::Begin("Style Editor", &show_imgui_style_editor); ImGui::ShowStyleEditor(); ImGui::End(); }
     ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(530, 750), ImGuiCond_FirstUseEver);
     ImGui::Begin("ImPlot Demo", p_open, ImGuiWindowFlags_MenuBar);
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Tools")) {
-            ImGui::MenuItem("Metrics", NULL, &show_app_metrics);
-            ImGui::MenuItem("Style Editor (ImGui)", NULL, &show_app_style_editor);
+            ImGui::MenuItem("Metrics", NULL, &show_imgui_metrics);
+            ImGui::MenuItem("Style Editor (ImGui)", NULL, &show_imgui_style_editor);
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -412,7 +411,7 @@ void ShowDemoWindow(bool* p_open) {
             map = (map + 1) % ImPlotColormap_COUNT;
         ImPlot::PushColormap(map);
         ImGui::SameLine();
-        ImGui::LabelText("##Colormap Index", "%s", cmap_names[map]);
+        ImGui::LabelText("##Colormap Index", "%s", ImPlot::GetColormapName(map));
         ImGui::SetNextItemWidth(225);
         ImGui::DragFloatRange2("Min / Max",&scale_min, &scale_max, 0.01f, -20, 20);
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax | ImPlotAxisFlags_TickLabels;
@@ -485,7 +484,7 @@ void ShowDemoWindow(bool* p_open) {
         if (ImGui::Button("Change Colormap##2"))
             map = (map + 1) % ImPlotColormap_COUNT;
         ImGui::SameLine();
-        ImGui::LabelText("##Colormap Index", "%s", cmap_names[map]);
+        ImGui::LabelText("##Colormap Index", "%s", ImPlot::GetColormapName(map));
         static float mk_size = ImPlot::GetStyle().MarkerSize;
         static float mk_weight = ImPlot::GetStyle().MarkerWeight;
         ImGui::DragFloat("Marker Size",&mk_size,0.1f,2.0f,10.0f,"%.2f px");

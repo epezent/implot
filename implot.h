@@ -385,6 +385,8 @@ ImVec4 GetColormapColor(int index);
 ImVec4 LerpColormap(float t);
 // Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired. Call between BeginPlot/EndPlot.
 ImVec4 NextColormapColor();
+// Returns a null terminated string name for a built-in colormap
+const char* GetColormapName(ImPlotColormap colormap);
 
 //-----------------------------------------------------------------------------
 // Plot Utils
