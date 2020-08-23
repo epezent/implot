@@ -435,7 +435,7 @@ ImPlotState* GetPlot(const char* title);
 // Gets the current plot from the current ImPlotContext
 ImPlotState* GetCurrentPlot();
 
-// Updates plot-to-pixel space transformation variables for the current plot
+// Updates plot-to-pixel space transformation variables for the current plot.
 void UpdateTransformCache();
 // Extends the current plots axes so that it encompasses point p
 void FitPoint(const ImPlotPoint& p);
@@ -461,7 +461,7 @@ void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImVector<
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
 void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImVector<ImPlotTick>& out);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
-void AddCustomTicks(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer);
+void AddTicksCustom(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer);
 // Creates label information for a list of ImPlotTick
 void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, ImGuiTextBuffer& buffer);
 // Gets the widest visible (i.e. ShowLabel = true) label size from a list of ticks

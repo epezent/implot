@@ -36,14 +36,14 @@ namespace MyImPlot {
 // Examples for passing custom function pointers to ImPlot in Custom Getters section.
 struct WaveData {
     double X, Amp, Freq, Offset;
-    WaveData(double x, double amp, double freq, double offset) { X = x; Amp = amp; Freq = freq; Offset = offset; }       
+    WaveData(double x, double amp, double freq, double offset) { X = x; Amp = amp; Freq = freq; Offset = offset; }
 };
 ImPlotPoint SineWave(void* wave_data, int idx);
 ImPlotPoint SawWave(void* wave_data, int idx);
 ImPlotPoint Spiral(void*, int idx);
-// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom. 
+// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom.
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size);
-// Example for Custom Plotters and Tooltips section. Plots a candlestick chart for financial data. See implementation at bottom. 
+// Example for Custom Plotters and Tooltips section. Plots a candlestick chart for financial data. See implementation at bottom.
 void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip = true, float width_percent = 0.25f, ImVec4 bullCol = ImVec4(0,1,0,1), ImVec4 bearCol = ImVec4(1,0,0,1));
 
 } // namespace MyImPlot
@@ -153,7 +153,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::EndMenuBar();
     }
     //-------------------------------------------------------------------------
-    ImGui::Text("ImPlot says hello. (0.5 WIP)");
+    ImGui::Text("ImPlot says hello. (%s)", IMPLOT_VERSION);
     if (ImGui::CollapsingHeader("Help")) {
         ImGui::Text("USER GUIDE:");
         ImGui::BulletText("Left click and drag within the plot area to pan X and Y axes.");
@@ -472,7 +472,7 @@ void ShowDemoWindow(bool* p_open) {
         if (ImPlot::BeginPlot("##Rolling", NULL, NULL, ImVec2(-1,150), ImPlotFlags_Default, rt_axis, rt_axis)) {
             // two methods of plotting Data
             // as ImVec2* (or ImPlot*):
-            ImPlot::PlotLine("Data 1", &rdata1.Data[0], rdata1.Data.size()); 
+            ImPlot::PlotLine("Data 1", &rdata1.Data[0], rdata1.Data.size());
             // as float*, float* (or double*, double*)
             ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(t_float));
             ImPlot::EndPlot();
@@ -612,7 +612,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::ColorEdit4("##Col2", &y2_col.x, ImGuiColorEditFlags_NoInputs);
         ImGui::SameLine();
         ImGui::ColorEdit4("##Col3", &y3_col.x, ImGuiColorEditFlags_NoInputs);
-        // you can fit axes programatically 
+        // you can fit axes programatically
         ImGui::SameLine(); if (ImGui::Button("Fit X"))  ImPlot::FitNextPlotAxes(true, false, false, false);
         ImGui::SameLine(); if (ImGui::Button("Fit Y"))  ImPlot::FitNextPlotAxes(false, true, false, false);
         ImGui::SameLine(); if (ImGui::Button("Fit Y2")) ImPlot::FitNextPlotAxes(false, false, true, false);
@@ -936,7 +936,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Checkbox("Animate",&anim);
         if (anim)
             offset = (offset + 1) % 100;
-        if (ImGui::BeginTable("##table", 3, flags, ImVec2(-1,0))) { 
+        if (ImGui::BeginTable("##table", 3, flags, ImVec2(-1,0))) {
             ImGui::TableSetupColumn("Electrode", ImGuiTableColumnFlags_WidthFixed, 75.0f);
             ImGui::TableSetupColumn("Voltage", ImGuiTableColumnFlags_WidthFixed, 75.0f);
             ImGui::TableSetupColumn("EMG Signal");
@@ -1110,7 +1110,7 @@ void ShowDemoWindow(bool* p_open) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
             ImPlot::EndPlot();
         }
-    }    
+    }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Benchmark")) {
         static const int n_items = 100;
@@ -1163,11 +1163,11 @@ ImPlotPoint Spiral(void*, int idx) {
     float n = (r - a) / b;     // number  of revolutions
     double th = 2 * n * 3.14;  // angle
     float Th = float(th * idx / (1000 - 1));
-    return ImPlotPoint(0.5f+(a + b*Th / (2.0f * (float) 3.14))*Cos(Th), 
+    return ImPlotPoint(0.5f+(a + b*Th / (2.0f * (float) 3.14))*Cos(Th),
                        0.5f + (a + b*Th / (2.0f * (float)3.14))*Sin(Th));
 }
 
-// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom. 
+// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom.
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size) {
     ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
     ImPlot::SetNextPlotLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
@@ -1197,25 +1197,25 @@ void Sparkline(const char* id, const float* values, int count, float min_v, floa
 
 namespace MyImPlot {
 
-int BinarySearch(const double* arr, int l, int r, double x) { 
-    if (r >= l) { 
-        int mid = l + (r - l) / 2;  
-        if (arr[mid] == x) 
-            return mid;   
-        if (arr[mid] > x) 
-            return BinarySearch(arr, l, mid - 1, x);   
-        return BinarySearch(arr, mid + 1, r, x); 
-    }   
-    return -1; 
-} 
+int BinarySearch(const double* arr, int l, int r, double x) {
+    if (r >= l) {
+        int mid = l + (r - l) / 2;
+        if (arr[mid] == x)
+            return mid;
+        if (arr[mid] > x)
+            return BinarySearch(arr, l, mid - 1, x);
+        return BinarySearch(arr, mid + 1, r, x);
+    }
+    return -1;
+}
 
 void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip, float width_percent, ImVec4 bullCol, ImVec4 bearCol) {
     // get current implot context
     ImPlotContext* implot = ImPlot::GetCurrentContext();
     // register item
-    ImPlotItem* item = ImPlot::RegisterOrGetItem(label_id); 
+    ImPlotItem* item = ImPlot::RegisterOrGetItem(label_id);
     // override legend icon color
-    item->Color = ImVec4(1,1,1,1); 
+    item->Color = ImVec4(1,1,1,1);
     // return if item not shown (i.e. hidden by legend button)
     if (!item->Show)
         return;

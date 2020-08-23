@@ -126,9 +126,9 @@ struct GetterImVec2 {
         Count = count;
         Offset = count ? ImPosMod(offset, count) : 0;
     }
-    inline ImPlotPoint operator()(int idx) { 
+    inline ImPlotPoint operator()(int idx) {
         idx = ImPosMod(Offset + idx, Count);
-        return ImPlotPoint(Data[idx].x, Data[idx].y); 
+        return ImPlotPoint(Data[idx].x, Data[idx].y);
     }
     const ImVec2* Data;
     int Count;
@@ -142,9 +142,9 @@ struct GetterImPlotPoint {
         Count = count;
         Offset = count ? ImPosMod(offset, count) : 0;
     }
-    inline ImPlotPoint operator()(int idx) { 
+    inline ImPlotPoint operator()(int idx) {
         idx = ImPosMod(Offset + idx, Count);
-        return Data[idx]; 
+        return Data[idx];
     }
     const ImPlotPoint* Data;
     int Count;
@@ -159,9 +159,9 @@ struct GetterFuncPtrImPlotPoint {
         Count = count;
         Offset = count ? ImPosMod(offset, count) : 0;
     }
-    inline ImPlotPoint operator()(int idx) { 
+    inline ImPlotPoint operator()(int idx) {
         idx = ImPosMod(Offset + idx, Count);
-        return getter(Data, idx); 
+        return getter(Data, idx);
     }
     ImPlotPoint (*getter)(void* data, int idx);
     void* Data;

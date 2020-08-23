@@ -49,7 +49,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_Highlight   = 1 << 2,  // plot items will be highlighted when their legend entry is hovered
     ImPlotFlags_BoxSelect   = 1 << 3,  // the user will be able to box-select with right-mouse
     ImPlotFlags_Query       = 1 << 4,  // the user will be able to draw query rects with middle-mouse
-    ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open a context menu with double-right click
+    ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open context menus with double-right click
     ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
     ImPlotFlags_AntiAliased = 1 << 7,  // plot lines will be software anti-aliased (not recommended, prefer MSAA)
     ImPlotFlags_NoChild     = 1 << 8,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
@@ -69,7 +69,7 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_LogScale   = 1 << 6, // a logartithmic (base 10) axis scale will be used
     ImPlotAxisFlags_Scientific = 1 << 7, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
     ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
-    ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_GridLines,
+    ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
 };
 
 // Plot styling colors.
@@ -82,10 +82,10 @@ enum ImPlotCol_ {
     ImPlotCol_FrameBg,       // plot frame background color (defaults to ImGuiCol_FrameBg)
     ImPlotCol_PlotBg,        // plot area background color (defaults to ImGuiCol_WindowBg)
     ImPlotCol_PlotBorder,    // plot area border color (defaults to ImGuiCol_Text)
-    ImPlotCol_XAxis,         // x-axis grid/label color (defaults to 25% ImGuiCol_Text)
-    ImPlotCol_YAxis,         // y-axis grid/label color (defaults to 25% ImGuiCol_Text)
-    ImPlotCol_YAxis2,        // 2nd y-axis grid/label color (defaults to 25% ImGuiCol_Text)
-    ImPlotCol_YAxis3,        // 3rd y-axis grid/label color (defaults to 25% ImGuiCol_Text)
+    ImPlotCol_XAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
+    ImPlotCol_YAxis,         // y-axis grid/label color (defaults to ImGuiCol_Text)
+    ImPlotCol_YAxis2,        // 2nd y-axis grid/label color (defaults to ImGuiCol_Text)
+    ImPlotCol_YAxis3,        // 3rd y-axis grid/label color (defaults to ImGuiCol_Text)
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
     ImPlotCol_Query,         // box-query color (defaults to green)
     ImPlotCol_COUNT
@@ -93,10 +93,10 @@ enum ImPlotCol_ {
 
 // Plot styling variables.
 enum ImPlotStyleVar_ {
-    ImPlotStyleVar_LineWeight,       // float, line weight in pixels
+    ImPlotStyleVar_LineWeight,       // float, plot item line weight in pixels
     ImPlotStyleVar_Marker,           // int,   marker specification
     ImPlotStyleVar_MarkerSize,       // float, marker size in pixels (roughly the marker's "radius")
-    ImPlotStyleVar_MarkerWeight,     // float, outline weight of markers in pixels
+    ImPlotStyleVar_MarkerWeight,     // float, plot outline weight of markers in pixels
     ImPlotStyleVar_FillAlpha,        // float, alpha modifier applied to all plot item fills
     ImPlotStyleVar_ErrorBarSize,     // float, error bar whisker width in pixels
     ImPlotStyleVar_ErrorBarWeight,   // float, error bar whisker weight in pixels
@@ -109,16 +109,16 @@ enum ImPlotStyleVar_ {
 // Marker specifications. You can combine this with binary OR, e.g. ImPlotMarker_Circle | ImPlotMarker_Cross.
 enum ImPlotMarker_ {
     ImPlotMarker_None        = 1 << 0,  // no marker
-    ImPlotMarker_Circle      = 1 << 1,  // a circle marker will be rendered at each point
-    ImPlotMarker_Square      = 1 << 2,  // a square maker will be rendered at each point
-    ImPlotMarker_Diamond     = 1 << 3,  // a diamond marker will be rendered at each point
-    ImPlotMarker_Up          = 1 << 4,  // an upward-pointing triangle marker will up rendered at each point
-    ImPlotMarker_Down        = 1 << 5,  // an downward-pointing triangle marker will up rendered at each point
-    ImPlotMarker_Left        = 1 << 6,  // an leftward-pointing triangle marker will up rendered at each point
-    ImPlotMarker_Right       = 1 << 7,  // an rightward-pointing triangle marker will up rendered at each point
-    ImPlotMarker_Cross       = 1 << 8,  // a cross marker will be rendered at each point (not filled)
-    ImPlotMarker_Plus        = 1 << 9,  // a plus marker will be rendered at each point (not filled)
-    ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker will be rendered at each point (not filled)
+    ImPlotMarker_Circle      = 1 << 1,  // a circle marker
+    ImPlotMarker_Square      = 1 << 2,  // a square maker
+    ImPlotMarker_Diamond     = 1 << 3,  // a diamond marker
+    ImPlotMarker_Up          = 1 << 4,  // an upward-pointing triangle marker
+    ImPlotMarker_Down        = 1 << 5,  // an downward-pointing triangle marker
+    ImPlotMarker_Left        = 1 << 6,  // an leftward-pointing triangle marker
+    ImPlotMarker_Right       = 1 << 7,  // an rightward-pointing triangle marker
+    ImPlotMarker_Cross       = 1 << 8,  // a cross marker (not fillable)
+    ImPlotMarker_Plus        = 1 << 9,  // a plus marker (not fillable)
+    ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker (not fillable)
 };
 
 // Built-in colormaps
@@ -234,6 +234,7 @@ bool BeginPlot(const char* title_id,
                ImPlotAxisFlags y_flags  = ImPlotAxisFlags_Default,
                ImPlotAxisFlags y2_flags = ImPlotAxisFlags_Auxiliary,
                ImPlotAxisFlags y3_flags = ImPlotAxisFlags_Auxiliary);
+
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().
 void EndPlot();
@@ -251,7 +252,7 @@ void PlotLine(const char* label_id, const ImVec2* data, int count, int offset = 
 void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
 void PlotLine(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
-// Plots a standard 2D scatter plot.
+// Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
 void PlotScatter(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
 void PlotScatter(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
 void PlotScatter(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
@@ -276,7 +277,7 @@ void PlotBars(const char* label_id, const float* xs, const float* ys, int count,
 void PlotBars(const char* label_id, const double* xs, const double* ys, int count, double width, int offset = 0, int stride = sizeof(double));
 void PlotBars(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double width, int offset = 0);
 
-// Plots a horizontal bar graph. # height and # shift are in Y units.
+// Plots a horizontal bar graph. #height and #shift are in Y units.
 void PlotBarsH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
 void PlotBarsH(const char* label_id, const double* values, int count, double height = 0.67f, double shift = 0, int offset = 0, int stride = sizeof(double));
 void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
@@ -295,15 +296,15 @@ void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, co
 void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
 
-// Plots a pie chart. If the sum of values > 1 or normalize is true, each value will be normalized. Center and radius are in plot units.
+// Plots a pie chart. If the sum of values > 1 or normalize is true, each value will be normalized. Center and radius are in plot units. #label_fmt can be set to NULL for no labels.
 void PlotPieChart(const char** label_ids, const float* values, int count, float x, float y, float radius, bool normalize = false, const char* label_fmt = "%.1f", float angle0 = 90);
 void PlotPieChart(const char** label_ids, const double* values, int count, double x, double y, double radius, bool normalize = false, const char* label_fmt = "%.1f", double angle0 = 90);
 
-// Plots a 2D heatmap chart. Values are expected to be in row-major order. label_fmt can be set to NULL for no labels.
+// Plots a 2D heatmap chart. Values are expected to be in row-major order. #label_fmt can be set to NULL for no labels.
 void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
 void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
 
-// Plots digital data.
+// Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
 void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
 void PlotDigital(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
@@ -313,9 +314,45 @@ void PlotText(const char* text, float x, float y, bool vertical = false, const I
 void PlotText(const char* text, double x, double y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 
 //-----------------------------------------------------------------------------
+// Plot Utils
+//-----------------------------------------------------------------------------
+
+// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
+void SetPlotYAxis(int y_axis);
+
+// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
+void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
+// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
+void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_Once);
+// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
+void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+// Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
+void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true);
+
+// Set the X axis ticks and optionally the labels for the next plot.
+void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false);
+void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** labels = NULL, bool show_default = false);
+
+// Set the Y axis ticks and optionally the labels for the next plot.
+void SetNextPlotTicksY(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
+void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
+
+// Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
+ImPlotPoint PixelsToPlot(float x, float y, int y_axis = -1);
+
+// Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
+ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = -1);
+ImVec2 PlotToPixels(double x, double y, int y_axis = -1);
+
+//-----------------------------------------------------------------------------
 // Plot Queries
 //-----------------------------------------------------------------------------
 
+// Get the current Plot position (top-left) in pixels.
+ImVec2 GetPlotPos();
+// Get the curent Plot size in pixels.
+ImVec2 GetPlotSize();
 // Returns true if the plot area in the current plot is hovered.
 bool IsPlotHovered();
 // Returns true if the XAxis plot area in the current plot is hovered.
@@ -334,20 +371,13 @@ ImPlotLimits GetPlotQuery(int y_axis = -1);
 bool IsLegendEntryHovered(const char* label_id);
 
 //-----------------------------------------------------------------------------
-// Plot Input Mapping
-//-----------------------------------------------------------------------------
-
-// Allows changing how keyboard/mouse interaction works.
-ImPlotInputMap& GetInputMap();
-
-//-----------------------------------------------------------------------------
 // Plot Styling and Colormaps
 //-----------------------------------------------------------------------------
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
 
-// Special color used to indicate that a style color should be deduced automatically from defaults or colormaps.
+// Special color used to indicate that a style color should be deduced automatically from ImGui style or ImPlot colormaps.
 #define IMPLOT_COL_AUTO ImVec4(0,0,0,-1)
 
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
@@ -368,8 +398,8 @@ void PopStyleVar(int count = 1);
 
 // Temporarily switch to one of the built-in colormaps.
 void PushColormap(ImPlotColormap colormap);
-// Temporarily switch to your custom colormap. The pointer data must persist until the matching call to PopColormap. 
-void PushColormap(const ImVec4* colormap, int size); 
+// Temporarily switch to your custom colormap. The pointer data must persist until the matching call to PopColormap!
+void PushColormap(const ImVec4* colormap, int size);
 // Undo temporary colormap modification.
 void PopColormap(int count = 1);
 // Permanently sets a custom colormap. The colors will be copied to internal memory. Prefer PushColormap instead of calling this each frame.
@@ -388,45 +418,15 @@ ImVec4 NextColormapColor();
 // Returns a null terminated string name for a built-in colormap
 const char* GetColormapName(ImPlotColormap colormap);
 
-//-----------------------------------------------------------------------------
-// Plot Utils
-//-----------------------------------------------------------------------------
-
-// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
-void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
-// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
-void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_Once);
-// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
-void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
-// Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
-void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true);
-
-// Set the X axis ticks and optionally the labels for the next plot.
-void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false);
-void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** labels = NULL, bool show_default = false);
-
-// Set the Y axis ticks and optionally the labels for the next plot.
-void SetNextPlotTicksY(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
-void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
-
-// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
-void SetPlotYAxis(int y_axis);
-
-// Get the current Plot position (top-left) in pixels.
-ImVec2 GetPlotPos();
-// Get the curent Plot size in pixels.
-ImVec2 GetPlotSize();
-
-// Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
-ImPlotPoint PixelsToPlot(float x, float y, int y_axis = -1);
-
-// Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = -1);
-ImVec2 PlotToPixels(double x, double y, int y_axis = -1);
-
-// Renders a vertical color scale using the current color map
+// Renders a vertical color scale using the current color map.
 void ShowColormapScale(double scale_min, double scale_max, float height);
+
+//-----------------------------------------------------------------------------
+// Miscellaneous
+//-----------------------------------------------------------------------------
+
+// Allows changing how keyboard/mouse interaction works.
+ImPlotInputMap& GetInputMap();
 
 // Push clip rect for rendering to current plot area.
 void PushPlotClipRect();
