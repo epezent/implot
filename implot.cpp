@@ -1446,7 +1446,7 @@ void EndPlot() {
             DrawList.AddLine(
                     ImVec2(x_start, gp.BB_Plot.Min.y),
                     ImVec2(x_start, gp.BB_Plot.Max.y),
-                    GetStyleColorU32(ImPlotCol_PlotBorder), 1);
+                    GetStyleColorU32(ImPlotCol_YAxisGrid3), 1);
         }
     }
     ImGui::PopClipRect();
@@ -2695,9 +2695,9 @@ void StyleColorsLight(ImPlotStyle* dst) {
     colors[ImPlotCol_YAxis]         = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_YAxisGrid]     = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImPlotCol_YAxis2]        = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
-    colors[ImPlotCol_YAxisGrid2]    = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    colors[ImPlotCol_YAxisGrid2]    = ImVec4(0.00f, 0.00f, 0.00f, 0.50f);
     colors[ImPlotCol_YAxis3]        = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
-    colors[ImPlotCol_YAxisGrid3]    = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    colors[ImPlotCol_YAxisGrid3]    = ImVec4(0.00f, 0.00f, 0.00f, 0.50f);
     colors[ImPlotCol_Selection]     = ImVec4(0.82f, 0.64f, 0.03f, 1.00f);
     colors[ImPlotCol_Query]         = ImVec4(0.00f, 0.84f, 0.37f, 1.00f);
     colors[ImPlotCol_Crosshairs]    = ImVec4(0.00f, 0.00f, 0.00f, 0.50f);
