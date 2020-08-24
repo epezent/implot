@@ -1317,7 +1317,6 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state) {
 
     ImGui::SameLine();
     BeginDisabledControls(state.LockMin);
-    //DragFloat("Min", &state.Axis->Range.Min, 0.01f * (float)state.Axis->Range.Size(), -HUGE_VAL, state.Axis->Range.Max - DBL_EPSILON);
     DragFloat("Min", &state.Axis->Range.Min, (float)drag_speed, -HUGE_VAL, state.Axis->Range.Max - DBL_EPSILON);
     EndDisabledControls(state.LockMin);
 
@@ -1328,7 +1327,6 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state) {
 
     ImGui::SameLine();
     BeginDisabledControls(state.LockMax);
-    //DragFloat("Max", &state.Axis->Range.Max, 0.01f * (float)state.Axis->Range.Size(), state.Axis->Range.Min + DBL_EPSILON, HUGE_VAL);
     DragFloat("Max", &state.Axis->Range.Max, (float)drag_speed, state.Axis->Range.Min + DBL_EPSILON, HUGE_VAL);
     EndDisabledControls(state.LockMax);
 
