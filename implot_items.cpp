@@ -905,7 +905,7 @@ void PlotBarsEx(const char* label_id, Getter getter, TWidth width) {
         if (rend_fill)
             DrawList.AddRectFilled(a, b, col_fill);
         if (rend_line)
-            DrawList.AddRect(a, b, col_line);
+            DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, gp.Style.LineWeight);
     }
     PopPlotClipRect();
 }
@@ -982,7 +982,7 @@ void PlotBarsHEx(const char* label_id, Getter getter, THeight height) {
         if (rend_fill)
             DrawList.AddRectFilled(a, b, col_fill);
         if (rend_line)
-            DrawList.AddRect(a, b, col_line);
+            DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, gp.Style.LineWeight);
     }
     PopPlotClipRect();
 }

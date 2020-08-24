@@ -74,39 +74,65 @@ enum ImPlotAxisFlags_ {
 
 // Plot styling colors.
 enum ImPlotCol_ {
+    // item related colors
     ImPlotCol_Line,          // plot line/outline color (defaults to next unused color in current colormap)
     ImPlotCol_Fill,          // plot fill color for bars (defaults to the current line color)
     ImPlotCol_MarkerOutline, // marker outline color (defaults to the current line color)
     ImPlotCol_MarkerFill,    // marker fill color (defaults to the current line color)
     ImPlotCol_ErrorBar,      // error bar color (defaults to ImGuiCol_Text)
+    // plot related colors
     ImPlotCol_FrameBg,       // plot frame background color (defaults to ImGuiCol_FrameBg)
     ImPlotCol_PlotBg,        // plot area background color (defaults to ImGuiCol_WindowBg)
-    ImPlotCol_PlotBorder,    // plot area border color (defaults to ImGuiCol_Text)
-    ImPlotCol_XAxis,         // x-axis grid/label color (defaults to ImGuiCol_Text)
-    ImPlotCol_YAxis,         // y-axis grid/label color (defaults to ImGuiCol_Text)
-    ImPlotCol_YAxis2,        // 2nd y-axis grid/label color (defaults to ImGuiCol_Text)
-    ImPlotCol_YAxis3,        // 3rd y-axis grid/label color (defaults to ImGuiCol_Text)
+    ImPlotCol_PlotBorder,    // plot area border color (defaults to 50% ImGuiCol_Text)
+    ImPlotCol_LegendBg,      // legend background color (defaults to ImGuiCol_PopupBg)
+    ImPlotCol_LegendBorder,  // legend border color (defaults to ImPlotCol_PlotBorder)
+    ImPlotCol_LegendText,    // legend text color (defaults to ImPlotCol_InlayText)
+    ImPlotCol_TitleText,     // plot title text color (defaults to ImGuiCol_Text)
+    ImPlotCol_InlayText,     // color of text appearing inside of plots (defaults to ImGuiCol_Text)
+    ImPlotCol_XAxis,         // x-axis label and tick lables color (defaults to ImGuiCol_Text)
+    ImPlotCol_XAxisGrid,     // x-axis grid color (defaults to 25% ImPlotCol_XAxis)
+    ImPlotCol_YAxis,         // y-axis label and tick labels color (defaults to ImGuiCol_Text)
+    ImPlotCol_YAxisGrid,     // y-axis grid color (defaults to 25% ImPlotCol_YAxis)
+    ImPlotCol_YAxis2,        // 2nd y-axis label and tick labels color (defaults to ImGuiCol_Text)
+    ImPlotCol_YAxisGrid2,    // 2nd y-axis grid/label color (defaults to 25% ImPlotCol_YAxis2)
+    ImPlotCol_YAxis3,        // 3rd y-axis label and tick labels color (defaults to ImGuiCol_Text)
+    ImPlotCol_YAxisGrid3,    // 3rd y-axis grid/label color (defaults to 25% ImPlotCol_YAxis3)
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
     ImPlotCol_Query,         // box-query color (defaults to green)
+    ImPlotCol_Crosshairs,    // crosshairs color (defaults to ImPlotCol_PlotBorder)
     ImPlotCol_COUNT
 };
 
 // Plot styling variables.
 enum ImPlotStyleVar_ {
-    ImPlotStyleVar_LineWeight,       // float, plot item line weight in pixels
-    ImPlotStyleVar_Marker,           // int,   marker specification
-    ImPlotStyleVar_MarkerSize,       // float, marker size in pixels (roughly the marker's "radius")
-    ImPlotStyleVar_MarkerWeight,     // float, plot outline weight of markers in pixels
-    ImPlotStyleVar_FillAlpha,        // float, alpha modifier applied to all plot item fills
-    ImPlotStyleVar_ErrorBarSize,     // float, error bar whisker width in pixels
-    ImPlotStyleVar_ErrorBarWeight,   // float, error bar whisker weight in pixels
-    ImPlotStyleVar_DigitalBitHeight, // float, digital channels bit height (at 1) in pixels
-    ImPlotStyleVar_DigitalBitGap,    // float, digital channels bit padding gap in pixels
+    // item styling variables
+    ImPlotStyleVar_LineWeight,       // float,  plot item line weight in pixels
+    ImPlotStyleVar_Marker,           // int,    marker specification
+    ImPlotStyleVar_MarkerSize,       // float,  marker size in pixels (roughly the marker's "radius")
+    ImPlotStyleVar_MarkerWeight,     // float,  plot outline weight of markers in pixels
+    ImPlotStyleVar_FillAlpha,        // float,  alpha modifier applied to all plot item fills
+    ImPlotStyleVar_ErrorBarSize,     // float,  error bar whisker width in pixels
+    ImPlotStyleVar_ErrorBarWeight,   // float,  error bar whisker weight in pixels
+    ImPlotStyleVar_DigitalBitHeight, // float,  digital channels bit height (at 1) in pixels
+    ImPlotStyleVar_DigitalBitGap,    // float,  digital channels bit padding gap in pixels
+    // plot styling variables
+    ImPlotStyleVar_PlotBorderSize,   // float,  thickness of border around plot area
+    ImPlotStyleVar_MinorAlpha,       // float,  alpha multiplier applied to minor axis grid lines
+    ImPlotStyleVar_MajorTickLen,     // ImVec2, major tick lengths for X and Y axes
+    ImPlotStyleVar_MinorTickLen,     // ImVec2, minor tick lengths for X and Y axes
+    ImPlotStyleVar_MajorTickSize,    // ImVec2, line thickness of major ticks
+    ImPlotStyleVar_MinorTickSize,    // ImVec2, line thickness of minor ticks
+    ImPlotStyleVar_MajorGridSize,    // ImVec2, line thickness of major grid lines
+    ImPlotStyleVar_MinorGridSize,    // ImVec2, line thickness of minor grid lines
     ImPlotStyleVar_PlotPadding,      // ImVec2, padding between widget frame and plot area and/or labels
+    ImPlotStyleVar_LabelPadding,     // ImVec2, padding between axes labels, tick labels, and plot edge
+    ImPlotStyleVar_LegendPadding,    // ImVec2, legend padding from top-left of plot
+    ImPlotStyleVar_InfoPadding,      // ImVec2, padding between plot edge and interior info text
+    ImPlotStyleVar_PlotMinSize,      // ImVec2, minimum size plot frame can be when shrunk
     ImPlotStyleVar_COUNT
 };
 
-// Marker specifications. You can combine this with binary OR, e.g. ImPlotMarker_Circle | ImPlotMarker_Cross.
+// Marker specifications. You can combine these with binary OR, e.g. ImPlotMarker_Circle | ImPlotMarker_Cross.
 enum ImPlotMarker_ {
     ImPlotMarker_None        = 1 << 0,  // no marker
     ImPlotMarker_Circle      = 1 << 1,  // a circle marker
@@ -123,16 +149,17 @@ enum ImPlotMarker_ {
 
 // Built-in colormaps
 enum ImPlotColormap_ {
-    ImPlotColormap_Default  = 0, // ImPlot default colormap         (n=10)
-    ImPlotColormap_Dark     = 1, // a.k.a. matplotlib "Set1"        (n=9)
-    ImPlotColormap_Pastel   = 2, // a.k.a. matplotlib "Pastel1"     (n=9)
-    ImPlotColormap_Paired   = 3, // a.k.a. matplotlib "Paired"      (n=12)
-    ImPlotColormap_Viridis  = 4, // a.k.a. matplotlib "viridis"     (n=11)
-    ImPlotColormap_Plasma   = 5, // a.k.a. matplotlib "plasma"      (n=11)
-    ImPlotColormap_Hot      = 6, // a.k.a. matplotlib/MATLAB "hot"  (n=11)
-    ImPlotColormap_Cool     = 7, // a.k.a. matplotlib/MATLAB "cool" (n=11)
-    ImPlotColormap_Pink     = 8, // a.k.a. matplotlib/MATLAB "pink" (n=11)
-    ImPlotColormap_Jet      = 9, // a.k.a. MATLAB "jet"             (n=11)
+    ImPlotColormap_Default  = 0,  // ImPlot default colormap         (n=10)
+    ImPlotColormap_Dark     = 1,  // a.k.a. matplotlib "Set1"        (n=9)
+    ImPlotColormap_Pastel   = 2,  // a.k.a. matplotlib "Pastel1"     (n=9)
+    ImPlotColormap_Paired   = 3,  // a.k.a. matplotlib "Paired"      (n=12)
+    ImPlotColormap_Deep     = 4,  // a.k.a. seaborn deep             (n=10)
+    ImPlotColormap_Viridis  = 5,  // a.k.a. matplotlib "viridis"     (n=11)
+    ImPlotColormap_Plasma   = 6,  // a.k.a. matplotlib "plasma"      (n=11)
+    ImPlotColormap_Hot      = 7,  // a.k.a. matplotlib/MATLAB "hot"  (n=11)
+    ImPlotColormap_Cool     = 8,  // a.k.a. matplotlib/MATLAB "cool" (n=11)
+    ImPlotColormap_Pink     = 9,  // a.k.a. matplotlib/MATLAB "pink" (n=11)
+    ImPlotColormap_Jet      = 10, // a.k.a. MATLAB "jet"             (n=11)
     ImPlotColormap_COUNT
 };
 
@@ -166,17 +193,31 @@ struct ImPlotLimits {
 
 // Plot style structure
 struct ImPlotStyle {
-    float        LineWeight;              // = 1, line weight in pixels
+    // item styling variables
+    float        LineWeight;              // = 1,      item line weight in pixels
     ImPlotMarker Marker;                  // = ImPlotMarker_None, marker specification
-    float        MarkerSize;              // = 4, marker size in pixels (roughly the marker's "radius")
-    float        MarkerWeight;            // = 1, outline weight of markers in pixels
-    float        FillAlpha;               // = 1, alpha modifier applied to plot fills
-    float        ErrorBarSize;            // = 5, error bar whisker width in pixels
-    float        ErrorBarWeight;          // = 1.5, error bar whisker weight in pixels
-    float        DigitalBitHeight;        // = 8, digital channels bit height (at y = 1.0f) in pixels
-    float        DigitalBitGap;           // = 4, digital channels bit padding gap in pixels
-    ImVec2       PlotPadding;             // = (8,8), padding between widget frame and plot area and/or labels
-    ImVec4       Colors[ImPlotCol_COUNT]; // array of plot specific colors
+    float        MarkerSize;              // = 4,      marker size in pixels (roughly the marker's "radius")
+    float        MarkerWeight;            // = 1,      outline weight of markers in pixels
+    float        FillAlpha;               // = 1,      alpha modifier applied to plot fills
+    float        ErrorBarSize;            // = 5,      error bar whisker width in pixels
+    float        ErrorBarWeight;          // = 1.5,    error bar whisker weight in pixels
+    float        DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
+    float        DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
+    // plot styling variables
+    float        PlotBorderSize;          // = 1,      line thickness of border around plot area
+    float        MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
+    ImVec2       MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
+    ImVec2       MinorTickLen;            // = 5,5     minor tick lengths for X and Y axes
+    ImVec2       MajorTickSize;           // = 1,1     line thickness of major ticks
+    ImVec2       MinorTickSize;           // = 1,1     line thickness of minor ticks
+    ImVec2       MajorGridSize;           // = 1,1     line thickness of major grid lines
+    ImVec2       MinorGridSize;           // = 1,1     line thickness of minor grid lines
+    ImVec2       PlotPadding;             // = 8,8     padding between widget frame and plot area and/or labels
+    ImVec2       LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
+    ImVec2       LegendPadding;           // = 10,10   legend padding from top-left of plot
+    ImVec2       InfoPadding;             // = 10,10   padding between plot edge and interior info text
+    ImVec2       PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
+    ImVec4       Colors[ImPlotCol_COUNT]; //           array of plot specific colors
     ImPlotStyle();
 };
 
@@ -317,9 +358,6 @@ void PlotText(const char* text, double x, double y, bool vertical = false, const
 // Plot Utils
 //-----------------------------------------------------------------------------
 
-// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis.
-void SetPlotYAxis(int y_axis);
-
 // Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
 // Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
@@ -336,6 +374,9 @@ void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** lab
 // Set the Y axis ticks and optionally the labels for the next plot.
 void SetNextPlotTicksY(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
 void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** labels = NULL, bool show_default = false, int y_axis = 0);
+
+// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis. Enable 2nd and 3rd axes with ImPlotFlags_YAxisX.
+void SetPlotYAxis(int y_axis);
 
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
@@ -371,7 +412,7 @@ ImPlotLimits GetPlotQuery(int y_axis = -1);
 bool IsLegendEntryHovered(const char* label_id);
 
 //-----------------------------------------------------------------------------
-// Plot Styling and Colormaps
+// Plot and Item Styling and Colormaps
 //-----------------------------------------------------------------------------
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
@@ -415,6 +456,8 @@ ImVec4 GetColormapColor(int index);
 ImVec4 LerpColormap(float t);
 // Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired. Call between BeginPlot/EndPlot.
 ImVec4 NextColormapColor();
+
+const char* GetStyleColorName(ImPlotCol color);
 // Returns a null terminated string name for a built-in colormap
 const char* GetColormapName(ImPlotColormap colormap);
 
@@ -428,16 +471,21 @@ void ShowColormapScale(double scale_min, double scale_max, float height);
 // Allows changing how keyboard/mouse interaction works.
 ImPlotInputMap& GetInputMap();
 
+// Shows ImPlot style editor block (not a window)
+void ShowStyleEditor(ImPlotStyle* ref = NULL);
+// Add basic help/info block (not a window): how to manipulate ImPlot as a end-user
+void ShowUserGuide();
+
 // Push clip rect for rendering to current plot area.
 void PushPlotClipRect();
 // Pop plot clip rect.
 void PopPlotClipRect();
 
 //-----------------------------------------------------------------------------
-// Demo
+// Demo (add implot_demo.cpp to your sources!)
 //-----------------------------------------------------------------------------
 
-// Shows the ImPlot demo. Add implot_demo.cpp to your sources!
+// Shows the ImPlot demo.
 void ShowDemoWindow(bool* p_open = NULL);
 
 }  // namespace ImPlot

@@ -70,20 +70,10 @@ extern ImPlotContext* GImPlot; // Current implicit context pointer
 #define IMPLOT_DEFAULT_W  400
 // Default plot frame height when requested height is auto (i.e. 0). This is not the plot area height!
 #define IMPLOT_DEFAULT_H  300
-// Minimum plot frame width when requested width is to edge (i.e. -1). This is not the plot area width!
-#define IMPLOT_MIN_W      300
-// Minimum plot frame height when requested height is to edge (i.e. -1). This is not the plot area height!
-#define IMPLOT_MIN_H      225
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
 #define IMPLOT_Y_AXES     3
 // The number of times to subdivided grid divisions (best if a multiple of 1, 2, and 5)
 #define IMPLOT_SUB_DIV    10
-// Pixel padding used for labels/titles
-#define IMPLOT_LABEL_PAD  5
-// Major tick size in pixels
-#define IMPLOT_MAJOR_SIZE 10
-// Minor tick size in pixels
-#define IMPLOT_MINOR_SIZE 5
 // Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
 #define IMPLOT_ZOOM_RATE  0.1f
 
@@ -340,17 +330,6 @@ struct ImPlotContext {
     ImRect BB_Canvas;
     ImRect BB_Plot;
 
-    // Cached Colors
-    ImU32 Col_Frame;
-    ImU32 Col_Bg;
-    ImU32 Col_Border;
-    ImU32 Col_Txt;
-    ImU32 Col_TxtDis;
-    ImU32 Col_SlctBg;
-    ImU32 Col_SlctBd;
-    ImU32 Col_QryBg;
-    ImU32 Col_QryBd;
-
     // Axis States
     ImPlotAxisColor Col_X;
     ImPlotAxisColor Col_Y[IMPLOT_Y_AXES];
@@ -434,6 +413,8 @@ void Reset(ImPlotContext* ctx);
 ImPlotState* GetPlot(const char* title);
 // Gets the current plot from the current ImPlotContext
 ImPlotState* GetCurrentPlot();
+// Busts the cache for every plot in the current context
+void BustPlotCache();
 
 // Updates plot-to-pixel space transformation variables for the current plot.
 void UpdateTransformCache();
@@ -448,8 +429,8 @@ ImPlotItem* GetItem(int i);
 ImPlotItem* GetItem(const char* label_id);
 // Gets a plot item from a specific plot
 ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
-// Busts the cached color for the every item (i.e. sets ImPlotItem.Color to IMPLOT_COL_AUTO) for every plot in the current context
-void BustItemColorCache();
+// Busts the cache for every item for every plot in the current context.
+void BustItemCache();
 
 // Returns the number of entries in the current legend
 int GetLegendCount();
@@ -474,7 +455,7 @@ float SumTickLabelHeight(const ImVector<ImPlotTick>& ticks);
 // Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
 double NiceNum(double x, bool round);
 // Updates axis ticks, lins, and label colors
-void UpdateAxisColor(int axis_flag, ImPlotAxisColor* col);
+void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
 // Draws vertical text. The position is the bottom left of the text rect.
 void AddTextVertical(ImDrawList *DrawList, const char *text, ImVec2 pos, ImU32 text_color);
 // Calculates the size of vertical text
@@ -531,7 +512,12 @@ ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
 void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
 
 // Returns true if a style color is set to be automaticaly determined
-inline bool ColorIsAuto(ImPlotCol idx) { return GImPlot->Style.Colors[idx].w == -1; }
+inline bool IsColorAuto(ImPlotCol idx) { return GImPlot->Style.Colors[idx].w == -1; }
+// Returns the automatically deduced style color
+ImVec4 GetAutoColor(ImPlotCol idx);
+// Returns the style color whether it is automatic or custom set
+inline ImVec4 GetStyleColorVec4(ImPlotCol idx) {return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
+inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
 
 // Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
 inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
@@ -561,31 +547,31 @@ inline bool WillMarkerFillRender() {
 
 // Gets the line color for an item
 inline ImVec4 GetLineColor(ImPlotItem* item) {
-    return ColorIsAuto(ImPlotCol_Line) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Line];
+    return IsColorAuto(ImPlotCol_Line) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Line];
 }
 
 // Gets the fill color for an item
 inline ImVec4 GetItemFillColor(ImPlotItem* item) {
-    ImVec4 col = ColorIsAuto(ImPlotCol_Fill) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Fill];
+    ImVec4 col = IsColorAuto(ImPlotCol_Fill) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Fill];
     col.w *= GImPlot->Style.FillAlpha;
     return col;
 }
 
 // Gets the marker outline color for an item
 inline ImVec4 GetMarkerOutlineColor(ImPlotItem* item) {
-    return ColorIsAuto(ImPlotCol_MarkerOutline) ? GetLineColor(item) : GImPlot->Style.Colors[ImPlotCol_MarkerOutline];
+    return IsColorAuto(ImPlotCol_MarkerOutline) ? GetLineColor(item) : GImPlot->Style.Colors[ImPlotCol_MarkerOutline];
 }
 
 // Gets the marker fill color for an item
 inline ImVec4 GetMarkerFillColor(ImPlotItem* item) {
-    ImVec4 col = ColorIsAuto(ImPlotCol_MarkerFill) ?  GetLineColor(item) :GImPlot->Style.Colors[ImPlotCol_MarkerFill];
+    ImVec4 col = IsColorAuto(ImPlotCol_MarkerFill) ?  GetLineColor(item) :GImPlot->Style.Colors[ImPlotCol_MarkerFill];
     col.w *= GImPlot->Style.FillAlpha;
     return col;
 }
 
 // Gets the error bar color
 inline ImVec4 GetErrorBarColor() {
-    return ColorIsAuto(ImPlotCol_ErrorBar) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : GImPlot->Style.Colors[ImPlotCol_ErrorBar];
+    return GetStyleColorVec4(ImPlotCol_ErrorBar);
 }
 
 //-----------------------------------------------------------------------------
