@@ -83,7 +83,7 @@ enum ImPlotCol_ {
     // plot related colors
     ImPlotCol_FrameBg,       // plot frame background color (defaults to ImGuiCol_FrameBg)
     ImPlotCol_PlotBg,        // plot area background color (defaults to ImGuiCol_WindowBg)
-    ImPlotCol_PlotBorder,    // plot area border color (defaults to 50% ImGuiCol_Text)
+    ImPlotCol_PlotBorder,    // plot area border color (defaults to ImGuiCol_Border)
     ImPlotCol_LegendBg,      // legend background color (defaults to ImGuiCol_PopupBg)
     ImPlotCol_LegendBorder,  // legend border color (defaults to ImPlotCol_PlotBorder)
     ImPlotCol_LegendText,    // legend text color (defaults to ImPlotCol_InlayText)
@@ -150,10 +150,10 @@ enum ImPlotMarker_ {
 // Built-in colormaps
 enum ImPlotColormap_ {
     ImPlotColormap_Default  = 0,  // ImPlot default colormap         (n=10)
-    ImPlotColormap_Dark     = 1,  // a.k.a. matplotlib "Set1"        (n=9)
-    ImPlotColormap_Pastel   = 2,  // a.k.a. matplotlib "Pastel1"     (n=9)
-    ImPlotColormap_Paired   = 3,  // a.k.a. matplotlib "Paired"      (n=12)
-    ImPlotColormap_Deep     = 4,  // a.k.a. seaborn deep             (n=10)
+    ImPlotColormap_Deep     = 1,  // a.k.a. seaborn deep             (n=10)
+    ImPlotColormap_Dark     = 2,  // a.k.a. matplotlib "Set1"        (n=9)
+    ImPlotColormap_Pastel   = 3,  // a.k.a. matplotlib "Pastel1"     (n=9)
+    ImPlotColormap_Paired   = 4,  // a.k.a. matplotlib "Paired"      (n=12)
     ImPlotColormap_Viridis  = 5,  // a.k.a. matplotlib "viridis"     (n=11)
     ImPlotColormap_Plasma   = 6,  // a.k.a. matplotlib "plasma"      (n=11)
     ImPlotColormap_Hot      = 7,  // a.k.a. matplotlib/MATLAB "hot"  (n=11)
@@ -418,6 +418,15 @@ bool IsLegendEntryHovered(const char* label_id);
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
 
+// Style colors from current ImGui style (default)
+void StyleColorsAuto(ImPlotStyle* dst = NULL);
+// Style colors for ImGui "Classic".
+void StyleColorsClassic(ImPlotStyle* dst = NULL);
+// Style colors for ImGui "Dark".
+void StyleColorsDark(ImPlotStyle* dst = NULL);
+// Style colors for ImGui "Light".
+void StyleColorsLight(ImPlotStyle* dst = NULL);
+
 // Special color used to indicate that a style color should be deduced automatically from ImGui style or ImPlot colormaps.
 #define IMPLOT_COL_AUTO ImVec4(0,0,0,-1)
 
@@ -471,6 +480,8 @@ void ShowColormapScale(double scale_min, double scale_max, float height);
 // Allows changing how keyboard/mouse interaction works.
 ImPlotInputMap& GetInputMap();
 
+// Shows ImPlot style selector dropdown menu.
+bool ShowStyleSelector(const char* label);
 // Shows ImPlot style editor block (not a window)
 void ShowStyleEditor(ImPlotStyle* ref = NULL);
 // Add basic help/info block (not a window): how to manipulate ImPlot as a end-user

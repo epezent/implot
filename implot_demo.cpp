@@ -270,7 +270,7 @@ void ShowDemoWindow(bool* p_open) {
         static float alpha = 0.25f;
         ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
 
-        if (ImPlot::BeginPlot("Shaded Plots")) {
+        if (ImPlot::BeginPlot("Shaded Plots", "X-Axis", "Y-Axis")) {
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
             ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
             ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
@@ -1141,9 +1141,9 @@ void StyleSeaborn() {
     colors[ImPlotCol_MarkerFill]    = IMPLOT_COL_AUTO;
     colors[ImPlotCol_ErrorBar]      = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_FrameBg]       = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-    colors[ImPlotCol_PlotBg]        = ImVec4(0.93f, 0.93f, 0.98f, 1.00f);
+    colors[ImPlotCol_PlotBg]        = ImVec4(0.92f, 0.92f, 0.95f, 1.00f);
     colors[ImPlotCol_PlotBorder]    = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-    colors[ImPlotCol_LegendBg]      = ImVec4(0.93f, 0.93f, 0.98f, 1.00f);
+    colors[ImPlotCol_LegendBg]      = ImVec4(0.92f, 0.92f, 0.95f, 1.00f);
     colors[ImPlotCol_LegendBorder]  = ImVec4(0.80f, 0.81f, 0.85f, 1.00f);
     colors[ImPlotCol_LegendText]    = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_TitleText]     = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
