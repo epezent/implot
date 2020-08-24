@@ -139,6 +139,7 @@ struct BenchmarkItem {
 };
 
 void ShowDemoWindow(bool* p_open) {
+    t_float DEMO_TIME = (t_float)ImGui::GetTime();
     static bool show_imgui_metrics       = false;
     static bool show_imgui_style_editor  = false;
     static bool show_implot_style_editor = false;
@@ -195,7 +196,24 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Text("USER GUIDE:");
         ShowUserGuide();
     }
-    t_float DEMO_TIME = (t_float)ImGui::GetTime();
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Configuration")) {
+        ImGui::ShowFontSelector("Font");
+        ImGui::ShowStyleSelector("ImGui Style");
+        ImPlot::ShowStyleSelector("ImPlot Style");
+
+        static const char* map = ImPlot::GetColormapName(ImPlotColormap_Default);
+        if (ImGui::BeginCombo("ImPlot Colormap", map)) {
+            for (int i = 0; i < ImPlotColormap_COUNT; ++i) {
+                const char* name = GetColormapName(i);
+                if (ImGui::Selectable(name, map == name)) {
+                    map = name;
+                    ImPlot::SetColormap(i);
+                }
+            }
+            ImGui::EndCombo();
+        }
+    }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Line Plots")) {
         static t_float xs1[1001], ys1[1001];

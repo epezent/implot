@@ -2034,6 +2034,9 @@ void SetColormap(ImPlotColormap colormap, int samples) {
         ResampleColormap(gp.Colormap, gp.ColormapSize, &resampled[0], samples);
         SetColormap(&resampled[0], samples);
     }
+    else {
+        BustItemCache();
+    }
 }
 
 void SetColormap(const ImVec4* colors, int size) {
@@ -2047,6 +2050,7 @@ void SetColormap(const ImVec4* colors, int size) {
         user_colormap.push_back(colors[i]);
     gp.Colormap = &user_colormap[0];
     gp.ColormapSize = size;
+    BustItemCache();
 }
 
 const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out) {
@@ -2475,12 +2479,14 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                 int size;
                 const ImVec4* cmap = GetColormap(i, &size);
                 bool selected = cmap == gp.Colormap;
+                if (selected) {
+                    custom_set = false;
+                }
 
                 if (!selected)
                     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.25f);
                 if (ImGui::Button(GetColormapName(i), ImVec2(75,0))) {
                     SetColormap(i);
-                    BustItemCache();
                     custom_set = false;
                 }
                 if (!selected)
@@ -2506,7 +2512,6 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                 ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.25f);
             if (ImGui::Button("Custom", ImVec2(75, 0))) {
                 SetColormap(&custom[0], custom.Size);
-                BustItemCache();
                 custom_set = true;
             }
             if (!custom_set_now)
@@ -2515,7 +2520,6 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                 custom.push_back(ImVec4(0,0,0,1));
                 if (custom_set) {
                     SetColormap(&custom[0], custom.Size);
-                    BustItemCache();
                 }
             }
             ImGui::SameLine();
@@ -2523,7 +2527,6 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                 custom.pop_back();
                 if (custom_set) {
                     SetColormap(&custom[0], custom.Size);
-                    BustItemCache();
                 }
             }
             ImGui::EndGroup();
@@ -2533,7 +2536,6 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                 ImGui::PushID(c);
                 if (ImGui::ColorEdit4("##Col1", &custom[c].x, ImGuiColorEditFlags_NoInputs) && custom_set) {
                     SetColormap(&custom[0], custom.Size);
-                    BustItemCache();
                 }
                 if ((c + 1) % 12 != 0)
                     ImGui::SameLine();

@@ -171,7 +171,8 @@ struct ImPlotPoint {
     double  operator[] (size_t idx) const { return (&x)[idx]; }
     double& operator[] (size_t idx)       { return (&x)[idx]; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
-    IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h to convert back and forth between your math types and ImPlotPoint.
+    IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h
+                                 // to convert back and forth between your math types and ImPlotPoint.
 #endif
 };
 
@@ -418,7 +419,7 @@ bool IsLegendEntryHovered(const char* label_id);
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
 
-// Style colors from current ImGui style (default)
+// Style colors for current ImGui style (default).
 void StyleColorsAuto(ImPlotStyle* dst = NULL);
 // Style colors for ImGui "Classic".
 void StyleColorsClassic(ImPlotStyle* dst = NULL);
@@ -463,7 +464,7 @@ int GetColormapSize();
 ImVec4 GetColormapColor(int index);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(float t);
-// Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired. Call between BeginPlot/EndPlot.
+// Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
 ImVec4 NextColormapColor();
 
 const char* GetStyleColorName(ImPlotCol color);
@@ -482,9 +483,9 @@ ImPlotInputMap& GetInputMap();
 
 // Shows ImPlot style selector dropdown menu.
 bool ShowStyleSelector(const char* label);
-// Shows ImPlot style editor block (not a window)
+// Shows ImPlot style editor block (not a window).
 void ShowStyleEditor(ImPlotStyle* ref = NULL);
-// Add basic help/info block (not a window): how to manipulate ImPlot as a end-user
+// Add basic help/info block (not a window): how to manipulate ImPlot as an end-user.
 void ShowUserGuide();
 
 // Push clip rect for rendering to current plot area.
