@@ -56,7 +56,7 @@ namespace ImPlot {
 /// NB: You don't ever need to typdef of define values for ImPlot. This
 /// is only being done here for the sake of demoing both precision types.
 
-#define IMPLOT_DEMO_USE_DOUBLE
+// #define IMPLOT_DEMO_USE_DOUBLE
 #ifdef IMPLOT_DEMO_USE_DOUBLE
 typedef double t_float;
 typedef ImPlotPoint t_float2;
