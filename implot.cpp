@@ -1308,7 +1308,8 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state) {
     bool grid     = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_GridLines);
     bool ticks    = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_TickMarks);
     bool labels   = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_TickLabels);
-
+    double drag_speed = (state.Axis->Range.Size() <= DBL_EPSILON) ? DBL_EPSILON * 1.0e+13 : 0.01 * state.Axis->Range.Size(); // recover from almost equal axis limits.
+    
     BeginDisabledControls(total_lock);
     if (ImGui::Checkbox("##LockMin", &state.LockMin))
         ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_LockMin);
@@ -1316,7 +1317,8 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state) {
 
     ImGui::SameLine();
     BeginDisabledControls(state.LockMin);
-    DragFloat("Min", &state.Axis->Range.Min, 0.01f * (float)state.Axis->Range.Size(), -HUGE_VAL, state.Axis->Range.Max - DBL_EPSILON);
+    //DragFloat("Min", &state.Axis->Range.Min, 0.01f * (float)state.Axis->Range.Size(), -HUGE_VAL, state.Axis->Range.Max - DBL_EPSILON);
+    DragFloat("Min", &state.Axis->Range.Min, (float)drag_speed, -HUGE_VAL, state.Axis->Range.Max - DBL_EPSILON);
     EndDisabledControls(state.LockMin);
 
     BeginDisabledControls(total_lock);
@@ -1326,7 +1328,8 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state) {
 
     ImGui::SameLine();
     BeginDisabledControls(state.LockMax);
-    DragFloat("Max", &state.Axis->Range.Max, 0.01f * (float)state.Axis->Range.Size(), state.Axis->Range.Min + DBL_EPSILON, HUGE_VAL);
+    //DragFloat("Max", &state.Axis->Range.Max, 0.01f * (float)state.Axis->Range.Size(), state.Axis->Range.Min + DBL_EPSILON, HUGE_VAL);
+    DragFloat("Max", &state.Axis->Range.Max, (float)drag_speed, state.Axis->Range.Min + DBL_EPSILON, HUGE_VAL);
     EndDisabledControls(state.LockMax);
 
     ImGui::Separator();
