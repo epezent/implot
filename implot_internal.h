@@ -457,7 +457,7 @@ double NiceNum(double x, bool round);
 // Updates axis ticks, lins, and label colors
 void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
 // Draws vertical text. The position is the bottom left of the text rect.
-void AddTextVertical(ImDrawList *DrawList, const char *text, ImVec2 pos, ImU32 text_color);
+void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
 ImVec2 CalcTextSizeVertical(const char *text);
 // Returns white or black text given background color

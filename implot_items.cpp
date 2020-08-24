@@ -1470,7 +1470,7 @@ void PlotText(const char* text, double x, double y, bool vertical, const ImVec2&
     if (vertical) {
         ImVec2 ctr = CalcTextSizeVertical(text) * 0.5f;
         ImVec2 pos = PlotToPixels(ImPlotPoint(x,y)) + ImVec2(-ctr.x, ctr.y) + pixel_offset;
-        AddTextVertical(&DrawList, text, pos, colTxt);
+        AddTextVertical(&DrawList, pos, colTxt, text);
     }
     else {
         ImVec2 pos = PlotToPixels(ImPlotPoint(x,y)) - ImGui::CalcTextSize(text) * 0.5f + pixel_offset;

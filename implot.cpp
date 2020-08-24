@@ -252,22 +252,37 @@ static const ImPlotStyleVarInfo* GetPlotStyleVarInfo(ImPlotStyleVar idx) {
 // Generic Helpers
 //-----------------------------------------------------------------------------
 
-void AddTextVertical(ImDrawList *DrawList, const char *text, ImVec2 pos, ImU32 text_color) {
-    pos.x = IM_ROUND(pos.x);
-    pos.y = IM_ROUND(pos.y);
-    ImFont* font = GImGui->Font;
-    const ImFontGlyph *glyph;
-    for (char c = *text++; c; c = *text++) {
-        glyph = font->FindGlyph(c);
-        if (!glyph)
+void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char *text_begin, const char* text_end) {
+    if (!text_end)
+        text_end = text_begin + strlen(text_begin);
+    ImGuiContext& g = *GImGui;
+    ImFont* font = g.Font;
+    pos.x = IM_FLOOR(pos.x + font->DisplayOffset.y);
+    pos.y = IM_FLOOR(pos.y + font->DisplayOffset.x);
+    const char* s = text_begin;
+    const int vtx_count = (int)(text_end - s) * 4;
+    const int idx_count = (int)(text_end - s) * 6;
+    DrawList->PrimReserve(idx_count, vtx_count);
+    const float scale = g.FontSize / font->FontSize;
+    while (s < text_end) {
+        unsigned int c = (unsigned int)*s;
+        if (c < 0x80) {
+            s += 1;
+        }
+        else {
+            s += ImTextCharFromUtf8(&c, s, text_end);
+            if (c == 0) // Malformed UTF-8?
+                break;
+        }
+        const ImFontGlyph * glyph = font->FindGlyph((ImWchar)c);
+        if (glyph == NULL)
             continue;
-        DrawList->PrimReserve(6, 4);
-        DrawList->PrimQuadUV(
-            pos + ImVec2(glyph->Y0, -glyph->X0), pos + ImVec2(glyph->Y0, -glyph->X1),
-            pos + ImVec2(glyph->Y1, -glyph->X1), pos + ImVec2(glyph->Y1, -glyph->X0),
-            ImVec2(glyph->U0, glyph->V0), ImVec2(glyph->U1, glyph->V0),
-            ImVec2(glyph->U1, glyph->V1), ImVec2(glyph->U0, glyph->V1), text_color);
-        pos.y -= glyph->AdvanceX;
+        DrawList->PrimQuadUV(pos + ImVec2(glyph->Y0, -glyph->X0) * scale, pos + ImVec2(glyph->Y0, -glyph->X1) * scale,
+                             pos + ImVec2(glyph->Y1, -glyph->X1) * scale, pos + ImVec2(glyph->Y1, -glyph->X0) * scale,
+                             ImVec2(glyph->U0, glyph->V0), ImVec2(glyph->U1, glyph->V0),
+                             ImVec2(glyph->U1, glyph->V1), ImVec2(glyph->U0, glyph->V1),
+                             col);
+        pos.y -= glyph->AdvanceX * scale;
     }
 }
 
@@ -1222,8 +1237,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (y_label) {
         const ImVec2 yLabel_size = CalcTextSizeVertical(y_label);
         const ImVec2 yLabel_pos(gp.BB_Canvas.Min.x, gp.BB_Plot.GetCenter().y + yLabel_size.y * 0.5f);
-        AddTextVertical(&DrawList, y_label, yLabel_pos, gp.Col_Y[0].MajTxt);
-    }
+        AddTextVertical(&DrawList, yLabel_pos, gp.Col_Y[0].MajTxt, y_label);
+   }
 
     // render tick labels
     ImGui::PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
