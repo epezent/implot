@@ -1285,7 +1285,7 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state) {
     bool ticks    = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_TickMarks);
     bool labels   = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_TickLabels);
     double drag_speed = (state.Axis->Range.Size() <= DBL_EPSILON) ? DBL_EPSILON * 1.0e+13 : 0.01 * state.Axis->Range.Size(); // recover from almost equal axis limits.
-    
+
     BeginDisabledControls(total_lock);
     if (ImGui::Checkbox("##LockMin", &state.LockMin))
         ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_LockMin);
@@ -2576,7 +2576,7 @@ void StyleColorsAuto(ImPlotStyle* dst) {
     ImPlotStyle* style              = dst ? dst : &ImPlot::GetStyle();
     ImVec4* colors                  = style->Colors;
 
-    style->MinorAlpha               = 0.25f;    
+    style->MinorAlpha               = 0.25f;
 
     colors[ImPlotCol_Line]          = IMPLOT_COL_AUTO;
     colors[ImPlotCol_Fill]          = IMPLOT_COL_AUTO;
@@ -2609,7 +2609,7 @@ void StyleColorsClassic(ImPlotStyle* dst) {
     ImPlotStyle* style              = dst ? dst : &ImPlot::GetStyle();
     ImVec4* colors                  = style->Colors;
 
-    style->MinorAlpha               = 0.5f;    
+    style->MinorAlpha               = 0.5f;
 
     colors[ImPlotCol_Line]          = IMPLOT_COL_AUTO;
     colors[ImPlotCol_Fill]          = IMPLOT_COL_AUTO;
@@ -2641,7 +2641,7 @@ void StyleColorsDark(ImPlotStyle* dst) {
     ImPlotStyle* style              = dst ? dst : &ImPlot::GetStyle();
     ImVec4* colors                  = style->Colors;
 
-    style->MinorAlpha               = 0.25f;    
+    style->MinorAlpha               = 0.25f;
 
     colors[ImPlotCol_Line]          = IMPLOT_COL_AUTO;
     colors[ImPlotCol_Fill]          = IMPLOT_COL_AUTO;
@@ -2673,8 +2673,8 @@ void StyleColorsLight(ImPlotStyle* dst) {
     ImPlotStyle* style              = dst ? dst : &ImPlot::GetStyle();
     ImVec4* colors                  = style->Colors;
 
-    style->MinorAlpha               = 1.0f;    
-    
+    style->MinorAlpha               = 1.0f;
+
     colors[ImPlotCol_Line]          = IMPLOT_COL_AUTO;
     colors[ImPlotCol_Fill]          = IMPLOT_COL_AUTO;
     colors[ImPlotCol_MarkerOutline] = IMPLOT_COL_AUTO;
