@@ -75,6 +75,8 @@ typedef ImVec2 t_float2;
 #define Fmod fmodf
 #endif
 
+void ShowBenchmarkTool();
+
 inline t_float RandomRange(t_float min, t_float max) {
     t_float scale = rand() / (t_float) RAND_MAX;
     return min + scale * ( max - min );
@@ -122,27 +124,12 @@ struct RollingBuffer {
     }
 };
 
-// utility structure for benchmark data
-struct BenchmarkItem {
-    BenchmarkItem() {
-        t_float y = RandomRange(0,1);
-        Data = new t_float2[1000];
-        for (int i = 0; i < 1000; ++i) {
-            Data[i].x = i*0.001f;
-            Data[i].y = y + RandomRange(-0.01f,0.01f);
-        }
-        Col = ImVec4((float)RandomRange(0,1),(float)RandomRange(0,1),(float)RandomRange(0,1),1);
-    }
-    ~BenchmarkItem() { delete[] Data; }
-    t_float2* Data;
-    ImVec4 Col;
-};
-
 void ShowDemoWindow(bool* p_open) {
     t_float DEMO_TIME = (t_float)ImGui::GetTime();
     static bool show_imgui_metrics       = false;
     static bool show_imgui_style_editor  = false;
     static bool show_implot_style_editor = false;
+    static bool show_implot_benchmark    = false;
     if (show_imgui_metrics) {
         ImGui::ShowMetricsWindow(&show_imgui_metrics);
     }
@@ -157,6 +144,13 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::ShowStyleEditor();
         ImGui::End();
     }
+    if (show_implot_benchmark) {
+        ImGui::Begin("ImPlot Benchmark Tool", &show_implot_benchmark);
+        ImGui::SetNextWindowSize(ImVec2(530,690), ImGuiCond_Appearing);
+        ImPlot::ShowBenchmarkTool();
+        ImGui::End();
+        return;
+    }
     ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(530, 750), ImGuiCond_FirstUseEver);
     ImGui::Begin("ImPlot Demo", p_open, ImGuiWindowFlags_MenuBar);
@@ -165,6 +159,7 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::MenuItem("Metrics (ImGui)",       NULL, &show_imgui_metrics);
             ImGui::MenuItem("Style Editor (ImGui)",  NULL, &show_imgui_style_editor);
             ImGui::MenuItem("Style Editor (ImPlot)", NULL, &show_implot_style_editor);
+            ImGui::MenuItem("Benchmark",             NULL, &show_implot_benchmark);
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -186,7 +181,17 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::BulletText("Software AA can be enabled globally with ImPlotStyle.AntiAliasedLines.");
             ImGui::BulletText("Software AA can be enabled per plot with ImPlotFlags_AntiAliased.");
             ImGui::BulletText("AA for plots can be toggled from the plot's context menu.");
-            ImGui::BulletText("If permitable, you are better off using hardware AA (e.g. MSAA).");
+            ImGui::BulletText("If permitable, you are better off using hardware AA (e.g. MSAA).");        
+        ImGui::Unindent();
+        ImGui::BulletText("If you see visual artifacts, do one of the following:");
+        ImGui::Indent();
+        ImGui::BulletText("Handle ImGuiBackendFlags_RendererHasVtxOffset for 16-bit indices in your backend.");
+        ImGui::BulletText("Or, enable 32-bit indices in imconfig.h.");
+        ImGui::BulletText("Your current configuration is:");
+        ImGui::Indent();
+        ImGui::BulletText("ImDrawIdx: %d-bit", (int)(sizeof(ImDrawIdx) * 8));
+        ImGui::BulletText("ImGuiBackendFlags_RendererHasVtxOffset: %s", (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) ? "True" : "False");
+        ImGui::Unindent();
         ImGui::Unindent();
 #ifdef IMPLOT_DEMO_USE_DOUBLE
         ImGui::BulletText("The demo data precision is: double");
@@ -1082,31 +1087,6 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Benchmark")) {
-        static const int n_items = 100;
-        static BenchmarkItem items[n_items];
-        ImGui::BulletText("Make sure VSync is disabled.");
-        ImGui::BulletText("%d lines with %d points each @ %.3f FPS.",n_items,1000,ImGui::GetIO().Framerate);
-        ImGui::BulletText("ImDrawIdx: %d-bit", (int)(sizeof(ImDrawIdx) * 8));
-        ImGui::BulletText("ImGuiBackendFlags_RendererHasVtxOffset: %s", (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) ? "True" : "False");
-        ImGui::BulletText("If you see visual artifacts, do one of the following:");
-        ImGui::Indent();
-        ImGui::BulletText("Handle ImGuiBackendFlags_RendererHasVtxOffset for 16-bit indices in your backend.");
-        ImGui::BulletText("Enable 32-bit indices in imconfig.h.");
-        ImGui::Unindent();
-        ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_Default | ImPlotFlags_NoChild)) {
-            char buff[16];
-            for (int i = 0; i < 100; ++i) {
-                sprintf(buff, "item_%d",i);
-                ImPlot::PushStyleColor(ImPlotCol_Line, items[i].Col);
-                ImPlot::PlotLine(buff, items[i].Data, 1000);
-                ImPlot::PopStyleColor();
-            }
-            ImPlot::EndPlot();
-        }
-    }
-    //-------------------------------------------------------------------------
     ImGui::End();
 }
 
@@ -1295,3 +1275,97 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
 }
 
 } // namespace MyImplot
+
+namespace ImPlot {
+
+struct BenchmarkItem {
+    BenchmarkItem() {
+        float y = RandomRange(0,1);
+        Data = new ImVec2[1000];
+        for (int i = 0; i < 1000; ++i) {
+            Data[i].x = i*0.001f;
+            Data[i].y = y + RandomRange(-0.01f,0.01f);
+        }
+        Col = ImVec4((float)RandomRange(0,1),(float)RandomRange(0,1),(float)RandomRange(0,1),1);
+    }
+    ~BenchmarkItem() { delete[] Data; }
+    ImVec2* Data;
+    ImVec4 Col;
+};
+
+void ShowBenchmarkTool() {
+    static const int max_lines = 500;
+    static BenchmarkItem items[max_lines];
+    static bool running = false;
+    static int frames   = 60;
+    static int L        = 0;
+    static int F        = 0;
+    static double t1, t2;
+
+    static ImVector<ImVector<ImPlotPoint>> records;
+
+    if (running) {
+        F++;
+        if (F == frames) {
+            t2 = ImGui::GetTime();
+            records.back().push_back(ImPlotPoint(L, frames / (t2 - t1)));
+            L  += 5;
+            F  = 0;
+            t1 = ImGui::GetTime();
+        }
+        if (L > max_lines) {
+            running = false;   
+            L = max_lines; 
+        }    
+    }
+
+    ImGui::Text("ImDrawIdx: %d-bit", (int)(sizeof(ImDrawIdx) * 8));
+    ImGui::Text("ImGuiBackendFlags_RendererHasVtxOffset: %s", (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) ? "True" : "False"); 
+    ImGui::Text("%.2f FPS", ImGui::GetIO().Framerate);
+   
+    ImGui::Separator();
+    
+    bool was_running = running;
+    if (was_running) {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);
+    }
+    if (ImGui::Button("Benchmark")) {
+        running = true;
+        L = F = 0;
+        records.push_back(ImVector<ImPlotPoint>());
+        records.back().reserve(max_lines + 1);
+        t1 = ImGui::GetTime();
+    }
+    ImGui::SameLine();
+    ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines); 
+    if (was_running) { ImGui::PopItemFlag(); ImGui::PopStyleVar(); }
+  
+    ImGui::ProgressBar((float)L / (float)(max_lines - 1));
+
+    ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
+    if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_NoChild,0,0,0,0)) {
+        if (running) {
+            for (int i = 0; i < L; ++i) {
+                ImGui::PushID(i);
+                ImPlot::PushStyleColor(ImPlotCol_Line, items[i].Col);
+                ImPlot::PlotLine("##item", items[i].Data, 1000);
+                ImPlot::PopStyleColor();
+                ImGui::PopID();
+            }
+        }
+        ImPlot::EndPlot();
+    }
+
+    ImPlot::SetNextPlotLimits(0,500,0,500,ImGuiCond_Always);
+    static char buffer[8];
+    if (ImPlot::BeginPlot("##Stats", "Lines (1,000 pts each)", "Framerate (Hz)", ImVec2(-1,0), ImPlotFlags_Default | ImPlotFlags_NoChild)) {
+        for (int run = 0; run < records.size(); ++run) {
+            sprintf(buffer, "Run %d", run + 1);
+            ImPlot::PlotLine(buffer, records[run].Data, records[run].Size);
+        }
+        ImPlot::EndPlot();
+    }
+}
+
+}
