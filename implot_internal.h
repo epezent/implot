@@ -176,14 +176,54 @@ struct ImPlotTick
     int    BufferOffset;
     bool   Major;
     bool   ShowLabel;
-    bool   Labeled;
 
     ImPlotTick(double value, bool major, bool show_label) {
-        PlotPos   = value;
-        Major     = major;
-        ShowLabel = show_label;
-        Labeled   = false;
+        PlotPos      = value;
+        Major        = major;
+        ShowLabel    = show_label;
+        BufferOffset = -1;
     }
+};
+
+// Collection of ticks
+struct ImPlotTickCollection {
+    ImVector<ImPlotTick> Ticks;
+    ImGuiTextBuffer      Labels;
+    float                TotalWidth;
+    float                TotalHeight;
+    float                MaxWidth;
+    float                MaxHeight;
+    int                  Size;
+
+    void AddTick(const ImPlotTick& tick) {
+        if (tick.ShowLabel) {
+            TotalWidth  += tick.ShowLabel ? tick.LabelSize.x : 0;
+            TotalHeight += tick.ShowLabel ? tick.LabelSize.y : 0;
+            MaxWidth    =  tick.LabelSize.x > MaxWidth  ? tick.LabelSize.x : MaxWidth;
+            MaxHeight   =  tick.LabelSize.y > MaxHeight ? tick.LabelSize.y : MaxHeight;
+        }
+        Ticks.push_back(tick);
+        Size++;
+    }
+    
+    void AddTick(double value, bool major, bool show_label, void (*labeler)(ImPlotTick& tick, ImGuiTextBuffer& buf)) {
+        ImPlotTick tick(value, major, show_label);
+        if (labeler)
+            labeler(tick, Labels);
+        AddTick(tick);
+    }
+
+    const char* GetLabel(int idx) {
+        return Labels.Buf.Data + Ticks[idx].BufferOffset;
+    }
+
+    void Reset() { 
+        Ticks.shrink(0); 
+        Labels.Buf.shrink(0); 
+        TotalWidth = TotalHeight = MaxWidth = MaxHeight = 0;
+        Size = 0;
+    }
+
 };
 
 // Axis state information that must persist after EndPlot
@@ -337,10 +377,8 @@ struct ImPlotContext {
     ImPlotAxisState Y[IMPLOT_Y_AXES];
 
     // Tick Marks and Labels
-    ImVector<ImPlotTick> XTicks;
-    ImVector<ImPlotTick> YTicks[IMPLOT_Y_AXES];
-    ImGuiTextBuffer      XTickLabels;
-    ImGuiTextBuffer      YTickLabels[IMPLOT_Y_AXES];
+    ImPlotTickCollection XTicks;
+    ImPlotTickCollection YTicks[IMPLOT_Y_AXES];
     float                YAxisReference[IMPLOT_Y_AXES];
 
     // Transformations and Data Extents
@@ -437,25 +475,24 @@ int GetLegendCount();
 // Gets the ith entry string for the current legend
 const char* GetLegendLabel(int i);
 
+// Label a tick with default formatting
+void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer);
+// Label a tick with scientific formating
+void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer);
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
-void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImVector<ImPlotTick> &out);
+void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
-void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImVector<ImPlotTick>& out);
+void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
-void AddTicksCustom(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer);
-// Creates label information for a list of ImPlotTick
-void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, ImGuiTextBuffer& buffer);
-// Gets the widest visible (i.e. ShowLabel = true) label size from a list of ticks
-float MaxTickLabelWidth(const ImVector<ImPlotTick>& ticks);
-// Sums the widths of visible ticks (i.e. ShowLabel = true) ticks
-float SumTickLabelWidth(const ImVector<ImPlotTick>& ticks);
-// Sums the heights of visible (i.e. ShowLabel = true) ticks
-float SumTickLabelHeight(const ImVector<ImPlotTick>& ticks);
+void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTickCollection& ticks);
+
+// Constrains an axis range
+void ConstrainAxis(ImPlotAxis& axis);
+// Updates axis ticks, lins, and label colors
+void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
 
 // Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
 double NiceNum(double x, bool round);
-// Updates axis ticks, lins, and label colors
-void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
 // Draws vertical text. The position is the bottom left of the text rect.
 void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
