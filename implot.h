@@ -51,7 +51,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_Query       = 1 << 4,  // the user will be able to draw query rects with middle-mouse
     ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open context menus with double-right click
     ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased = 1 << 7,  // plot lines will be software anti-aliased (not recommended, prefer MSAA)
+    ImPlotFlags_AntiAliased = 1 << 7,  // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
     ImPlotFlags_NoChild     = 1 << 8,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
     ImPlotFlags_YAxis2      = 1 << 9,  // enable a 2nd y-axis
     ImPlotFlags_YAxis3      = 1 << 10, // enable a 3rd y-axis
@@ -67,7 +67,6 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_LockMin    = 1 << 4, // the axis minimum value will be locked when panning/zooming
     ImPlotAxisFlags_LockMax    = 1 << 5, // the axis maximum value will be locked when panning/zooming
     ImPlotAxisFlags_LogScale   = 1 << 6, // a logartithmic (base 10) axis scale will be used
-    ImPlotAxisFlags_Scientific = 1 << 7, // scientific notation will be used for tick labels if displayed (WIP, not very good yet)
     ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
     ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
 };
@@ -204,6 +203,7 @@ struct ImPlotStyle {
     float        ErrorBarWeight;          // = 1.5,    error bar whisker weight in pixels
     float        DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
     float        DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
+    bool         AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
     // plot styling variables
     float        PlotBorderSize;          // = 1,      line thickness of border around plot area
     float        MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines

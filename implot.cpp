@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2020/08/25 (0.5) - ImPlotAxisFlags_Scientific was removed. Logarithmic axes automatically uses scientific notation.
 - 2020/08/17 (0.5) - PlotText was changed so that text is centered horizontally and vertically about the desired point.
 - 2020/08/16 (0.5) - An ImPlotContext must be explicitly created and destroyed now with `CreateContext` and `DestroyContext`. Previously, the context was statically initialized in this source file.
 - 2020/06/13 (0.4) - The flags `ImPlotAxisFlag_Adaptive` and `ImPlotFlags_Cull` were removed. Both are now done internally by default.
@@ -103,7 +104,8 @@ ImPlotStyle::ImPlotStyle() {
     ErrorBarWeight   = 1.5f;
     DigitalBitHeight = 8;
     DigitalBitGap    = 4;
-
+    AntiAliasedLines = false;
+    
     PlotBorderSize   = 1;
     MinorAlpha       = 0.25f;
     MajorTickLen     = ImVec2(10,10);
@@ -609,10 +611,13 @@ void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollect
 void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTickCollection& ticks) {
     for (int i = 0; i < n; ++i) {
         ImPlotTick tick(values[i], false, true);
-        tick.BufferOffset = ticks.Labels.size();
         if (labels != NULL) {
+            tick.BufferOffset = ticks.Labels.size();
             ticks.Labels.append(labels[i], labels[i] + strlen(labels[i]) + 1);
             tick.LabelSize = ImGui::CalcTextSize(labels[i]);
+        }
+        else {
+            LabelTickDefault(tick, ticks.Labels);
         }
         ticks.AddTick(tick);
     }
@@ -2315,6 +2320,10 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SliderFloat("ErrorBarWeight", &style.ErrorBarWeight, 0.0f, 5.0f, "%.1f");
             ImGui::SliderFloat("DigitalBitHeight", &style.DigitalBitHeight, 0.0f, 20.0f, "%.1f");
             ImGui::SliderFloat("DigitalBitGap", &style.DigitalBitGap, 0.0f, 20.0f, "%.1f");
+            float indent = ImGui::CalcItemWidth() - ImGui::GetFrameHeight();
+            ImGui::Indent(ImGui::CalcItemWidth() - ImGui::GetFrameHeight());
+            ImGui::Checkbox("AntiAliasedLines", &style.AntiAliasedLines);
+            ImGui::Unindent(indent);
             ImGui::Text("Plot Styling");
             ImGui::SliderFloat("PlotBorderSize", &style.PlotBorderSize, 0.0f, 2.0f, "%.0f");
             ImGui::SliderFloat("MinorAlpha", &style.MinorAlpha, 0.0f, 1.0f, "%.2f");

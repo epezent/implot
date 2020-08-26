@@ -183,8 +183,9 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("See the ShowDemoWindow() code in implot_demo.cpp. <- you are here!");
         ImGui::BulletText("By default, anti-aliased lines are turned OFF.");
         ImGui::Indent();
+            ImGui::BulletText("Software AA can be enabled globally with ImPlotStyle.AntiAliasedLines.");
             ImGui::BulletText("Software AA can be enabled per plot with ImPlotFlags_AntiAliased.");
-            ImGui::BulletText("AA for demo plots can be enabled from the plot's context menu.");
+            ImGui::BulletText("AA for plots can be toggled from the plot's context menu.");
             ImGui::BulletText("If permitable, you are better off using hardware AA (e.g. MSAA).");
         ImGui::Unindent();
 #ifdef IMPLOT_DEMO_USE_DOUBLE
@@ -213,6 +214,10 @@ void ShowDemoWindow(bool* p_open) {
             }
             ImGui::EndCombo();
         }
+        float indent = ImGui::CalcItemWidth() - ImGui::GetFrameHeight();
+        ImGui::Indent(ImGui::CalcItemWidth() - ImGui::GetFrameHeight());
+        ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines);
+        ImGui::Unindent(indent);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Line Plots")) {

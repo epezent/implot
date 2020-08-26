@@ -481,7 +481,7 @@ inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList) {
 template <typename Getter, typename Transformer>
 inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& DrawList, float line_weight, ImU32 col) {
     ImPlotContext& gp = *GImPlot;
-    if (ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
+    if (ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased) || gp.Style.AntiAliasedLines) {
         ImVec2 p1 = transformer(getter(0));
         for (int i = 0; i < getter.Count; ++i) {
             ImVec2 p2 = transformer(getter(i));
