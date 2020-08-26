@@ -145,8 +145,8 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::End();
     }
     if (show_implot_benchmark) {
+        ImGui::SetNextWindowSize(ImVec2(530,740), ImGuiCond_Appearing);
         ImGui::Begin("ImPlot Benchmark Tool", &show_implot_benchmark);
-        ImGui::SetNextWindowSize(ImVec2(530,690), ImGuiCond_Appearing);
         ImPlot::ShowBenchmarkTool();
         ImGui::End();
         return;
