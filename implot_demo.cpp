@@ -563,7 +563,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotText("Open Markers",   7.5f, 6.0f);
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1,0,1,1));
-            ImPlot::PlotText("Vertical Magneta Text", 5.0f, 6.0f, true);
+            ImPlot::PlotText("Vertical Text", 5.0f, 6.0f, true);
             ImGui::PopStyleColor();
 
             ImPlot::EndPlot();
