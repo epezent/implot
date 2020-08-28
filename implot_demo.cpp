@@ -537,10 +537,9 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize,   mk_size);
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerWeight, mk_weight);
             // filled markers
-            for (int i = 1; i < 11; ++i) {
-                ImPlotMarker marker = 1 << i; // e.g. ImPlotMarkerCircle = 1 << 1 (see implot.h)
-                ImPlot::PushStyleVar(ImPlotStyleVar_Marker, marker);
-                ImGui::PushID(i);
+            for (int m = 1; m < ImPlotMarker_COUNT; ++m) {
+                ImPlot::PushStyleVar(ImPlotStyleVar_Marker, m);
+                ImGui::PushID(m);
                 ImPlot::PlotLine("##Filled", xs, ys, 2);
                 ImGui::PopID();
                 ImPlot::PopStyleVar();
@@ -549,10 +548,9 @@ void ShowDemoWindow(bool* p_open) {
             xs[0] = 6; xs[1] = 9; ys[0] = 10; ys[1] = 11;
             // open markers
             ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(0,0,0,0));
-            for (int i = 1; i < 11; ++i) {
-                ImPlotMarker marker = 1 << i; // e.g. ImPlotMarkerCircle = 1 << 1 (see implot.h)
-                ImPlot::PushStyleVar(ImPlotStyleVar_Marker, marker);
-                ImGui::PushID(i);
+            for (int m = 1; m < ImPlotMarker_COUNT; ++m) {
+                ImPlot::PushStyleVar(ImPlotStyleVar_Marker, m);
+                ImGui::PushID(m);
                 ImPlot::PlotLine("##Open", xs, ys, 2);
                 ImGui::PopID();
                 ImPlot::PopStyleVar();
@@ -561,23 +559,11 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PopStyleColor();
             ImPlot::PopStyleVar(2);
 
-            xs[0] = 5; xs[1] = 5; ys[0] = 1; ys[1] = 11;
-            ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2);
-            ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 8);
-            ImPlot::PushStyleVar(ImPlotStyleVar_MarkerWeight, 2);
-            ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle | ImPlotMarker_Cross);
-            ImPlot::PushStyleColor(ImPlotCol_MarkerOutline, ImVec4(0,0,0,1));
-            ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(1,1,1,1));
-            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0,0,0,1));
-            ImPlot::PlotLine("Circle|Cross", xs, ys, 2);
-            ImPlot::PopStyleVar(4);
-            ImPlot::PopStyleColor(3);
-
             ImPlot::PlotText("Filled Markers", 2.5f, 6.0f);
             ImPlot::PlotText("Open Markers",   7.5f, 6.0f);
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1,0,1,1));
-            ImPlot::PlotText("Fancy Markers", 5.0f, 6.0f, true);
+            ImPlot::PlotText("Vertical Magneta Text", 5.0f, 6.0f, true);
             ImGui::PopStyleColor();
 
             ImPlot::EndPlot();

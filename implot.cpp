@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2020/08/28 (0.5) - ImPlotMarker_ can no longer be combined with bitwise OR, |. This features caused unecessary slow-down, and almost no one used it.
 - 2020/08/25 (0.5) - ImPlotAxisFlags_Scientific was removed. Logarithmic axes automatically uses scientific notation.
 - 2020/08/17 (0.5) - PlotText was changed so that text is centered horizontally and vertically about the desired point.
 - 2020/08/16 (0.5) - An ImPlotContext must be explicitly created and destroyed now with `CreateContext` and `DestroyContext`. Previously, the context was statically initialized in this source file.
@@ -1433,24 +1434,26 @@ void EndPlot() {
     // render selection/query
     if (plot.Selecting) {
         ImRect select_bb(ImMin(IO.MousePos, plot.SelectStart), ImMax(IO.MousePos, plot.SelectStart));
-        const bool select_big_enough = ImLengthSqr(select_bb.GetSize()) > 4;
-        if (plot.Selecting && !gp.LockPlot && ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect) && select_big_enough) {
+        bool wide_enough = select_bb.GetWidth() > 2;
+        bool tall_enough = select_bb.GetWidth() > 2;
+        bool big_enough  = wide_enough && tall_enough;
+        if (plot.Selecting && !gp.LockPlot && ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect)) {
             const ImVec4 col   = GetStyleColorVec4(ImPlotCol_Selection);
             const ImU32 col_bg = ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
             const ImU32 col_bd = ImGui::GetColorU32(col);
-            if (IO.KeyAlt && IO.KeyShift) {
+            if (IO.KeyMods == (gp.InputMap.HorizontalMod | gp.InputMap.VerticalMod) && big_enough) {
                 DrawList.AddRectFilled(gp.BB_Plot.Min, gp.BB_Plot.Max, col_bg);
                 DrawList.AddRect(      gp.BB_Plot.Min, gp.BB_Plot.Max, col_bd);
             }
-            else if ((gp.X.Lock || IO.KeyAlt)) {
+            else if ((gp.X.Lock || IO.KeyMods == gp.InputMap.HorizontalMod) && big_enough) {
                 DrawList.AddRectFilled(ImVec2(gp.BB_Plot.Min.x, select_bb.Min.y), ImVec2(gp.BB_Plot.Max.x, select_bb.Max.y), col_bg);
                 DrawList.AddRect(      ImVec2(gp.BB_Plot.Min.x, select_bb.Min.y), ImVec2(gp.BB_Plot.Max.x, select_bb.Max.y), col_bd);
             }
-            else if ((any_y_locked || IO.KeyShift)) {
+            else if ((any_y_locked || IO.KeyMods == gp.InputMap.VerticalMod) && big_enough) {
                 DrawList.AddRectFilled(ImVec2(select_bb.Min.x, gp.BB_Plot.Min.y), ImVec2(select_bb.Max.x, gp.BB_Plot.Max.y), col_bg);
                 DrawList.AddRect(      ImVec2(select_bb.Min.x, gp.BB_Plot.Min.y), ImVec2(select_bb.Max.x, gp.BB_Plot.Max.y), col_bd);
             }
-            else {
+            else if (big_enough) {
                 DrawList.AddRectFilled(select_bb.Min, select_bb.Max, col_bg);
                 DrawList.AddRect(      select_bb.Min, select_bb.Max, col_bd);
             }

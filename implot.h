@@ -131,19 +131,20 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_COUNT
 };
 
-// Marker specifications. You can combine these with binary OR, e.g. ImPlotMarker_Circle | ImPlotMarker_Cross.
+// Marker specifications.
 enum ImPlotMarker_ {
-    ImPlotMarker_None        = 1 << 0,  // no marker
-    ImPlotMarker_Circle      = 1 << 1,  // a circle marker
-    ImPlotMarker_Square      = 1 << 2,  // a square maker
-    ImPlotMarker_Diamond     = 1 << 3,  // a diamond marker
-    ImPlotMarker_Up          = 1 << 4,  // an upward-pointing triangle marker
-    ImPlotMarker_Down        = 1 << 5,  // an downward-pointing triangle marker
-    ImPlotMarker_Left        = 1 << 6,  // an leftward-pointing triangle marker
-    ImPlotMarker_Right       = 1 << 7,  // an rightward-pointing triangle marker
-    ImPlotMarker_Cross       = 1 << 8,  // a cross marker (not fillable)
-    ImPlotMarker_Plus        = 1 << 9,  // a plus marker (not fillable)
-    ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker (not fillable)
+    ImPlotMarker_None,      // no marker
+    ImPlotMarker_Circle,    // a circle marker
+    ImPlotMarker_Square,    // a square maker
+    ImPlotMarker_Diamond,   // a diamond marker
+    ImPlotMarker_Up,        // an upward-pointing triangle marker
+    ImPlotMarker_Down,      // an downward-pointing triangle marker
+    ImPlotMarker_Left,      // an leftward-pointing triangle marker
+    ImPlotMarker_Right,     // an rightward-pointing triangle marker
+    ImPlotMarker_Cross,     // a cross marker (not fillable)
+    ImPlotMarker_Plus,      // a plus marker (not fillable)
+    ImPlotMarker_Asterisk,  // a asterisk marker (not fillable)
+    ImPlotMarker_COUNT
 };
 
 // Built-in colormaps

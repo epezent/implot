@@ -283,20 +283,22 @@ struct ImPlotAxisColor
 // State information for Plot items
 struct ImPlotItem
 {
-    ImGuiID ID;
-    ImVec4  Color;
-    bool    Show;
-    bool    Highlight;
-    bool    SeenThisFrame;
-    int     NameOffset;
+    ImGuiID      ID;
+    ImVec4       Color;
+    ImPlotMarker Marker;   
+    int          NameOffset;
+    bool         Show;
+    bool         Highlight;
+    bool         SeenThisFrame;
 
     ImPlotItem() {
         ID            = 0;
         Color         = ImPlot::NextColormapColor();
+        Marker        = ImPlotMarker_None;
+        NameOffset    = -1;
         Show          = true;
         SeenThisFrame = false;
         Highlight     = false;
-        NameOffset    = -1;
     }
 
     ~ImPlotItem() { ID = 0; }
@@ -319,6 +321,7 @@ struct ImPlotState
     bool               Queried;
     bool               DraggingQuery;
     int                ColormapIdx;
+    int                MarkerIdx;
     int                CurrentYAxis;
 
     ImPlotState() {
