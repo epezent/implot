@@ -22,7 +22,7 @@
 
 // ImPlot v0.5 WIP
 
-// You may use this file to debug, understand or extend ImPlot features but we 
+// You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
 
 //-----------------------------------------------------------------------------
@@ -63,26 +63,17 @@ extern ImPlotContext* GImPlot; // Current implicit context pointer
 // [SECTION] Macros and Constants
 //-----------------------------------------------------------------------------
 
-// Constants can be changed unless stated otherwise
+// Constants can be changed unless stated otherwise. We may move some of these
+// to ImPlotStyleVar_ over time.
 
 // Default plot frame width when requested width is auto (i.e. 0). This is not the plot area width!
 #define IMPLOT_DEFAULT_W  400
 // Default plot frame height when requested height is auto (i.e. 0). This is not the plot area height!
 #define IMPLOT_DEFAULT_H  300
-// Minimum plot frame width when requested width is to edge (i.e. -1). This is not the plot area width!
-#define IMPLOT_MIN_W      300
-// Minimum plot frame height when requested height is to edge (i.e. -1). This is not the plot area height!
-#define IMPLOT_MIN_H      225
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
 #define IMPLOT_Y_AXES     3
 // The number of times to subdivided grid divisions (best if a multiple of 1, 2, and 5)
-#define IMPLOT_SUB_DIV    10 
-// Pixel padding used for labels/titles
-#define IMPLOT_LABEL_PAD  5
-// Major tick size in pixels
-#define IMPLOT_MAJOR_SIZE 10
-// Minor tick size in pixels
-#define IMPLOT_MINOR_SIZE 5
+#define IMPLOT_SUB_DIV    10
 // Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
 #define IMPLOT_ZOOM_RATE  0.1f
 
@@ -112,7 +103,7 @@ inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
 // Offset calculator helper
 template <int Count>
 struct ImOffsetCalculator {
-    ImOffsetCalculator(int* sizes) {
+    ImOffsetCalculator(const int* sizes) {
         Offsets[0] = 0;
         for (int i = 1; i < Count; ++i)
             Offsets[i] = Offsets[i-1] + sizes[i-1];
@@ -156,8 +147,18 @@ struct ImArray {
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
 
+// Storage for colormap modifiers
+struct ImPlotColormapMod {
+    ImPlotColormapMod(const ImVec4* colormap, int colormap_size) {
+        Colormap     = colormap;
+        ColormapSize = colormap_size;
+    }
+    const ImVec4* Colormap;
+    int ColormapSize;
+};
+
 // ImPlotPoint with positive/negative error values
-struct ImPlotPointError 
+struct ImPlotPointError
 {
     double X, Y, Neg, Pos;
 
@@ -175,14 +176,54 @@ struct ImPlotTick
     int    BufferOffset;
     bool   Major;
     bool   ShowLabel;
-    bool   Labeled;
 
     ImPlotTick(double value, bool major, bool show_label) {
-        PlotPos   = value;
-        Major     = major;
-        ShowLabel = show_label;
-        Labeled   = false;
+        PlotPos      = value;
+        Major        = major;
+        ShowLabel    = show_label;
+        BufferOffset = -1;
     }
+};
+
+// Collection of ticks
+struct ImPlotTickCollection {
+    ImVector<ImPlotTick> Ticks;
+    ImGuiTextBuffer      Labels;
+    float                TotalWidth;
+    float                TotalHeight;
+    float                MaxWidth;
+    float                MaxHeight;
+    int                  Size;
+
+    void AddTick(const ImPlotTick& tick) {
+        if (tick.ShowLabel) {
+            TotalWidth  += tick.ShowLabel ? tick.LabelSize.x : 0;
+            TotalHeight += tick.ShowLabel ? tick.LabelSize.y : 0;
+            MaxWidth    =  tick.LabelSize.x > MaxWidth  ? tick.LabelSize.x : MaxWidth;
+            MaxHeight   =  tick.LabelSize.y > MaxHeight ? tick.LabelSize.y : MaxHeight;
+        }
+        Ticks.push_back(tick);
+        Size++;
+    }
+    
+    void AddTick(double value, bool major, bool show_label, void (*labeler)(ImPlotTick& tick, ImGuiTextBuffer& buf)) {
+        ImPlotTick tick(value, major, show_label);
+        if (labeler)
+            labeler(tick, Labels);
+        AddTick(tick);
+    }
+
+    const char* GetLabel(int idx) {
+        return Labels.Buf.Data + Ticks[idx].BufferOffset;
+    }
+
+    void Reset() { 
+        Ticks.shrink(0); 
+        Labels.Buf.shrink(0); 
+        TotalWidth = TotalHeight = MaxWidth = MaxHeight = 0;
+        Size = 0;
+    }
+
 };
 
 // Axis state information that must persist after EndPlot
@@ -210,7 +251,7 @@ struct ImPlotAxisState
 {
     ImPlotAxis* Axis;
     ImGuiCond   RangeCond;
-    bool        HasRange;    
+    bool        HasRange;
     bool        Present;
     bool        HasLabels;
     bool        Invert;
@@ -331,17 +372,6 @@ struct ImPlotContext {
     ImRect BB_Canvas;
     ImRect BB_Plot;
 
-    // Cached Colors
-    ImU32 Col_Frame;
-    ImU32 Col_Bg;
-    ImU32 Col_Border;
-    ImU32 Col_Txt;
-    ImU32 Col_TxtDis;
-    ImU32 Col_SlctBg;
-    ImU32 Col_SlctBd;
-    ImU32 Col_QryBg;
-    ImU32 Col_QryBd;
-
     // Axis States
     ImPlotAxisColor Col_X;
     ImPlotAxisColor Col_Y[IMPLOT_Y_AXES];
@@ -349,10 +379,8 @@ struct ImPlotContext {
     ImPlotAxisState Y[IMPLOT_Y_AXES];
 
     // Tick Marks and Labels
-    ImVector<ImPlotTick> XTicks;
-    ImVector<ImPlotTick> YTicks[IMPLOT_Y_AXES];
-    ImGuiTextBuffer      XTickLabels;
-    ImGuiTextBuffer      YTickLabels[IMPLOT_Y_AXES];
+    ImPlotTickCollection XTicks;
+    ImPlotTickCollection YTicks[IMPLOT_Y_AXES];
     float                YAxisReference[IMPLOT_Y_AXES];
 
     // Transformations and Data Extents
@@ -382,11 +410,12 @@ struct ImPlotContext {
     bool ChildWindowMade;
 
     // Style and Colormaps
-    ImPlotStyle             Style;
-    ImVector<ImGuiColorMod> ColorModifiers;
-    ImVector<ImGuiStyleMod> StyleModifiers;
-    ImVec4*                 Colormap;
-    int                     ColormapSize;
+    ImPlotStyle                 Style;
+    ImVector<ImGuiColorMod>     ColorModifiers;
+    ImVector<ImGuiStyleMod>     StyleModifiers;
+    const ImVec4*               Colormap;
+    int                         ColormapSize;
+    ImVector<ImPlotColormapMod> ColormapModifiers;
 
     // Misc
     int                VisibleItemCount;
@@ -394,10 +423,10 @@ struct ImPlotContext {
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
     ImPlotInputMap     InputMap;
-    ImPlotPoint        LastMousePos[IMPLOT_Y_AXES];
+    ImPlotPoint        MousePos[IMPLOT_Y_AXES];
 };
 
-struct ImPlotAxisScale 
+struct ImPlotAxisScale
 {
     ImPlotPoint Min, Max;
 
@@ -424,8 +453,10 @@ void Reset(ImPlotContext* ctx);
 ImPlotState* GetPlot(const char* title);
 // Gets the current plot from the current ImPlotContext
 ImPlotState* GetCurrentPlot();
+// Busts the cache for every plot in the current context
+void BustPlotCache();
 
-// Updates plot-to-pixel space transformation variables for the current plot
+// Updates plot-to-pixel space transformation variables for the current plot.
 void UpdateTransformCache();
 // Extends the current plots axes so that it encompasses point p
 void FitPoint(const ImPlotPoint& p);
@@ -438,36 +469,34 @@ ImPlotItem* GetItem(int i);
 ImPlotItem* GetItem(const char* label_id);
 // Gets a plot item from a specific plot
 ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
+// Busts the cache for every item for every plot in the current context.
+void BustItemCache();
 
 // Returns the number of entries in the current legend
 int GetLegendCount();
 // Gets the ith entry string for the current legend
 const char* GetLegendLabel(int i);
 
-// Populates a list of ImPlotTicks with automatically spaced ticks
-void AddDefaultTicks(const ImPlotRange& range, int nMajor, int nMinor, bool logscale, ImVector<ImPlotTick> &out);
+// Label a tick with default formatting
+void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer);
+// Label a tick with scientific formating
+void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer);
+// Populates a list of ImPlotTicks with normal spaced and formatted ticks
+void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImPlotTickCollection& ticks);
+// Populates a list of ImPlotTicks with logarithmic space and formatted ticks
+void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
-void AddCustomTicks(const double* values, const char** labels, int n, ImVector<ImPlotTick>& ticks, ImGuiTextBuffer& buffer);
-// Creates label information for a list of ImPlotTick
-void LabelTicks(ImVector<ImPlotTick> &ticks, bool scientific, ImGuiTextBuffer& buffer);
-// Gets the widest visible (i.e. ShowLabel = true) label size from a list of ticks
-float MaxTickLabelWidth(const ImVector<ImPlotTick>& ticks);
-// Sums the widths of visible ticks (i.e. ShowLabel = true) ticks
-float SumTickLabelWidth(const ImVector<ImPlotTick>& ticks);
-// Sums the heights of visible (i.e. ShowLabel = true) ticks
-float SumTickLabelHeight(const ImVector<ImPlotTick>& ticks);
+void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTickCollection& ticks);
+
+// Constrains an axis range
+void ConstrainAxis(ImPlotAxis& axis);
+// Updates axis ticks, lins, and label colors
+void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
 
 // Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
 double NiceNum(double x, bool round);
-
-// Updates axis ticks, lins, and label colors
-void UpdateAxisColor(int axis_flag, ImPlotAxisColor* col);
-// Sets the colormap for a particular ImPlotContext
-void SetColormapEx(ImPlotColormap colormap, int samples, ImPlotContext* ctx);
-void SetColormapEx(const ImVec4* colors, int num_colors, ImPlotContext* ctx);
-
 // Draws vertical text. The position is the bottom left of the text rect.
-void AddTextVertical(ImDrawList *DrawList, const char *text, ImVec2 pos, ImU32 text_color);
+void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
 ImVec2 CalcTextSizeVertical(const char *text);
 // Returns white or black text given background color
@@ -514,10 +543,20 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
 }
 
+// Get built-in colormap data and size
+const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out);
+// Linearly interpolates a color from the current colormap given t between 0 and 1.
+ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
+// Resamples a colormap. #size_out must be greater than 1.
+void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
+
 // Returns true if a style color is set to be automaticaly determined
-inline bool ColorIsAuto(ImPlotCol idx) {
-    return GImPlot->Style.Colors[idx].w == -1;
-}
+inline bool IsColorAuto(ImPlotCol idx) { return GImPlot->Style.Colors[idx].w == -1; }
+// Returns the automatically deduced style color
+ImVec4 GetAutoColor(ImPlotCol idx);
+// Returns the style color whether it is automatic or custom set
+inline ImVec4 GetStyleColorVec4(ImPlotCol idx) {return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
+inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
 
 // Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
 inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
@@ -547,31 +586,31 @@ inline bool WillMarkerFillRender() {
 
 // Gets the line color for an item
 inline ImVec4 GetLineColor(ImPlotItem* item) {
-    return ColorIsAuto(ImPlotCol_Line) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Line];
+    return IsColorAuto(ImPlotCol_Line) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Line];
 }
 
 // Gets the fill color for an item
 inline ImVec4 GetItemFillColor(ImPlotItem* item) {
-    ImVec4 col = ColorIsAuto(ImPlotCol_Fill) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Fill];
+    ImVec4 col = IsColorAuto(ImPlotCol_Fill) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Fill];
     col.w *= GImPlot->Style.FillAlpha;
     return col;
 }
 
 // Gets the marker outline color for an item
 inline ImVec4 GetMarkerOutlineColor(ImPlotItem* item) {
-    return ColorIsAuto(ImPlotCol_MarkerOutline) ? GetLineColor(item) : GImPlot->Style.Colors[ImPlotCol_MarkerOutline];
+    return IsColorAuto(ImPlotCol_MarkerOutline) ? GetLineColor(item) : GImPlot->Style.Colors[ImPlotCol_MarkerOutline];
 }
 
 // Gets the marker fill color for an item
 inline ImVec4 GetMarkerFillColor(ImPlotItem* item) {
-    ImVec4 col = ColorIsAuto(ImPlotCol_MarkerFill) ?  GetLineColor(item) :GImPlot->Style.Colors[ImPlotCol_MarkerFill];
+    ImVec4 col = IsColorAuto(ImPlotCol_MarkerFill) ?  GetLineColor(item) :GImPlot->Style.Colors[ImPlotCol_MarkerFill];
     col.w *= GImPlot->Style.FillAlpha;
     return col;
 }
 
 // Gets the error bar color
 inline ImVec4 GetErrorBarColor() {
-    return ColorIsAuto(ImPlotCol_ErrorBar) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : GImPlot->Style.Colors[ImPlotCol_ErrorBar];
+    return GetStyleColorVec4(ImPlotCol_ErrorBar);
 }
 
 //-----------------------------------------------------------------------------

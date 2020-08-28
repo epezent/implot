@@ -88,7 +88,18 @@ struct GetterXsYs {
     }
 };
 
-/// Interprets an array of X points as ImPlotPoints where the Y value is a constant reference value
+// Always returns a constant Y reference value where the X value is the index
+template <typename T>
+struct GetterYRef {
+    GetterYRef(T y_ref, int count) { YRef = y_ref; Count = count; }
+    inline ImPlotPoint operator()(int idx) {
+        return ImPlotPoint((T)idx, YRef);
+    }
+    T YRef;
+    int Count;
+};
+
+// Interprets an array of X points as ImPlotPoints where the Y value is a constant reference value
 template <typename T>
 struct GetterXsYRef {
     GetterXsYRef(const T* xs, T y_ref, int count, int offset, int stride) {
@@ -115,7 +126,10 @@ struct GetterImVec2 {
         Count = count;
         Offset = count ? ImPosMod(offset, count) : 0;
     }
-    inline ImPlotPoint operator()(int idx) { return ImPlotPoint(Data[idx].x, Data[idx].y); }
+    inline ImPlotPoint operator()(int idx) {
+        idx = ImPosMod(Offset + idx, Count);
+        return ImPlotPoint(Data[idx].x, Data[idx].y);
+    }
     const ImVec2* Data;
     int Count;
     int Offset;
@@ -128,7 +142,10 @@ struct GetterImPlotPoint {
         Count = count;
         Offset = count ? ImPosMod(offset, count) : 0;
     }
-    inline ImPlotPoint operator()(int idx) { return Data[idx]; }
+    inline ImPlotPoint operator()(int idx) {
+        idx = ImPosMod(Offset + idx, Count);
+        return Data[idx];
+    }
     const ImPlotPoint* Data;
     int Count;
     int Offset;
@@ -142,7 +159,10 @@ struct GetterFuncPtrImPlotPoint {
         Count = count;
         Offset = count ? ImPosMod(offset, count) : 0;
     }
-    inline ImPlotPoint operator()(int idx) { return getter(Data, idx); }
+    inline ImPlotPoint operator()(int idx) {
+        idx = ImPosMod(Offset + idx, Count);
+        return getter(Data, idx);
+    }
     ImPlotPoint (*getter)(void* data, int idx);
     void* Data;
     int Count;
@@ -461,7 +481,7 @@ inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList) {
 template <typename Getter, typename Transformer>
 inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& DrawList, float line_weight, ImU32 col) {
     ImPlotContext& gp = *GImPlot;
-    if (ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased)) {
+    if (ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased) || gp.Style.AntiAliasedLines) {
         ImVec2 p1 = transformer(getter(0));
         for (int i = 0; i < getter.Count; ++i) {
             ImVec2 p2 = transformer(getter(i));
@@ -799,6 +819,12 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
 }
 
 // float
+
+void PlotShaded(const char* label_id, const float* values, int count, float y_ref, int offset, int stride) {
+    GetterYs<float> getter1(values,count,offset,stride);
+    GetterYRef<float> getter2(y_ref, count);
+    PlotShadedEx(label_id, getter1, getter2);}
+
 void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset, int stride) {
     GetterXsYs<float> getter1(xs, ys1, count, offset, stride);
     GetterXsYs<float> getter2(xs, ys2, count, offset, stride);
@@ -812,6 +838,12 @@ void PlotShaded(const char* label_id, const float* xs, const float* ys, int coun
 }
 
 // double
+void PlotShaded(const char* label_id, const double* values, int count, double y_ref, int offset, int stride) {
+    GetterYs<double> getter1(values,count,offset,stride);
+    GetterYRef<double> getter2(y_ref, count);
+    PlotShadedEx(label_id, getter1, getter2);
+}
+
 void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride) {
     GetterXsYs<double> getter1(xs, ys1, count, offset, stride);
     GetterXsYs<double> getter2(xs, ys2, count, offset, stride);
@@ -821,6 +853,13 @@ void PlotShaded(const char* label_id, const double* xs, const double* ys1, const
 void PlotShaded(const char* label_id, const double* xs, const double* ys, int count, double y_ref, int offset, int stride) {
     GetterXsYs<double> getter1(xs, ys, count, offset, stride);
     GetterXsYRef<double> getter2(xs, y_ref, count, offset, stride);
+    PlotShadedEx(label_id, getter1, getter2);
+}
+
+// custom
+void PlotShaded(const char* label_id, ImPlotPoint (*g1)(void* data, int idx), void* data1, ImPlotPoint (*g2)(void* data, int idx), void* data2, int count, int offset) {
+    GetterFuncPtrImPlotPoint getter1(g1, data1, count, offset);
+    GetterFuncPtrImPlotPoint getter2(g2, data2, count, offset);
     PlotShadedEx(label_id, getter1, getter2);
 }
 
@@ -866,7 +905,7 @@ void PlotBarsEx(const char* label_id, Getter getter, TWidth width) {
         if (rend_fill)
             DrawList.AddRectFilled(a, b, col_fill);
         if (rend_line)
-            DrawList.AddRect(a, b, col_line);
+            DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, gp.Style.LineWeight);
     }
     PopPlotClipRect();
 }
@@ -943,7 +982,7 @@ void PlotBarsHEx(const char* label_id, Getter getter, THeight height) {
         if (rend_fill)
             DrawList.AddRectFilled(a, b, col_fill);
         if (rend_line)
-            DrawList.AddRect(a, b, col_line);
+            DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, gp.Style.LineWeight);
     }
     PopPlotClipRect();
 }
@@ -1431,7 +1470,7 @@ void PlotText(const char* text, double x, double y, bool vertical, const ImVec2&
     if (vertical) {
         ImVec2 ctr = CalcTextSizeVertical(text) * 0.5f;
         ImVec2 pos = PlotToPixels(ImPlotPoint(x,y)) + ImVec2(-ctr.x, ctr.y) + pixel_offset;
-        AddTextVertical(&DrawList, text, pos, colTxt);
+        AddTextVertical(&DrawList, pos, colTxt, text);
     }
     else {
         ImVec2 pos = PlotToPixels(ImPlotPoint(x,y)) - ImGui::CalcTextSize(text) * 0.5f + pixel_offset;
