@@ -990,19 +990,21 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (plot.Selecting && (IO.MouseReleased[gp.InputMap.BoxSelectButton] || !IO.MouseDown[gp.InputMap.BoxSelectButton])) {
         UpdateTransformCache();
         ImVec2 select_size = plot.SelectStart - IO.MousePos;
-        if (ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect) && ImFabs(select_size.x) > 2 && ImFabs(select_size.y) > 2) {
+        if (ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect)) {
             ImPlotPoint p1 = PixelsToPlot(plot.SelectStart);
             ImPlotPoint p2 = PixelsToPlot(IO.MousePos);
-            if (!gp.X.LockMin && IO.KeyMods != gp.InputMap.HorizontalMod)
+            const bool x_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImFabs(select_size.x) > 2;
+            const bool y_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.VerticalMod)   && ImFabs(select_size.y) > 2;
+            if (!gp.X.LockMin && x_can_change)
                 plot.XAxis.Range.Min = ImMin(p1.x, p2.x);
-            if (!gp.X.LockMax && IO.KeyMods != gp.InputMap.HorizontalMod)
+            if (!gp.X.LockMax && x_can_change)
                 plot.XAxis.Range.Max = ImMax(p1.x, p2.x);
             for (int i = 0; i < IMPLOT_Y_AXES; i++) {
                 p1 = PixelsToPlot(plot.SelectStart, i);
                 p2 = PixelsToPlot(IO.MousePos, i);
-                if (!gp.Y[i].LockMin && IO.KeyMods != gp.InputMap.VerticalMod)
+                if (!gp.Y[i].LockMin && y_can_change)
                     plot.YAxis[i].Range.Min = ImMin(p1.y, p2.y);
-                if (!gp.Y[i].LockMax && IO.KeyMods != gp.InputMap.VerticalMod)
+                if (!gp.Y[i].LockMax && y_can_change)
                     plot.YAxis[i].Range.Max = ImMax(p1.y, p2.y);
             }
         }
@@ -1433,10 +1435,10 @@ void EndPlot() {
     PushPlotClipRect();
     // render selection/query
     if (plot.Selecting) {
-        ImRect select_bb(ImMin(IO.MousePos, plot.SelectStart), ImMax(IO.MousePos, plot.SelectStart));
-        bool wide_enough = select_bb.GetWidth() > 2;
-        bool tall_enough = select_bb.GetWidth() > 2;
-        bool big_enough  = wide_enough && tall_enough;
+        const ImRect select_bb(ImMin(IO.MousePos, plot.SelectStart), ImMax(IO.MousePos, plot.SelectStart));
+        const bool wide_enough = ImFabs(select_bb.GetWidth())  > 2;
+        const bool tall_enough = ImFabs(select_bb.GetHeight()) > 2;
+        const bool big_enough  = wide_enough && tall_enough;
         if (plot.Selecting && !gp.LockPlot && ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect)) {
             const ImVec4 col   = GetStyleColorVec4(ImPlotCol_Selection);
             const ImU32 col_bg = ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
@@ -1445,11 +1447,11 @@ void EndPlot() {
                 DrawList.AddRectFilled(gp.BB_Plot.Min, gp.BB_Plot.Max, col_bg);
                 DrawList.AddRect(      gp.BB_Plot.Min, gp.BB_Plot.Max, col_bd);
             }
-            else if ((gp.X.Lock || IO.KeyMods == gp.InputMap.HorizontalMod) && big_enough) {
+            else if ((gp.X.Lock || IO.KeyMods == gp.InputMap.HorizontalMod) && tall_enough) {
                 DrawList.AddRectFilled(ImVec2(gp.BB_Plot.Min.x, select_bb.Min.y), ImVec2(gp.BB_Plot.Max.x, select_bb.Max.y), col_bg);
                 DrawList.AddRect(      ImVec2(gp.BB_Plot.Min.x, select_bb.Min.y), ImVec2(gp.BB_Plot.Max.x, select_bb.Max.y), col_bd);
             }
-            else if ((any_y_locked || IO.KeyMods == gp.InputMap.VerticalMod) && big_enough) {
+            else if ((any_y_locked || IO.KeyMods == gp.InputMap.VerticalMod) && wide_enough) {
                 DrawList.AddRectFilled(ImVec2(select_bb.Min.x, gp.BB_Plot.Min.y), ImVec2(select_bb.Max.x, gp.BB_Plot.Max.y), col_bg);
                 DrawList.AddRect(      ImVec2(select_bb.Min.x, gp.BB_Plot.Min.y), ImVec2(select_bb.Max.x, gp.BB_Plot.Max.y), col_bd);
             }
