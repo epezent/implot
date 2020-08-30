@@ -204,8 +204,8 @@ struct ImPlotStyle {
     float        ErrorBarWeight;          // = 1.5,    error bar whisker weight in pixels
     float        DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
     float        DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
-    bool         AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
     // plot styling variables
+    bool         AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
     float        PlotBorderSize;          // = 1,      line thickness of border around plot area
     float        MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
     ImVec2       MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
@@ -417,6 +417,9 @@ bool IsLegendEntryHovered(const char* label_id);
 // Plot and Item Styling and Colormaps
 //-----------------------------------------------------------------------------
 
+// Special color used to indicate that a style color should be deduced automatically from ImGui style or ImPlot colormaps.
+#define IMPLOT_COL_AUTO ImVec4(0,0,0,-1)
+
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
 
@@ -428,9 +431,6 @@ void StyleColorsClassic(ImPlotStyle* dst = NULL);
 void StyleColorsDark(ImPlotStyle* dst = NULL);
 // Style colors for ImGui "Light".
 void StyleColorsLight(ImPlotStyle* dst = NULL);
-
-// Special color used to indicate that a style color should be deduced automatically from ImGui style or ImPlot colormaps.
-#define IMPLOT_COL_AUTO ImVec4(0,0,0,-1)
 
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, ImU32 col);
@@ -447,6 +447,12 @@ void PushStyleVar(ImPlotStyleVar idx, int val);
 void PushStyleVar(ImPlotStyleVar idx, const ImVec2& val);
 // Undo temporary style modification.
 void PopStyleVar(int count = 1);
+
+void SetNextItemColor(ImPlotCol idx, const ImVec4& col);
+void SetNextItemColor(ImPlotCol idx, ImU32 col);
+void SetNextItemColorV(int count, ...);
+
+
 
 // Temporarily switch to one of the built-in colormaps.
 void PushColormap(ImPlotColormap colormap);

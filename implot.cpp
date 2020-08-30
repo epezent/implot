@@ -360,6 +360,7 @@ void Reset(ImPlotContext* ctx) {
     ctx->DigitalPlotOffset = 0;
     // nullify plot
     ctx->CurrentPlot = NULL;
+    ctx->CurrentItem = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -409,13 +410,11 @@ void UpdateTransformCache() {
                                   ImHasFlag(gp.CurrentPlot->YAxis[i].Flags, ImPlotAxisFlags_Invert) ? gp.BB_Plot.Min.y : gp.BB_Plot.Max.y,
                                   ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_Invert) ? gp.BB_Plot.Min.x : gp.BB_Plot.Max.x,
                                   ImHasFlag(gp.CurrentPlot->YAxis[i].Flags, ImPlotAxisFlags_Invert) ? gp.BB_Plot.Max.y : gp.BB_Plot.Min.y);
-
         gp.My[i] = (gp.PixelRange[i].Max.y - gp.PixelRange[i].Min.y) / gp.CurrentPlot->YAxis[i].Range.Size();
     }
     gp.LogDenX = ImLog10(gp.CurrentPlot->XAxis.Range.Max / gp.CurrentPlot->XAxis.Range.Min);
-    for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        gp.LogDenY[i] = ImLog10(gp.CurrentPlot->YAxis[i].Range.Max / gp.CurrentPlot->YAxis[i].Range.Min);
-    }
+    for (int i = 0; i < IMPLOT_Y_AXES; i++) 
+        gp.LogDenY[i] = ImLog10(gp.CurrentPlot->YAxis[i].Range.Max / gp.CurrentPlot->YAxis[i].Range.Min);    
     gp.Mx = (gp.PixelRange[0].Max.x - gp.PixelRange[0].Min.x) / gp.CurrentPlot->XAxis.Range.Size();
 }
 
@@ -463,61 +462,6 @@ ImVec2 PlotToPixels(double x, double y, int y_axis_in) {
 // This function is convenient but should not be used to process a high volume of points. Use the Transformer structs below instead.
 ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis) {
     return PlotToPixels(plt.x, plt.y, y_axis);
-}
-
-//-----------------------------------------------------------------------------
-// Item Utils
-//-----------------------------------------------------------------------------
-
-ImPlotItem* RegisterOrGetItem(const char* label_id) {
-    ImPlotContext& gp = *GImPlot;
-    ImGuiID id = ImGui::GetID(label_id);
-    ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);
-    if (item->SeenThisFrame)
-        return item;
-    item->SeenThisFrame = true;
-    int idx = gp.CurrentPlot->Items.GetIndex(item);
-    item->ID = id;
-    if (ImGui::FindRenderedTextEnd(label_id, NULL) != label_id) {
-        gp.LegendIndices.push_back(idx);
-        item->NameOffset = gp.LegendLabels.size();
-        gp.LegendLabels.append(label_id, label_id + strlen(label_id) + 1);
-    }
-    else {
-        item->Show = true;
-    }
-    if (item->Show)
-        gp.VisibleItemCount++;
-    return item;
-}
-
-ImPlotItem* GetItem(int i) {
-    ImPlotContext& gp = *GImPlot;
-    return gp.CurrentPlot->Items.GetByIndex(gp.LegendIndices[i]);
-}
-
-ImPlotItem* GetItem(const char* label_id) {
-    ImPlotContext& gp = *GImPlot;
-    ImGuiID id = ImGui::GetID(label_id);
-    return gp.CurrentPlot->Items.GetByKey(id);
-}
-
-ImPlotItem* GetItem(const char* plot_title, const char* item_label_id) {
-    ImPlotState* plot = GetPlot(plot_title);
-    if (plot) {
-        ImGuiID id = ImGui::GetID(item_label_id);
-        return plot->Items.GetByKey(id);
-    }
-    return NULL;
-}
-
-void BustItemCache() {
-    ImPlotContext& gp = *GImPlot;
-    for (int p = 0; p < gp.Plots.GetSize(); ++p) {
-        ImPlotState& plot = *gp.Plots.GetByIndex(p);
-        plot.ColormapIdx = 0;
-        plot.Items.Clear();
-    }
 }
 
 //-----------------------------------------------------------------------------
@@ -739,6 +683,17 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.Y[2] = ImPlotAxisState(&plot.YAxis[2], gp.NextPlotData.HasYRange[2], gp.NextPlotData.YRangeCond[2], ImHasFlag(plot.Flags, ImPlotFlags_YAxis3));
 
     gp.LockPlot = gp.X.Lock && gp.Y[0].Lock && gp.Y[1].Lock && gp.Y[2].Lock;
+
+    for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+        if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale) && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale))
+            gp.Scales[i] = ImPlotScale_LinLin;
+        else if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale) && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale))
+            gp.Scales[i] = ImPlotScale_LogLin;
+        else if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale) && ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale))
+            gp.Scales[i] = ImPlotScale_LinLog; 
+        else if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale) && ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale))
+            gp.Scales[i] = ImPlotScale_LogLog;
+    }
 
     // CONSTRAINTS ------------------------------------------------------------
 

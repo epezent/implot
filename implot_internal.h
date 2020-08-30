@@ -144,6 +144,20 @@ struct ImArray {
 };
 
 //-----------------------------------------------------------------------------
+// [SECTION] ImPlot Enums
+//-----------------------------------------------------------------------------
+
+typedef int ImPlotScale; // -> enum ImPlotScale_
+
+// XY axes scaling combinations
+enum ImPlotScale_ {
+    ImPlotScale_LinLin, // linear x, linear y
+    ImPlotScale_LogLin, // log x,    linear y
+    ImPlotScale_LinLog, // linear x, log y
+    ImPlotScale_LogLog  // log x,    log y
+};
+
+//-----------------------------------------------------------------------------
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
 
@@ -358,11 +372,33 @@ struct ImPlotNextPlotData
     }
 };
 
+// Temporary data storage for upcoming item
+struct ImPlotNextItemData {
+    ImVec4       Colors[5];
+    float        LineWeight;        
+    ImPlotMarker Marker;            
+    float        MarkerSize;        
+    float        MarkerWeight;      
+    float        FillAlpha;         
+    float        ErrorBarSize;      
+    float        ErrorBarWeight;    
+    float        DigitalBitHeight;  
+    float        DigitalBitGap;  
+    ImPlotNextItemData() {
+        for (int i = 0; i < 5; ++i)
+            Colors[i] = IMPLOT_COL_AUTO;
+        LineWeight = MarkerWeight = FillAlpha = ErrorBarSize =
+        ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = -1;
+        Marker = -1;
+    }   
+};
+
 // Holds state information that must persist between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
     // Plot States
     ImPool<ImPlotState> Plots;
     ImPlotState*        CurrentPlot;
+    ImPlotItem*         CurrentItem;
 
     // Legend
     ImVector<int>   LegendIndices;
@@ -385,6 +421,7 @@ struct ImPlotContext {
     float                YAxisReference[IMPLOT_Y_AXES];
 
     // Transformations and Data Extents
+    ImPlotScale Scales[IMPLOT_Y_AXES];
     ImRect      PixelRange[IMPLOT_Y_AXES];
     double      Mx;
     double      My[IMPLOT_Y_AXES];
@@ -423,6 +460,7 @@ struct ImPlotContext {
     int                DigitalPlotItemCnt;
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
+    ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
 };
@@ -461,6 +499,15 @@ void BustPlotCache();
 void UpdateTransformCache();
 // Extends the current plots axes so that it encompasses point p
 void FitPoint(const ImPlotPoint& p);
+// Gets the current y-axis for the current plot
+inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
+// Gets the XY scale for the current plot and y-axis
+inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
+
+// Begins a new item. Returns false if the item should not be plotted.
+bool BeginItem(const char* label_id);
+// Ends an item (call only if BeginItem returns true)
+void EndItem();
 
 // Register or get an existing item from the current plot
 ImPlotItem* RegisterOrGetItem(const char* label_id);
@@ -470,8 +517,19 @@ ImPlotItem* GetItem(int i);
 ImPlotItem* GetItem(const char* label_id);
 // Gets a plot item from a specific plot
 ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
+// Gets the current item
+ImPlotItem* GetCurrentItem();
 // Busts the cache for every item for every plot in the current context.
 void BustItemCache();
+
+// Get styling data for next item (call between Begin/EndItem)
+const ImPlotNextItemData& GetNextItemData();
+
+// Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
+inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
+    if (GImPlot->Style.Colors[idx].w != -1)
+        item->Color = GImPlot->Style.Colors[idx];
+}
 
 // Returns the number of entries in the current legend
 int GetLegendCount();
@@ -558,12 +616,6 @@ ImVec4 GetAutoColor(ImPlotCol idx);
 // Returns the style color whether it is automatic or custom set
 inline ImVec4 GetStyleColorVec4(ImPlotCol idx) {return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
 inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
-
-// Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
-inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
-    if (GImPlot->Style.Colors[idx].w != -1)
-        item->Color = GImPlot->Style.Colors[idx];
-}
 
 // Returns true if lines will render (e.g. basic lines, bar outlines)
 inline bool WillLineRender() {

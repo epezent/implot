@@ -45,6 +45,92 @@
 namespace ImPlot {
 
 //-----------------------------------------------------------------------------
+// Item Utils
+//-----------------------------------------------------------------------------
+
+ImPlotItem* RegisterOrGetItem(const char* label_id) {
+    ImPlotContext& gp = *GImPlot;
+    ImGuiID id = ImGui::GetID(label_id);
+    ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);
+    if (item->SeenThisFrame)
+        return item;
+    item->SeenThisFrame = true;
+    int idx = gp.CurrentPlot->Items.GetIndex(item);
+    item->ID = id;
+    if (ImGui::FindRenderedTextEnd(label_id, NULL) != label_id) {
+        gp.LegendIndices.push_back(idx);
+        item->NameOffset = gp.LegendLabels.size();
+        gp.LegendLabels.append(label_id, label_id + strlen(label_id) + 1);
+    }
+    else {
+        item->Show = true;
+    }
+    if (item->Show)
+        gp.VisibleItemCount++;
+    return item;
+}
+
+ImPlotItem* GetItem(int i) {
+    ImPlotContext& gp = *GImPlot;
+    return gp.CurrentPlot->Items.GetByIndex(gp.LegendIndices[i]);
+}
+
+ImPlotItem* GetItem(const char* label_id) {
+    ImPlotContext& gp = *GImPlot;
+    ImGuiID id = ImGui::GetID(label_id);
+    return gp.CurrentPlot->Items.GetByKey(id);
+}
+
+ImPlotItem* GetItem(const char* plot_title, const char* item_label_id) {
+    ImPlotState* plot = GetPlot(plot_title);
+    if (plot) {
+        ImGuiID id = ImGui::GetID(item_label_id);
+        return plot->Items.GetByKey(id);
+    }
+    return NULL;
+}
+
+ImPlotItem* GetCurrentItem() {
+    ImPlotContext& gp = *GImPlot;
+    return gp.CurrentItem;
+}
+
+void BustItemCache() {
+    ImPlotContext& gp = *GImPlot;
+    for (int p = 0; p < gp.Plots.GetSize(); ++p) {
+        ImPlotState& plot = *gp.Plots.GetByIndex(p);
+        plot.ColormapIdx = 0;
+        plot.Items.Clear();
+    }
+}
+
+// Begins a new item. Returns false if the item should not be plotted.
+bool BeginItem(const char* label_id) {
+    ImPlotContext& gp = *GImPlot;
+    ImPlotItem* item = RegisterOrGetItem(label_id);
+    if (!item->Show) {
+        // reset next item data
+        gp.NextItemData = ImPlotNextItemData();
+        return false;
+    }
+    else {
+        // set current item
+        gp.CurrentItem = item;
+        // stage next item data
+        return true;
+    }
+}
+
+// Ends an item (call only if BeginItem returns true)
+void EndItem() {
+    ImPlotContext& gp = *GImPlot;
+    // reset next item data
+    gp.NextItemData = ImPlotNextItemData();
+    // set current item
+    gp.CurrentItem = NULL;
+}
+
+//-----------------------------------------------------------------------------
 // GETTERS
 //-----------------------------------------------------------------------------
 
@@ -205,7 +291,7 @@ struct GetterError {
 
 // Transforms points for linear x and linear y space
 struct TransformerLinLin {
-    TransformerLinLin(int y_axis) : YAxis(y_axis) {}
+    TransformerLinLin() : YAxis(GetCurrentYAxis()) {}
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
@@ -219,7 +305,7 @@ struct TransformerLinLin {
 
 // Transforms points for log x and linear y space
 struct TransformerLogLin {
-    TransformerLogLin(int y_axis) : YAxis(y_axis) {}
+    TransformerLogLin() : YAxis(GetCurrentYAxis()) {}
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
@@ -235,7 +321,7 @@ struct TransformerLogLin {
 
 // Transforms points for linear x and log y space
 struct TransformerLinLog {
-    TransformerLinLog(int y_axis) : YAxis(y_axis) {}
+    TransformerLinLog() : YAxis(GetCurrentYAxis()) {}
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
@@ -250,7 +336,7 @@ struct TransformerLinLog {
 
 // Transforms points for log x and log y space
 struct TransformerLogLog {
-    TransformerLogLog(int y_axis) : YAxis(y_axis) {}
+    TransformerLogLog() : YAxis(GetCurrentYAxis()) {}
 
     inline ImVec2 operator()(const ImPlotPoint& plt) { return (*this)(plt.x, plt.y); }
     inline ImVec2 operator()(double x, double y) {
@@ -629,41 +715,33 @@ inline void PlotEx(const char* label_id, Getter getter)
     }
 
     ImDrawList& DrawList = *ImGui::GetWindowDrawList();
-    ImPlotState* plot = gp.CurrentPlot;
-    const int y_axis = plot->CurrentYAxis;
-
     PushPlotClipRect();
     // render line
     if (getter.Count > 1 && WillLineRender()) {
-        ImU32 col_line = ImGui::GetColorU32(GetLineColor(item));
+        const ImU32 col_line = ImGui::GetColorU32(GetLineColor(item));
         const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
-        if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(getter, TransformerLogLog(y_axis), DrawList, line_weight, col_line);
-        else if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(getter, TransformerLogLin(y_axis), DrawList, line_weight, col_line);
-        else if (ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderLineStrip(getter, TransformerLinLog(y_axis), DrawList, line_weight, col_line);
-        else
-            RenderLineStrip(getter, TransformerLinLin(y_axis), DrawList, line_weight, col_line);
+        switch (GetCurrentScale()) {
+            case ImPlotScale_LinLin: RenderLineStrip(getter, TransformerLinLin(), DrawList, line_weight, col_line); break;
+            case ImPlotScale_LogLin: RenderLineStrip(getter, TransformerLogLin(), DrawList, line_weight, col_line); break;
+            case ImPlotScale_LinLog: RenderLineStrip(getter, TransformerLinLog(), DrawList, line_weight, col_line); break;
+            case ImPlotScale_LogLog: RenderLineStrip(getter, TransformerLogLog(), DrawList, line_weight, col_line); break;    
+        }
     }
     // render markers
     if (gp.Style.Marker != ImPlotMarker_None) {
-        const bool rend_mk_line = WillMarkerOutlineRender();
-        const bool rend_mk_fill = WillMarkerFillRender();
-        const ImU32 col_mk_line = ImGui::GetColorU32(GetMarkerOutlineColor(item));
-        const ImU32 col_mk_fill = ImGui::GetColorU32(GetMarkerFillColor(item));
-        if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderMarkers(getter, TransformerLogLog(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill);
-        else if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-            RenderMarkers(getter, TransformerLogLin(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill);
-        else if (ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-            RenderMarkers(getter, TransformerLinLog(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill);
-        else
-            RenderMarkers(getter, TransformerLinLin(y_axis), DrawList, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill);
+        const bool rend_line = WillMarkerOutlineRender();
+        const bool rend_fill = WillMarkerFillRender();
+        const ImU32 col_line = ImGui::GetColorU32(GetMarkerOutlineColor(item));
+        const ImU32 col_fill = ImGui::GetColorU32(GetMarkerFillColor(item));
+        switch (GetCurrentScale()) {
+            case ImPlotScale_LinLin: RenderMarkers(getter, TransformerLinLin(), DrawList, rend_line, col_line, rend_fill, col_fill); break;
+            case ImPlotScale_LogLin: RenderMarkers(getter, TransformerLogLin(), DrawList, rend_line, col_line, rend_fill, col_fill); break;
+            case ImPlotScale_LinLog: RenderMarkers(getter, TransformerLinLog(), DrawList, rend_line, col_line, rend_fill, col_fill); break;
+            case ImPlotScale_LogLog: RenderMarkers(getter, TransformerLogLog(), DrawList, rend_line, col_line, rend_fill, col_fill); break;    
+        }
     }
     PopPlotClipRect();
 }
-
 
 // float
 void PlotLine(const char* label_id, const float* values, int count, int offset, int stride) {
@@ -680,7 +758,6 @@ void PlotLine(const char* label_id, const ImVec2* data, int count, int offset) {
     GetterImVec2 getter(data, count, offset);
     return PlotEx(label_id, getter);
 }
-
 
 // double
 void PlotLine(const char* label_id, const double* values, int count, int offset, int stride) {
@@ -793,20 +870,14 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
     }
 
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
-    ImPlotState* plot = gp.CurrentPlot;
-    const int y_axis = plot->CurrentYAxis;
-
     ImU32 col = ImGui::GetColorU32(GetItemFillColor(item));
-
     PushPlotClipRect();
-    if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(y_axis), col), DrawList);
-    else if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(y_axis), col), DrawList);
-    else if (ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(y_axis), col), DrawList);
-    else
-        RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(y_axis), col), DrawList);
+    switch (GetCurrentScale()) {
+        case ImPlotScale_LinLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(), col), DrawList); break;
+        case ImPlotScale_LogLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(), col), DrawList); break;
+        case ImPlotScale_LinLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(), col), DrawList); break;
+        case ImPlotScale_LogLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(), col), DrawList); break;    
+    }
     PopPlotClipRect();
 }
 
@@ -1277,16 +1348,12 @@ void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T 
     }
     ImDrawList& DrawList = *ImGui::GetWindowDrawList();
     ImGui::PushClipRect(gp.BB_Plot.Min, gp.BB_Plot.Max, true);
-    ImPlotState* plot = gp.CurrentPlot;
-    int y_axis = plot->CurrentYAxis;
-    if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderHeatmap(TransformerLogLog(y_axis), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
-    else if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-        RenderHeatmap(TransformerLogLin(y_axis), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
-    else if (ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderHeatmap(TransformerLinLog(y_axis), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
-    else
-        RenderHeatmap(TransformerLinLin(y_axis), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max);
+    switch (GetCurrentScale()) {
+        case ImPlotScale_LinLin: RenderHeatmap(TransformerLinLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
+        case ImPlotScale_LogLin: RenderHeatmap(TransformerLogLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
+        case ImPlotScale_LinLog: RenderHeatmap(TransformerLinLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
+        case ImPlotScale_LogLog: RenderHeatmap(TransformerLogLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;    
+    }
     ImGui::PopClipRect();
 }
 
@@ -1410,19 +1477,14 @@ void PlotRectsEx(const char* label_id, Getter getter) {
     }
 
     ImDrawList & DrawList = *ImGui::GetWindowDrawList();
-    ImPlotState* plot = gp.CurrentPlot;
-    const int y_axis = plot->CurrentYAxis;
     ImU32 col = ImGui::GetColorU32(GetItemFillColor(item));
-
     PushPlotClipRect();
-    if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale) && ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(y_axis), col), DrawList);
-    else if (ImHasFlag(plot->XAxis.Flags, ImPlotAxisFlags_LogScale))
-        RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(y_axis), col), DrawList);
-    else if (ImHasFlag(plot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale))
-        RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(y_axis), col), DrawList);
-    else
-        RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(y_axis), col), DrawList);
+    switch (GetCurrentScale()) {
+        case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(), col), DrawList); break;
+        case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(), col), DrawList); break;
+        case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(), col), DrawList); break;
+        case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(), col), DrawList); break;    
+    }
     PopPlotClipRect();
 }
 
