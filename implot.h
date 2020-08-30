@@ -25,7 +25,16 @@
 #pragma once
 #include "imgui.h"
 
+//-----------------------------------------------------------------------------
+// Macros and Defines
+//-----------------------------------------------------------------------------
+
+// ImPlot version string
 #define IMPLOT_VERSION "0.5 WIP"
+// Indicates variable should deduced automatically.
+#define IMPLOT_AUTO -1
+// Special color used to indicate that a style color should be deduced automatically from ImGui style or ImPlot colormaps.
+#define IMPLOT_AUTO_COL ImVec4(0,0,0,-1)
 
 //-----------------------------------------------------------------------------
 // Forward Declarations and Basic Types
@@ -381,12 +390,12 @@ void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** lab
 void SetPlotYAxis(int y_axis);
 
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
-ImPlotPoint PixelsToPlot(float x, float y, int y_axis = -1);
+ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = IMPLOT_AUTO);
+ImPlotPoint PixelsToPlot(float x, float y, int y_axis = IMPLOT_AUTO);
 
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = -1);
-ImVec2 PlotToPixels(double x, double y, int y_axis = -1);
+ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = IMPLOT_AUTO);
+ImVec2 PlotToPixels(double x, double y, int y_axis = IMPLOT_AUTO);
 
 //-----------------------------------------------------------------------------
 // Plot Queries
@@ -403,22 +412,19 @@ bool IsPlotXAxisHovered();
 // Returns true if the YAxis[n] plot area in the current plot is hovered.
 bool IsPlotYAxisHovered(int y_axis = 0);
 // Returns the mouse position in x,y coordinates of the current plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImPlotPoint GetPlotMousePos(int y_axis = -1);
+ImPlotPoint GetPlotMousePos(int y_axis = IMPLOT_AUTO);
 // Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImPlotLimits GetPlotLimits(int y_axis = -1);
+ImPlotLimits GetPlotLimits(int y_axis = IMPLOT_AUTO);
 // Returns true if the current plot is being queried.
 bool IsPlotQueried();
 // Returns the current plot query bounds.
-ImPlotLimits GetPlotQuery(int y_axis = -1);
+ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
 // Returns true if a plot item legend entry is hovered.
 bool IsLegendEntryHovered(const char* label_id);
 
 //-----------------------------------------------------------------------------
 // Plot and Item Styling and Colormaps
 //-----------------------------------------------------------------------------
-
-// Special color used to indicate that a style color should be deduced automatically from ImGui style or ImPlot colormaps.
-#define IMPLOT_COL_AUTO ImVec4(0,0,0,-1)
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 ImPlotStyle& GetStyle();
@@ -432,9 +438,17 @@ void StyleColorsDark(ImPlotStyle* dst = NULL);
 // Style colors for ImGui "Light".
 void StyleColorsLight(ImPlotStyle* dst = NULL);
 
+// Set the line color and weight for the next item only.
+void SetNextLineStyle(const ImVec4& col, float weight = IMPLOT_AUTO);
+// Set the fill color for the next item only.
+void SetNextFillStyle(const ImVec4& col, float alpha_mod = IMPLOT_AUTO);
+// Set the marker style for the next item only.
+void SetNextMarkerStyle(ImPlotMarker marker, const ImVec4& fill = IMPLOT_AUTO_COL, float size = IMPLOT_AUTO, const ImVec4& outline = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO);
+// Set the error bar style for the next item only.
+void SetNextErrorBarStyle(const ImVec4& col, float size = IMPLOT_AUTO, float weight = IMPLOT_AUTO);
+
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, ImU32 col);
-// Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, const ImVec4& col);
 // Undo temporary color modification.
 void PopStyleColor(int count = 1);
@@ -447,12 +461,6 @@ void PushStyleVar(ImPlotStyleVar idx, int val);
 void PushStyleVar(ImPlotStyleVar idx, const ImVec2& val);
 // Undo temporary style modification.
 void PopStyleVar(int count = 1);
-
-void SetNextItemColor(ImPlotCol idx, const ImVec4& col);
-void SetNextItemColor(ImPlotCol idx, ImU32 col);
-void SetNextItemColorV(int count, ...);
-
-
 
 // Temporarily switch to one of the built-in colormaps.
 void PushColormap(ImPlotColormap colormap);
@@ -474,6 +482,7 @@ ImVec4 LerpColormap(float t);
 // Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
 ImVec4 NextColormapColor();
 
+// Retusn the null terminated string name for a ImPlotCol
 const char* GetStyleColorName(ImPlotCol color);
 // Returns a null terminated string name for a built-in colormap
 const char* GetColormapName(ImPlotColormap colormap);
@@ -495,6 +504,8 @@ void ShowStyleEditor(ImPlotStyle* ref = NULL);
 // Add basic help/info block (not a window): how to manipulate ImPlot as an end-user.
 void ShowUserGuide();
 
+// Get the plot draw list for rendering to the current plot area.
+ImDrawList* GetPlotDrawList();
 // Push clip rect for rendering to current plot area.
 void PushPlotClipRect();
 // Pop plot clip rect.

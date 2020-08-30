@@ -333,8 +333,9 @@ void Reset(ImPlotContext* ctx) {
     if (ctx->ChildWindowMade)
         ImGui::EndChild();
     ctx->ChildWindowMade = false;
-    // reset the next plot data
+    // reset the next plot/item data
     ctx->NextPlotData = ImPlotNextPlotData();
+    ctx->NextItemStyle = ImPlotNextItemStyle();
     // reset items count
     ctx->VisibleItemCount = 0;
     // reset legend items
@@ -1731,6 +1732,10 @@ ImVec2 GetPlotSize() {
     return gp.BB_Plot.GetSize();
 }
 
+ImDrawList* GetPlotDrawList() {
+    return ImGui::GetWindowDrawList();
+}
+
 void PushPlotClipRect() {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PushPlotClipRect() needs to be called between BeginPlot() and EndPlot()!");
@@ -2316,7 +2321,7 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                     const char* name = ImPlot::GetStyleColorName(i);
                     if (!output_only_modified || memcmp(&col, &ref->Colors[i], sizeof(ImVec4)) != 0) {
                         if (IsColorAuto(i))
-                            ImGui::LogText("colors[ImPlotCol_%s]%*s= IMPLOT_COL_AUTO;\n",name,14 - (int)strlen(name), "");
+                            ImGui::LogText("colors[ImPlotCol_%s]%*s= IMPLOT_AUTO_COL;\n",name,14 - (int)strlen(name), "");
                         else
                             ImGui::LogText("colors[ImPlotCol_%s]%*s= ImVec4(%.2ff, %.2ff, %.2ff, %.2ff);\n",
                                         name, 14 - (int)strlen(name), "", col.x, col.y, col.z, col.w);
@@ -2353,7 +2358,7 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                     if (is_auto)
                         style.Colors[i] = temp;
                     else
-                        style.Colors[i] = IMPLOT_COL_AUTO;
+                        style.Colors[i] = IMPLOT_AUTO_COL;
                     BustItemCache();
                 }
                 if (!is_auto)
@@ -2374,7 +2379,7 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             }
             ImGui::PopItemWidth();
             ImGui::Separator();
-            ImGui::Text("Colors that are set to Auto (i.e. IMPLOT_COL_AUTO) will\n"
+            ImGui::Text("Colors that are set to Auto (i.e. IMPLOT_AUTO_COL) will\n"
                         "be automatically deduced from your ImGui style or the\n"
                         "current ImPlot Colormap. If you want to style individual\n"
                         "plot items, use Push/PopStyleColor around its function.");
@@ -2506,31 +2511,31 @@ void StyleColorsAuto(ImPlotStyle* dst) {
 
     style->MinorAlpha               = 0.25f;
 
-    colors[ImPlotCol_Line]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_Fill]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerOutline] = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerFill]    = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_ErrorBar]      = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_FrameBg]       = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_PlotBg]        = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_PlotBorder]    = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_LegendBg]      = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_LegendBorder]  = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_LegendText]    = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_TitleText]     = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_InlayText]     = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_PlotBorder]    = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_XAxis]         = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_XAxisGrid]     = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_YAxis]         = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_YAxisGrid]     = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_YAxis2]        = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_YAxisGrid2]    = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_YAxis3]        = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_YAxisGrid3]    = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_Selection]     = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_Query]         = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_Crosshairs]    = IMPLOT_COL_AUTO;
+    colors[ImPlotCol_Line]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_Fill]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerOutline] = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerFill]    = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_ErrorBar]      = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_FrameBg]       = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_PlotBg]        = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_PlotBorder]    = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_LegendBg]      = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_LegendBorder]  = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_LegendText]    = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_TitleText]     = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_InlayText]     = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_PlotBorder]    = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_XAxis]         = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_XAxisGrid]     = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_YAxis]         = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_YAxisGrid]     = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_YAxis2]        = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_YAxisGrid2]    = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_YAxis3]        = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_YAxisGrid3]    = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_Selection]     = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_Query]         = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_Crosshairs]    = IMPLOT_AUTO_COL;
 }
 
 void StyleColorsClassic(ImPlotStyle* dst) {
@@ -2539,10 +2544,10 @@ void StyleColorsClassic(ImPlotStyle* dst) {
 
     style->MinorAlpha               = 0.5f;
 
-    colors[ImPlotCol_Line]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_Fill]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerOutline] = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerFill]    = IMPLOT_COL_AUTO;
+    colors[ImPlotCol_Line]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_Fill]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerOutline] = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerFill]    = IMPLOT_AUTO_COL;
     colors[ImPlotCol_ErrorBar]      = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
     colors[ImPlotCol_FrameBg]       = ImVec4(0.43f, 0.43f, 0.43f, 0.39f);
     colors[ImPlotCol_PlotBg]        = ImVec4(0.00f, 0.00f, 0.00f, 0.35f);
@@ -2571,11 +2576,11 @@ void StyleColorsDark(ImPlotStyle* dst) {
 
     style->MinorAlpha               = 0.25f;
 
-    colors[ImPlotCol_Line]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_Fill]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerOutline] = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerFill]    = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_ErrorBar]      = IMPLOT_COL_AUTO;
+    colors[ImPlotCol_Line]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_Fill]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerOutline] = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerFill]    = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_ErrorBar]      = IMPLOT_AUTO_COL;
     colors[ImPlotCol_FrameBg]       = ImVec4(1.00f, 1.00f, 1.00f, 0.07f);
     colors[ImPlotCol_PlotBg]        = ImVec4(0.00f, 0.00f, 0.00f, 0.50f);
     colors[ImPlotCol_PlotBorder]    = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
@@ -2603,11 +2608,11 @@ void StyleColorsLight(ImPlotStyle* dst) {
 
     style->MinorAlpha               = 1.0f;
 
-    colors[ImPlotCol_Line]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_Fill]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerOutline] = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerFill]    = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_ErrorBar]      = IMPLOT_COL_AUTO;
+    colors[ImPlotCol_Line]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_Fill]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerOutline] = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerFill]    = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_ErrorBar]      = IMPLOT_AUTO_COL;
     colors[ImPlotCol_FrameBg]       = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImPlotCol_PlotBg]        = ImVec4(0.42f, 0.57f, 1.00f, 0.13f);
     colors[ImPlotCol_PlotBorder]    = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);

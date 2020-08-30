@@ -373,8 +373,8 @@ struct ImPlotNextPlotData
 };
 
 // Temporary data storage for upcoming item
-struct ImPlotNextItemData {
-    ImVec4       Colors[5];
+struct ImPlotNextItemStyle {
+    ImVec4       Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
     float        LineWeight;        
     ImPlotMarker Marker;            
     float        MarkerSize;        
@@ -384,12 +384,16 @@ struct ImPlotNextItemData {
     float        ErrorBarWeight;    
     float        DigitalBitHeight;  
     float        DigitalBitGap;  
-    ImPlotNextItemData() {
+    bool         RenderLine;
+    bool         RenderFill;
+    bool         RenderMarkerLine;
+    bool         RenderMarkerFill;
+    ImPlotNextItemStyle() {
         for (int i = 0; i < 5; ++i)
-            Colors[i] = IMPLOT_COL_AUTO;
+            Colors[i] = IMPLOT_AUTO_COL;
         LineWeight = MarkerWeight = FillAlpha = ErrorBarSize =
-        ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = -1;
-        Marker = -1;
+        ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
+        Marker = IMPLOT_AUTO;
     }   
 };
 
@@ -460,7 +464,7 @@ struct ImPlotContext {
     int                DigitalPlotItemCnt;
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
-    ImPlotNextItemData NextItemData;
+    ImPlotNextItemStyle NextItemStyle;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
 };
@@ -505,7 +509,7 @@ inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
 inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
 
 // Begins a new item. Returns false if the item should not be plotted.
-bool BeginItem(const char* label_id);
+bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
 // Ends an item (call only if BeginItem returns true)
 void EndItem();
 
@@ -523,7 +527,7 @@ ImPlotItem* GetCurrentItem();
 void BustItemCache();
 
 // Get styling data for next item (call between Begin/EndItem)
-const ImPlotNextItemData& GetNextItemData();
+inline const ImPlotNextItemStyle& GetItemStyle() { return GImPlot->NextItemStyle; }
 
 // Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
 inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
@@ -609,8 +613,10 @@ ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
 // Resamples a colormap. #size_out must be greater than 1.
 void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
 
+// Returns true if a color is set to be automatically determined
+inline bool IsColorAuto(const ImVec4& col) { return col.w == -1; }
 // Returns true if a style color is set to be automaticaly determined
-inline bool IsColorAuto(ImPlotCol idx) { return GImPlot->Style.Colors[idx].w == -1; }
+inline bool IsColorAuto(ImPlotCol idx) { return IsColorAuto(GImPlot->Style.Colors[idx]); }
 // Returns the automatically deduced style color
 ImVec4 GetAutoColor(ImPlotCol idx);
 // Returns the style color whether it is automatic or custom set

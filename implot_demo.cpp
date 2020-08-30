@@ -238,14 +238,11 @@ void ShowDemoWindow(bool* p_open) {
         }
         static float weight = ImPlot::GetStyle().LineWeight;
         ImGui::BulletText("Anti-aliasing can be enabled from the plot's context menu (see Help).");
-        ImGui::DragFloat("Line Weight", &weight, 0.05f, 1.0f, 5.0f, "%.2f px");
 
         if (ImPlot::BeginPlot("Line Plot", "x", "f(x)")) {
-            ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, weight);
             ImPlot::PlotLine("sin(x)", xs1, ys1, 1001);
-            ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Circle);
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
             ImPlot::PlotLine("x^2", xs2, ys2, 11);
-            ImPlot::PopStyleVar(2);
             ImPlot::EndPlot();
         }
     }
@@ -1124,10 +1121,10 @@ void StyleSeaborn() {
     ImPlotStyle& style              = ImPlot::GetStyle();
 
     ImVec4* colors                  = style.Colors;
-    colors[ImPlotCol_Line]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_Fill]          = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerOutline] = IMPLOT_COL_AUTO;
-    colors[ImPlotCol_MarkerFill]    = IMPLOT_COL_AUTO;
+    colors[ImPlotCol_Line]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_Fill]          = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerOutline] = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_MarkerFill]    = IMPLOT_AUTO_COL;
     colors[ImPlotCol_ErrorBar]      = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_FrameBg]       = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImPlotCol_PlotBg]        = ImVec4(0.92f, 0.92f, 0.95f, 1.00f);

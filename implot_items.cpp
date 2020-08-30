@@ -105,18 +105,56 @@ void BustItemCache() {
 }
 
 // Begins a new item. Returns false if the item should not be plotted.
-bool BeginItem(const char* label_id) {
+bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
     ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotX() needs to be called between BeginPlot() and EndPlot()!");
     ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show) {
         // reset next item data
-        gp.NextItemData = ImPlotNextItemData();
+        gp.NextItemStyle = ImPlotNextItemStyle();
         return false;
     }
     else {
         // set current item
         gp.CurrentItem = item;
-        // stage next item data
+        ImPlotNextItemStyle& s = gp.NextItemStyle;
+        // override item color
+        if (recolor_from != -1) {
+            if (!IsColorAuto(s.Colors[recolor_from]))
+                item->Color = s.Colors[recolor_from];
+            else if (!IsColorAuto(gp.Style.Colors[recolor_from]))
+                item->Color = gp.Style.Colors[recolor_from];
+        }
+        // stage next item colors
+        s.Colors[ImPlotCol_Line]           = IsColorAuto(s.Colors[ImPlotCol_Line])          ? ( IsColorAuto(ImPlotCol_Line)           ? item->Color                : GImPlot->Style.Colors[ImPlotCol_Line]          ) : s.Colors[ImPlotCol_Line];
+        s.Colors[ImPlotCol_Fill]           = IsColorAuto(s.Colors[ImPlotCol_Fill])          ? ( IsColorAuto(ImPlotCol_Fill)           ? item->Color                : GImPlot->Style.Colors[ImPlotCol_Fill]          ) : s.Colors[ImPlotCol_Fill];
+        s.Colors[ImPlotCol_MarkerOutline]  = IsColorAuto(s.Colors[ImPlotCol_MarkerOutline]) ? ( IsColorAuto(ImPlotCol_MarkerOutline)  ? s.Colors[ImPlotCol_Line] : GImPlot->Style.Colors[ImPlotCol_MarkerOutline] ) : s.Colors[ImPlotCol_MarkerOutline];
+        s.Colors[ImPlotCol_MarkerFill]     = IsColorAuto(s.Colors[ImPlotCol_MarkerFill])    ? ( IsColorAuto(ImPlotCol_MarkerFill)     ? s.Colors[ImPlotCol_Line] : GImPlot->Style.Colors[ImPlotCol_MarkerFill]    ) : s.Colors[ImPlotCol_MarkerFill];
+        s.Colors[ImPlotCol_ErrorBar]       = IsColorAuto(s.Colors[ImPlotCol_Line])          ? ( GetStyleColorVec4(ImPlotCol_ErrorBar)                                                                               ) : s.Colors[ImPlotCol_ErrorBar];
+        // stage next item style vars
+        s.LineWeight         = s.LineWeight       < 0 ? gp.Style.LineWeight       : s.LineWeight;
+        s.Marker             = s.Marker           < 0 ? gp.Style.Marker           : s.Marker;
+        s.MarkerSize         = s.MarkerSize       < 0 ? gp.Style.MarkerSize       : s.MarkerSize;
+        s.MarkerWeight       = s.MarkerWeight     < 0 ? gp.Style.MarkerWeight     : s.MarkerWeight;      
+        s.FillAlpha          = s.FillAlpha        < 0 ? gp.Style.FillAlpha        : s.FillAlpha;         
+        s.ErrorBarSize       = s.ErrorBarSize     < 0 ? gp.Style.ErrorBarSize     : s.ErrorBarSize;      
+        s.ErrorBarWeight     = s.ErrorBarWeight   < 0 ? gp.Style.ErrorBarWeight   : s.ErrorBarWeight;
+        s.DigitalBitHeight   = s.DigitalBitHeight < 0 ? gp.Style.DigitalBitHeight : s.DigitalBitHeight;
+        s.DigitalBitGap      = s.DigitalBitGap    < 0 ? gp.Style.DigitalBitGap    : s.DigitalBitGap;  
+        // apply alpha modifier(s)
+        s.Colors[ImPlotCol_Fill].w       *= s.FillAlpha;
+        s.Colors[ImPlotCol_MarkerFill].w *= s.FillAlpha;
+        // apply highlight mods
+        if (item->Highlight) {
+            s.LineWeight *= 2;
+        }
+        // set render flags
+        s.RenderLine       = s.Colors[ImPlotCol_Line].w          > 0 && s.LineWeight > 0;
+        s.RenderFill       = s.Colors[ImPlotCol_Fill].w          > 0;
+        s.RenderMarkerLine = s.Colors[ImPlotCol_MarkerOutline].w > 0 && s.MarkerWeight > 0;
+        s.RenderMarkerFill = s.Colors[ImPlotCol_MarkerFill].w    > 0;
+        // push rendering clip rect
+        PushPlotClipRect();
         return true;
     }
 }
@@ -124,11 +162,42 @@ bool BeginItem(const char* label_id) {
 // Ends an item (call only if BeginItem returns true)
 void EndItem() {
     ImPlotContext& gp = *GImPlot;
+    // pop rendering clip rect
+    PopPlotClipRect();
     // reset next item data
-    gp.NextItemData = ImPlotNextItemData();
+    gp.NextItemStyle = ImPlotNextItemStyle();
     // set current item
     gp.CurrentItem = NULL;
 }
+
+void SetNextLineStyle(const ImVec4& col, float weight) {
+    ImPlotContext& gp = *GImPlot;
+    gp.NextItemStyle.Colors[ImPlotCol_Line] = col;
+    gp.NextItemStyle.LineWeight             = weight;
+}
+
+void SetNextFillStyle(const ImVec4& col, float alpha) {
+    ImPlotContext& gp = *GImPlot;
+    gp.NextItemStyle.Colors[ImPlotCol_Fill] = col;
+    gp.NextItemStyle.FillAlpha              = alpha;
+}
+
+void SetNextMarkerStyle(ImPlotMarker marker, const ImVec4& fill, float size, const ImVec4& outline, float weight) {
+    ImPlotContext& gp = *GImPlot;
+    gp.NextItemStyle.Marker                          = marker;
+    gp.NextItemStyle.Colors[ImPlotCol_MarkerFill]    = fill;
+    gp.NextItemStyle.MarkerSize                      = size;
+    gp.NextItemStyle.Colors[ImPlotCol_MarkerOutline] = outline;
+    gp.NextItemStyle.MarkerWeight                    = weight;
+}
+
+void SetNextErrorBarStyle(const ImVec4& col, float size, float weight) {
+    ImPlotContext& gp = *GImPlot;
+    gp.NextItemStyle.Colors[ImPlotCol_ErrorBar] = col;
+    gp.NextItemStyle.ErrorBarSize               = size;
+    gp.NextItemStyle.ErrorBarWeight             = weight;
+}
+
 
 //-----------------------------------------------------------------------------
 // GETTERS
@@ -288,6 +357,7 @@ struct GetterError {
 //-----------------------------------------------------------------------------
 
 // Transforms convert points in plot space (i.e. ImPlotPoint) to pixel space (i.e. ImVec2)
+// TODO: Cache transformation variables for
 
 // Transforms points for linear x and linear y space
 struct TransformerLinLin {
@@ -669,7 +739,7 @@ inline void RenderMarkerCross(ImDrawList& DrawList, const ImVec2& c, float s, bo
 }
 
 template <typename Transformer, typename Getter>
-inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& DrawList, bool rend_mk_line, ImU32 col_mk_line, bool rend_mk_fill, ImU32 col_mk_fill) {
+inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& DrawList, ImPlotMarker marker, float size, bool rend_mk_line, ImU32 col_mk_line, float weight, bool rend_mk_fill, ImU32 col_mk_fill) {
     static void (*marker_table[])(ImDrawList&, const ImVec2&, float s, bool, ImU32, bool, ImU32, float) = { 
         NULL, 
         RenderMarkerCircle, 
@@ -687,7 +757,7 @@ inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& Dr
     for (int i = 0; i < getter.Count; ++i) {
         ImVec2 c = transformer(getter(i));
         if (gp.BB_Plot.Contains(c)) 
-            marker_table[gp.Style.Marker](DrawList, c, gp.Style.MarkerSize, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, gp.Style.MarkerWeight);       
+            marker_table[marker](DrawList, c, size, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, weight);       
     }
 }
 
@@ -696,51 +766,39 @@ inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& Dr
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
-inline void PlotEx(const char* label_id, Getter getter)
-{
+inline void PlotEx(const char* label_id, Getter getter) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotEx() needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotItem* item = RegisterOrGetItem(label_id);
-    if (!item->Show)
-        return;
-    TryRecolorItem(item, ImPlotCol_Line);
-
-    // find data extents
-    if (gp.FitThisFrame) {
-        for (int i = 0; i < getter.Count; ++i) {
-            ImPlotPoint p = getter(i);
-            FitPoint(p);
+    if (BeginItem(label_id, ImPlotCol_Line)) {
+        if (gp.FitThisFrame) {
+            for (int i = 0; i < getter.Count; ++i) {
+                ImPlotPoint p = getter(i);
+                FitPoint(p);
+            }
         }
-    }
-
-    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
-    PushPlotClipRect();
-    // render line
-    if (getter.Count > 1 && WillLineRender()) {
-        const ImU32 col_line = ImGui::GetColorU32(GetLineColor(item));
-        const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
-        switch (GetCurrentScale()) {
-            case ImPlotScale_LinLin: RenderLineStrip(getter, TransformerLinLin(), DrawList, line_weight, col_line); break;
-            case ImPlotScale_LogLin: RenderLineStrip(getter, TransformerLogLin(), DrawList, line_weight, col_line); break;
-            case ImPlotScale_LinLog: RenderLineStrip(getter, TransformerLinLog(), DrawList, line_weight, col_line); break;
-            case ImPlotScale_LogLog: RenderLineStrip(getter, TransformerLogLog(), DrawList, line_weight, col_line); break;    
+        const ImPlotNextItemStyle& s = GetItemStyle();
+        ImDrawList& DrawList = *GetPlotDrawList();
+        if (getter.Count > 1 && s.RenderLine) {
+            const ImU32 col_line    = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+            switch (GetCurrentScale()) {
+                case ImPlotScale_LinLin: RenderLineStrip(getter, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLin: RenderLineStrip(getter, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LinLog: RenderLineStrip(getter, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLog: RenderLineStrip(getter, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;    
+            }
         }
-    }
-    // render markers
-    if (gp.Style.Marker != ImPlotMarker_None) {
-        const bool rend_line = WillMarkerOutlineRender();
-        const bool rend_fill = WillMarkerFillRender();
-        const ImU32 col_line = ImGui::GetColorU32(GetMarkerOutlineColor(item));
-        const ImU32 col_fill = ImGui::GetColorU32(GetMarkerFillColor(item));
-        switch (GetCurrentScale()) {
-            case ImPlotScale_LinLin: RenderMarkers(getter, TransformerLinLin(), DrawList, rend_line, col_line, rend_fill, col_fill); break;
-            case ImPlotScale_LogLin: RenderMarkers(getter, TransformerLogLin(), DrawList, rend_line, col_line, rend_fill, col_fill); break;
-            case ImPlotScale_LinLog: RenderMarkers(getter, TransformerLinLog(), DrawList, rend_line, col_line, rend_fill, col_fill); break;
-            case ImPlotScale_LogLog: RenderMarkers(getter, TransformerLogLog(), DrawList, rend_line, col_line, rend_fill, col_fill); break;    
+        // render markers
+        if (s.Marker != ImPlotMarker_None) {
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
+            switch (GetCurrentScale()) {
+                case ImPlotScale_LinLin: RenderMarkers(getter, TransformerLinLin(), DrawList, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+                case ImPlotScale_LogLin: RenderMarkers(getter, TransformerLogLin(), DrawList, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+                case ImPlotScale_LinLog: RenderMarkers(getter, TransformerLinLog(), DrawList, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+                case ImPlotScale_LogLog: RenderMarkers(getter, TransformerLogLog(), DrawList, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;    
+            }
         }
+        EndItem();
     }
-    PopPlotClipRect();
 }
 
 // float
@@ -849,36 +907,28 @@ void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx
 template <typename Getter1, typename Getter2>
 inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotShaded() needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotItem* item = RegisterOrGetItem(label_id);
-    if (!item->Show)
-        return;
-    TryRecolorItem(item, ImPlotCol_Fill);
-
-    if (!WillFillRender())
-        return;
-
-    // find data extents
-    if (gp.FitThisFrame) {
-        for (int i = 0; i < ImMin(getter1.Count, getter2.Count); ++i) {
-            ImPlotPoint p1 = getter1(i);
-            ImPlotPoint p2 = getter2(i);
-            FitPoint(p1);
-            FitPoint(p2);
+    if (BeginItem(label_id, ImPlotCol_Fill)) {
+        if (gp.FitThisFrame) {
+            for (int i = 0; i < ImMin(getter1.Count, getter2.Count); ++i) {
+                ImPlotPoint p1 = getter1(i);
+                ImPlotPoint p2 = getter2(i);
+                FitPoint(p1);
+                FitPoint(p2);
+            }
         }
+        const ImPlotNextItemStyle& s = GetItemStyle();
+        ImDrawList & DrawList = *GetPlotDrawList();
+        if (s.RenderFill) {
+            ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+            switch (GetCurrentScale()) {
+                case ImPlotScale_LinLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(), col), DrawList); break;
+                case ImPlotScale_LogLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(), col), DrawList); break;
+                case ImPlotScale_LinLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(), col), DrawList); break;
+                case ImPlotScale_LogLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(), col), DrawList); break;    
+            }
+        }
+        EndItem();
     }
-
-    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
-    ImU32 col = ImGui::GetColorU32(GetItemFillColor(item));
-    PushPlotClipRect();
-    switch (GetCurrentScale()) {
-        case ImPlotScale_LinLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(), col), DrawList); break;
-        case ImPlotScale_LogLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(), col), DrawList); break;
-        case ImPlotScale_LinLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(), col), DrawList); break;
-        case ImPlotScale_LogLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(), col), DrawList); break;    
-    }
-    PopPlotClipRect();
 }
 
 // float
@@ -957,7 +1007,7 @@ void PlotBarsEx(const char* label_id, Getter getter, TWidth width) {
     if (rend_fill && col_line == col_fill)
         rend_line = false;
 
-    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+    ImDrawList& DrawList = *GetPlotDrawList();
     PushPlotClipRect();
     for (int i = 0; i < getter.Count; ++i) {
         ImPlotPoint p = getter(i);
@@ -1035,7 +1085,7 @@ void PlotBarsHEx(const char* label_id, Getter getter, THeight height) {
         rend_line = false;
 
     PushPlotClipRect();
-    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+    ImDrawList& DrawList = *GetPlotDrawList();
     for (int i = 0; i < getter.Count; ++i) {
         ImPlotPoint p = getter(i);
         if (p.x == 0)
@@ -1104,7 +1154,7 @@ void PlotErrorBarsEx(const char* label_id, Getter getter) {
     const bool rend_whisker = gp.Style.ErrorBarSize > 0;
     const float half_whisker = gp.Style.ErrorBarSize * 0.5f;
 
-    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+    ImDrawList & DrawList = *GetPlotDrawList();
 
     PushPlotClipRect();
     for (int i = 0; i < getter.Count; ++i) {
@@ -1168,7 +1218,7 @@ void PlotErrorBarsHEx(const char* label_id, Getter getter) {
     const bool rend_whisker = gp.Style.ErrorBarSize > 0;
     const float half_whisker = gp.Style.ErrorBarSize * 0.5f;
 
-    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
+    ImDrawList& DrawList = *GetPlotDrawList();
 
     PushPlotClipRect();
     for (int i = 0; i < getter.Count; ++i) {
@@ -1226,7 +1276,7 @@ inline void RenderPieSlice(ImDrawList& DrawList, const ImPlotPoint& center, doub
 template <typename T>
 void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y, T radius, bool normalize, const char* fmt, T angle0) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
-    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+    ImDrawList & DrawList = *GetPlotDrawList();
 
     T sum = 0;
     for (int i = 0; i < count; ++i)
@@ -1346,7 +1396,7 @@ void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T 
         FitPoint(bounds_min);
         FitPoint(bounds_max);
     }
-    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
+    ImDrawList& DrawList = *GetPlotDrawList();
     ImGui::PushClipRect(gp.BB_Plot.Min, gp.BB_Plot.Max, true);
     switch (GetCurrentScale()) {
         case ImPlotScale_LinLin: RenderHeatmap(TransformerLinLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
@@ -1385,7 +1435,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter)
     // render digital signals as "pixel bases" rectangles
     PushPlotClipRect();
     if (getter.Count > 1 && WillLineRender()) {
-        ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+        ImDrawList & DrawList = *GetPlotDrawList();
         const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
         const int y_axis = gp.CurrentPlot->CurrentYAxis;
         int pixYMax = 0;
@@ -1476,7 +1526,7 @@ void PlotRectsEx(const char* label_id, Getter getter) {
         }
     }
 
-    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+    ImDrawList & DrawList = *GetPlotDrawList();
     ImU32 col = ImGui::GetColorU32(GetItemFillColor(item));
     PushPlotClipRect();
     switch (GetCurrentScale()) {
@@ -1518,7 +1568,7 @@ void PlotText(const char* text, float x, float y, bool vertical, const ImVec2& p
 // double
 void PlotText(const char* text, double x, double y, bool vertical, const ImVec2& pixel_offset) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
-    ImDrawList & DrawList = *ImGui::GetWindowDrawList();
+    ImDrawList & DrawList = *GetPlotDrawList();
     PushPlotClipRect();
     ImU32 colTxt = ImGui::GetColorU32(ImGuiCol_Text);
     if (vertical) {
