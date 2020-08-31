@@ -65,7 +65,7 @@ struct GetterYs {
     int Offset;
     int Stride;
     inline ImPlotPoint operator()(int idx) {
-        return ImPlotPoint((T)idx, OffsetAndStride(Ys, idx, Count, Offset, Stride));
+        return ImPlotPoint((double)idx, (double)OffsetAndStride(Ys, idx, Count, Offset, Stride));
     }
 };
 
@@ -84,7 +84,7 @@ struct GetterXsYs {
     int Offset;
     int Stride;
     inline ImPlotPoint operator()(int idx) {
-        return ImPlotPoint(OffsetAndStride(Xs, idx, Count, Offset, Stride), OffsetAndStride(Ys, idx, Count, Offset, Stride));
+        return ImPlotPoint((double)OffsetAndStride(Xs, idx, Count, Offset, Stride), (double)OffsetAndStride(Ys, idx, Count, Offset, Stride));
     }
 };
 
@@ -93,7 +93,7 @@ template <typename T>
 struct GetterYRef {
     GetterYRef(T y_ref, int count) { YRef = y_ref; Count = count; }
     inline ImPlotPoint operator()(int idx) {
-        return ImPlotPoint((T)idx, YRef);
+        return ImPlotPoint((double)idx, (double)YRef);
     }
     T YRef;
     int Count;
@@ -115,7 +115,7 @@ struct GetterXsYRef {
     int Offset;
     int Stride;
     inline ImPlotPoint operator()(int idx) {
-        return ImPlotPoint(OffsetAndStride(Xs, idx, Count, Offset, Stride), YRef);
+        return ImPlotPoint((double)OffsetAndStride(Xs, idx, Count, Offset, Stride), (double)YRef);
     }
 };
 
@@ -128,7 +128,7 @@ struct GetterImVec2 {
     }
     inline ImPlotPoint operator()(int idx) {
         idx = ImPosMod(Offset + idx, Count);
-        return ImPlotPoint(Data[idx].x, Data[idx].y);
+        return ImPlotPoint((double)Data[idx].x, (double)Data[idx].y);
     }
     const ImVec2* Data;
     int Count;
@@ -173,14 +173,14 @@ template <typename T>
 struct GetterBarV {
     const T* Ys; T XShift; int Count; int Offset; int Stride;
     GetterBarV(const T* ys, T xshift, int count, int offset, int stride) { Ys = ys; XShift = xshift; Count = count; Offset = offset; Stride = stride; }
-    inline ImPlotPoint operator()(int idx) { return ImPlotPoint((T)idx + XShift, OffsetAndStride(Ys, idx, Count, Offset, Stride)); }
+    inline ImPlotPoint operator()(int idx) { return ImPlotPoint((double)idx + (double)XShift, (double)OffsetAndStride(Ys, idx, Count, Offset, Stride)); }
 };
 
 template <typename T>
 struct GetterBarH {
     const T* Xs; T YShift; int Count; int Offset; int Stride;
     GetterBarH(const T* xs, T yshift, int count, int offset, int stride) { Xs = xs; YShift = yshift; Count = count; Offset = offset; Stride = stride; }
-    inline ImPlotPoint operator()(int idx) { return ImPlotPoint(OffsetAndStride(Xs, idx, Count, Offset, Stride), (T)idx + YShift); }
+    inline ImPlotPoint operator()(int idx) { return ImPlotPoint((double)OffsetAndStride(Xs, idx, Count, Offset, Stride), (double)idx + (double)YShift); }
 };
 
 template <typename T>
@@ -190,10 +190,10 @@ struct GetterError {
         Xs = xs; Ys = ys; Neg = neg; Pos = pos; Count = count; Offset = offset; Stride = stride;
     }
     ImPlotPointError operator()(int idx) {
-        return ImPlotPointError(OffsetAndStride(Xs,  idx, Count, Offset, Stride),
-                                OffsetAndStride(Ys,  idx, Count, Offset, Stride),
-                                OffsetAndStride(Neg, idx, Count, Offset, Stride),
-                                OffsetAndStride(Pos, idx, Count, Offset, Stride));
+        return ImPlotPointError((double)OffsetAndStride(Xs,  idx, Count, Offset, Stride),
+                                (double)OffsetAndStride(Ys,  idx, Count, Offset, Stride),
+                                (double)OffsetAndStride(Neg, idx, Count, Offset, Stride),
+                                (double)OffsetAndStride(Pos, idx, Count, Offset, Stride));
     }
 };
 
