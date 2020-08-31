@@ -373,7 +373,7 @@ struct ImPlotNextPlotData
 };
 
 // Temporary data storage for upcoming item
-struct ImPlotNextItemStyle {
+struct ImPlotItemStyle {
     ImVec4       Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
     float        LineWeight;        
     ImPlotMarker Marker;            
@@ -388,7 +388,7 @@ struct ImPlotNextItemStyle {
     bool         RenderFill;
     bool         RenderMarkerLine;
     bool         RenderMarkerFill;
-    ImPlotNextItemStyle() {
+    ImPlotItemStyle() {
         for (int i = 0; i < 5; ++i)
             Colors[i] = IMPLOT_AUTO_COL;
         LineWeight = MarkerWeight = FillAlpha = ErrorBarSize =
@@ -464,7 +464,7 @@ struct ImPlotContext {
     int                DigitalPlotItemCnt;
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
-    ImPlotNextItemStyle NextItemStyle;
+    ImPlotItemStyle    NextItemStyle;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
 };
@@ -503,14 +503,16 @@ void BustPlotCache();
 void UpdateTransformCache();
 // Extends the current plots axes so that it encompasses point p
 void FitPoint(const ImPlotPoint& p);
+// Returns true if the user has requested data to be fit.
+inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
 // Gets the current y-axis for the current plot
 inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
 // Gets the XY scale for the current plot and y-axis
 inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
 
-// Begins a new item. Returns false if the item should not be plotted.
+// Begins a new item. Returns false if the item should not be plotted. Pushes PlotClipRect.
 bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
-// Ends an item (call only if BeginItem returns true)
+// Ends an item (call only if BeginItem returns true). Pops PlotClipRect.
 void EndItem();
 
 // Register or get an existing item from the current plot
@@ -527,7 +529,7 @@ ImPlotItem* GetCurrentItem();
 void BustItemCache();
 
 // Get styling data for next item (call between Begin/EndItem)
-inline const ImPlotNextItemStyle& GetItemStyle() { return GImPlot->NextItemStyle; }
+inline const ImPlotItemStyle& GetItemStyle() { return GImPlot->NextItemStyle; }
 
 // Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
 inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
@@ -562,8 +564,6 @@ double NiceNum(double x, bool round);
 void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
 ImVec2 CalcTextSizeVertical(const char *text);
-// Returns white or black text given background color
-inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE; }
 
 // Returns true if val is NAN or INFINITY
 inline bool NanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
@@ -622,6 +622,8 @@ ImVec4 GetAutoColor(ImPlotCol idx);
 // Returns the style color whether it is automatic or custom set
 inline ImVec4 GetStyleColorVec4(ImPlotCol idx) {return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
 inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
+// Returns white or black text given background color
+inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE; }
 
 // Returns true if lines will render (e.g. basic lines, bar outlines)
 inline bool WillLineRender() {

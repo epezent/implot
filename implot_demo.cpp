@@ -1331,9 +1331,8 @@ void ShowBenchmarkTool() {
         if (running) {
             for (int i = 0; i < L; ++i) {
                 ImGui::PushID(i);
-                ImPlot::PushStyleColor(ImPlotCol_Line, items[i].Col);
+                ImPlot::SetNextLineStyle(items[i].Col);
                 ImPlot::PlotLine("##item", items[i].Data, 1000);
-                ImPlot::PopStyleColor();
                 ImGui::PopID();
             }
         }

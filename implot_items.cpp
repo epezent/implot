@@ -111,13 +111,13 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
     ImPlotItem* item = RegisterOrGetItem(label_id);
     if (!item->Show) {
         // reset next item data
-        gp.NextItemStyle = ImPlotNextItemStyle();
+        gp.NextItemStyle = ImPlotItemStyle();
         return false;
     }
     else {
         // set current item
         gp.CurrentItem = item;
-        ImPlotNextItemStyle& s = gp.NextItemStyle;
+        ImPlotItemStyle& s = gp.NextItemStyle;
         // override item color
         if (recolor_from != -1) {
             if (!IsColorAuto(s.Colors[recolor_from]))
@@ -126,11 +126,11 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
                 item->Color = gp.Style.Colors[recolor_from];
         }
         // stage next item colors
-        s.Colors[ImPlotCol_Line]           = IsColorAuto(s.Colors[ImPlotCol_Line])          ? ( IsColorAuto(ImPlotCol_Line)           ? item->Color                : GImPlot->Style.Colors[ImPlotCol_Line]          ) : s.Colors[ImPlotCol_Line];
-        s.Colors[ImPlotCol_Fill]           = IsColorAuto(s.Colors[ImPlotCol_Fill])          ? ( IsColorAuto(ImPlotCol_Fill)           ? item->Color                : GImPlot->Style.Colors[ImPlotCol_Fill]          ) : s.Colors[ImPlotCol_Fill];
-        s.Colors[ImPlotCol_MarkerOutline]  = IsColorAuto(s.Colors[ImPlotCol_MarkerOutline]) ? ( IsColorAuto(ImPlotCol_MarkerOutline)  ? s.Colors[ImPlotCol_Line] : GImPlot->Style.Colors[ImPlotCol_MarkerOutline] ) : s.Colors[ImPlotCol_MarkerOutline];
-        s.Colors[ImPlotCol_MarkerFill]     = IsColorAuto(s.Colors[ImPlotCol_MarkerFill])    ? ( IsColorAuto(ImPlotCol_MarkerFill)     ? s.Colors[ImPlotCol_Line] : GImPlot->Style.Colors[ImPlotCol_MarkerFill]    ) : s.Colors[ImPlotCol_MarkerFill];
-        s.Colors[ImPlotCol_ErrorBar]       = IsColorAuto(s.Colors[ImPlotCol_Line])          ? ( GetStyleColorVec4(ImPlotCol_ErrorBar)                                                                               ) : s.Colors[ImPlotCol_ErrorBar];
+        s.Colors[ImPlotCol_Line]           = IsColorAuto(s.Colors[ImPlotCol_Line])          ? ( IsColorAuto(ImPlotCol_Line)           ? item->Color                : gp.Style.Colors[ImPlotCol_Line]          ) : s.Colors[ImPlotCol_Line];
+        s.Colors[ImPlotCol_Fill]           = IsColorAuto(s.Colors[ImPlotCol_Fill])          ? ( IsColorAuto(ImPlotCol_Fill)           ? item->Color                : gp.Style.Colors[ImPlotCol_Fill]          ) : s.Colors[ImPlotCol_Fill];
+        s.Colors[ImPlotCol_MarkerOutline]  = IsColorAuto(s.Colors[ImPlotCol_MarkerOutline]) ? ( IsColorAuto(ImPlotCol_MarkerOutline)  ? s.Colors[ImPlotCol_Line]   : gp.Style.Colors[ImPlotCol_MarkerOutline] ) : s.Colors[ImPlotCol_MarkerOutline];
+        s.Colors[ImPlotCol_MarkerFill]     = IsColorAuto(s.Colors[ImPlotCol_MarkerFill])    ? ( IsColorAuto(ImPlotCol_MarkerFill)     ? s.Colors[ImPlotCol_Line]   : gp.Style.Colors[ImPlotCol_MarkerFill]    ) : s.Colors[ImPlotCol_MarkerFill];
+        s.Colors[ImPlotCol_ErrorBar]       = IsColorAuto(s.Colors[ImPlotCol_ErrorBar])      ? ( GetStyleColorVec4(ImPlotCol_ErrorBar)                                                                         ) : s.Colors[ImPlotCol_ErrorBar];
         // stage next item style vars
         s.LineWeight         = s.LineWeight       < 0 ? gp.Style.LineWeight       : s.LineWeight;
         s.Marker             = s.Marker           < 0 ? gp.Style.Marker           : s.Marker;
@@ -146,7 +146,8 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
         s.Colors[ImPlotCol_MarkerFill].w *= s.FillAlpha;
         // apply highlight mods
         if (item->Highlight) {
-            s.LineWeight *= 2;
+            s.LineWeight   *= 2;
+            s.MarkerWeight *= 2;
         }
         // set render flags
         s.RenderLine       = s.Colors[ImPlotCol_Line].w          > 0 && s.LineWeight > 0;
@@ -165,7 +166,7 @@ void EndItem() {
     // pop rendering clip rect
     PopPlotClipRect();
     // reset next item data
-    gp.NextItemStyle = ImPlotNextItemStyle();
+    gp.NextItemStyle = ImPlotItemStyle();
     // set current item
     gp.CurrentItem = NULL;
 }
@@ -357,7 +358,7 @@ struct GetterError {
 //-----------------------------------------------------------------------------
 
 // Transforms convert points in plot space (i.e. ImPlotPoint) to pixel space (i.e. ImVec2)
-// TODO: Cache transformation variables for
+// TODO: Cache transformation variables
 
 // Transforms points for linear x and linear y space
 struct TransformerLinLin {
@@ -767,15 +768,14 @@ inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& Dr
 
 template <typename Getter>
 inline void PlotEx(const char* label_id, Getter getter) {
-    ImPlotContext& gp = *GImPlot;
     if (BeginItem(label_id, ImPlotCol_Line)) {
-        if (gp.FitThisFrame) {
+        if (FitThisFrame()) {
             for (int i = 0; i < getter.Count; ++i) {
                 ImPlotPoint p = getter(i);
                 FitPoint(p);
             }
         }
-        const ImPlotNextItemStyle& s = GetItemStyle();
+        const ImPlotItemStyle& s = GetItemStyle();
         ImDrawList& DrawList = *GetPlotDrawList();
         if (getter.Count > 1 && s.RenderLine) {
             const ImU32 col_line    = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
@@ -892,7 +892,6 @@ void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int o
     PopStyleVar(vars);
 }
 
-
 // custom
 void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset) {
     int vars = PushScatterStyle();
@@ -906,9 +905,8 @@ void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx
 
 template <typename Getter1, typename Getter2>
 inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2) {
-    ImPlotContext& gp = *GImPlot;
     if (BeginItem(label_id, ImPlotCol_Fill)) {
-        if (gp.FitThisFrame) {
+        if (FitThisFrame()) {
             for (int i = 0; i < ImMin(getter1.Count, getter2.Count); ++i) {
                 ImPlotPoint p1 = getter1(i);
                 ImPlotPoint p2 = getter2(i);
@@ -916,7 +914,7 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
                 FitPoint(p2);
             }
         }
-        const ImPlotNextItemStyle& s = GetItemStyle();
+        const ImPlotItemStyle& s = GetItemStyle();
         ImDrawList & DrawList = *GetPlotDrawList();
         if (s.RenderFill) {
             ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
@@ -932,7 +930,6 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
 }
 
 // float
-
 void PlotShaded(const char* label_id, const float* values, int count, float y_ref, int offset, int stride) {
     GetterYs<float> getter1(values,count,offset,stride);
     GetterYRef<float> getter2(y_ref, count);
@@ -980,47 +977,39 @@ void PlotShaded(const char* label_id, ImPlotPoint (*g1)(void* data, int idx), vo
 // PLOT BAR V
 //-----------------------------------------------------------------------------
 
+// TODO: Migrate to RenderPrimitives
+
 template <typename Getter, typename TWidth>
 void PlotBarsEx(const char* label_id, Getter getter, TWidth width) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBars() needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotItem* item = RegisterOrGetItem(label_id);
-    if (!item->Show)
-        return;
-    TryRecolorItem(item, ImPlotCol_Fill);
-
-    const TWidth half_width = width / 2;
-    // find data extents
-    if (gp.FitThisFrame) {
+    if (BeginItem(label_id, ImPlotCol_Fill)) {
+        const TWidth half_width = width / 2;
+        if (FitThisFrame()) {
+            for (int i = 0; i < getter.Count; ++i) {
+                ImPlotPoint p = getter(i);
+                FitPoint(ImPlotPoint(p.x - half_width, p.y));
+                FitPoint(ImPlotPoint(p.x + half_width, 0));
+            }
+        }
+        const ImPlotItemStyle& s = GetItemStyle();
+        ImDrawList& DrawList = *GetPlotDrawList();
+        ImU32 col_line  = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+        ImU32 col_fill  = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+        bool  rend_line = s.RenderLine;
+        if (s.RenderFill && col_line == col_fill)
+            rend_line = false;
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPoint p = getter(i);
-            FitPoint(ImPlotPoint(p.x - half_width, p.y));
-            FitPoint(ImPlotPoint(p.x + half_width, 0));
+            if (p.y == 0)
+                continue;
+            ImVec2 a = PlotToPixels(p.x - half_width, p.y);
+            ImVec2 b = PlotToPixels(p.x + half_width, 0);
+            if (s.RenderFill)
+                DrawList.AddRectFilled(a, b, col_fill);
+            if (rend_line)
+                DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, s.LineWeight);
         }
+        EndItem();
     }
-
-    ImU32 col_line = ImGui::GetColorU32(GetLineColor(item));
-    ImU32 col_fill = ImGui::GetColorU32(GetItemFillColor(item));
-    const bool rend_fill = WillFillRender();
-    bool rend_line       = WillLineRender();
-    if (rend_fill && col_line == col_fill)
-        rend_line = false;
-
-    ImDrawList& DrawList = *GetPlotDrawList();
-    PushPlotClipRect();
-    for (int i = 0; i < getter.Count; ++i) {
-        ImPlotPoint p = getter(i);
-        if (p.y == 0)
-            continue;
-        ImVec2 a = PlotToPixels(p.x - half_width, p.y);
-        ImVec2 b = PlotToPixels(p.x + half_width, 0);
-        if (rend_fill)
-            DrawList.AddRectFilled(a, b, col_fill);
-        if (rend_line)
-            DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, gp.Style.LineWeight);
-    }
-    PopPlotClipRect();
 }
 
 // float
@@ -1059,45 +1048,35 @@ void PlotBars(const char* label_id, ImPlotPoint (*getter_func)(void* data, int i
 
 template <typename Getter, typename THeight>
 void PlotBarsHEx(const char* label_id, Getter getter, THeight height) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotBarsH() needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotItem* item = RegisterOrGetItem(label_id);
-    if (!item->Show)
-        return;
-    TryRecolorItem(item, ImPlotCol_Fill);
-
-    const THeight half_height = height / 2;
-    // find data extents
-    if (gp.FitThisFrame) {
+    if (BeginItem(label_id, ImPlotCol_Fill)) {
+        const THeight half_height = height / 2;
+        if (FitThisFrame()) {
+            for (int i = 0; i < getter.Count; ++i) {
+                ImPlotPoint p = getter(i);
+                FitPoint(ImPlotPoint(0, p.y - half_height));
+                FitPoint(ImPlotPoint(p.x, p.y + half_height));
+            }
+        }
+        const ImPlotItemStyle& s = GetItemStyle();
+        ImDrawList& DrawList = *GetPlotDrawList();
+        ImU32 col_line  = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+        ImU32 col_fill  = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+        bool  rend_line = s.RenderLine;
+        if (s.RenderFill && col_line == col_fill)
+            rend_line = false;
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPoint p = getter(i);
-            FitPoint(ImPlotPoint(0, p.y - half_height));
-            FitPoint(ImPlotPoint(p.x, p.y + half_height));
+            if (p.x == 0)
+                continue;
+            ImVec2 a = PlotToPixels(0, p.y - half_height);
+            ImVec2 b = PlotToPixels(p.x, p.y + half_height);
+            if (s.RenderFill)
+                DrawList.AddRectFilled(a, b, col_fill);
+            if (rend_line)
+                DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, s.LineWeight);
         }
+        EndItem();
     }
-
-    ImU32 col_line = ImGui::GetColorU32(GetLineColor(item));
-    ImU32 col_fill = ImGui::GetColorU32(GetItemFillColor(item));
-    const bool rend_fill = WillFillRender();
-    bool rend_line       = WillLineRender();
-    if (rend_fill && col_line == col_fill)
-        rend_line = false;
-
-    PushPlotClipRect();
-    ImDrawList& DrawList = *GetPlotDrawList();
-    for (int i = 0; i < getter.Count; ++i) {
-        ImPlotPoint p = getter(i);
-        if (p.x == 0)
-            continue;
-        ImVec2 a = PlotToPixels(0, p.y - half_height);
-        ImVec2 b = PlotToPixels(p.x, p.y + half_height);
-        if (rend_fill)
-            DrawList.AddRectFilled(a, b, col_fill);
-        if (rend_line)
-            DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, gp.Style.LineWeight);
-    }
-    PopPlotClipRect();
 }
 
 // float
@@ -1134,40 +1113,31 @@ void PlotBarsH(const char* label_id, ImPlotPoint (*getter_func)(void* data, int 
 
 template <typename Getter>
 void PlotErrorBarsEx(const char* label_id, Getter getter) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBars() needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotItem* item = RegisterOrGetItem(label_id);
-    if (!item->Show)
-        return;
-
-    // find data extents
-    if (gp.FitThisFrame) {
+    if (BeginItem(label_id)) {
+        if (FitThisFrame()) {
+            for (int i = 0; i < getter.Count; ++i) {
+                ImPlotPointError e = getter(i);
+                FitPoint(ImPlotPoint(e.X , e.Y - e.Neg));
+                FitPoint(ImPlotPoint(e.X , e.Y + e.Pos ));
+            }
+        }
+        const ImPlotItemStyle& s = GetItemStyle();
+        ImDrawList& DrawList = *GetPlotDrawList();
+        const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_ErrorBar]);
+        const bool rend_whisker  = s.ErrorBarSize > 0;
+        const float half_whisker = s.ErrorBarSize * 0.5f;
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPointError e = getter(i);
-            FitPoint(ImPlotPoint(e.X , e.Y - e.Neg));
-            FitPoint(ImPlotPoint(e.X , e.Y + e.Pos ));
+            ImVec2 p1 = PlotToPixels(e.X, e.Y - e.Neg);
+            ImVec2 p2 = PlotToPixels(e.X, e.Y + e.Pos);
+            DrawList.AddLine(p1,p2,col, s.ErrorBarWeight);
+            if (rend_whisker) {
+                DrawList.AddLine(p1 - ImVec2(half_whisker, 0), p1 + ImVec2(half_whisker, 0), col, s.ErrorBarWeight);
+                DrawList.AddLine(p2 - ImVec2(half_whisker, 0), p2 + ImVec2(half_whisker, 0), col, s.ErrorBarWeight);
+            }
         }
+        EndItem();
     }
-
-    const ImU32 col = ImGui::GetColorU32(GetErrorBarColor());
-    const bool rend_whisker = gp.Style.ErrorBarSize > 0;
-    const float half_whisker = gp.Style.ErrorBarSize * 0.5f;
-
-    ImDrawList & DrawList = *GetPlotDrawList();
-
-    PushPlotClipRect();
-    for (int i = 0; i < getter.Count; ++i) {
-        ImPlotPointError e = getter(i);
-        ImVec2 p1 = PlotToPixels(e.X, e.Y - e.Neg);
-        ImVec2 p2 = PlotToPixels(e.X, e.Y + e.Pos);
-        DrawList.AddLine(p1,p2,col, gp.Style.ErrorBarWeight);
-        if (rend_whisker) {
-            DrawList.AddLine(p1 - ImVec2(half_whisker, 0), p1 + ImVec2(half_whisker, 0), col, gp.Style.ErrorBarWeight);
-            DrawList.AddLine(p2 - ImVec2(half_whisker, 0), p2 + ImVec2(half_whisker, 0), col, gp.Style.ErrorBarWeight);
-        }
-    }
-    PopPlotClipRect();
 }
 
 // float
@@ -1198,40 +1168,31 @@ void PlotErrorBars(const char* label_id, const double* xs, const double* ys, con
 
 template <typename Getter>
 void PlotErrorBarsHEx(const char* label_id, Getter getter) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotErrorBarsH() needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotItem* item = RegisterOrGetItem(label_id);
-    if (!item->Show)
-        return;
-
-    // find data extents
-    if (gp.FitThisFrame) {
+    if (BeginItem(label_id)) {
+        if (FitThisFrame()) {
+            for (int i = 0; i < getter.Count; ++i) {
+                ImPlotPointError e = getter(i);
+                FitPoint(ImPlotPoint(e.X - e.Neg, e.Y));
+                FitPoint(ImPlotPoint(e.X + e.Pos, e.Y));
+            }
+        }
+        const ImPlotItemStyle& s = GetItemStyle();
+        ImDrawList& DrawList = *GetPlotDrawList();
+        const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_ErrorBar]);
+        const bool rend_whisker  = s.ErrorBarSize > 0;
+        const float half_whisker = s.ErrorBarSize * 0.5f;
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPointError e = getter(i);
-            FitPoint(ImPlotPoint(e.X - e.Neg, e.Y));
-            FitPoint(ImPlotPoint(e.X + e.Pos, e.Y));
+            ImVec2 p1 = PlotToPixels(e.X - e.Neg, e.Y);
+            ImVec2 p2 = PlotToPixels(e.X + e.Pos, e.Y);
+            DrawList.AddLine(p1, p2, col, s.ErrorBarWeight);
+            if (rend_whisker) {
+                DrawList.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, s.ErrorBarWeight);
+                DrawList.AddLine(p2 - ImVec2(0, half_whisker), p2 + ImVec2(0, half_whisker), col, s.ErrorBarWeight);
+            }
         }
+        EndItem();
     }
-
-    const ImU32 col = ImGui::GetColorU32(GetErrorBarColor());
-    const bool rend_whisker = gp.Style.ErrorBarSize > 0;
-    const float half_whisker = gp.Style.ErrorBarSize * 0.5f;
-
-    ImDrawList& DrawList = *GetPlotDrawList();
-
-    PushPlotClipRect();
-    for (int i = 0; i < getter.Count; ++i) {
-        ImPlotPointError e = getter(i);
-        ImVec2 p1 = PlotToPixels(e.X - e.Neg, e.Y);
-        ImVec2 p2 = PlotToPixels(e.X + e.Pos, e.Y);
-        DrawList.AddLine(p1, p2, col, gp.Style.ErrorBarWeight);
-        if (rend_whisker) {
-            DrawList.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
-            DrawList.AddLine(p2 - ImVec2(0, half_whisker), p2 + ImVec2(0, half_whisker), col, gp.Style.ErrorBarWeight);
-        }
-    }
-    PopPlotClipRect();
 }
 
 // float
@@ -1277,15 +1238,11 @@ template <typename T>
 void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y, T radius, bool normalize, const char* fmt, T angle0) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *GetPlotDrawList();
-
     T sum = 0;
     for (int i = 0; i < count; ++i)
         sum += values[i];
-
     normalize = normalize || sum > 1.0f;
-
     ImPlotPoint center(x,y);
-
     PushPlotClipRect();
     T a0 = angle0 * 2 * IM_PI / 360.0f;
     T a1 = angle0 * 2 * IM_PI / 360.0f;
@@ -1386,25 +1343,21 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
 
 template <typename T>
 void PlotHeatmapEx(const char* label_id, const T* values, int rows, int cols, T scale_min, T scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotHeatmap() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(scale_min != scale_max, "Scale values must be different!");
-    ImPlotItem* item = RegisterOrGetItem(label_id);
-    if (!item->Show)
-        return;
-    if (gp.FitThisFrame) {
-        FitPoint(bounds_min);
-        FitPoint(bounds_max);
+    if (BeginItem(label_id)) {
+        if (FitThisFrame()) {
+            FitPoint(bounds_min);
+            FitPoint(bounds_max);
+        }
+        ImDrawList& DrawList = *GetPlotDrawList();
+        switch (GetCurrentScale()) {
+            case ImPlotScale_LinLin: RenderHeatmap(TransformerLinLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
+            case ImPlotScale_LogLin: RenderHeatmap(TransformerLogLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
+            case ImPlotScale_LinLog: RenderHeatmap(TransformerLinLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
+            case ImPlotScale_LogLog: RenderHeatmap(TransformerLogLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;    
+        }
+        EndItem();
     }
-    ImDrawList& DrawList = *GetPlotDrawList();
-    ImGui::PushClipRect(gp.BB_Plot.Min, gp.BB_Plot.Max, true);
-    switch (GetCurrentScale()) {
-        case ImPlotScale_LinLin: RenderHeatmap(TransformerLinLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
-        case ImPlotScale_LogLin: RenderHeatmap(TransformerLogLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
-        case ImPlotScale_LinLog: RenderHeatmap(TransformerLinLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
-        case ImPlotScale_LogLog: RenderHeatmap(TransformerLogLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;    
-    }
-    ImGui::PopClipRect();
 }
 
 // float
@@ -1421,68 +1374,62 @@ void PlotHeatmap(const char* label_id, const double* values, int rows, int cols,
 // PLOT DIGITAL
 //-----------------------------------------------------------------------------
 
+// TODO: Make this behave like all the other plot types
+
 template <typename Getter>
-inline void PlotDigitalEx(const char* label_id, Getter getter)
-{
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotDigital() needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotItem* item = RegisterOrGetItem(label_id);
-    if (!item->Show)
-        return;
-    TryRecolorItem(item, ImPlotCol_Line);
-
-    // render digital signals as "pixel bases" rectangles
-    PushPlotClipRect();
-    if (getter.Count > 1 && WillLineRender()) {
-        ImDrawList & DrawList = *GetPlotDrawList();
-        const float line_weight = item->Highlight ? gp.Style.LineWeight * 2 : gp.Style.LineWeight;
-        const int y_axis = gp.CurrentPlot->CurrentYAxis;
-        int pixYMax = 0;
-        ImPlotPoint itemData1 = getter(0);
-        for (int i = 0; i < getter.Count; ++i) {
-            ImPlotPoint itemData2 = getter(i);
-            if (NanOrInf(itemData1.y)) {
+inline void PlotDigitalEx(const char* label_id, Getter getter) {
+    if (BeginItem(label_id, ImPlotCol_Fill)) {
+        ImPlotContext& gp = *GImPlot;
+        ImDrawList& DrawList = *GetPlotDrawList();
+        const ImPlotItemStyle& s = GetItemStyle();
+        if (getter.Count > 1 && s.RenderFill) {
+            const int y_axis = GetCurrentYAxis();
+            int pixYMax = 0;
+            ImPlotPoint itemData1 = getter(0);
+            for (int i = 0; i < getter.Count; ++i) {
+                ImPlotPoint itemData2 = getter(i);
+                if (NanOrInf(itemData1.y)) {
+                    itemData1 = itemData2;
+                    continue;
+                }
+                if (NanOrInf(itemData2.y)) itemData2.y = ConstrainNan(ConstrainInf(itemData2.y));
+                int pixY_0 = (int)(s.LineWeight);
+                itemData1.y = ImMax(0.0, itemData1.y);
+                float pixY_1_float = s.DigitalBitHeight * (float)itemData1.y;
+                int pixY_1 = (int)(pixY_1_float); //allow only positive values
+                int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1_float) + s.DigitalBitGap);
+                pixYMax = ImMax(pixYMax, pixY_chPosOffset);
+                ImVec2 pMin = PlotToPixels(itemData1);
+                ImVec2 pMax = PlotToPixels(itemData2);
+                int pixY_Offset = 20; //20 pixel from bottom due to mouse cursor label
+                pMin.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
+                pMax.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
+                //plot only one rectangle for same digital state
+                while (((i+2) < getter.Count) && (itemData1.y == itemData2.y)) {
+                    const int in = (i + 1);
+                    itemData2 = getter(in);
+                    if (NanOrInf(itemData2.y)) break;
+                    pMax.x = PlotToPixels(itemData2).x;
+                    i++;
+                }
+                //do not extend plot outside plot range
+                if (pMin.x < gp.PixelRange[y_axis].Min.x) pMin.x = gp.PixelRange[y_axis].Min.x;
+                if (pMax.x < gp.PixelRange[y_axis].Min.x) pMax.x = gp.PixelRange[y_axis].Min.x;
+                if (pMin.x > gp.PixelRange[y_axis].Max.x) pMin.x = gp.PixelRange[y_axis].Max.x;
+                if (pMax.x > gp.PixelRange[y_axis].Max.x) pMax.x = gp.PixelRange[y_axis].Max.x;
+                //plot a rectangle that extends up to x2 with y1 height
+                if ((pMax.x > pMin.x) && (gp.BB_Plot.Contains(pMin) || gp.BB_Plot.Contains(pMax))) {
+                    // ImVec4 colAlpha = item->Color;
+                    // colAlpha.w = item->Highlight ? 1.0f : 0.9f;
+                    DrawList.AddRectFilled(pMin, pMax, ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]));
+                }
                 itemData1 = itemData2;
-                continue;
             }
-            if (NanOrInf(itemData2.y)) itemData2.y = ConstrainNan(ConstrainInf(itemData2.y));
-            int pixY_0 = (int)(line_weight);
-            itemData1.y = ImMax(0.0, itemData1.y);
-            float pixY_1_float = gp.Style.DigitalBitHeight * (float)itemData1.y;
-            int pixY_1 = (int)(pixY_1_float); //allow only positive values
-            int pixY_chPosOffset = (int)(ImMax(gp.Style.DigitalBitHeight, pixY_1_float) + gp.Style.DigitalBitGap);
-            pixYMax = ImMax(pixYMax, pixY_chPosOffset);
-            ImVec2 pMin = PlotToPixels(itemData1);
-            ImVec2 pMax = PlotToPixels(itemData2);
-            int pixY_Offset = 20; //20 pixel from bottom due to mouse cursor label
-            pMin.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
-            pMax.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
-            //plot only one rectangle for same digital state
-            while (((i+2) < getter.Count) && (itemData1.y == itemData2.y)) {
-                const int in = (i + 1);
-                itemData2 = getter(in);
-                if (NanOrInf(itemData2.y)) break;
-                pMax.x = PlotToPixels(itemData2).x;
-                i++;
-            }
-            //do not extend plot outside plot range
-            if (pMin.x < gp.PixelRange[y_axis].Min.x) pMin.x = gp.PixelRange[y_axis].Min.x;
-            if (pMax.x < gp.PixelRange[y_axis].Min.x) pMax.x = gp.PixelRange[y_axis].Min.x;
-            if (pMin.x > gp.PixelRange[y_axis].Max.x) pMin.x = gp.PixelRange[y_axis].Max.x;
-            if (pMax.x > gp.PixelRange[y_axis].Max.x) pMax.x = gp.PixelRange[y_axis].Max.x;
-            //plot a rectangle that extends up to x2 with y1 height
-            if ((pMax.x > pMin.x) && (gp.BB_Plot.Contains(pMin) || gp.BB_Plot.Contains(pMax))) {
-                ImVec4 colAlpha = item->Color;
-                colAlpha.w = item->Highlight ? 1.0f : 0.9f;
-                DrawList.AddRectFilled(pMin, pMax, ImGui::GetColorU32(colAlpha));
-            }
-            itemData1 = itemData2;
+            gp.DigitalPlotItemCnt++;
+            gp.DigitalPlotOffset += pixYMax;
         }
-        gp.DigitalPlotItemCnt++;
-        gp.DigitalPlotOffset += pixYMax;
+        EndItem();
     }
-    PopPlotClipRect();
 }
 
 // float
@@ -1508,34 +1455,26 @@ void PlotDigital(const char* label_id, ImPlotPoint (*getter_func)(void* data, in
 //-----------------------------------------------------------------------------
 template <typename Getter>
 void PlotRectsEx(const char* label_id, Getter getter) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotRects() needs to be called between BeginPlot() and EndPlot()!");
-
-    ImPlotItem* item = RegisterOrGetItem(label_id);
-    if (!item->Show)
-        return;
-    TryRecolorItem(item, ImPlotCol_Fill);
-
-    if (!WillFillRender())
-        return;
-
-    if (gp.FitThisFrame) {
-        for (int i = 0; i < getter.Count; ++i) {
-            ImPlotPoint p = getter(i);
-            FitPoint(p);
+    if (BeginItem(label_id, ImPlotCol_Fill)) {
+        if (FitThisFrame()) {
+            for (int i = 0; i < getter.Count; ++i) {
+                ImPlotPoint p = getter(i);
+                FitPoint(p);
+            }
         }
+        const ImPlotItemStyle& s = GetItemStyle();
+        if (s.RenderFill) {
+            ImDrawList& DrawList = *GetPlotDrawList();
+            ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+            switch (GetCurrentScale()) {
+                case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(), col), DrawList); break;
+                case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(), col), DrawList); break;
+                case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(), col), DrawList); break;
+                case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(), col), DrawList); break;    
+            }
+        }
+        EndItem();
     }
-
-    ImDrawList & DrawList = *GetPlotDrawList();
-    ImU32 col = ImGui::GetColorU32(GetItemFillColor(item));
-    PushPlotClipRect();
-    switch (GetCurrentScale()) {
-        case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(), col), DrawList); break;
-        case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(), col), DrawList); break;
-        case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(), col), DrawList); break;
-        case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(), col), DrawList); break;    
-    }
-    PopPlotClipRect();
 }
 
 // float

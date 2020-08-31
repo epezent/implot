@@ -335,7 +335,7 @@ void Reset(ImPlotContext* ctx) {
     ctx->ChildWindowMade = false;
     // reset the next plot/item data
     ctx->NextPlotData = ImPlotNextPlotData();
-    ctx->NextItemStyle = ImPlotNextItemStyle();
+    ctx->NextItemStyle = ImPlotItemStyle();
     // reset items count
     ctx->VisibleItemCount = 0;
     // reset legend items
