@@ -1048,7 +1048,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("You can implement legend context menus to inject per-item controls and widgets.");
         ImGui::BulletText("Right click the legend label/icon to edit custom item attributes.");
 
-        static float  frequency = 0.1;
+        static float  frequency = 0.1f;
         static float  amplitude = 0.5f;
         static ImVec4 color     = ImVec4(1,1,0,1);
         static float  alpha     = 1.0f;
