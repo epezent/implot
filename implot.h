@@ -422,8 +422,6 @@ ImPlotLimits GetPlotLimits(int y_axis = IMPLOT_AUTO);
 bool IsPlotQueried();
 // Returns the current plot query bounds.
 ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
-// Returns true if a plot item legend entry is hovered.
-bool IsLegendEntryHovered(const char* label_id);
 
 //-----------------------------------------------------------------------------
 // Plot and Item Styling
@@ -514,6 +512,17 @@ void ShowColormapScale(double scale_min, double scale_max, float height);
 const char* GetColormapName(ImPlotColormap colormap);
 
 //-----------------------------------------------------------------------------
+// Legend Utils
+//-----------------------------------------------------------------------------
+
+// Returns true if a plot item legend entry is hovered.
+bool IsLegendEntryHovered(const char* label_id);
+// Begin a drag and drop source from a legend entry. The only supported flag is SourceNoPreviewTooltip
+bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags = 0);
+// End legend drag and drop source.
+void EndLegendDragDropSource();
+
+//-----------------------------------------------------------------------------
 // Miscellaneous
 //-----------------------------------------------------------------------------
 
@@ -533,11 +542,6 @@ ImDrawList* GetPlotDrawList();
 void PushPlotClipRect();
 // Pop plot clip rect.
 void PopPlotClipRect();
-
-// Begin a drag and drop source from a legend entry.  The only supported flag is SourceNoPreviewTooltip
-bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags = 0);
-// End drag and drop source.
-void EndDragDropSource();
 
 //-----------------------------------------------------------------------------
 // Demo (add implot_demo.cpp to your sources!)

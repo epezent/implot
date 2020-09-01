@@ -301,7 +301,7 @@ struct ImPlotItem
     ImVec4       Color;
     int          NameOffset;
     bool         Show;
-    bool         Highlight;
+    bool         LegendHovered;
     bool         SeenThisFrame;
 
     ImPlotItem() {
@@ -310,7 +310,7 @@ struct ImPlotItem
         NameOffset    = -1;
         Show          = true;
         SeenThisFrame = false;
-        Highlight     = false;
+        LegendHovered = false;
     }
 
     ~ImPlotItem() { ID = 0; }

@@ -715,7 +715,7 @@ void ShowDemoWindow(bool* p_open) {
             init = false;
         }
         ImGui::BulletText("Drag data items from the left column onto the plot or onto a specific y-axis.");
-        ImGui::BulletText("Drag data items from the legend onto a specific y-axis.");
+        ImGui::BulletText("Redrag data items from the legend onto other y-axes.");
         ImGui::BeginGroup();
         if (ImGui::Button("Clear", ImVec2(100, 0))) {
             for (int i = 0; i < K_CHANNELS; ++i) {
@@ -755,17 +755,21 @@ void ShowDemoWindow(bool* p_open) {
                     sprintf(label, "data_%d", i);
 					ImPlot::SetPlotYAxis(yAxis[i]);
                     ImPlot::PlotLine(label, &data[i].Data[0].x, &data[i].Data[0].y, data[i].Data.size(), data[i].Offset, 2 * sizeof(t_float));
+                    // allow legend labels to be dragged and dropped
                     if (ImPlot::BeginLegendDragDropSource(label)) {
                         ImGui::SetDragDropPayload("DND_PLOT", &i, sizeof(int));
                         ImGui::TextUnformatted(label);
-                        ImPlot::EndDragDropSource();
+                        ImPlot::EndLegendDragDropSource();
                     }
                 }
             }
+            // make our plot a drag and drop target
 			if (ImGui::BeginDragDropTarget()) {
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
 					int i = *(int*)payload->Data;
 					show[i] = true;
+                    yAxis[i] = 0;
+                    // set specific y-axis if hovered
 					for (int y = 0; y < 3; y++) {
 						if (ImPlot::IsPlotYAxisHovered(y))
 							yAxis[i] = y;

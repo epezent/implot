@@ -1474,13 +1474,13 @@ void EndPlot() {
             label_bb.Min = legend_content_bb.Min + legend_spacing + ImVec2(0, i * txt_ht) + ImVec2(2, 2);
             label_bb.Max = legend_content_bb.Min + legend_spacing + ImVec2(0, i * txt_ht) + ImVec2(legend_content_bb.Max.x, legend_icon_size - 2);
             ImU32 col_hl_txt;
-            if (ImHasFlag(plot.Flags, ImPlotFlags_Highlight) && hov_legend && (icon_bb.Contains(IO.MousePos) || label_bb.Contains(IO.MousePos))) {
-                item->Highlight = true;
+            if (hov_legend && (icon_bb.Contains(IO.MousePos) || label_bb.Contains(IO.MousePos))) {
+                item->LegendHovered = true;
                 col_hl_txt = ImGui::GetColorU32(ImLerp(col_txt, item->Color, 0.25f));
             }
             else
             {
-               item->Highlight = false;
+               item->LegendHovered = false;
                col_hl_txt = ImGui::GetColorU32(col_txt);
             }
             ImU32 iconColor;
@@ -1820,10 +1820,7 @@ bool IsLegendEntryHovered(const char* label_id) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotItemHighlight() needs to be called between BeginPlot() and EndPlot()!");
     ImGuiID id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
-    if (item && item->Highlight)
-        return true;
-    else
-        return false;
+    return item && item->LegendHovered;
 }
 
 bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags) {
@@ -1831,7 +1828,7 @@ bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginLegendDragDropSource() needs to be called between BeginPlot() and EndPlot()!");
     ImGuiID source_id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(source_id);
-    bool is_hovered = item && item->Highlight;
+    bool is_hovered = item && item->LegendHovered;
 
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
@@ -1891,7 +1888,7 @@ bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags) {
     return false;
 }
 
-void EndDragDropSource() {
+void EndLegendDragDropSource() {
     ImGui::EndDragDropSource();
 }
 
