@@ -1051,16 +1051,20 @@ void ShowDemoWindow(bool* p_open) {
         static float  frequency = 0.1;
         static float  amplitude = 0.5f;
         static ImVec4 color     = ImVec4(1,1,0,1);
+        static float  alpha     = 1.0f;
         static bool   line      = false;
         static float  thickness = 1;
         static bool   markers   = false;
+        static bool   shaded    = false;
 
         static t_float vals[101];
-        for (int i = 0; i < 101; ++i) 
-            vals[i] = amplitude * Sin(frequency * i);        
-  
+        for (int i = 0; i < 101; ++i)
+            vals[i] = amplitude * Sin(frequency * i);
+
         ImPlot::SetNextPlotLimits(0,100,-1,1);
         if (ImPlot::BeginPlot("Right Click the Legend")) {
+            // rendering logic
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
             if (!line) {
                 ImPlot::SetNextFillStyle(color);
                 ImPlot::PlotBars("Right Click Me", vals, 101);
@@ -1069,17 +1073,21 @@ void ShowDemoWindow(bool* p_open) {
                 if (markers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
                 ImPlot::SetNextLineStyle(color, thickness);
                 ImPlot::PlotLine("Right Click Me", vals, 101);
+                if (shaded) ImPlot::PlotShaded("Right Click Me",vals,101);
             }
+            ImPlot::PopStyleVar();
             // custom legend context menu
             if (ImPlot::BeginLegendPopup("Right Click Me")) {
-                ImGui::DragFloat("Frequency",&frequency,0.01f,0,1);
-                ImGui::DragFloat("Amplitude",&amplitude,0.01f,0,1);
+                ImGui::SliderFloat("Frequency",&frequency,0,1,"%0.2f");
+                ImGui::SliderFloat("Amplitude",&amplitude,0,1,"%0.2f");
                 ImGui::Separator();
-                ImGui::ColorEdit4("Color",&color.x);
-                ImGui::Checkbox("Line Graph", &line);
+                ImGui::ColorEdit3("Color",&color.x);
+                ImGui::SliderFloat("Transparency",&alpha,0,1,"%.2f");
+                ImGui::Checkbox("Line Plot", &line);
                 if (line) {
-                    ImGui::DragFloat("Thickness", &thickness, 0.1f, 0, 5);
+                    ImGui::SliderFloat("Thickness", &thickness, 0, 5);
                     ImGui::Checkbox("Markers", &markers);
+                    ImGui::Checkbox("Shaded",&shaded);
                 }
                 ImPlot::EndLegendPopup();
             }
