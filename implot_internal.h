@@ -219,7 +219,7 @@ struct ImPlotTickCollection {
         Ticks.push_back(tick);
         Size++;
     }
-    
+
     void AddTick(double value, bool major, bool show_label, void (*labeler)(ImPlotTick& tick, ImGuiTextBuffer& buf)) {
         ImPlotTick tick(value, major, show_label);
         if (labeler)
@@ -231,9 +231,9 @@ struct ImPlotTickCollection {
         return Labels.Buf.Data + Ticks[idx].BufferOffset;
     }
 
-    void Reset() { 
-        Ticks.shrink(0); 
-        Labels.Buf.shrink(0); 
+    void Reset() {
+        Ticks.shrink(0);
+        Labels.Buf.shrink(0);
         TotalWidth = TotalHeight = MaxWidth = MaxHeight = 0;
         Size = 0;
     }
@@ -299,7 +299,6 @@ struct ImPlotItem
 {
     ImGuiID      ID;
     ImVec4       Color;
-    ImPlotMarker Marker;   
     int          NameOffset;
     bool         Show;
     bool         Highlight;
@@ -308,7 +307,6 @@ struct ImPlotItem
     ImPlotItem() {
         ID            = 0;
         Color         = ImPlot::NextColormapColor();
-        Marker        = ImPlotMarker_None;
         NameOffset    = -1;
         Show          = true;
         SeenThisFrame = false;
@@ -335,7 +333,6 @@ struct ImPlotState
     bool               Queried;
     bool               DraggingQuery;
     int                ColormapIdx;
-    int                MarkerIdx;
     int                CurrentYAxis;
 
     ImPlotState() {
@@ -375,15 +372,15 @@ struct ImPlotNextPlotData
 // Temporary data storage for upcoming item
 struct ImPlotItemStyle {
     ImVec4       Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
-    float        LineWeight;        
-    ImPlotMarker Marker;            
-    float        MarkerSize;        
-    float        MarkerWeight;      
-    float        FillAlpha;         
-    float        ErrorBarSize;      
-    float        ErrorBarWeight;    
-    float        DigitalBitHeight;  
-    float        DigitalBitGap;  
+    float        LineWeight;
+    ImPlotMarker Marker;
+    float        MarkerSize;
+    float        MarkerWeight;
+    float        FillAlpha;
+    float        ErrorBarSize;
+    float        ErrorBarWeight;
+    float        DigitalBitHeight;
+    float        DigitalBitGap;
     bool         RenderLine;
     bool         RenderFill;
     bool         RenderMarkerLine;
@@ -394,7 +391,7 @@ struct ImPlotItemStyle {
         LineWeight = MarkerWeight = FillAlpha = ErrorBarSize =
         ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker = IMPLOT_AUTO;
-    }   
+    }
 };
 
 // Holds state information that must persist between calls to BeginPlot()/EndPlot()
@@ -624,55 +621,6 @@ inline ImVec4 GetStyleColorVec4(ImPlotCol idx) {return IsColorAuto(idx) ? GetAut
 inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
 // Returns white or black text given background color
 inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE; }
-
-// Returns true if lines will render (e.g. basic lines, bar outlines)
-inline bool WillLineRender() {
-    return GImPlot->Style.Colors[ImPlotCol_Line].w != 0 && GImPlot->Style.LineWeight > 0;
-}
-
-// Returns true if fills will render (e.g. shaded plots, bar fills)
-inline bool WillFillRender() {
-    return GImPlot->Style.Colors[ImPlotCol_Fill].w != 0 && GImPlot->Style.FillAlpha > 0;
-}
-
-// Returns true if marker outlines will render
-inline bool WillMarkerOutlineRender() {
-    return GImPlot->Style.Colors[ImPlotCol_MarkerOutline].w != 0 && GImPlot->Style.MarkerWeight > 0;
-}
-
-// Returns true if mark fill will render
-inline bool WillMarkerFillRender() {
-    return GImPlot->Style.Colors[ImPlotCol_MarkerFill].w != 0 && GImPlot->Style.FillAlpha > 0;
-}
-
-// Gets the line color for an item
-inline ImVec4 GetLineColor(ImPlotItem* item) {
-    return IsColorAuto(ImPlotCol_Line) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Line];
-}
-
-// Gets the fill color for an item
-inline ImVec4 GetItemFillColor(ImPlotItem* item) {
-    ImVec4 col = IsColorAuto(ImPlotCol_Fill) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Fill];
-    col.w *= GImPlot->Style.FillAlpha;
-    return col;
-}
-
-// Gets the marker outline color for an item
-inline ImVec4 GetMarkerOutlineColor(ImPlotItem* item) {
-    return IsColorAuto(ImPlotCol_MarkerOutline) ? GetLineColor(item) : GImPlot->Style.Colors[ImPlotCol_MarkerOutline];
-}
-
-// Gets the marker fill color for an item
-inline ImVec4 GetMarkerFillColor(ImPlotItem* item) {
-    ImVec4 col = IsColorAuto(ImPlotCol_MarkerFill) ?  GetLineColor(item) :GImPlot->Style.Colors[ImPlotCol_MarkerFill];
-    col.w *= GImPlot->Style.FillAlpha;
-    return col;
-}
-
-// Gets the error bar color
-inline ImVec4 GetErrorBarColor() {
-    return GetStyleColorVec4(ImPlotCol_ErrorBar);
-}
 
 //-----------------------------------------------------------------------------
 // [SECTION] Internal / Experimental Plotters
