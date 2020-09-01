@@ -237,19 +237,10 @@ void ShowDemoWindow(bool* p_open) {
             ys2[i] = xs2[i] * xs2[i];
         }
         ImGui::BulletText("Anti-aliasing can be enabled from the plot's context menu (see Help).");
-        ImGui::BulletText("Right click on a legend item to bring up its context menu");
         if (ImPlot::BeginPlot("Line Plot", "x", "f(x)")) {
             ImPlot::PlotLine("sin(x)", xs1, ys1, 1001);
             ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
             ImPlot::PlotLine("x^2", xs2, ys2, 11);
-            if (ImPlot::BeginPopupContextLegend("sin(x)")) {
-                ImGui::Text("Context menu for sin(x)");
-                ImPlot::EndPopup();
-            }
-            if (ImPlot::BeginPopupContextLegend("x^2")) {
-                ImGui::Text("Context menu for x^2");
-                ImPlot::EndPopup();
-            }
             ImPlot::EndPlot();
         }
     }
@@ -1049,6 +1040,49 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::GetPlotDrawList()->AddCircleFilled(cntr,20,IM_COL32(255,255,0,255),20);
             ImPlot::GetPlotDrawList()->AddRect(rmin, rmax, IM_COL32(128,0,255,255));
             ImPlot::PopPlotClipRect();
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Custom Context Menus")) {
+        ImGui::BulletText("You can implement legend context menus to inject per-item controls and widgets.");
+        ImGui::BulletText("Right click the legend label/icon to edit custom item attributes.");
+
+        static float  frequency = 0.1;
+        static float  amplitude = 0.5f;
+        static ImVec4 color     = ImVec4(1,1,0,1);
+        static bool   line      = false;
+        static float  thickness = 1;
+        static bool   markers   = false;
+
+        static t_float vals[101];
+        for (int i = 0; i < 101; ++i) 
+            vals[i] = amplitude * Sin(frequency * i);        
+  
+        ImPlot::SetNextPlotLimits(0,100,-1,1);
+        if (ImPlot::BeginPlot("Right Click the Legend")) {
+            if (!line) {
+                ImPlot::SetNextFillStyle(color);
+                ImPlot::PlotBars("Right Click Me", vals, 101);
+            }
+            else {
+                if (markers) ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
+                ImPlot::SetNextLineStyle(color, thickness);
+                ImPlot::PlotLine("Right Click Me", vals, 101);
+            }
+            // custom legend context menu
+            if (ImPlot::BeginLegendPopup("Right Click Me")) {
+                ImGui::DragFloat("Frequency",&frequency,0.01f,0,1);
+                ImGui::DragFloat("Amplitude",&amplitude,0.01f,0,1);
+                ImGui::Separator();
+                ImGui::ColorEdit4("Color",&color.x);
+                ImGui::Checkbox("Line Graph", &line);
+                if (line) {
+                    ImGui::DragFloat("Thickness", &thickness, 0.1f, 0, 5);
+                    ImGui::Checkbox("Markers", &markers);
+                }
+                ImPlot::EndLegendPopup();
+            }
             ImPlot::EndPlot();
         }
     }

@@ -1892,7 +1892,7 @@ void EndLegendDragDropSource() {
     ImGui::EndDragDropSource();
 }
 
-bool BeginPopupContextLegend(const char* label_id, ImGuiMouseButton mouse_button) {
+bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginLegendPopup() needs to be called between BeginPlot() and EndPlot()!");
     ImGuiWindow* window = GImGui->CurrentWindow;
@@ -1901,13 +1901,13 @@ bool BeginPopupContextLegend(const char* label_id, ImGuiMouseButton mouse_button
     ImGuiID id = ImGui::GetID(label_id);
     if (ImGui::IsMouseReleased(mouse_button)) {
         ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
-        if (item && item->Highlight)
+        if (item && item->LegendHovered)
             ImGui::OpenPopupEx(id);
     }
     return ImGui::BeginPopupEx(id, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings);
 }
 
-void EndPopup() {
+void EndLegendPopup() {
     ImGui::EndPopup();
 }
 

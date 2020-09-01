@@ -521,11 +521,10 @@ bool IsLegendEntryHovered(const char* label_id);
 bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags = 0);
 // End legend drag and drop source.
 void EndLegendDragDropSource();
-
 // Begin a popup for a legend entry.
-bool BeginPopupContextLegend(const char* label_id, ImGuiMouseButton mouse_button = 1);
+bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button = 1);
 // End a popup for a legend entry.
-void EndPopup();
+void EndLegendPopup();
 
 //-----------------------------------------------------------------------------
 // Miscellaneous
