@@ -1826,6 +1826,75 @@ bool IsLegendEntryHovered(const char* label_id) {
         return false;
 }
 
+bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginLegendDragDropSource() needs to be called between BeginPlot() and EndPlot()!");
+    ImGuiID source_id = ImGui::GetID(label_id);
+    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(source_id);
+    bool is_hovered = item && item->Highlight;
+
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = g.CurrentWindow;
+
+    ImGuiMouseButton mouse_button = ImGuiMouseButton_Left;
+
+    if (g.IO.MouseDown[mouse_button] == false) {
+        if (g.ActiveId == source_id)
+            ImGui::ClearActiveID();
+        return false;
+    }
+
+    if (is_hovered && g.IO.MouseClicked[mouse_button]) {
+        ImGui::SetActiveID(source_id, window);
+        ImGui::FocusWindow(window);
+    }
+
+    if (g.ActiveId != source_id)
+        return false;
+
+    // Allow the underlying widget to display/return hovered during the mouse
+    // release frame, else we would get a flicker.
+    g.ActiveIdAllowOverlap = is_hovered;
+
+    // Disable navigation and key inputs while dragging
+    g.ActiveIdUsingNavDirMask = ~(ImU32)0;
+    g.ActiveIdUsingNavInputMask = ~(ImU32)0;
+    g.ActiveIdUsingKeyInputMask = ~(ImU64)0;
+
+    if (ImGui::IsMouseDragging(mouse_button)) {
+        if (!g.DragDropActive) {
+            ImGui::ClearDragDrop();
+            ImGuiPayload& payload = g.DragDropPayload;
+            payload.SourceId = source_id;
+            payload.SourceParentId = 0;
+            g.DragDropActive = true;
+            g.DragDropSourceFlags = 0;
+            g.DragDropMouseButton = mouse_button;
+        }
+        g.DragDropSourceFrameCount = g.FrameCount;
+        g.DragDropWithinSource = true;
+
+        if (!(flags & ImGuiDragDropFlags_SourceNoPreviewTooltip)) {
+            // Target can request the Source to not display its tooltip (we use a
+            // dedicated flag to make this request explicit) We unfortunately can't
+            // just modify the source flags and skip the call to BeginTooltip, as
+            // caller may be emitting contents.
+            ImGui::BeginTooltip();
+            if (g.DragDropAcceptIdPrev && (g.DragDropAcceptFlags & ImGuiDragDropFlags_AcceptNoPreviewTooltip)) {
+                ImGuiWindow* tooltip_window = g.CurrentWindow;
+                tooltip_window->SkipItems = true;
+                tooltip_window->HiddenFramesCanSkipItems = 1;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+void EndDragDropSource() {
+    ImGui::EndDragDropSource();
+}
+
 //-----------------------------------------------------------------------------
 // STYLING
 //-----------------------------------------------------------------------------
