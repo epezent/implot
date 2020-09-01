@@ -237,10 +237,19 @@ void ShowDemoWindow(bool* p_open) {
             ys2[i] = xs2[i] * xs2[i];
         }
         ImGui::BulletText("Anti-aliasing can be enabled from the plot's context menu (see Help).");
+        ImGui::BulletText("Right click on a legend item to bring up its context menu");
         if (ImPlot::BeginPlot("Line Plot", "x", "f(x)")) {
             ImPlot::PlotLine("sin(x)", xs1, ys1, 1001);
             ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
             ImPlot::PlotLine("x^2", xs2, ys2, 11);
+            if (ImPlot::BeginPopupContextLegend("sin(x)")) {
+                ImGui::Text("Context menu for sin(x)");
+                ImPlot::EndPopup();
+            }
+            if (ImPlot::BeginPopupContextLegend("x^2")) {
+                ImGui::Text("Context menu for x^2");
+                ImPlot::EndPopup();
+            }
             ImPlot::EndPlot();
         }
     }
