@@ -144,6 +144,20 @@ struct ImArray {
 };
 
 //-----------------------------------------------------------------------------
+// [SECTION] ImPlot Enums
+//-----------------------------------------------------------------------------
+
+typedef int ImPlotScale; // -> enum ImPlotScale_
+
+// XY axes scaling combinations
+enum ImPlotScale_ {
+    ImPlotScale_LinLin, // linear x, linear y
+    ImPlotScale_LogLin, // log x,    linear y
+    ImPlotScale_LinLog, // linear x, log y
+    ImPlotScale_LogLog  // log x,    log y
+};
+
+//-----------------------------------------------------------------------------
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
 
@@ -205,7 +219,7 @@ struct ImPlotTickCollection {
         Ticks.push_back(tick);
         Size++;
     }
-    
+
     void AddTick(double value, bool major, bool show_label, void (*labeler)(ImPlotTick& tick, ImGuiTextBuffer& buf)) {
         ImPlotTick tick(value, major, show_label);
         if (labeler)
@@ -217,9 +231,9 @@ struct ImPlotTickCollection {
         return Labels.Buf.Data + Ticks[idx].BufferOffset;
     }
 
-    void Reset() { 
-        Ticks.shrink(0); 
-        Labels.Buf.shrink(0); 
+    void Reset() {
+        Ticks.shrink(0);
+        Labels.Buf.shrink(0);
         TotalWidth = TotalHeight = MaxWidth = MaxHeight = 0;
         Size = 0;
     }
@@ -285,7 +299,6 @@ struct ImPlotItem
 {
     ImGuiID      ID;
     ImVec4       Color;
-    ImPlotMarker Marker;   
     int          NameOffset;
     bool         Show;
     bool         Highlight;
@@ -294,7 +307,6 @@ struct ImPlotItem
     ImPlotItem() {
         ID            = 0;
         Color         = ImPlot::NextColormapColor();
-        Marker        = ImPlotMarker_None;
         NameOffset    = -1;
         Show          = true;
         SeenThisFrame = false;
@@ -321,7 +333,6 @@ struct ImPlotState
     bool               Queried;
     bool               DraggingQuery;
     int                ColormapIdx;
-    int                MarkerIdx;
     int                CurrentYAxis;
 
     ImPlotState() {
@@ -358,11 +369,37 @@ struct ImPlotNextPlotData
     }
 };
 
+// Temporary data storage for upcoming item
+struct ImPlotItemStyle {
+    ImVec4       Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
+    float        LineWeight;
+    ImPlotMarker Marker;
+    float        MarkerSize;
+    float        MarkerWeight;
+    float        FillAlpha;
+    float        ErrorBarSize;
+    float        ErrorBarWeight;
+    float        DigitalBitHeight;
+    float        DigitalBitGap;
+    bool         RenderLine;
+    bool         RenderFill;
+    bool         RenderMarkerLine;
+    bool         RenderMarkerFill;
+    ImPlotItemStyle() {
+        for (int i = 0; i < 5; ++i)
+            Colors[i] = IMPLOT_AUTO_COL;
+        LineWeight = MarkerWeight = FillAlpha = ErrorBarSize =
+        ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
+        Marker = IMPLOT_AUTO;
+    }
+};
+
 // Holds state information that must persist between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
     // Plot States
     ImPool<ImPlotState> Plots;
     ImPlotState*        CurrentPlot;
+    ImPlotItem*         CurrentItem;
 
     // Legend
     ImVector<int>   LegendIndices;
@@ -385,6 +422,7 @@ struct ImPlotContext {
     float                YAxisReference[IMPLOT_Y_AXES];
 
     // Transformations and Data Extents
+    ImPlotScale Scales[IMPLOT_Y_AXES];
     ImRect      PixelRange[IMPLOT_Y_AXES];
     double      Mx;
     double      My[IMPLOT_Y_AXES];
@@ -423,6 +461,7 @@ struct ImPlotContext {
     int                DigitalPlotItemCnt;
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
+    ImPlotItemStyle    NextItemStyle;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
 };
@@ -461,6 +500,17 @@ void BustPlotCache();
 void UpdateTransformCache();
 // Extends the current plots axes so that it encompasses point p
 void FitPoint(const ImPlotPoint& p);
+// Returns true if the user has requested data to be fit.
+inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
+// Gets the current y-axis for the current plot
+inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
+// Gets the XY scale for the current plot and y-axis
+inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
+
+// Begins a new item. Returns false if the item should not be plotted. Pushes PlotClipRect.
+bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
+// Ends an item (call only if BeginItem returns true). Pops PlotClipRect.
+void EndItem();
 
 // Register or get an existing item from the current plot
 ImPlotItem* RegisterOrGetItem(const char* label_id);
@@ -470,8 +520,19 @@ ImPlotItem* GetItem(int i);
 ImPlotItem* GetItem(const char* label_id);
 // Gets a plot item from a specific plot
 ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
+// Gets the current item
+ImPlotItem* GetCurrentItem();
 // Busts the cache for every item for every plot in the current context.
 void BustItemCache();
+
+// Get styling data for next item (call between Begin/EndItem)
+inline const ImPlotItemStyle& GetItemStyle() { return GImPlot->NextItemStyle; }
+
+// Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
+inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
+    if (GImPlot->Style.Colors[idx].w != -1)
+        item->Color = GImPlot->Style.Colors[idx];
+}
 
 // Returns the number of entries in the current legend
 int GetLegendCount();
@@ -500,8 +561,6 @@ double NiceNum(double x, bool round);
 void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
 ImVec2 CalcTextSizeVertical(const char *text);
-// Returns white or black text given background color
-inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE; }
 
 // Returns true if val is NAN or INFINITY
 inline bool NanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
@@ -551,68 +610,17 @@ ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
 // Resamples a colormap. #size_out must be greater than 1.
 void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
 
+// Returns true if a color is set to be automatically determined
+inline bool IsColorAuto(const ImVec4& col) { return col.w == -1; }
 // Returns true if a style color is set to be automaticaly determined
-inline bool IsColorAuto(ImPlotCol idx) { return GImPlot->Style.Colors[idx].w == -1; }
+inline bool IsColorAuto(ImPlotCol idx) { return IsColorAuto(GImPlot->Style.Colors[idx]); }
 // Returns the automatically deduced style color
 ImVec4 GetAutoColor(ImPlotCol idx);
 // Returns the style color whether it is automatic or custom set
 inline ImVec4 GetStyleColorVec4(ImPlotCol idx) {return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
 inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
-
-// Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
-inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
-    if (GImPlot->Style.Colors[idx].w != -1)
-        item->Color = GImPlot->Style.Colors[idx];
-}
-
-// Returns true if lines will render (e.g. basic lines, bar outlines)
-inline bool WillLineRender() {
-    return GImPlot->Style.Colors[ImPlotCol_Line].w != 0 && GImPlot->Style.LineWeight > 0;
-}
-
-// Returns true if fills will render (e.g. shaded plots, bar fills)
-inline bool WillFillRender() {
-    return GImPlot->Style.Colors[ImPlotCol_Fill].w != 0 && GImPlot->Style.FillAlpha > 0;
-}
-
-// Returns true if marker outlines will render
-inline bool WillMarkerOutlineRender() {
-    return GImPlot->Style.Colors[ImPlotCol_MarkerOutline].w != 0 && GImPlot->Style.MarkerWeight > 0;
-}
-
-// Returns true if mark fill will render
-inline bool WillMarkerFillRender() {
-    return GImPlot->Style.Colors[ImPlotCol_MarkerFill].w != 0 && GImPlot->Style.FillAlpha > 0;
-}
-
-// Gets the line color for an item
-inline ImVec4 GetLineColor(ImPlotItem* item) {
-    return IsColorAuto(ImPlotCol_Line) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Line];
-}
-
-// Gets the fill color for an item
-inline ImVec4 GetItemFillColor(ImPlotItem* item) {
-    ImVec4 col = IsColorAuto(ImPlotCol_Fill) ? item->Color : GImPlot->Style.Colors[ImPlotCol_Fill];
-    col.w *= GImPlot->Style.FillAlpha;
-    return col;
-}
-
-// Gets the marker outline color for an item
-inline ImVec4 GetMarkerOutlineColor(ImPlotItem* item) {
-    return IsColorAuto(ImPlotCol_MarkerOutline) ? GetLineColor(item) : GImPlot->Style.Colors[ImPlotCol_MarkerOutline];
-}
-
-// Gets the marker fill color for an item
-inline ImVec4 GetMarkerFillColor(ImPlotItem* item) {
-    ImVec4 col = IsColorAuto(ImPlotCol_MarkerFill) ?  GetLineColor(item) :GImPlot->Style.Colors[ImPlotCol_MarkerFill];
-    col.w *= GImPlot->Style.FillAlpha;
-    return col;
-}
-
-// Gets the error bar color
-inline ImVec4 GetErrorBarColor() {
-    return GetStyleColorVec4(ImPlotCol_ErrorBar);
-}
+// Returns white or black text given background color
+inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE; }
 
 //-----------------------------------------------------------------------------
 // [SECTION] Internal / Experimental Plotters
