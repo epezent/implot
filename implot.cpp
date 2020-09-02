@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.6 WIP
+// ImPlot v0.7 WIP
 
 /*
 
@@ -154,6 +154,23 @@ const char* GetStyleColorName(ImPlotCol col) {
         "Crosshairs"
     };
     return col_names[col];
+}
+
+const char* GetMarkerName(ImPlotMarker marker) {
+    switch (marker) {
+        case ImPlotMarker_None:     return "None";
+        case ImPlotMarker_Circle:   return "Circle";
+        case ImPlotMarker_Square:   return "Square";
+        case ImPlotMarker_Diamond:  return "Diamond"; 
+        case ImPlotMarker_Up:       return "Up"; 
+        case ImPlotMarker_Down:     return "Down"; 
+        case ImPlotMarker_Left:     return "Left"; 
+        case ImPlotMarker_Right:    return "Right"; 
+        case ImPlotMarker_Cross:    return "Cross"; 
+        case ImPlotMarker_Plus:     return "Plus"; 
+        case ImPlotMarker_Asterisk: return "Asterisk"; 
+        default:                    return "";
+    }
 }
 
 ImVec4 GetAutoColor(ImPlotCol idx) {

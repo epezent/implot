@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.6 WIP
+// ImPlot v0.7 WIP
 
 #pragma once
 #include "imgui.h"
@@ -30,7 +30,7 @@
 //-----------------------------------------------------------------------------
 
 // ImPlot version string
-#define IMPLOT_VERSION "0.6 WIP"
+#define IMPLOT_VERSION "0.7 WIP"
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
@@ -480,6 +480,8 @@ void SetNextErrorBarStyle(const ImVec4& col = IMPLOT_AUTO_COL, float size = IMPL
 
 // Returns the null terminated string name for an ImPlotCol.
 const char* GetStyleColorName(ImPlotCol color);
+// Returns the null terminated string name for an ImPlotMarker.
+const char* GetMarkerName(ImPlotMarker marker);
 
 //-----------------------------------------------------------------------------
 // Colormaps
