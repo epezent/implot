@@ -85,7 +85,7 @@ An online version of the demo is hosted [here](https://traineq.org/implot_demo/s
 
 A: ImGui is an incredibly powerful tool for rapid prototyping and development, but provides only limited mechanisms for data visualization. Two dimensional plots are ubiquitous and useful to almost any application. Being able to visualize your data in real-time will give you insight and better understanding of your application.
 
-**Q: Is ImPlot suitable for real-time plotting?**
+**Q: Is ImPlot suitable for plotting large datasets?**
 
 A: Yes, within reason. You can plot tens to hundreds of thousands of points without issue, but don't expect plotting over a million to be a buttery smooth experience. We do our best to keep it fast and avoid memory allocations.
 
