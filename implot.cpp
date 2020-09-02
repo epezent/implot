@@ -161,14 +161,14 @@ const char* GetMarkerName(ImPlotMarker marker) {
         case ImPlotMarker_None:     return "None";
         case ImPlotMarker_Circle:   return "Circle";
         case ImPlotMarker_Square:   return "Square";
-        case ImPlotMarker_Diamond:  return "Diamond"; 
-        case ImPlotMarker_Up:       return "Up"; 
-        case ImPlotMarker_Down:     return "Down"; 
-        case ImPlotMarker_Left:     return "Left"; 
-        case ImPlotMarker_Right:    return "Right"; 
-        case ImPlotMarker_Cross:    return "Cross"; 
-        case ImPlotMarker_Plus:     return "Plus"; 
-        case ImPlotMarker_Asterisk: return "Asterisk"; 
+        case ImPlotMarker_Diamond:  return "Diamond";
+        case ImPlotMarker_Up:       return "Up";
+        case ImPlotMarker_Down:     return "Down";
+        case ImPlotMarker_Left:     return "Left";
+        case ImPlotMarker_Right:    return "Right";
+        case ImPlotMarker_Cross:    return "Cross";
+        case ImPlotMarker_Plus:     return "Plus";
+        case ImPlotMarker_Asterisk: return "Asterisk";
         default:                    return "";
     }
 }
@@ -1603,6 +1603,10 @@ void EndPlot() {
             }
             if (gp.FitY[i] && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMax) && !NanOrInf(gp.ExtentsY[i].Max)) {
                 plot.YAxis[i].Range.Max = gp.ExtentsY[i].Max;
+            }
+            if ((plot.YAxis[i].Range.Max - plot.YAxis[i].Range.Min) <= (2.0 * FLT_EPSILON))  {
+                plot.YAxis[i].Range.Max += FLT_EPSILON;
+                plot.YAxis[i].Range.Min -= FLT_EPSILON;
             }
         }
     }
