@@ -17,6 +17,7 @@ ImPlot is an immediate mode plotting widget for [Dear ImGui](https://github.com/
     - scatter plots
     - vertical/horizontal bars graphs
     - vertical/horizontal error bars
+    - stem plots
     - pie charts
     - heatmap charts
     - and more likely to come
