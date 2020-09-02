@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.5 WIP
+// ImPlot v0.6 WIP
 
 #include "implot.h"
 #include "implot_internal.h"
@@ -428,9 +428,42 @@ struct TransformerLogLog {
 // PRIMITIVE RENDERERS
 //-----------------------------------------------------------------------------
 
+inline void AddLine(const ImVec2& P1, const ImVec2& P2, float weight, ImU32 col, ImDrawList& DrawList, ImVec2 uv) {
+    float dx = P2.x - P1.x;
+    float dy = P2.y - P1.y;
+    IM_NORMALIZE2F_OVER_ZERO(dx, dy);
+    dx *= (weight * 0.5f);
+    dy *= (weight * 0.5f);
+    DrawList._VtxWritePtr[0].pos.x = P1.x + dy;
+    DrawList._VtxWritePtr[0].pos.y = P1.y - dx;
+    DrawList._VtxWritePtr[0].uv    = uv;
+    DrawList._VtxWritePtr[0].col   = col;
+    DrawList._VtxWritePtr[1].pos.x = P2.x + dy;
+    DrawList._VtxWritePtr[1].pos.y = P2.y - dx;
+    DrawList._VtxWritePtr[1].uv    = uv;
+    DrawList._VtxWritePtr[1].col   = col;
+    DrawList._VtxWritePtr[2].pos.x = P2.x - dy;
+    DrawList._VtxWritePtr[2].pos.y = P2.y + dx;
+    DrawList._VtxWritePtr[2].uv    = uv;
+    DrawList._VtxWritePtr[2].col   = col;
+    DrawList._VtxWritePtr[3].pos.x = P1.x - dy;
+    DrawList._VtxWritePtr[3].pos.y = P1.y + dx;
+    DrawList._VtxWritePtr[3].uv    = uv;
+    DrawList._VtxWritePtr[3].col   = col;
+    DrawList._VtxWritePtr += 4;
+    DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
+    DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+    DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
+    DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
+    DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
+    DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+    DrawList._IdxWritePtr += 6;
+    DrawList._VtxCurrentIdx += 4;
+}
+
 template <typename TGetter, typename TTransformer>
-struct LineRenderer {
-    inline LineRenderer(TGetter getter, TTransformer transformer, ImU32 col, float weight) :
+struct LineStripRenderer {
+    inline LineStripRenderer(TGetter getter, TTransformer transformer, ImU32 col, float weight) :
         Getter(getter),
         Transformer(transformer)
     {
@@ -439,43 +472,13 @@ struct LineRenderer {
         Weight = weight;
         P1 = Transformer(Getter(0));
     }
-    inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
-        ImPlotContext& gp = *GImPlot;
+    inline bool operator()(ImDrawList& DrawList, const ImRect& cull_rect, const ImVec2& uv, int prim) {
         ImVec2 P2 = Transformer(Getter(prim + 1));
-        if (!gp.BB_Plot.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2)))) {
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2)))) {
             P1 = P2;
             return false;
         }
-        float dx = P2.x - P1.x;
-        float dy = P2.y - P1.y;
-        IM_NORMALIZE2F_OVER_ZERO(dx, dy);
-        dx *= (Weight * 0.5f);
-        dy *= (Weight * 0.5f);
-        DrawList._VtxWritePtr[0].pos.x = P1.x + dy;
-        DrawList._VtxWritePtr[0].pos.y = P1.y - dx;
-        DrawList._VtxWritePtr[0].uv    = uv;
-        DrawList._VtxWritePtr[0].col   = Col;
-        DrawList._VtxWritePtr[1].pos.x = P2.x + dy;
-        DrawList._VtxWritePtr[1].pos.y = P2.y - dx;
-        DrawList._VtxWritePtr[1].uv    = uv;
-        DrawList._VtxWritePtr[1].col   = Col;
-        DrawList._VtxWritePtr[2].pos.x = P2.x - dy;
-        DrawList._VtxWritePtr[2].pos.y = P2.y + dx;
-        DrawList._VtxWritePtr[2].uv    = uv;
-        DrawList._VtxWritePtr[2].col   = Col;
-        DrawList._VtxWritePtr[3].pos.x = P1.x - dy;
-        DrawList._VtxWritePtr[3].pos.y = P1.y + dx;
-        DrawList._VtxWritePtr[3].uv    = uv;
-        DrawList._VtxWritePtr[3].col   = Col;
-        DrawList._VtxWritePtr += 4;
-        DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
-        DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
-        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
-        DrawList._IdxWritePtr += 6;
-        DrawList._VtxCurrentIdx += 4;
+        AddLine(P1,P2,Weight,Col,DrawList,uv);
         P1 = P2;
         return true;
     }
@@ -485,6 +488,36 @@ struct LineRenderer {
     ImU32 Col;
     float Weight;
     ImVec2 P1;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 4;
+};
+
+template <typename TGetter1, typename TGetter2, typename TTransformer>
+struct LineSegmentsRenderer {
+    inline LineSegmentsRenderer(TGetter1 getter1, TGetter2 getter2, TTransformer transformer, ImU32 col, float weight) :
+        Getter1(getter1),
+        Getter2(getter2),
+        Transformer(transformer)
+    {
+
+        Prims = ImMin(Getter1.Count, Getter2.Count);
+        Col = col;
+        Weight = weight;
+    }
+    inline bool operator()(ImDrawList& DrawList, const ImRect& cull_rect, const ImVec2& uv, int prim) {
+        ImVec2 P1 = Transformer(Getter1(prim));
+        ImVec2 P2 = Transformer(Getter2(prim));
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
+            return false;
+        AddLine(P1,P2,Weight,Col,DrawList,uv);
+        return true;
+    }
+    TGetter1 Getter1;
+    TGetter2 Getter2;
+    TTransformer Transformer;
+    int Prims;
+    ImU32 Col;
+    float Weight;
     static const int IdxConsumed = 6;
     static const int VtxConsumed = 4;
 };
@@ -502,7 +535,7 @@ struct ShadedRenderer {
         P12 = Transformer(Getter2(0));
     }
 
-    inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
+    inline bool operator()(ImDrawList& DrawList, const ImRect& /*cull_rect*/, const ImVec2& uv, int prim) {
         // TODO: Culling
         ImVec2 P21 = Transformer(Getter1(prim+1));
         ImVec2 P22 = Transformer(Getter2(prim+1));
@@ -555,7 +588,7 @@ struct RectRenderer {
         Prims = Getter.Count / 2;
         Col = col;
     }
-    inline bool operator()(ImDrawList& DrawList, ImVec2 uv, int prim) {
+    inline bool operator()(ImDrawList& DrawList, const ImRect& /*cull_rect*/, const ImVec2& uv, int prim) {
         // TODO: Culling
         ImVec2 P1 = Transformer(Getter(2*prim));
         ImVec2 P2 = Transformer(Getter(2*prim+1));
@@ -600,7 +633,7 @@ template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
 
 /// Renders primitive shapes in bulk as efficiently as possible.
 template <typename Renderer>
-inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList) {
+inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList, const ImRect& cull_rect) {
     unsigned int prims        = renderer.Prims;
     unsigned int prims_culled = 0;
     unsigned int idx          = 0;
@@ -628,7 +661,7 @@ inline void RenderPrimitives(Renderer renderer, ImDrawList& DrawList) {
         }
         prims -= cnt;
         for (unsigned int ie = idx + cnt; idx != ie; ++idx) {
-            if (!renderer(DrawList, uv, idx))
+            if (!renderer(DrawList, cull_rect, uv, idx))
                 prims_culled++;
         }
     }
@@ -641,7 +674,7 @@ inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& 
     ImPlotContext& gp = *GImPlot;
     if (ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased) || gp.Style.AntiAliasedLines) {
         ImVec2 p1 = transformer(getter(0));
-        for (int i = 0; i < getter.Count; ++i) {
+        for (int i = 1; i < getter.Count; ++i) {
             ImVec2 p2 = transformer(getter(i));
             if (gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
                 DrawList.AddLine(p1, p2, col, line_weight);
@@ -649,7 +682,24 @@ inline void RenderLineStrip(Getter getter, Transformer transformer, ImDrawList& 
         }
     }
     else {
-        RenderPrimitives(LineRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList);
+        RenderPrimitives(LineStripRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, gp.BB_Plot);
+    }
+}
+
+template <typename Getter1, typename Getter2, typename Transformer>
+inline void RenderLineSegments(Getter1 getter1, Getter2 getter2, Transformer transformer, ImDrawList& DrawList, float line_weight, ImU32 col) {
+    ImPlotContext& gp = *GImPlot;
+    if (ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased) || gp.Style.AntiAliasedLines) {
+        int I = ImMin(getter1.Count, getter2.Count);
+        for (int i = 0; i < I; ++i) {
+            ImVec2 p1 = transformer(getter1(i));
+            ImVec2 p2 = transformer(getter2(i));
+            if (gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+                DrawList.AddLine(p1, p2, col, line_weight);
+        }
+    }
+    else {
+        RenderPrimitives(LineSegmentsRenderer<Getter1,Getter2,Transformer>(getter1, getter2, transformer, col, line_weight), DrawList, gp.BB_Plot);
     }
 }
 
@@ -742,7 +792,7 @@ inline void RenderMarkerCross(ImDrawList& DrawList, const ImVec2& c, float s, bo
 
 template <typename Transformer, typename Getter>
 inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& DrawList, ImPlotMarker marker, float size, bool rend_mk_line, ImU32 col_mk_line, float weight, bool rend_mk_fill, ImU32 col_mk_fill) {
-    static void (*marker_table[])(ImDrawList&, const ImVec2&, float s, bool, ImU32, bool, ImU32, float) = {
+    static void (*marker_table[ImPlotMarker_COUNT])(ImDrawList&, const ImVec2&, float s, bool, ImU32, bool, ImU32, float) = {
         RenderMarkerCircle,
         RenderMarkerSquare,
         RenderMarkerDiamond ,
@@ -928,10 +978,10 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
         if (s.RenderFill) {
             ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
             switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(), col), DrawList); break;
-                case ImPlotScale_LogLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(), col), DrawList); break;
-                case ImPlotScale_LinLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(), col), DrawList); break;
-                case ImPlotScale_LogLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(), col), DrawList); break;
+                case ImPlotScale_LinLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(), col), DrawList, GImPlot->BB_Plot); break;
+                case ImPlotScale_LogLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(), col), DrawList, GImPlot->BB_Plot); break;
+                case ImPlotScale_LinLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(), col), DrawList, GImPlot->BB_Plot); break;
+                case ImPlotScale_LogLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(), col), DrawList, GImPlot->BB_Plot); break;
             }
         }
         EndItem();
@@ -1227,6 +1277,71 @@ void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, co
 }
 
 //-----------------------------------------------------------------------------
+// PLOT STEMS
+//-----------------------------------------------------------------------------
+
+template <typename GetterM, typename GetterB>
+inline void PlotStemsEx(const char* label_id, GetterM get_mark, GetterB get_base) {
+    if (BeginItem(label_id, ImPlotCol_Line)) {
+        if (FitThisFrame()) {
+            for (int i = 0; i < get_base.Count; ++i) {
+                FitPoint(get_mark(i));
+                FitPoint(get_base(i));
+            }
+        }
+        const ImPlotItemStyle& s = GetItemStyle();
+        ImDrawList& DrawList = *GetPlotDrawList();
+        // render stems
+        if (s.RenderLine) {
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+            switch (GetCurrentScale()) {
+                case ImPlotScale_LinLin: RenderLineSegments(get_mark, get_base, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLin: RenderLineSegments(get_mark, get_base, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LinLog: RenderLineSegments(get_mark, get_base, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLog: RenderLineSegments(get_mark, get_base, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+            }
+        }
+        // render markers
+        ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle : s.Marker;
+        if (marker != ImPlotMarker_None) {
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
+            switch (GetCurrentScale()) {
+                case ImPlotScale_LinLin: RenderMarkers(get_mark, TransformerLinLin(), DrawList, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+                case ImPlotScale_LogLin: RenderMarkers(get_mark, TransformerLogLin(), DrawList, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+                case ImPlotScale_LinLog: RenderMarkers(get_mark, TransformerLinLog(), DrawList, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+                case ImPlotScale_LogLog: RenderMarkers(get_mark, TransformerLogLog(), DrawList, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+            }
+        }
+        EndItem();
+    }
+}
+
+void PlotStems(const char* label_id, const float* values, int count, float y_ref, int offset, int stride) {
+    GetterYs<float> get_mark(values,count,offset,stride);
+    GetterYRef<float> get_base(y_ref,count);
+    PlotStemsEx(label_id, get_mark, get_base);
+}
+
+void PlotStems(const char* label_id, const double* values, int count, double y_ref, int offset, int stride) {
+    GetterYs<double> get_mark(values,count,offset,stride);
+    GetterYRef<double> get_base(y_ref,count);
+    PlotStemsEx(label_id, get_mark, get_base);
+}
+
+void PlotStems(const char* label_id, const float* xs, const float* ys, int count, float y_ref, int offset, int stride) {
+    GetterXsYs<float> get_mark(xs,ys,count,offset,stride);
+    GetterXsYRef<float> get_base(xs,y_ref,count,offset,stride);
+    PlotStemsEx(label_id, get_mark, get_base);
+}
+
+void PlotStems(const char* label_id, const double* xs, const double* ys, int count, double y_ref, int offset, int stride) {
+    GetterXsYs<double> get_mark(xs,ys,count,offset,stride);
+    GetterXsYRef<double> get_base(xs,y_ref,count,offset,stride);
+    PlotStemsEx(label_id, get_mark, get_base);
+}
+
+//-----------------------------------------------------------------------------
 // PLOT PIE CHART
 //-----------------------------------------------------------------------------
 
@@ -1476,10 +1591,10 @@ void PlotRectsEx(const char* label_id, Getter getter) {
             ImDrawList& DrawList = *GetPlotDrawList();
             ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
             switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(), col), DrawList); break;
-                case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(), col), DrawList); break;
-                case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(), col), DrawList); break;
-                case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(), col), DrawList); break;
+                case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(), col), DrawList, GImPlot->BB_Plot); break;
+                case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(), col), DrawList, GImPlot->BB_Plot); break;
+                case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(), col), DrawList, GImPlot->BB_Plot); break;
+                case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(), col), DrawList, GImPlot->BB_Plot); break;
             }
         }
         EndItem();

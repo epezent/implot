@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.5 WIP
+// ImPlot v0.6 WIP
 
 #pragma once
 #include "imgui.h"
@@ -30,7 +30,7 @@
 //-----------------------------------------------------------------------------
 
 // ImPlot version string
-#define IMPLOT_VERSION "0.5 WIP"
+#define IMPLOT_VERSION "0.6 WIP"
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
@@ -347,6 +347,12 @@ void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, cons
 void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset = 0, int stride = sizeof(double));
 void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
+
+/// Plots vertical stems.
+void PlotStems(const char* label_id, const float* values, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
+void PlotStems(const char* label_id, const double* values, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
+void PlotStems(const char* label_id, const float* xs, const float* ys, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
+void PlotStems(const char* label_id, const double* xs, const double* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
 
 // Plots a pie chart. If the sum of values > 1 or normalize is true, each value will be normalized. Center and radius are in plot units. #label_fmt can be set to NULL for no labels.
 void PlotPieChart(const char** label_ids, const float* values, int count, float x, float y, float radius, bool normalize = false, const char* label_fmt = "%.1f", float angle0 = 90);

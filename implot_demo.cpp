@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.5 WIP
+// ImPlot v0.6 WIP
 
 #include "implot.h"
 #include <math.h>
@@ -390,6 +390,25 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotErrorBarsH("Scatter", xs, lin2,  err3, err4, 5);
             ImPlot::PopStyleColor();
             ImPlot::PlotScatter("Scatter", xs, lin2, 5);
+
+            ImPlot::EndPlot();
+        }
+    }
+    if (ImGui::CollapsingHeader("Stem Plots")) {
+        static t_float xs[51], ys1[51], ys2[51];
+        for (int i = 0; i < 51; ++i) {
+            xs[i] = i * 0.02f;
+            ys1[i] = 1.0f + 0.5f * Sin(25*xs[i])*Cos(2*xs[i]);
+            ys2[i] = 0.5f + 0.25f  * Sin(10*xs[i]) * Sin(xs[i]);
+        }
+        ImPlot::SetNextPlotLimits(0,1,0,1.6);
+        if (ImPlot::BeginPlot("Stem Plots")) {
+
+            ImPlot::PlotStems("Stems 1",xs,ys1,51);
+
+            ImPlot::SetNextLineStyle(ImVec4(1,0.5f,0,0.75f));
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Square,5,ImVec4(1,0.5f,0,0.25f));
+            ImPlot::PlotStems("Stems 2", xs, ys2,51);
 
             ImPlot::EndPlot();
         }
@@ -1301,10 +1320,10 @@ namespace ImPlot {
 
 struct BenchmarkItem {
     BenchmarkItem() {
-        float y = RandomRange(0,1);
+        float y = (float)RandomRange(0,1);
         Data = new float[1000];
         for (int i = 0; i < 1000; ++i) {
-            Data[i] = y + RandomRange(-0.01f,0.01f);
+            Data[i] = y + (float)RandomRange(-0.01f,0.01f);
         }
         Col = ImVec4((float)RandomRange(0,1),(float)RandomRange(0,1),(float)RandomRange(0,1),1);
     }

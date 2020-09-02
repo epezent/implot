@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.5 WIP
+// ImPlot v0.6 WIP
 
 // You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
@@ -134,12 +134,12 @@ struct ImBufferWriter
     }
 };
 
-// Fixed size array
-template <typename T, int N>
-struct ImArray {
-    inline T&           operator[](int i)       { return Data[i]; }
-    inline const T&     operator[](int i) const { return Data[i]; }
-    T Data[N];
+// Fixed size point array
+template <int N>
+struct ImPlotPointArray {
+    inline ImPlotPoint&       operator[](int i)       { return Data[i]; }
+    inline const ImPlotPoint& operator[](int i) const { return Data[i]; }
+    ImPlotPoint Data[N];
     const int Size = N;
 };
 
@@ -388,7 +388,7 @@ struct ImPlotItemStyle {
     ImPlotItemStyle() {
         for (int i = 0; i < 5; ++i)
             Colors[i] = IMPLOT_AUTO_COL;
-        LineWeight = MarkerWeight = FillAlpha = ErrorBarSize =
+        LineWeight = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize =
         ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker = IMPLOT_AUTO;
     }
