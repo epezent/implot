@@ -162,7 +162,7 @@ inline bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
 }
 
 // Ends an item (call only if BeginItem returns true)
-inline void EndItem() {
+void EndItem() {
     ImPlotContext& gp = *GImPlot;
     // pop rendering clip rect
     PopPlotClipRect();
