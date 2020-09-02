@@ -105,7 +105,7 @@ void BustItemCache() {
 }
 
 // Begins a new item. Returns false if the item should not be plotted.
-inline bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
+bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotX() needs to be called between BeginPlot() and EndPlot()!");
     ImPlotItem* item = RegisterOrGetItem(label_id);
@@ -162,7 +162,7 @@ inline bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
 }
 
 // Ends an item (call only if BeginItem returns true)
-inline void EndItem() {
+void EndItem() {
     ImPlotContext& gp = *GImPlot;
     // pop rendering clip rect
     PopPlotClipRect();
