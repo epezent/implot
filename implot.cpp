@@ -1597,6 +1597,10 @@ void EndPlot() {
         if (gp.FitX && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMax) && !NanOrInf(gp.ExtentsX.Max)) {
             plot.XAxis.Range.Max = gp.ExtentsX.Max;
         }
+        if ((plot.XAxis.Range.Max - plot.XAxis.Range.Min) <= (2.0 * FLT_EPSILON))  {
+            plot.XAxis.Range.Max += FLT_EPSILON;
+            plot.XAxis.Range.Min -= FLT_EPSILON;
+        }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
             if (gp.FitY[i] && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMin) && !NanOrInf(gp.ExtentsY[i].Min)) {
                 plot.YAxis[i].Range.Min = gp.ExtentsY[i].Min;
