@@ -1302,15 +1302,14 @@ namespace ImPlot {
 struct BenchmarkItem {
     BenchmarkItem() {
         float y = RandomRange(0,1);
-        Data = new ImVec2[1000];
+        Data = new float[1000];
         for (int i = 0; i < 1000; ++i) {
-            Data[i].x = i*0.001f;
-            Data[i].y = y + RandomRange(-0.01f,0.01f);
+            Data[i] = y + RandomRange(-0.01f,0.01f);
         }
         Col = ImVec4((float)RandomRange(0,1),(float)RandomRange(0,1),(float)RandomRange(0,1),1);
     }
     ~BenchmarkItem() { delete[] Data; }
-    ImVec2* Data;
+    float* Data;
     ImVec4 Col;
 };
 
@@ -1364,7 +1363,7 @@ void ShowBenchmarkTool() {
 
     ImGui::ProgressBar((float)L / (float)(max_lines - 1));
 
-    ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
+    ImPlot::SetNextPlotLimits(0,1000,0,1,ImGuiCond_Always);
     if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_NoChild,0,0,0,0)) {
         if (running) {
             for (int i = 0; i < L; ++i) {

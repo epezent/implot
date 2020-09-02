@@ -484,10 +484,18 @@ struct ImPlotAxisScale
 
 namespace ImPlot {
 
+//-----------------------------------------------------------------------------
+// [SECTION] Context Utils
+//-----------------------------------------------------------------------------
+
 // Initializes an ImPlotContext
 void Initialize(ImPlotContext* ctx);
 // Resets an ImPlot context for the next call to BeginPlot
 void Reset(ImPlotContext* ctx);
+
+//-----------------------------------------------------------------------------
+// [SECTION] Plot Utils
+//-----------------------------------------------------------------------------
 
 // Gets a plot from the current ImPlotContext
 ImPlotState* GetPlot(const char* title);
@@ -496,16 +504,9 @@ ImPlotState* GetCurrentPlot();
 // Busts the cache for every plot in the current context
 void BustPlotCache();
 
-// Updates plot-to-pixel space transformation variables for the current plot.
-void UpdateTransformCache();
-// Extends the current plots axes so that it encompasses point p
-void FitPoint(const ImPlotPoint& p);
-// Returns true if the user has requested data to be fit.
-inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
-// Gets the current y-axis for the current plot
-inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
-// Gets the XY scale for the current plot and y-axis
-inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
+//-----------------------------------------------------------------------------
+// [SECTION] Item Utils
+//-----------------------------------------------------------------------------
 
 // Begins a new item. Returns false if the item should not be plotted. Pushes PlotClipRect.
 bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
@@ -525,24 +526,45 @@ ImPlotItem* GetCurrentItem();
 // Busts the cache for every item for every plot in the current context.
 void BustItemCache();
 
-// Get styling data for next item (call between Begin/EndItem)
-inline const ImPlotItemStyle& GetItemStyle() { return GImPlot->NextItemStyle; }
+//-----------------------------------------------------------------------------
+// [SECTION] Axis Utils
+//-----------------------------------------------------------------------------
 
-// Recolors an item legend icon from an the current ImPlotCol if it is not automatic (i.e. alpha != -1)
-inline void TryRecolorItem(ImPlotItem* item, ImPlotCol idx) {
-    if (GImPlot->Style.Colors[idx].w != -1)
-        item->Color = GImPlot->Style.Colors[idx];
-}
+// Gets the current y-axis for the current plot
+inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
+// Constrains an axis range
+void ConstrainAxis(ImPlotAxis& axis);
+// Updates axis ticks, lins, and label colors
+void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
+
+// Updates plot-to-pixel space transformation variables for the current plot.
+void UpdateTransformCache();
+// Gets the XY scale for the current plot and y-axis
+inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
+
+// Returns true if the user has requested data to be fit.
+inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
+// Extends the current plots axes so that it encompasses point p
+void FitPoint(const ImPlotPoint& p);
+
+//-----------------------------------------------------------------------------
+// [SECTION] Legend Utils
+//-----------------------------------------------------------------------------
 
 // Returns the number of entries in the current legend
 int GetLegendCount();
 // Gets the ith entry string for the current legend
 const char* GetLegendLabel(int i);
 
+//-----------------------------------------------------------------------------
+// [SECTION] Tick Utils
+//-----------------------------------------------------------------------------
+
 // Label a tick with default formatting
 void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer);
 // Label a tick with scientific formating
 void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer);
+
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
 void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
@@ -550,18 +572,44 @@ void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollect
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
 void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTickCollection& ticks);
 
-// Constrains an axis range
-void ConstrainAxis(ImPlotAxis& axis);
-// Updates axis ticks, lins, and label colors
-void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
+//-----------------------------------------------------------------------------
+// [SECTION] Styling Utils
+//-----------------------------------------------------------------------------
 
-// Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
-double NiceNum(double x, bool round);
+// Get styling data for next item (call between Begin/EndItem)
+inline const ImPlotItemStyle& GetItemStyle() { return GImPlot->NextItemStyle; }
+
+// Returns true if a color is set to be automatically determined
+inline bool IsColorAuto(const ImVec4& col) { return col.w == -1; }
+// Returns true if a style color is set to be automaticaly determined
+inline bool IsColorAuto(ImPlotCol idx) { return IsColorAuto(GImPlot->Style.Colors[idx]); }
+// Returns the automatically deduced style color
+ImVec4 GetAutoColor(ImPlotCol idx);
+
+// Returns the style color whether it is automatic or custom set
+inline ImVec4 GetStyleColorVec4(ImPlotCol idx) { return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
+inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
+
+// Get built-in colormap data and size
+const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out);
+// Linearly interpolates a color from the current colormap given t between 0 and 1.
+ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
+// Resamples a colormap. #size_out must be greater than 1.
+void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
+
 // Draws vertical text. The position is the bottom left of the text rect.
 void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
-ImVec2 CalcTextSizeVertical(const char *text);
+inline ImVec2 CalcTextSizeVertical(const char *text) { ImVec2 sz = ImGui::CalcTextSize(text); return ImVec2(sz.y, sz.x); }
+// Returns white or black text given background color
+inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE; }
 
+//-----------------------------------------------------------------------------
+// [SECTION] Math and Misc Utils
+//-----------------------------------------------------------------------------
+
+// Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
+double NiceNum(double x, bool round);
 // Returns true if val is NAN or INFINITY
 inline bool NanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
 // Turns NANs to 0s
@@ -570,7 +618,6 @@ inline double ConstrainNan(double val) { return isnan(val) ? 0 : val; }
 inline double ConstrainInf(double val) { return val == HUGE_VAL ?  DBL_MAX : val == -HUGE_VAL ? - DBL_MAX : val; }
 // Turns numbers less than or equal to 0 to 0.001 (sort of arbitrary, is there a better way?)
 inline double ConstrainLog(double val) { return val <= 0 ? 0.001f : val; }
-
 // Computes order of magnitude of double.
 inline int OrderOfMagnitude(double val) { return val == 0 ? 0 : (int)(floor(log10(fabs(val)))); }
 // Returns the precision required for a order of magnitude.
@@ -580,8 +627,7 @@ inline int Precision(double val) { return OrderToPrecision(OrderOfMagnitude(val)
 
 // Returns the intersection point of two lines A and B (assumes they are not parallel!)
 inline ImVec2 Intersection(const ImVec2& a1, const ImVec2& a2, const ImVec2& b1, const ImVec2& b2) {
-    float v1 = (a1.x * a2.y - a1.y * a2.x);
-    float v2 = (b1.x * b2.y - b1.y * b2.x);
+    float v1 = (a1.x * a2.y - a1.y * a2.x);  float v2 = (b1.x * b2.y - b1.y * b2.x);
     float v3 = ((a1.x - a2.x) * (b1.y - b2.y) - (a1.y - a2.y) * (b1.x - b2.x));
     return ImVec2((v1 * (b1.x - b2.x) - v2 * (a1.x - a2.x)) / v3, (v1 * (b1.y - b2.y) - v2 * (a1.y - a2.y)) / v3);
 }
@@ -602,25 +648,6 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
     idx = ImPosMod(offset + idx, count);
     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
 }
-
-// Get built-in colormap data and size
-const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out);
-// Linearly interpolates a color from the current colormap given t between 0 and 1.
-ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
-// Resamples a colormap. #size_out must be greater than 1.
-void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
-
-// Returns true if a color is set to be automatically determined
-inline bool IsColorAuto(const ImVec4& col) { return col.w == -1; }
-// Returns true if a style color is set to be automaticaly determined
-inline bool IsColorAuto(ImPlotCol idx) { return IsColorAuto(GImPlot->Style.Colors[idx]); }
-// Returns the automatically deduced style color
-ImVec4 GetAutoColor(ImPlotCol idx);
-// Returns the style color whether it is automatic or custom set
-inline ImVec4 GetStyleColorVec4(ImPlotCol idx) {return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
-inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
-// Returns white or black text given background color
-inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE; }
 
 //-----------------------------------------------------------------------------
 // [SECTION] Internal / Experimental Plotters

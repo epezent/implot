@@ -361,7 +361,7 @@ void PlotDigital(const char* label_id, const float* xs, const float* ys, int cou
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
 void PlotDigital(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
-// Plots a centered text label at point x,y with optional pixel offset. Text color can be changed with ImGui::PushStyleColor(ImGuiCol_Text, ...).
+// Plots a centered text label at point x,y with optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
 void PlotText(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 void PlotText(const char* text, double x, double y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 
@@ -494,10 +494,12 @@ void PushColormap(ImPlotColormap colormap);
 void PushColormap(const ImVec4* colormap, int size);
 // Undo temporary colormap modification.
 void PopColormap(int count = 1);
+
 // Permanently sets a custom colormap. The colors will be copied to internal memory. Prefer PushColormap instead of calling this each frame.
 void SetColormap(const ImVec4* colormap, int size);
 // Permanently switch to one of the built-in colormaps. If samples is greater than 1, the map will be linearly resampled. Don't call this each frame.
 void SetColormap(ImPlotColormap colormap, int samples = 0);
+
 // Returns the size of the current colormap.
 int GetColormapSize();
 // Returns a color from the Color map given an index >= 0 (modulo will be performed).
@@ -506,8 +508,10 @@ ImVec4 GetColormapColor(int index);
 ImVec4 LerpColormap(float t);
 // Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
 ImVec4 NextColormapColor();
+
 // Renders a vertical color scale using the current color map. Call this outside of Begin/EndPlot.
 void ShowColormapScale(double scale_min, double scale_max, float height);
+
 // Returns a null terminated string name for a built-in colormap.
 const char* GetColormapName(ImPlotColormap colormap);
 
@@ -533,19 +537,19 @@ void EndLegendPopup();
 // Allows changing how keyboard/mouse interaction works.
 ImPlotInputMap& GetInputMap();
 
-// Shows ImPlot style selector dropdown menu.
-bool ShowStyleSelector(const char* label);
-// Shows ImPlot style editor block (not a window).
-void ShowStyleEditor(ImPlotStyle* ref = NULL);
-// Add basic help/info block (not a window): how to manipulate ImPlot as an end-user.
-void ShowUserGuide();
-
 // Get the plot draw list for rendering to the current plot area.
 ImDrawList* GetPlotDrawList();
 // Push clip rect for rendering to current plot area.
 void PushPlotClipRect();
 // Pop plot clip rect.
 void PopPlotClipRect();
+
+// Shows ImPlot style selector dropdown menu.
+bool ShowStyleSelector(const char* label);
+// Shows ImPlot style editor block (not a window).
+void ShowStyleEditor(ImPlotStyle* ref = NULL);
+// Add basic help/info block (not a window): how to manipulate ImPlot as an end-user.
+void ShowUserGuide();
 
 //-----------------------------------------------------------------------------
 // Demo (add implot_demo.cpp to your sources!)

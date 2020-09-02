@@ -265,11 +265,6 @@ void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char *te
     }
 }
 
-ImVec2 CalcTextSizeVertical(const char *text) {
-    ImVec2 sz = ImGui::CalcTextSize(text);
-    return ImVec2(sz.y, sz.x);
-}
-
 double NiceNum(double x, bool round) {
     double f;  /* fractional part of x */
     double nf; /* nice, rounded fraction */
