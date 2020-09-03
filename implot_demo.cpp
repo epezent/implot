@@ -591,6 +591,13 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
     }
+    if (ImGui::CollapsingHeader("Time Formatting")) {
+        ImPlot::SetNextPlotLimits(1599106881,1599106881+1000000,0,1);
+        if (ImPlot::BeginPlot("UTC Time", "Date-Time", "Y-Axis", ImVec2(-1,0), ImPlotFlags_Default, ImPlotAxisFlags_Default | ImPlotAxisFlags_Time)) {
+
+            ImPlot::EndPlot();
+        }
+    }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Multiple Y-Axes")) {
 

@@ -501,7 +501,7 @@ void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer) {
     char temp[32];
     if (tick.ShowLabel) {
         tick.BufferOffset = buffer.size();
-        sprintf(temp, "%.10g", tick.PlotPos);
+        snprintf(temp, 32, "%.10g", tick.PlotPos);
         buffer.append(temp, temp + strlen(temp) + 1);
         tick.LabelSize = ImGui::CalcTextSize(buffer.Buf.Data + tick.BufferOffset);
     }
@@ -511,7 +511,17 @@ void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer) {
     char temp[32];
     if (tick.ShowLabel) {
         tick.BufferOffset = buffer.size();
-        sprintf(temp, "%.0E", tick.PlotPos);
+        snprintf(temp, 32, "%.0E", tick.PlotPos);
+        buffer.append(temp, temp + strlen(temp) + 1);
+        tick.LabelSize = ImGui::CalcTextSize(buffer.Buf.Data + tick.BufferOffset);
+    }
+}
+
+void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, ImPlotTimeFmt fmt) {
+    char temp[16];
+    if (tick.ShowLabel) {
+        tick.BufferOffset = buffer.size();
+        FormatTime(tick.PlotPos, temp, 16, fmt);
         buffer.append(temp, temp + strlen(temp) + 1);
         tick.LabelSize = ImGui::CalcTextSize(buffer.Buf.Data + tick.BufferOffset);
     }
@@ -565,6 +575,17 @@ void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollect
     }
 }
 
+void AddTicksTime(const ImPlotRange& range, ImPlotTickCollection& ticks) {
+    ImPlotTimeUnit unit_range = GetUnitForRange(range.Min, range.Max);
+    ImPlotTimeUnit unit_ticks = unit_range == 0 ? ImPlotTimeUnit_Us : unit_range - 1;
+    double t = FloorTime(range.Min, unit_range);
+    while (t < range.Max) {
+        t = AddTime(t, unit_ticks, 1);
+        ImPlotTick tick(t,false,true);
+        LabelTickTime(tick,ticks.Labels,unit_ticks);
+        ticks.AddTick(tick);
+    }
+}
 
 void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTickCollection& ticks) {
     for (int i = 0; i < n; ++i) {
@@ -755,6 +776,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (gp.RenderX && gp.NextPlotData.ShowDefaultTicksX) {
         if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale))
             AddTicksLogarithmic(plot.XAxis.Range, (int)(gp.BB_Canvas.GetWidth() * 0.01f), gp.XTicks);
+        else if (gp.X.IsTime)
+            AddTicksTime(plot.XAxis.Range, gp.XTicks);
         else
             AddTicksDefault(plot.XAxis.Range, ImMax(2, (int)IM_ROUND(0.003 * gp.BB_Canvas.GetWidth())), IMPLOT_SUB_DIV, gp.XTicks);
     }
@@ -768,10 +791,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // plot bb
+    
     const ImVec2 title_size = ImGui::CalcTextSize(title, NULL, true);
     const float txt_height  = ImGui::GetTextLineHeight();
+
     const float pad_top     = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
-    const float pad_bot     = (gp.X.HasLabels ? txt_height + gp.Style.LabelPadding.y : 0) + (x_label ? txt_height + gp.Style.LabelPadding.y : 0);
+    const float pad_bot     = (gp.X.HasLabels ? txt_height + gp.Style.LabelPadding.y : 0) 
+                            + (x_label ? txt_height + gp.Style.LabelPadding.y : 0) 
+                            + (gp.X.IsTime ? txt_height + gp.Style.LabelPadding.y : 0);
     const float pad_left    = (y_label ? txt_height + gp.Style.LabelPadding.x : 0)
                             + (gp.Y[0].HasLabels ? gp.YTicks[0].MaxWidth + gp.Style.LabelPadding.x : 0);
     const float pad_right   = ((gp.Y[1].Present && gp.Y[1].HasLabels) ? gp.YTicks[1].MaxWidth + gp.Style.LabelPadding.x : 0)
