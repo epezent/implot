@@ -150,7 +150,7 @@ struct ImPlotPointArray {
 
 typedef int ImPlotScale;     // -> enum ImPlotScale_
 typedef int ImPlotTimeUnit;  // -> enum ImPlotTimeUnit_
-typedef int ImPlotTimeFmt;   // -> enum ImPlotTimeFmt_
+typedef int ImPlotTimeUnit;   // -> enum ImPlotTimeUnit_
 
 // XY axes scaling combinations
 enum ImPlotScale_ {
@@ -161,26 +161,15 @@ enum ImPlotScale_ {
 };
 
 enum ImPlotTimeUnit_ {
-    ImPlotTimeUnit_Us,  // microsecond
-    ImPlotTimeUnit_Ms,  // millisecond
-    ImPlotTimeUnit_S,   // second
-    ImPlotTimeUnit_Min, // minute
-    ImPlotTimeUnit_Hr,  // hour
-    ImPlotTimeUnit_Day, // day
-    ImPlotTimeUnit_Mo,  // month
-    ImPlotTimeUnit_Yr,  // year
+    ImPlotTimeUnit_Us,  // microsecond (:29.428 552)
+    ImPlotTimeUnit_Ms,  // millisecond (:29.428)
+    ImPlotTimeUnit_S,   // second      (:29)
+    ImPlotTimeUnit_Min, // minute      (7:21pm)
+    ImPlotTimeUnit_Hr,  // hour        (7pm)
+    ImPlotTimeUnit_Day, // day         (10/3)
+    ImPlotTimeUnit_Mo,  // month       (Oct)
+    ImPlotTimeUnit_Yr,  // year        (1991)
     ImPlotTimeUnit_COUNT
-};
-
-enum ImPlotTimeFmt_ {
-    ImPlotTimeFmt_SUs,   // :29.428 552
-    ImPlotTimeFmt_SMs,   // :29.428
-    ImPlotTimeFmt_S,     // :29
-    ImPlotTimeFmt_HrMin, // 7:21pm
-    ImPlotTimeFmt_Hr,    // 7pm
-    ImPlotTimeFmt_MoDay, // 10/3
-    ImPlotTimeFmt_Mo,    // Oct
-    ImPlotTimeFmt_Yr     // 1991
 };
 
 //-----------------------------------------------------------------------------
@@ -596,7 +585,7 @@ void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer);
 // Label a tick with scientific formating.
 void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer);
 // Label a tick with time formatting.
-void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, ImPlotTimeFmt fmt);
+void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, ImPlotTimeUnit fmt);
 
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
 void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImPlotTickCollection& ticks);
@@ -785,17 +774,17 @@ inline double CeilTime(double t, ImPlotTimeUnit unit) {
     return AddTime(FloorTime(t, unit), unit, 1);
 }
 
-inline void FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt) {
+inline void FormatTime(double t, char* buffer, int size, ImPlotTimeUnit unit) {
     time_t s = (time_t)t;
     int ms = (int)(t * 1000 - floor(t) * 1000);
     int us = (int)(t * 1000000 - floor(t) * 1000000);
     tm& Tm = GImPlot->Tm;
     GmTime(&s, &Tm);
-    switch(fmt) {
-        case ImPlotTimeFmt_Yr:    strftime(buffer, size, "%Y",    &Tm); break;
-        case ImPlotTimeFmt_Mo:    strftime(buffer, size, "%b",    &Tm); break;
-        case ImPlotTimeFmt_MoDay: strftime(buffer, size, "%m/%d", &Tm); break;
-        case ImPlotTimeFmt_Hr:   
+    switch(unit) {
+        case ImPlotTimeUnit_Yr:    strftime(buffer, size, "%Y",    &Tm); break;
+        case ImPlotTimeUnit_Mo:    strftime(buffer, size, "%b",    &Tm); break;
+        case ImPlotTimeUnit_Day: strftime(buffer, size, "%m/%d", &Tm); break;
+        case ImPlotTimeUnit_Hr:   
             if (Tm.tm_hour == 0)
                 snprintf(buffer, size, "12am");
             else if (Tm.tm_hour == 12)
@@ -805,7 +794,7 @@ inline void FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt) {
             else if (Tm.tm_hour > 12) 
                 snprintf(buffer, size, "%upm", Tm.tm_hour - 12); 
             break;
-        case ImPlotTimeFmt_HrMin:
+        case ImPlotTimeUnit_Min:
             if (Tm.tm_hour == 0)
                 snprintf(buffer, size, "12:%02dam", Tm.tm_min);
             else if (Tm.tm_hour == 12)
@@ -815,9 +804,9 @@ inline void FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt) {
             else if (Tm.tm_hour > 12) 
                 snprintf(buffer, size, "%u:%02dpm", Tm.tm_hour - 12, Tm.tm_min);  
             break;
-        case ImPlotTimeFmt_S:   strftime(buffer, size, ":%S", &Tm);
-        case ImPlotTimeFmt_SMs: snprintf(buffer, size, ":%02d.%d", Tm.tm_sec, ms); 
-        case ImPlotTimeFmt_SUs: snprintf(buffer, size, ":%02d.%d", Tm.tm_sec, us);
+        case ImPlotTimeUnit_S:   snprintf(buffer, size, ":%02d",      Tm.tm_sec);     break;
+        case ImPlotTimeUnit_Ms: snprintf(buffer, size, ":%02d.%03d", Tm.tm_sec, ms); break;
+        case ImPlotTimeUnit_Us: snprintf(buffer, size, ":%02d.%06d", Tm.tm_sec, us); break;
         default: break;
     }
 }

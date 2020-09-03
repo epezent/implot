@@ -517,11 +517,11 @@ void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer) {
     }
 }
 
-void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, ImPlotTimeFmt fmt) {
+void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, ImPlotTimeUnit unit) {
     char temp[16];
     if (tick.ShowLabel) {
         tick.BufferOffset = buffer.size();
-        FormatTime(tick.PlotPos, temp, 16, fmt);
+        FormatTime(tick.PlotPos, temp, 16, unit);
         buffer.append(temp, temp + strlen(temp) + 1);
         tick.LabelSize = ImGui::CalcTextSize(buffer.Buf.Data + tick.BufferOffset);
     }
@@ -578,6 +578,7 @@ void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollect
 void AddTicksTime(const ImPlotRange& range, ImPlotTickCollection& ticks) {
     ImPlotTimeUnit unit_range = GetUnitForRange(range.Min, range.Max);
     ImPlotTimeUnit unit_ticks = unit_range == 0 ? ImPlotTimeUnit_Us : unit_range - 1;
+    printf("%d\n",(int)unit_ticks);
     double t = FloorTime(range.Min, unit_range);
     while (t < range.Max) {
         t = AddTime(t, unit_ticks, 1);
