@@ -249,6 +249,8 @@ struct ImPlotAxis
     bool            Dragging;
     bool            HoveredExt;
     bool            HoveredTot;
+    double*         LinkedMin;
+    double*         LinkedMax;
 
     ImPlotAxis() {
         Flags      = PreviousFlags = ImPlotAxisFlags_Default;
@@ -257,6 +259,7 @@ struct ImPlotAxis
         Dragging   = false;
         HoveredExt = false;
         HoveredTot = false;
+        LinkedMin  = LinkedMax = NULL;
     }
 };
 
@@ -356,18 +359,25 @@ struct ImPlotNextPlotData
     bool        ShowDefaultTicksY[IMPLOT_Y_AXES];
     bool        FitX;
     bool        FitY[IMPLOT_Y_AXES];
+    double*     LinkedXmin;
+    double*     LinkedXmax;
+    double*     LinkedYmin[IMPLOT_Y_AXES];
+    double*     LinkedYmax[IMPLOT_Y_AXES];
 
     ImPlotNextPlotData() {
         HasXRange         = false;
         ShowDefaultTicksX = true;
         FitX              = false;
+        LinkedXmin = LinkedXmax = NULL;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
             HasYRange[i]         = false;
             ShowDefaultTicksY[i] = true;
             FitY[i]              = false;
+            LinkedYmin[i] = LinkedYmax[i] = NULL;
         }
     }
 };
+
 
 // Temporary data storage for upcoming item
 struct ImPlotItemStyle {
@@ -546,6 +556,11 @@ inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]
 inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
 // Extends the current plots axes so that it encompasses point p
 void FitPoint(const ImPlotPoint& p);
+
+// Updates pointers for linked axes from axis internal range
+void PushLinkedAxis(ImPlotAxis& axis);
+// Updates axis internal range from points for linked axes
+void PullLinkedAxis(ImPlotAxis& axis);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils

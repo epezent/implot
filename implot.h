@@ -376,13 +376,16 @@ void PlotText(const char* text, double x, double y, bool vertical = false, const
 //-----------------------------------------------------------------------------
 
 // Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
-void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotLimits(double xmin, double xmax, double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once);
 // Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
-void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotLimitsX(double xmin, double xmax, ImGuiCond cond = ImGuiCond_Once);
 // Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
-void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+// Links the next plot axes to external range. Set to NULL for no linkage. The pointer data must remain valid until the matching call EndPlot.
+void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2 = NULL, double* ymax2 = NULL, double* ymin3 = NULL, double* ymax3 = NULL);
 // Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
 void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true);
+
 
 // Set the X axis ticks and optionally the labels for the next plot.
 void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels = NULL, bool show_default = false);

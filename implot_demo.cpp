@@ -637,6 +637,25 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Linked Axes")) {
+        static double xmin = 0, xmax = 1, ymin = 0, ymax = 1;
+        static bool linkx = true, linky = true;
+        t_float data[2] = {0,1};
+        ImGui::Checkbox("Link X", &linkx);
+        ImGui::SameLine();
+        ImGui::Checkbox("Link Y", &linky);
+        ImPlot::LinkNextPlotLimits(linkx ? &xmin : NULL , linkx ? &xmax : NULL, linky ? &ymin : NULL, linky ? &ymax : NULL);
+        if (ImPlot::BeginPlot("Plot A")) { 
+            ImPlot::PlotLine("Line",data,2);
+            ImPlot::EndPlot(); 
+        }
+        ImPlot::LinkNextPlotLimits(linkx ? &xmin : NULL , linkx ? &xmax : NULL, linky ? &ymin : NULL, linky ? &ymax : NULL);
+        if (ImPlot::BeginPlot("Plot B")) { 
+            ImPlot::PlotLine("Line",data,2);
+            ImPlot::EndPlot(); 
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
         static ImVector<t_float2> data;
         static ImPlotLimits range, query;
