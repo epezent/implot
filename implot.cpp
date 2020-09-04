@@ -517,11 +517,11 @@ void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer) {
     }
 }
 
-void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, ImPlotTimeUnit unit) {
-    char temp[16];
+void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, ImPlotTimeFmt fmt) {
+    char temp[32];
     if (tick.ShowLabel) {
         tick.BufferOffset = buffer.size();
-        FormatTime(tick.PlotPos, temp, 16, unit);
+        FormatTime(tick.PlotPos, temp, 32, fmt);
         buffer.append(temp, temp + strlen(temp) + 1);
         tick.LabelSize = ImGui::CalcTextSize(buffer.Buf.Data + tick.BufferOffset);
     }
@@ -575,17 +575,82 @@ void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollect
     }
 }
 
-void AddTicksTime(const ImPlotRange& range, ImPlotTickCollection& ticks) {
-    ImPlotTimeUnit unit_range = GetUnitForRange(range.Min, range.Max);
-    ImPlotTimeUnit unit_ticks = unit_range == 0 ? ImPlotTimeUnit_Us : unit_range - 1;
-    printf("%d\n",(int)unit_ticks);
-    double t = FloorTime(range.Min, unit_range);
-    while (t < range.Max) {
-        t = AddTime(t, unit_ticks, 1);
-        ImPlotTick tick(t,false,true);
-        LabelTickTime(tick,ticks.Labels,unit_ticks);
-        ticks.AddTick(tick);
+// splits
+// mo:  6 3 2
+// day: 
+// hr:  12, 6, 3, 2, 1
+// min: 30: 15, 10, 5, 1
+
+void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks) {
+    const ImPlotTimeUnit unit0 = GetUnitForRange(range.Size() / (plot_width / 100)); // level = 0 (top)
+    const ImPlotTimeUnit unit1 = unit0 + 1;                                          // level = 1 (bottom)
+
+    // maximum allowable density of labels
+    const float max_density       = 0.5f;
+    // pixels per major (level 1) division
+    const float pix_per_major_div = plot_width / (float)(range.Size() / TimeUnitSpans[unit1]);
+    // nominal pixels taken up by minor (level 0) label
+    const float minor_label_width = GetTimeLabelWidth(TimeFormatLevel0[unit0]);
+    // the maximum number of minor (level 0) labels that can fit between major (level 1) divisions
+    const int   minor_per_major   = (int)(max_density * pix_per_major_div / minor_label_width);
+
+    if (unit1 != ImPlotTimeUnit_COUNT) {
+        double t = FloorTime(range.Min, unit1); 
+        while (t < range.Max) {
+            if (range.Contains(t)) {
+                ImPlotTick tick_maj(t,true,true);
+                tick_maj.Level = 1;
+                LabelTickTime(tick_maj,ticks.Labels,TimeFormatLevel1[unit1]);
+                ticks.AddTick(tick_maj);
+                ImPlotTick tick_min(t,true,true);
+                tick_min.Level = 0;
+                LabelTickTime(tick_min,ticks.Labels,TimeFormatLevel0[unit0]);
+                ticks.AddTick(tick_min);
+            }
+            // add minor ticks up until next major
+            if (minor_per_major > 1) {
+                double t2 = AddTime(t, unit1, 1);
+                double inc = (t2 - t) / minor_per_major;
+                for (int i = 1; i < minor_per_major; ++i) {
+                    double t3 = t + i * inc;
+                        if (range.Contains(t3)) {
+                        ImPlotTick tick(t3,false,true);
+                        tick.Level =  0;
+                        LabelTickTime(tick,ticks.Labels,TimeFormatLevel0[unit0]);
+                        ticks.AddTick(tick);
+                    }
+                }
+
+                if (unit0 == ImPlotTimeUnit_Us) {
+
+                }
+                else if (unit0 == ImPlotTimeUnit_Ms) {
+
+                }
+                else if (unit0 == ImPlotTimeUnit_S) {
+
+                }
+                else if (unit0 == ImPlotTimeUnit_Min) {
+
+                }
+                else if (unit0 == ImPlotTimeUnit_Hr) {
+
+                }
+                else if (unit0 == ImPlotTimeUnit_Day) {
+
+                }
+                else if (unit0 == ImPlotTimeUnit_Mo) {
+
+                }
+            }
+            t = AddTime(t, unit1, 1);
+        }
     }
+    else {
+
+    }
+
+    // printf("%d\n",minor_per_major);
 }
 
 void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTickCollection& ticks) {
@@ -613,6 +678,12 @@ void ConstrainAxis(ImPlotAxis& axis) {
     if (ImHasFlag(axis.Flags, ImPlotAxisFlags_LogScale)) {
         axis.Range.Min = ConstrainLog(axis.Range.Min);
         axis.Range.Max = ConstrainLog(axis.Range.Max);
+    }
+    if (ImHasFlag(axis.Flags, ImPlotAxisFlags_Time)) {
+        axis.Range.Min = ConstrainTime(axis.Range.Min);
+        axis.Range.Max = ConstrainTime(axis.Range.Max);
+        // if (axis.Range.Size() < 0.0001)
+        //     axis.Range.Max = axis.Range.Min + 0.0001; // TBD
     }
     if (axis.Range.Max <= axis.Range.Min)
         axis.Range.Max = axis.Range.Min + DBL_EPSILON;
@@ -743,7 +814,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     UpdateAxisColors(ImPlotCol_YAxis2, &gp.Col_Y[1]);
     UpdateAxisColors(ImPlotCol_YAxis3, &gp.Col_Y[2]);
 
-    // BB AND HOVER -----------------------------------------------------------
+    // BB, PADDING, HOVER -----------------------------------------------------------
 
     // frame
     ImVec2 frame_size = ImGui::CalcItemSize(size, IMPLOT_DEFAULT_W, IMPLOT_DEFAULT_H);
@@ -767,48 +838,57 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                   ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickMarks) ||
                   ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels));
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        gp.RenderY[i] =
-                gp.Y[i].Present &&
-                (ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_GridLines) ||
-                 ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks) ||
-                 ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels));
-    }
-    // get ticks
-    if (gp.RenderX && gp.NextPlotData.ShowDefaultTicksX) {
-        if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale))
-            AddTicksLogarithmic(plot.XAxis.Range, (int)(gp.BB_Canvas.GetWidth() * 0.01f), gp.XTicks);
-        else if (gp.X.IsTime)
-            AddTicksTime(plot.XAxis.Range, gp.XTicks);
-        else
-            AddTicksDefault(plot.XAxis.Range, ImMax(2, (int)IM_ROUND(0.003 * gp.BB_Canvas.GetWidth())), IMPLOT_SUB_DIV, gp.XTicks);
-    }
-    for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        if (gp.RenderY[i] && gp.NextPlotData.ShowDefaultTicksY[i]) {
-            if (ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale))
-                AddTicksLogarithmic(plot.YAxis[i].Range, (int)(gp.BB_Canvas.GetHeight() * 0.02f) ,gp.YTicks[i]);
-            else
-                AddTicksDefault(plot.YAxis[i].Range, ImMax(2, (int)IM_ROUND(0.003 * gp.BB_Canvas.GetHeight())), IMPLOT_SUB_DIV, gp.YTicks[i]);
-        }
+        gp.RenderY[i] = gp.Y[i].Present &&
+                        (ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_GridLines) ||
+                         ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks) ||
+                         ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels));
     }
 
     // plot bb
-    
+
+    // (1) calc top/bot padding and plot height
     const ImVec2 title_size = ImGui::CalcTextSize(title, NULL, true);
     const float txt_height  = ImGui::GetTextLineHeight();
 
-    const float pad_top     = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
-    const float pad_bot     = (gp.X.HasLabels ? txt_height + gp.Style.LabelPadding.y : 0) 
-                            + (x_label ? txt_height + gp.Style.LabelPadding.y : 0) 
-                            + (gp.X.IsTime ? txt_height + gp.Style.LabelPadding.y : 0);
+    const float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
+    const float pad_bot = (gp.X.HasLabels ? txt_height + gp.Style.LabelPadding.y : 0) 
+                        + (x_label ? txt_height + gp.Style.LabelPadding.y : 0) 
+                        + (gp.X.IsTime ? txt_height + gp.Style.LabelPadding.y : 0);
+
+    const float plot_height = gp.BB_Canvas.GetHeight() - pad_top - pad_bot;
+
+    // (2) get y tick labels (needed for left/right pad)
+    for (int i = 0; i < IMPLOT_Y_AXES; i++) {
+        if (gp.RenderY[i] && gp.NextPlotData.ShowDefaultTicksY[i]) {
+            if (ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LogScale))
+                AddTicksLogarithmic(plot.YAxis[i].Range, ImMax(2, (int)IM_ROUND(plot_height * 0.02f)) ,gp.YTicks[i]);
+            else
+                AddTicksDefault(plot.YAxis[i].Range, ImMax(2, (int)IM_ROUND(0.0025 * plot_height)), IMPLOT_SUB_DIV, gp.YTicks[i]);
+        }
+    }
+
+    // (3) calc left/right pad
     const float pad_left    = (y_label ? txt_height + gp.Style.LabelPadding.x : 0)
                             + (gp.Y[0].HasLabels ? gp.YTicks[0].MaxWidth + gp.Style.LabelPadding.x : 0);
     const float pad_right   = ((gp.Y[1].Present && gp.Y[1].HasLabels) ? gp.YTicks[1].MaxWidth + gp.Style.LabelPadding.x : 0)
                             + ((gp.Y[1].Present && gp.Y[2].Present)   ? gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y : 0)
                             + ((gp.Y[2].Present && gp.Y[2].HasLabels) ? gp.YTicks[2].MaxWidth + gp.Style.LabelPadding.x : 0);
 
+    const float plot_width = gp.BB_Canvas.GetWidth() - pad_left - pad_right;
 
-    gp.BB_Plot              = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(pad_right, pad_bot));
-    gp.Hov_Plot             = gp.BB_Plot.Contains(IO.MousePos);
+    // (4) get x ticks
+    if (gp.RenderX && gp.NextPlotData.ShowDefaultTicksX) {
+        if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale))
+            AddTicksLogarithmic(plot.XAxis.Range, (int)IM_ROUND(plot_width * 0.01f), gp.XTicks);
+        else if (gp.X.IsTime)
+            AddTicksTime(plot.XAxis.Range, plot_width, gp.XTicks);
+        else
+            AddTicksDefault(plot.XAxis.Range, ImMax(2, (int)IM_ROUND(0.0025 * plot_width)), IMPLOT_SUB_DIV, gp.XTicks);
+    }
+
+    // (5) calc plot bb
+    gp.BB_Plot  = ImRect(gp.BB_Canvas.Min + ImVec2(pad_left, pad_top), gp.BB_Canvas.Max - ImVec2(pad_right, pad_bot));
+    gp.Hov_Plot = gp.BB_Plot.Contains(IO.MousePos);
 
     // x axis region bb and hover
     const ImRect xAxisRegion_bb(gp.BB_Plot.GetBL(), ImVec2(gp.BB_Plot.Max.x, gp.BB_Frame.Max.y));
@@ -1132,10 +1212,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         ImU32 col_min32 = ImGui::ColorConvertFloat4ToU32(col_min);
         for (int t = 0; t < gp.XTicks.Size; t++) {
             ImPlotTick& xt = gp.XTicks.Ticks[t];
-            if (xt.Major)
-                DrawList.AddLine(ImVec2(xt.PixelPos, gp.BB_Plot.Min.y), ImVec2(xt.PixelPos, gp.BB_Plot.Max.y), gp.Col_X.Major, gp.Style.MajorGridSize.x);
-            else if (density < 0.2f)
-                DrawList.AddLine(ImVec2(xt.PixelPos, gp.BB_Plot.Min.y), ImVec2(xt.PixelPos, gp.BB_Plot.Max.y), col_min32, gp.Style.MinorGridSize.x);
+            if (xt.Level == 0) {
+                if (xt.Major)
+                    DrawList.AddLine(ImVec2(xt.PixelPos, gp.BB_Plot.Min.y), ImVec2(xt.PixelPos, gp.BB_Plot.Max.y), gp.Col_X.Major, gp.Style.MajorGridSize.x);
+                else if (density < 0.2f)
+                    DrawList.AddLine(ImVec2(xt.PixelPos, gp.BB_Plot.Min.y), ImVec2(xt.PixelPos, gp.BB_Plot.Max.y), col_min32, gp.Style.MinorGridSize.x);
+            }
         }
     }
 
@@ -1182,7 +1264,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         for (int t = 0; t < gp.XTicks.Size; t++) {
             ImPlotTick *xt = &gp.XTicks.Ticks[t];
             if (xt->ShowLabel && xt->PixelPos >= gp.BB_Plot.Min.x - 1 && xt->PixelPos <= gp.BB_Plot.Max.x + 1)
-                DrawList.AddText(ImVec2(xt->PixelPos - xt->LabelSize.x * 0.5f, gp.BB_Plot.Max.y + gp.Style.LabelPadding.y), xt->Major ? gp.Col_X.MajTxt : gp.Col_X.MinTxt, gp.XTicks.GetLabel(t));
+                DrawList.AddText(ImVec2(xt->PixelPos - xt->LabelSize.x * 0.5f, gp.BB_Plot.Max.y + gp.Style.LabelPadding.y + xt->Level * (txt_height + gp.Style.LabelPadding.y)), 
+                xt->Major ? gp.Col_X.MajTxt : gp.Col_X.MinTxt, gp.XTicks.GetLabel(t));
         }
     }
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
@@ -1241,6 +1324,7 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state) {
     ImGui::PushItemWidth(75);
     bool total_lock = state.HasRange && state.RangeCond == ImGuiCond_Always;
     bool logscale = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_LogScale);
+    bool timesale = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_Time);
     bool grid     = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_GridLines);
     bool ticks    = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_TickMarks);
     bool labels   = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_TickLabels);
@@ -1272,6 +1356,8 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state) {
         ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_Invert);
     if (ImGui::Checkbox("Log Scale", &logscale))
         ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_LogScale);
+    if (ImGui::Checkbox("Time", &timesale))
+        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_Time);
     ImGui::Separator();
     if (ImGui::Checkbox("Grid Lines", &grid))
         ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_GridLines);
