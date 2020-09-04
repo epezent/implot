@@ -917,10 +917,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // (4) get x ticks
     if (gp.RenderX && gp.NextPlotData.ShowDefaultTicksX) {
+        if (gp.X.IsTime)
+            AddTicksTime(plot.XAxis.Range, plot_width, gp.XTicks);
         if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale))
             AddTicksLogarithmic(plot.XAxis.Range, (int)IM_ROUND(plot_width * 0.01f), gp.XTicks);
-        else if (gp.X.IsTime)
-            AddTicksTime(plot.XAxis.Range, plot_width, gp.XTicks);
         else
             AddTicksDefault(plot.XAxis.Range, ImMax(2, (int)IM_ROUND(0.0025 * plot_width)), IMPLOT_SUB_DIV, gp.XTicks);
     }
