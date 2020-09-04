@@ -592,8 +592,23 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     if (ImGui::CollapsingHeader("Time Formatting")) {
-        ImPlot::SetNextPlotLimits(1599106881,1599106881+1000000,0,1);
-        if (ImPlot::BeginPlot("UTC Time", "Date-Time", "Y-Axis", ImVec2(-1,0), ImPlotFlags_Default, ImPlotAxisFlags_Default | ImPlotAxisFlags_Time)) {
+        static double min = 1599242863*0.5;
+        static double max = 1599242863*1.5;
+        static bool zooming = false;
+        ImGuiCond cond = ImGuiCond_Once;
+        if (ImGui::Button("Zoom")) {
+            zooming = true;
+        }
+        if (zooming) {
+            cond = ImGuiCond_Always;
+            double range = max - min;
+            min += range * 0.005;
+            max -= range * 0.005;
+            if (range < 0.005)
+                zooming = false;            
+        }
+        ImPlot::SetNextPlotLimits(min,max,0,1,cond);
+        if (ImPlot::BeginPlot("##Time", "UTC Time", "Y-Axis", ImVec2(-1,0), ImPlotFlags_Default, ImPlotAxisFlags_Default | ImPlotAxisFlags_Time)) {
 
             ImPlot::EndPlot();
         }

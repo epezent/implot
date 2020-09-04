@@ -745,7 +745,7 @@ inline int GetDaysInMonth(int year, int month) {
     return DaysInMonth[month] + (int)(month == 1 && IsLeapYear(year));
 }
 
-inline time_t MkGmTime(const struct tm *ptm) {
+inline time_t MakeGmTime(const struct tm *ptm) {
     time_t secs = 0;
     int year = ptm->tm_year + 1900;
     for (int y = 1970; y < year; ++y) {
@@ -762,7 +762,7 @@ inline time_t MkGmTime(const struct tm *ptm) {
     return secs;
 }
 
-inline tm* GmTime(const time_t* time, tm* tm)
+inline tm* GetGmTime(const time_t* time, tm* tm)
 {
 #ifdef _MSC_VER
   if (gmtime_s(tm, time) == 0)
@@ -785,7 +785,7 @@ inline double AddTime(double t, ImPlotTimeUnit unit, int count) {
         case ImPlotTimeUnit_Yr:  count *= 12; // fall-through
         case ImPlotTimeUnit_Mo:  for (int i = 0; i < count; ++i) {
                                      time_t s = (time_t)t;
-                                     GmTime(&s, &GImPlot->Tm);
+                                     GetGmTime(&s, &GImPlot->Tm);
                                      int days = GetDaysInMonth(GImPlot->Tm.tm_year, GImPlot->Tm.tm_mon);
                                      t = AddTime(t, ImPlotTimeUnit_Day, days);
                                  }
@@ -794,9 +794,29 @@ inline double AddTime(double t, ImPlotTimeUnit unit, int count) {
     }
 }
 
+inline int GetYear(double t) {
+    time_t s = (time_t)t;
+    tm& Tm = GImPlot->Tm;
+    IM_ASSERT(GetGmTime(&s, &Tm) != NULL);
+    return Tm.tm_year + 1900;
+}
+
+inline double MakeYear(int year) {
+    int yr = year - 1900;
+    if (yr < 0)
+        yr = 0;
+    GImPlot->Tm = tm();
+    GImPlot->Tm.tm_year = yr;
+    GImPlot->Tm.tm_sec  = 1;
+    time_t s = MakeGmTime(&GImPlot->Tm);
+    if (s < 0)
+        s = 0;
+    return (double)s;
+}
+
 inline double FloorTime(double t, ImPlotTimeUnit unit) {
     time_t s = (time_t)t;
-    GmTime(&s, &GImPlot->Tm);
+    GetGmTime(&s, &GImPlot->Tm);
     GImPlot->Tm.tm_isdst = -1;
     switch (unit) {
         case ImPlotTimeUnit_S:   return (double)s;
@@ -809,7 +829,7 @@ inline double FloorTime(double t, ImPlotTimeUnit unit) {
         case ImPlotTimeUnit_Min: GImPlot->Tm.tm_sec  = 0; break;
         default:             return t;
     }
-    s = MkGmTime(&GImPlot->Tm);
+    s = MakeGmTime(&GImPlot->Tm);
     return (double)s;
 }
 
@@ -820,9 +840,11 @@ inline double CeilTime(double t, ImPlotTimeUnit unit) {
 inline void FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt) {
     time_t s = (time_t)t;
     int ms = (int)(t * 1000 - floor(t) * 1000);
+    ms = ms % 10 == 9 ? ms + 1 : ms;
     int us = (int)(t * 1000000 - floor(t) * 1000000);
+    us = us % 10 == 9 ? us + 1 : us;
     tm& Tm = GImPlot->Tm;
-    IM_ASSERT(GmTime(&s, &Tm) != NULL);
+    IM_ASSERT(GetGmTime(&s, &Tm) != NULL);
     switch(fmt) {
         case ImPlotTimeFmt_Yr:    strftime(buffer, size, "%Y",    &Tm); break;
         case ImPlotTimeFmt_Mo:    strftime(buffer, size, "%b",    &Tm); break;
@@ -831,7 +853,7 @@ inline void FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt) {
             if (Tm.tm_hour == 0)
                 snprintf(buffer, size, "%d/%d 12:%02dam", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_min);
             else if (Tm.tm_hour == 12)
-                snprintf(buffer, size, "%d/%d 12%02dpm", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_min);
+                snprintf(buffer, size, "%d/%d 12:%02dpm", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_min);
             else if (Tm.tm_hour < 12)
                 snprintf(buffer, size, "%d/%d %u:%02dam", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_hour, Tm.tm_min);
             else if (Tm.tm_hour > 12)

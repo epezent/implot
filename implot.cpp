@@ -575,82 +575,121 @@ void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollect
     }
 }
 
-// splits
-// mo:  6 3 2
-// day: 
-// hr:  12, 6, 3, 2, 1
-// min: 30: 15, 10, 5, 1
+inline int LowerBoundStep(int max_divs, const int* divs, const int* step, int size) {
+    if (max_divs < divs[0])
+        return 0;
+    for (int i = 1; i < size; ++i) {
+        if (max_divs < divs[i])
+            return step[i-1];
+    }
+    return step[size-1];
+}
+
+inline int GetTimeStep(int max_divs, ImPlotTimeUnit unit) {
+    if (unit == ImPlotTimeUnit_Ms || unit == ImPlotTimeUnit_Us) {
+        static const int step[] = {500,250,200,100,50,25,20,10,5};
+        static const int divs[] = {2,4,5,10,20,40,50,100,200};
+        return LowerBoundStep(max_divs, divs, step, 9);
+    }
+    if (unit == ImPlotTimeUnit_S || unit == ImPlotTimeUnit_Min) {
+        static const int step[] = {30,15,10,5,1};
+        static const int divs[] = {2,4,6,12,60};
+        return LowerBoundStep(max_divs, divs, step, 5);
+    }
+    else if (unit == ImPlotTimeUnit_Hr) {
+        static const int step[] = {12,6,3,2,1};
+        static const int divs[] = {2,4,8,12,24};
+        return LowerBoundStep(max_divs, divs, step, 5);
+    }
+    else if (unit == ImPlotTimeUnit_Day) {
+        static const int step[] = {14,7,2,1};
+        static const int divs[] = {2,4,14,28};
+        return LowerBoundStep(max_divs, divs, step, 4);
+    }
+    else if (unit == ImPlotTimeUnit_Mo) {
+        static const int step[] = {6,3,2,1};
+        static const int divs[] = {2,4,6,12};
+        return LowerBoundStep(max_divs, divs, step, 4);
+    }
+    return 0;
+}
+
+
 
 void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks) {
+    // get units for level 0 and level 1 labels
     const ImPlotTimeUnit unit0 = GetUnitForRange(range.Size() / (plot_width / 100)); // level = 0 (top)
     const ImPlotTimeUnit unit1 = unit0 + 1;                                          // level = 1 (bottom)
 
     // maximum allowable density of labels
     const float max_density       = 0.5f;
-    // pixels per major (level 1) division
-    const float pix_per_major_div = plot_width / (float)(range.Size() / TimeUnitSpans[unit1]);
-    // nominal pixels taken up by minor (level 0) label
-    const float minor_label_width = GetTimeLabelWidth(TimeFormatLevel0[unit0]);
-    // the maximum number of minor (level 0) labels that can fit between major (level 1) divisions
-    const int   minor_per_major   = (int)(max_density * pix_per_major_div / minor_label_width);
 
-    if (unit1 != ImPlotTimeUnit_COUNT) {
-        double t = FloorTime(range.Min, unit1); 
-        while (t < range.Max) {
-            if (range.Contains(t)) {
-                ImPlotTick tick_maj(t,true,true);
+    if (unit0 != ImPlotTimeUnit_Yr) {
+        // pixels per major (level 1) division
+        const float pix_per_major_div = plot_width / (float)(range.Size() / TimeUnitSpans[unit1]);
+        // nominal pixels taken up by minor (level 0) label
+        const float minor_label_width = GetTimeLabelWidth(TimeFormatLevel0[unit0]);
+        // the maximum number of minor (level 0) labels that can fit between major (level 1) divisions
+        const int   minor_per_major   = (int)(max_density * pix_per_major_div / minor_label_width);
+        // the minor step size (level 0)
+        const int step = GetTimeStep(minor_per_major, unit0);
+        // generate ticks
+        double t1 = FloorTime(range.Min, unit1); 
+        while (t1 < range.Max) {
+            if (range.Contains(t1)) {
+                ImPlotTick tick_maj(t1,true,true);
                 tick_maj.Level = 1;
                 LabelTickTime(tick_maj,ticks.Labels,TimeFormatLevel1[unit1]);
                 ticks.AddTick(tick_maj);
-                ImPlotTick tick_min(t,true,true);
+                ImPlotTick tick_min(t1,true,true);
                 tick_min.Level = 0;
                 LabelTickTime(tick_min,ticks.Labels,TimeFormatLevel0[unit0]);
                 ticks.AddTick(tick_min);
             }
             // add minor ticks up until next major
             if (minor_per_major > 1) {
-                double t2 = AddTime(t, unit1, 1);
-                double inc = (t2 - t) / minor_per_major;
-                for (int i = 1; i < minor_per_major; ++i) {
-                    double t3 = t + i * inc;
-                        if (range.Contains(t3)) {
-                        ImPlotTick tick(t3,false,true);
+                double t2 = AddTime(t1, unit1, 1);    
+                double t12 = AddTime(t1, unit0, step);
+                while (t12 < t2) {
+                    float px_to_t2 = (float)((t2 - t12)/range.Size()) * plot_width;
+                    if (range.Contains(t12)) {
+                        ImPlotTick tick(t12,false,px_to_t2 >= minor_label_width);
                         tick.Level =  0;
                         LabelTickTime(tick,ticks.Labels,TimeFormatLevel0[unit0]);
                         ticks.AddTick(tick);
                     }
-                }
-
-                if (unit0 == ImPlotTimeUnit_Us) {
-
-                }
-                else if (unit0 == ImPlotTimeUnit_Ms) {
-
-                }
-                else if (unit0 == ImPlotTimeUnit_S) {
-
-                }
-                else if (unit0 == ImPlotTimeUnit_Min) {
-
-                }
-                else if (unit0 == ImPlotTimeUnit_Hr) {
-
-                }
-                else if (unit0 == ImPlotTimeUnit_Day) {
-
-                }
-                else if (unit0 == ImPlotTimeUnit_Mo) {
-
-                }
+                    t12 = AddTime(t12, unit0, step);
+                }                
             }
-            t = AddTime(t, unit1, 1);
+            t1 = AddTime(t1, unit1, 1);
         }
     }
     else {
+        // nominal pixels taken up by year label
+        const float label_width = GetTimeLabelWidth(TimeFormatLevel0[ImPlotTimeUnit_Yr]);
+        // maximum number of labels we can display
+        const int   max_labels  = (int)(max_density * plot_width / label_width);
 
+
+        const int year_min = GetYear(range.Min);
+        const int year_max = GetYear(CeilTime(range.Max, ImPlotTimeUnit_Yr));
+        const double nice_range = NiceNum((year_max - year_min)*0.99,false);
+        const double interval   = NiceNum(nice_range / (max_labels - 1), true);
+        const int graphmin      = (int)(floor(year_min / interval) * interval);
+
+        double t1 = MakeYear(graphmin);
+        while (t1 < range.Max) {
+            if (range.Contains(t1)) {
+                ImPlotTick tick(t1, true, true);
+                tick.Level = 0;
+                LabelTickTime(tick, ticks.Labels, TimeFormatLevel0[ImPlotTimeUnit_Yr]);
+                ticks.AddTick(tick);
+            }
+            t1 = AddTime(t1, ImPlotTimeUnit_Yr, (int)interval);            
+        }        
     }
 
-    // printf("%d\n",minor_per_major);
+    // printf("%d , %d\n",minor_per_major,step);
 }
 
 void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTickCollection& ticks) {
