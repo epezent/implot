@@ -78,6 +78,8 @@ extern ImPlotContext* GImPlot; // Current implicit context pointer
 // Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
 #define IMPLOT_ZOOM_RATE  0.1f
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC)
+#define IMPLOT_MIN_TIME 0
+// Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC)
 #define IMPLOT_MAX_TIME 32503680000
 
 //-----------------------------------------------------------------------------
@@ -87,21 +89,27 @@ extern ImPlotContext* GImPlot; // Current implicit context pointer
 // Computes the common (base-10) logarithm
 static inline float  ImLog10(float x)  { return log10f(x); }
 static inline double ImLog10(double x) { return log10(x);  }
-
 // Returns true if a flag is set
 template <typename TSet, typename TFlag>
 inline bool ImHasFlag(TSet set, TFlag flag) { return (set & flag) == flag; }
-
 // Flips a flag in a flagset
 template <typename TSet, typename TFlag>
 inline void ImFlipFlag(TSet& set, TFlag flag) { ImHasFlag(set, flag) ? set &= ~flag : set |= flag; }
-
 // Linearly remaps x from [x0 x1] to [y0 y1].
 template <typename T>
 inline T ImRemap(T x, T x0, T x1, T y0, T y1) { return y0 + (x - x0) * (y1 - y0) / (x1 - x0); }
-
 // Returns always positive modulo (assumes r != 0)
 inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
+// Returns true if val is NAN or INFINITY
+inline bool ImNanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
+// Turns NANs to 0s
+inline double ImConstrainNan(double val) { return isnan(val) ? 0 : val; }
+// Turns infinity to floating point maximums
+inline double ImConstrainInf(double val) { return val == HUGE_VAL ?  DBL_MAX : val == -HUGE_VAL ? - DBL_MAX : val; }
+// Turns numbers less than or equal to 0 to 0.001 (sort of arbitrary, is there a better way?)
+inline double ImConstrainLog(double val) { return val <= 0 ? 0.001f : val; }
+// Turns numbers less than 0 to zero
+inline double ImConstrainTime(double val) { return val < IMPLOT_MIN_TIME ? IMPLOT_MIN_TIME : (val > IMPLOT_MAX_TIME ? IMPLOT_MAX_TIME : val); }
 
 // Offset calculator helper
 template <int Count>
@@ -264,6 +272,53 @@ struct ImPlotAxis
         Dragging   = false;
         HoveredExt = false;
         HoveredTot = false;
+    }
+
+    bool SetMin(double _min) { 
+        _min = ImConstrainNan(ImConstrainInf(_min));
+        if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
+            _min = ImConstrainLog(_min);
+        if (ImHasFlag(Flags, ImPlotAxisFlags_Time)) { 
+            _min = ImConstrainTime(_min);  
+            if ((Range.Max - _min) < 0.0001)
+                return false;
+        }          
+        if (_min >= Range.Max) 
+            return false;
+        Range.Min = _min;
+        return true;        
+    };
+
+    bool SetMax(double _max) { 
+        _max = ImConstrainNan(ImConstrainInf(_max));
+        if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
+            _max = ImConstrainLog(_max);
+        if (ImHasFlag(Flags, ImPlotAxisFlags_Time)) { 
+            _max = ImConstrainTime(_max);  
+            if ((_max - Range.Min) < 0.0001)
+                return false;
+        }          
+        if (_max <= Range.Min) 
+            return false;
+        Range.Max = _max;
+        return true;  
+    };
+
+    void Constrain() {
+        Range.Min = ImConstrainNan(ImConstrainInf(Range.Min));
+        Range.Max = ImConstrainNan(ImConstrainInf(Range.Max));
+        if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale)) {
+            Range.Min = ImConstrainLog(Range.Min);
+            Range.Max = ImConstrainLog(Range.Max);
+        }
+        if (ImHasFlag(Flags, ImPlotAxisFlags_Time)) {
+            Range.Min = ImConstrainTime(Range.Min);
+            Range.Max = ImConstrainTime(Range.Max);
+            if (Range.Size() < 0.0001)
+                Range.Max = Range.Min + 0.0001; // TBD
+        }
+        if (Range.Max <= Range.Min)
+            Range.Max = Range.Min + DBL_EPSILON;
     }
 };
 
@@ -544,8 +599,6 @@ void BustItemCache();
 
 // Gets the current y-axis for the current plot
 inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
-// Constrains an axis range
-void ConstrainAxis(ImPlotAxis& axis);
 // Updates axis ticks, lins, and label colors
 void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
 
@@ -626,16 +679,6 @@ inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.5
 
 // Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
 double NiceNum(double x, bool round);
-// Returns true if val is NAN or INFINITY
-inline bool NanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
-// Turns NANs to 0s
-inline double ConstrainNan(double val) { return isnan(val) ? 0 : val; }
-// Turns infinity to floating point maximums
-inline double ConstrainInf(double val) { return val == HUGE_VAL ?  DBL_MAX : val == -HUGE_VAL ? - DBL_MAX : val; }
-// Turns numbers less than or equal to 0 to 0.001 (sort of arbitrary, is there a better way?)
-inline double ConstrainLog(double val) { return val <= 0 ? 0.001f : val; }
-// Turns numbers less than 0 to zero
-inline double ConstrainTime(double val) { return val < 0 ? 0 : (val > IMPLOT_MAX_TIME ? IMPLOT_MAX_TIME : val); }
 // Computes order of magnitude of double.
 inline int OrderOfMagnitude(double val) { return val == 0 ? 0 : (int)(floor(log10(fabs(val)))); }
 // Returns the precision required for a order of magnitude.
