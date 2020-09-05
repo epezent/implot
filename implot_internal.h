@@ -195,6 +195,7 @@ enum ImPlotTimeFmt_ {
     ImPlotTimeFmt_DayMoYr,       // 10/3/91
     ImPlotTimeFmt_DayMoYrHrMin,  // 10/3/91 7:21pm
     ImPlotTimeFmt_DayMoYrHrMinS, // 10/3/91 7:21:29pm
+    ImPlotTimeFmt_MoYr,          // Oct 1991
     ImPlotTimeFmt_Mo,            // Oct
     ImPlotTimeFmt_Yr             // 1991
 };
@@ -307,11 +308,8 @@ struct ImPlotAxis
         _min = ImConstrainNan(ImConstrainInf(_min));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _min = ImConstrainLog(_min);
-        if (ImHasFlag(Flags, ImPlotAxisFlags_Time)) { 
-            _min = ImConstrainTime(_min);  
-            if ((Range.Max - _min) < 0.0001)
-                return false;
-        }          
+        if (ImHasFlag(Flags, ImPlotAxisFlags_Time)) 
+            _min = ImConstrainTime(_min);          
         if (_min >= Range.Max) 
             return false;
         Range.Min = _min;
@@ -322,16 +320,23 @@ struct ImPlotAxis
         _max = ImConstrainNan(ImConstrainInf(_max));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _max = ImConstrainLog(_max);
-        if (ImHasFlag(Flags, ImPlotAxisFlags_Time)) { 
-            _max = ImConstrainTime(_max);  
-            if ((_max - Range.Min) < 0.0001)
-                return false;
-        }          
+        if (ImHasFlag(Flags, ImPlotAxisFlags_Time))  
+            _max = ImConstrainTime(_max);               
         if (_max <= Range.Min) 
             return false;
         Range.Max = _max;
         return true;  
     };
+
+    void SetRange(double _min, double _max) {
+        Range.Min = _min;
+        Range.Max = _max;
+        Constrain();
+    }
+
+    void SetRange(const ImPlotRange& range) {
+        SetRange(range.Min, range.Max);
+    }
 
     void Constrain() {
         Range.Min = ImConstrainNan(ImConstrainInf(Range.Min));
@@ -343,8 +348,6 @@ struct ImPlotAxis
         if (ImHasFlag(Flags, ImPlotAxisFlags_Time)) {
             Range.Min = ImConstrainTime(Range.Min);
             Range.Max = ImConstrainTime(Range.Max);
-            if (Range.Size() < 0.0001)
-                Range.Max = Range.Min + 0.0001; // TBD
         }
         if (Range.Max <= Range.Min)
             Range.Max = Range.Min + DBL_EPSILON;
@@ -576,13 +579,32 @@ struct ImPlotAxisScale
 /// Two part time struct.
 struct ImPlotTime {
     time_t S;
-    time_t Us;
-    ImPlotTime(time_t s, time_t us) { S = s; Us = us;}
+    int    Us;
+    ImPlotTime(time_t s, int us) { 
+        S  = s + us / 1000000; 
+        Us = us % 1000000;
+    }
     ImPlotTime(double t) { 
         S  = (time_t)t;
         Us = (int)(t * 1000000 - floor(t) * 1000000);
     }
+    double ToDouble() const { return (double)S + (double)Us / 1000000.0; }    
 };
+
+static inline ImPlotTime operator+(const ImPlotTime& lhs, const ImPlotTime& rhs)  
+{ return ImPlotTime(lhs.S + rhs.S, lhs.Us + rhs.Us); }
+static inline ImPlotTime operator-(const ImPlotTime& lhs, const ImPlotTime& rhs)  
+{ return ImPlotTime(lhs.S - rhs.S, lhs.Us - rhs.Us); }
+static inline bool operator==(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+{ return lhs.S == rhs.S && lhs.Us == rhs.Us; }
+static inline bool operator<(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+{ return lhs.S == rhs.S ? lhs.Us < rhs.Us : lhs.S < rhs.S; }
+static inline bool operator>(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+{ return rhs < lhs; }
+static inline bool operator<=(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+{ return lhs < rhs || lhs == rhs; }
+static inline bool operator>=(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+{ return lhs > rhs || lhs == rhs; }
 
 //-----------------------------------------------------------------------------
 // [SECTION] Internal API
@@ -653,7 +675,8 @@ inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
 void FitPoint(const ImPlotPoint& p);
 
 // Returns true if two ranges overlap
-inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2) { return r1.Min <= r2.Max && r2.Min <= r1.Max; }
+inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2) 
+{ return r1.Min <= r2.Max && r2.Min <= r1.Max; }
 
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils
@@ -771,23 +794,23 @@ inline int GetDaysInMonth(int year, int month) {
 }
 
 // Adds time to a timestamp. #count must be positive!
-double AddTime(double t, ImPlotTimeUnit unit, int count);
+ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count);
 // Rounds a timestamp down to nearest.
-double FloorTime(double t, ImPlotTimeUnit unit);
+ImPlotTime FloorTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Rounds a timestamp up to the nearest unit.
-double CeilTime(double t, ImPlotTimeUnit unit);
+ImPlotTime CeilTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Rounds a timestamp up or down to the nearest unit.
-double RoundTime(double t, ImPlotTimeUnit unit);
+ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 
 // Get year from timestamp
-int GetYear(double t);
+int GetYear(const ImPlotTime& t);
 // Make a timestamp starting at the first day of a year
-double MakeYear(int year);
+ImPlotTime MakeYear(int year);
 
 // Formates a timestamp t into a buffer according to fmt.
-int FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt);
+int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt);
 // Prints a timestamp to console
-void PrintTime(double t, ImPlotTimeFmt fmt);
+void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Internal / Experimental Plotters
