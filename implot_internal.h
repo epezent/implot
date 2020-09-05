@@ -170,30 +170,33 @@ enum ImPlotScale_ {
     ImPlotScale_LogLog  // log x,    log y
 };
 
-enum ImPlotTimeUnit_ {  //                primary
-    ImPlotTimeUnit_Us,  // microsecond    :29.428552
-    ImPlotTimeUnit_Ms,  // millisecond    :29.428
-    ImPlotTimeUnit_S,   // second         :29
-    ImPlotTimeUnit_Min, // minute         7:21pm
-    ImPlotTimeUnit_Hr,  // hour           7pm
-    ImPlotTimeUnit_Day, // day            10/3
-    ImPlotTimeUnit_Mo,  // month          Oct
-    ImPlotTimeUnit_Yr,  // year           1991
+enum ImPlotTimeUnit_ {                  
+    ImPlotTimeUnit_Us,  // microsecond    
+    ImPlotTimeUnit_Ms,  // millisecond    
+    ImPlotTimeUnit_S,   // second        
+    ImPlotTimeUnit_Min, // minute         
+    ImPlotTimeUnit_Hr,  // hour          
+    ImPlotTimeUnit_Day, // day            
+    ImPlotTimeUnit_Mo,  // month         
+    ImPlotTimeUnit_Yr,  // year           
     ImPlotTimeUnit_COUNT
 };
 
 enum ImPlotTimeFmt_ {
-    ImPlotTimeFmt_SUs,          // :29.428552
-    ImPlotTimeFmt_SMs,          // :29.428
-    ImPlotTimeFmt_S,            // :29
-    ImPlotTimeFmt_HrMin,        // 7:21pm
-    ImPlotTimeFmt_Hr,           // 7pm
-    ImPlotTimeFmt_DayMo,        // 10/3
-    ImPlotTimeFmt_DayMoHrMin,   // 10/3 7:21pm
-    ImPlotTimeFmt_DayMoYr,      // 10/3/1991
-    ImPlotTimeFmt_DayMoYrHrMin, // 10/3/1991 7:21pm
-    ImPlotTimeFmt_Mo,           // Oct
-    ImPlotTimeFmt_Yr            // 1991
+    ImPlotTimeFmt_Us,            // .428552
+    ImPlotTimeFmt_SUs,           // :29.428552
+    ImPlotTimeFmt_SMs,           // :29.428
+    ImPlotTimeFmt_S,             // :29
+    ImPlotTimeFmt_HrMinS,        // 7:21:29pm
+    ImPlotTimeFmt_HrMin,         // 7:21pm
+    ImPlotTimeFmt_Hr,            // 7pm
+    ImPlotTimeFmt_DayMo,         // 10/3
+    ImPlotTimeFmt_DayMoHrMin,    // 10/3 7:21pm
+    ImPlotTimeFmt_DayMoYr,       // 10/3/91
+    ImPlotTimeFmt_DayMoYrHrMin,  // 10/3/91 7:21pm
+    ImPlotTimeFmt_DayMoYrHrMinS, // 10/3/91 7:21:29pm
+    ImPlotTimeFmt_Mo,            // Oct
+    ImPlotTimeFmt_Yr             // 1991
 };
 
 //-----------------------------------------------------------------------------
@@ -570,6 +573,17 @@ struct ImPlotAxisScale
     }
 };
 
+/// Two part time struct.
+struct ImPlotTime {
+    time_t S;
+    time_t Us;
+    ImPlotTime(time_t s, time_t us) { S = s; Us = us;}
+    ImPlotTime(double t) { 
+        S  = (time_t)t;
+        Us = (int)(t * 1000000 - floor(t) * 1000000);
+    }
+};
+
 //-----------------------------------------------------------------------------
 // [SECTION] Internal API
 // No guarantee of forward compatibility here!
@@ -771,7 +785,7 @@ int GetYear(double t);
 double MakeYear(int year);
 
 // Formates a timestamp t into a buffer according to fmt.
-void FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt);
+int FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt);
 // Prints a timestamp to console
 void PrintTime(double t, ImPlotTimeFmt fmt);
 
