@@ -170,6 +170,32 @@ enum ImPlotScale_ {
     ImPlotScale_LogLog  // log x,    log y
 };
 
+enum ImPlotTimeUnit_ {  //                primary
+    ImPlotTimeUnit_Us,  // microsecond    :29.428552
+    ImPlotTimeUnit_Ms,  // millisecond    :29.428
+    ImPlotTimeUnit_S,   // second         :29
+    ImPlotTimeUnit_Min, // minute         7:21pm
+    ImPlotTimeUnit_Hr,  // hour           7pm
+    ImPlotTimeUnit_Day, // day            10/3
+    ImPlotTimeUnit_Mo,  // month          Oct
+    ImPlotTimeUnit_Yr,  // year           1991
+    ImPlotTimeUnit_COUNT
+};
+
+enum ImPlotTimeFmt_ {
+    ImPlotTimeFmt_SUs,          // :29.428552
+    ImPlotTimeFmt_SMs,          // :29.428
+    ImPlotTimeFmt_S,            // :29
+    ImPlotTimeFmt_HrMin,        // 7:21pm
+    ImPlotTimeFmt_Hr,           // 7pm
+    ImPlotTimeFmt_DayMo,        // 10/3
+    ImPlotTimeFmt_DayMoHrMin,   // 10/3 7:21pm
+    ImPlotTimeFmt_DayMoYr,      // 10/3/1991
+    ImPlotTimeFmt_DayMoYrHrMin, // 10/3/1991 7:21pm
+    ImPlotTimeFmt_Mo,           // Oct
+    ImPlotTimeFmt_Yr            // 1991
+};
+
 //-----------------------------------------------------------------------------
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
@@ -612,6 +638,9 @@ inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
 // Extends the current plots axes so that it encompasses point p
 void FitPoint(const ImPlotPoint& p);
 
+// Returns true if two ranges overlap
+inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2) { return r1.Min <= r2.Max && r2.Min <= r1.Max; }
+
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils
 //-----------------------------------------------------------------------------
@@ -711,256 +740,40 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
 }
 
 //-----------------------------------------------------------------------------
-// [SECTION] Time Utils
+// Time Utils
 //-----------------------------------------------------------------------------
-
-enum ImPlotTimeUnit_ {  //                primary
-    ImPlotTimeUnit_Us,  // microsecond    :29.428552
-    ImPlotTimeUnit_Ms,  // millisecond    :29.428
-    ImPlotTimeUnit_S,   // second         :29
-    ImPlotTimeUnit_Min, // minute         7:21pm
-    ImPlotTimeUnit_Hr,  // hour           7pm
-    ImPlotTimeUnit_Day, // day            10/3
-    ImPlotTimeUnit_Mo,  // month          Oct
-    ImPlotTimeUnit_Yr,  // year           1991
-    ImPlotTimeUnit_COUNT
-};
-
-enum ImPlotTimeFmt_ {
-    ImPlotTimeFmt_SUs,          // :29.428552
-    ImPlotTimeFmt_SMs,          // :29.428
-    ImPlotTimeFmt_S,            // :29
-    ImPlotTimeFmt_HrMin,        // 7:21pm
-    ImPlotTimeFmt_Hr,           // 7pm
-    ImPlotTimeFmt_DayMo,        // 10/3
-    ImPlotTimeFmt_DayMoHrMin,   // 10/3 7:21pm
-    ImPlotTimeFmt_DayMoYrHrMin, // 10/3/1991 7:21pm
-    ImPlotTimeFmt_Mo,           // Oct
-    ImPlotTimeFmt_Yr            // 1991
-};
-
-static const int    DaysInMonth[12]                      = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-static const double TimeUnitSpans[ImPlotTimeUnit_COUNT]  = {0.000001, 0.001, 1, 60, 3600, 86400, 2629800, 31557600};
-static const ImPlotTimeFmt TimeFormatLevel0[ImPlotTimeUnit_COUNT] =
-{
-    ImPlotTimeFmt_SUs,
-    ImPlotTimeFmt_SMs,
-    ImPlotTimeFmt_S,
-    ImPlotTimeFmt_HrMin,
-    ImPlotTimeFmt_Hr,
-    ImPlotTimeFmt_DayMo,
-    ImPlotTimeFmt_Mo,
-    ImPlotTimeFmt_Yr
-};
-static const ImPlotTimeFmt TimeFormatLevel1[ImPlotTimeUnit_COUNT] =
-{
-    ImPlotTimeFmt_DayMoHrMin,
-    ImPlotTimeFmt_DayMoHrMin,
-    ImPlotTimeFmt_DayMoHrMin,
-    ImPlotTimeFmt_DayMoHrMin,
-    ImPlotTimeFmt_DayMo,
-    ImPlotTimeFmt_DayMo,
-    ImPlotTimeFmt_Yr,
-    ImPlotTimeFmt_Yr
-};
-
-
-inline ImPlotTimeUnit GetUnitForRange(double range) {
-    static double cutoffs[ImPlotTimeUnit_COUNT] = {0.001, 1, 60, 3600, 86400, 2629800, 31557600, IMPLOT_MAX_TIME};
-    for (int i = 0; i < ImPlotTimeUnit_COUNT; ++i) {
-        if (range <= cutoffs[i])
-            return (ImPlotTimeUnit)i;
-    }
-    return ImPlotTimeUnit_Yr;
-}
-
 
 // Returns true if year is leap year (366 days long)
 inline bool IsLeapYear(int year) {
-    if (year % 4 != 0) return false;
+    if (year % 4 != 0)  return false;
     if (year % 400 == 0) return true;
     if (year % 100 == 0) return false;
     return true;
 }
-
 // Returns the number of days in a month, accounting for Feb. leap years.
 inline int GetDaysInMonth(int year, int month) {
-    return DaysInMonth[month] + (int)(month == 1 && IsLeapYear(year));
+    static const int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    return days[month] + (int)(month == 1 && IsLeapYear(year));
 }
 
-inline time_t MakeGmTime(const struct tm *ptm) {
-    time_t secs = 0;
-    int year = ptm->tm_year + 1900;
-    for (int y = 1970; y < year; ++y) {
-        secs += (IsLeapYear(y)? 366: 365) * 86400;
-    }
-    for (int m = 0; m < ptm->tm_mon; ++m) {
-        secs += DaysInMonth[m] * 86400;
-        if (m == 1 && IsLeapYear(year)) secs += 86400;
-    }
-    secs += (ptm->tm_mday - 1) * 86400;
-    secs += ptm->tm_hour       * 3600;
-    secs += ptm->tm_min        * 60;
-    secs += ptm->tm_sec;
-    return secs;
-}
+// Adds time to a timestamp. #count must be positive!
+double AddTime(double t, ImPlotTimeUnit unit, int count);
+// Rounds a timestamp down to nearest.
+double FloorTime(double t, ImPlotTimeUnit unit);
+// Rounds a timestamp up to the nearest unit.
+double CeilTime(double t, ImPlotTimeUnit unit);
+// Rounds a timestamp up or down to the nearest unit.
+double RoundTime(double t, ImPlotTimeUnit unit);
 
-inline tm* GetGmTime(const time_t* time, tm* tm)
-{
-#ifdef _MSC_VER
-  if (gmtime_s(tm, time) == 0)
-    return tm;
-  else
-    return NULL;
-#else
-  return gmtime_r(time, tm);
-#endif
-}
+// Get year from timestamp
+int GetYear(double t);
+// Make a timestamp starting at the first day of a year
+double MakeYear(int year);
 
-inline double AddTime(double t, ImPlotTimeUnit unit, int count) {
-    switch(unit) {
-        case ImPlotTimeUnit_Us:  return t + count * 0.000001;
-        case ImPlotTimeUnit_Ms:  return t + count * 0.001;
-        case ImPlotTimeUnit_S:   return t + count;
-        case ImPlotTimeUnit_Min: return t + count * 60;
-        case ImPlotTimeUnit_Hr:  return t + count * 3600;
-        case ImPlotTimeUnit_Day: return t + count * 86400;
-        case ImPlotTimeUnit_Yr:  count *= 12; // fall-through
-        case ImPlotTimeUnit_Mo:  for (int i = 0; i < count; ++i) {
-                                     time_t s = (time_t)t;
-                                     GetGmTime(&s, &GImPlot->Tm);
-                                     int days = GetDaysInMonth(GImPlot->Tm.tm_year, GImPlot->Tm.tm_mon);
-                                     t = AddTime(t, ImPlotTimeUnit_Day, days);
-                                 }
-                                 return t;
-        default:                 return t;
-    }
-}
-
-inline int GetYear(double t) {
-    time_t s = (time_t)t;
-    tm& Tm = GImPlot->Tm;
-    IM_ASSERT(GetGmTime(&s, &Tm) != NULL);
-    return Tm.tm_year + 1900;
-}
-
-inline double MakeYear(int year) {
-    int yr = year - 1900;
-    if (yr < 0)
-        yr = 0;
-    GImPlot->Tm = tm();
-    GImPlot->Tm.tm_year = yr;
-    GImPlot->Tm.tm_sec  = 1;
-    time_t s = MakeGmTime(&GImPlot->Tm);
-    if (s < 0)
-        s = 0;
-    return (double)s;
-}
-
-inline double FloorTime(double t, ImPlotTimeUnit unit) {
-    time_t s = (time_t)t;
-    GetGmTime(&s, &GImPlot->Tm);
-    GImPlot->Tm.tm_isdst = -1;
-    switch (unit) {
-        case ImPlotTimeUnit_S:   return (double)s;
-        case ImPlotTimeUnit_Ms:  return floor(t * 1000) / 1000;
-        case ImPlotTimeUnit_Us:  return floor(t * 1000000) / 1000000;
-        case ImPlotTimeUnit_Yr:  GImPlot->Tm.tm_mon  = 0; // fall-through
-        case ImPlotTimeUnit_Mo:  GImPlot->Tm.tm_mday = 1; // fall-through
-        case ImPlotTimeUnit_Day: GImPlot->Tm.tm_hour = 0; // fall-through
-        case ImPlotTimeUnit_Hr:  GImPlot->Tm.tm_min  = 0; // fall-through
-        case ImPlotTimeUnit_Min: GImPlot->Tm.tm_sec  = 0; break;
-        default:             return t;
-    }
-    s = MakeGmTime(&GImPlot->Tm);
-    return (double)s;
-}
-
-inline double CeilTime(double t, ImPlotTimeUnit unit) {
-    return AddTime(FloorTime(t, unit), unit, 1);
-}
-
-inline void FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt) {
-    time_t s = (time_t)t;
-    int ms = (int)(t * 1000 - floor(t) * 1000);
-    ms = ms % 10 == 9 ? ms + 1 : ms;
-    int us = (int)(t * 1000000 - floor(t) * 1000000);
-    us = us % 10 == 9 ? us + 1 : us;
-    tm& Tm = GImPlot->Tm;
-    IM_ASSERT(GetGmTime(&s, &Tm) != NULL);
-    switch(fmt) {
-        case ImPlotTimeFmt_Yr:    strftime(buffer, size, "%Y",    &Tm); break;
-        case ImPlotTimeFmt_Mo:    strftime(buffer, size, "%b",    &Tm); break;
-        case ImPlotTimeFmt_DayMo: snprintf(buffer, size, "%d/%d", Tm.tm_mon + 1, Tm.tm_mday); break;
-        case ImPlotTimeFmt_DayMoHrMin:
-            if (Tm.tm_hour == 0)
-                snprintf(buffer, size, "%d/%d 12:%02dam", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_min);
-            else if (Tm.tm_hour == 12)
-                snprintf(buffer, size, "%d/%d 12:%02dpm", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_min);
-            else if (Tm.tm_hour < 12)
-                snprintf(buffer, size, "%d/%d %u:%02dam", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_hour, Tm.tm_min);
-            else if (Tm.tm_hour > 12)
-                snprintf(buffer, size, "%d/%d %u:%02dpm", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_hour - 12, Tm.tm_min);
-            break;
-        case ImPlotTimeFmt_DayMoYrHrMin:
-            if (Tm.tm_hour == 0)
-                snprintf(buffer, size, "%d/%d/%d 12:%02dam", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_year + 1900, Tm.tm_min);
-            else if (Tm.tm_hour == 12)
-                snprintf(buffer, size, "%d/%d/%d 12:%02dpm", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_year + 1900, Tm.tm_min);
-            else if (Tm.tm_hour < 12)
-                snprintf(buffer, size, "%d/%d/%d %u:%02dam", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_year + 1900, Tm.tm_hour, Tm.tm_min);
-            else if (Tm.tm_hour > 12)
-                snprintf(buffer, size, "%d/%d/%d %u:%02dpm", Tm.tm_mon + 1, Tm.tm_mday, Tm.tm_year + 1900, Tm.tm_hour - 12, Tm.tm_min);
-            break;
-        case ImPlotTimeFmt_Hr:
-            if (Tm.tm_hour == 0)
-                snprintf(buffer, size, "12am");
-            else if (Tm.tm_hour == 12)
-                snprintf(buffer, size, "12pm");
-            else if (Tm.tm_hour < 12)
-                snprintf(buffer, size, "%uam", Tm.tm_hour);
-            else if (Tm.tm_hour > 12)
-                snprintf(buffer, size, "%upm", Tm.tm_hour - 12);
-            break;
-        case ImPlotTimeFmt_HrMin:
-            if (Tm.tm_hour == 0)
-                snprintf(buffer, size, "12:%02dam", Tm.tm_min);
-            else if (Tm.tm_hour == 12)
-                snprintf(buffer, size, "12:%02dpm", Tm.tm_min);
-            else if (Tm.tm_hour < 12)
-                snprintf(buffer, size, "%d:%02dam", Tm.tm_hour, Tm.tm_min);
-            else if (Tm.tm_hour > 12)
-                snprintf(buffer, size, "%d:%02dpm", Tm.tm_hour - 12, Tm.tm_min);
-            break;
-        case ImPlotTimeFmt_S:   snprintf(buffer, size, ":%02d",      Tm.tm_sec);     break;
-        case ImPlotTimeFmt_SMs: snprintf(buffer, size, ":%02d.%03d", Tm.tm_sec, ms); break;
-        case ImPlotTimeFmt_SUs: snprintf(buffer, size, ":%02d.%06d", Tm.tm_sec, us); break;
-        default: break;
-    }
-}
-
-inline void PrintTime(double t, ImPlotTimeFmt fmt) {
-    char buff[32];
-    FormatTime(t, buff, 32, fmt);
-    printf("%s\n",buff);
-}
-
-// Returns the nominally largest possible width for a time format
-inline float GetTimeLabelWidth(ImPlotTimeFmt fmt) {
-    switch (fmt) {
-        case ImPlotTimeFmt_SUs:          return ImGui::CalcTextSize(":88.888888").x;         // :29.428552
-        case ImPlotTimeFmt_SMs:          return ImGui::CalcTextSize(":88.888").x;            // :29.428
-        case ImPlotTimeFmt_S:            return ImGui::CalcTextSize(":88").x;                // :29
-        case ImPlotTimeFmt_HrMin:        return ImGui::CalcTextSize("88:88pm").x;            // 7:21pm
-        case ImPlotTimeFmt_Hr:           return ImGui::CalcTextSize("8pm").x;                // 7pm
-        case ImPlotTimeFmt_DayMo:        return ImGui::CalcTextSize("88/88").x;              // 10/3
-        case ImPlotTimeFmt_DayMoHrMin:   return ImGui::CalcTextSize("88/88 88:88pm").x;      // 10/3 7:21pm
-        case ImPlotTimeFmt_DayMoYrHrMin: return ImGui::CalcTextSize("88/88/8888 88:88pm").x; // 10/3/1991 7:21pm
-        case ImPlotTimeFmt_Mo:           return ImGui::CalcTextSize("MMM").x;                // Oct
-        case ImPlotTimeFmt_Yr:           return ImGui::CalcTextSize("8888").x;               // 1991
-        default:                         return 0;
-    }
-}
+// Formates a timestamp t into a buffer according to fmt.
+void FormatTime(double t, char* buffer, int size, ImPlotTimeFmt fmt);
+// Prints a timestamp to console
+void PrintTime(double t, ImPlotTimeFmt fmt);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Internal / Experimental Plotters
