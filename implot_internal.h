@@ -183,8 +183,8 @@ enum ImPlotTimeUnit_ {
 };
 
 enum ImPlotTimeFmt_ {
-    ImPlotTimeFmt_Us,            // .428552
-    ImPlotTimeFmt_SUs,           // :29.428552
+    ImPlotTimeFmt_Us,            // .428 552
+    ImPlotTimeFmt_SUs,           // :29.428 552
     ImPlotTimeFmt_SMs,           // :29.428
     ImPlotTimeFmt_S,             // :29
     ImPlotTimeFmt_HrMinS,        // 7:21:29pm
@@ -579,21 +579,13 @@ struct ImPlotAxisScale
 
 /// Two part time struct.
 struct ImPlotTime {
-    time_t S;
-    int    Us;
+    time_t S;  // second part
+    int    Us; // microsecond part
     ImPlotTime() { S = 0; Us = 0; }
-    ImPlotTime(time_t s, int us = 0) { 
-        S  = s + us / 1000000; 
-        Us = us % 1000000;
-    }
-    void RollOver() {
-        S  = S + Us / 1000000; 
-        Us = Us % 1000000; 
-    }
-    static ImPlotTime FromDouble(double t) { 
-        return ImPlotTime((time_t)t, (int)(t * 1000000 - floor(t) * 1000000));
-    }
-    double ToDouble() const { return (double)S + (double)Us / 1000000.0; }    
+    ImPlotTime(time_t s, int us = 0) { S  = s + us / 1000000; Us = us % 1000000; }
+    void RollOver() { S  = S + Us / 1000000;  Us = Us % 1000000; }
+    double ToDouble() const { return (double)S + (double)Us / 1000000.0; }
+    static ImPlotTime FromDouble(double t) { return ImPlotTime((time_t)t, (int)(t * 1000000 - floor(t) * 1000000)); }
 };
 
 static inline ImPlotTime operator+(const ImPlotTime& lhs, const ImPlotTime& rhs)  
@@ -785,7 +777,7 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
 // Time Utils
 //-----------------------------------------------------------------------------
 
-// NB: These functions only work if there is a currnet context because the 
+// NB: These functions only work if there is a current ImPlotContext because the 
 // internal tm struct is owned by the context!
 
 // Returns true if year is leap year (366 days long)

@@ -207,31 +207,31 @@ struct ImPlotLimits {
 // Plot style structure
 struct ImPlotStyle {
     // item styling variables
-    float        LineWeight;              // = 1,      item line weight in pixels
-    ImPlotMarker Marker;                  // = ImPlotMarker_None, marker specification
-    float        MarkerSize;              // = 4,      marker size in pixels (roughly the marker's "radius")
-    float        MarkerWeight;            // = 1,      outline weight of markers in pixels
-    float        FillAlpha;               // = 1,      alpha modifier applied to plot fills
-    float        ErrorBarSize;            // = 5,      error bar whisker width in pixels
-    float        ErrorBarWeight;          // = 1.5,    error bar whisker weight in pixels
-    float        DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
-    float        DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
+    float   LineWeight;              // = 1,      item line weight in pixels
+    int     Marker;                  // = ImPlotMarker_None, marker specification
+    float   MarkerSize;              // = 4,      marker size in pixels (roughly the marker's "radius")
+    float   MarkerWeight;            // = 1,      outline weight of markers in pixels
+    float   FillAlpha;               // = 1,      alpha modifier applied to plot fills
+    float   ErrorBarSize;            // = 5,      error bar whisker width in pixels
+    float   ErrorBarWeight;          // = 1.5,    error bar whisker weight in pixels
+    float   DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
+    float   DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
     // plot styling variables
-    bool         AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
-    float        PlotBorderSize;          // = 1,      line thickness of border around plot area
-    float        MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
-    ImVec2       MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
-    ImVec2       MinorTickLen;            // = 5,5     minor tick lengths for X and Y axes
-    ImVec2       MajorTickSize;           // = 1,1     line thickness of major ticks
-    ImVec2       MinorTickSize;           // = 1,1     line thickness of minor ticks
-    ImVec2       MajorGridSize;           // = 1,1     line thickness of major grid lines
-    ImVec2       MinorGridSize;           // = 1,1     line thickness of minor grid lines
-    ImVec2       PlotPadding;             // = 8,8     padding between widget frame and plot area and/or labels
-    ImVec2       LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
-    ImVec2       LegendPadding;           // = 10,10   legend padding from top-left of plot
-    ImVec2       InfoPadding;             // = 10,10   padding between plot edge and interior info text
-    ImVec2       PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
-    ImVec4       Colors[ImPlotCol_COUNT]; //           array of plot specific colors
+    bool    AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
+    float   PlotBorderSize;          // = 1,      line thickness of border around plot area
+    float   MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
+    ImVec2  MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
+    ImVec2  MinorTickLen;            // = 5,5     minor tick lengths for X and Y axes
+    ImVec2  MajorTickSize;           // = 1,1     line thickness of major ticks
+    ImVec2  MinorTickSize;           // = 1,1     line thickness of minor ticks
+    ImVec2  MajorGridSize;           // = 1,1     line thickness of major grid lines
+    ImVec2  MinorGridSize;           // = 1,1     line thickness of minor grid lines
+    ImVec2  PlotPadding;             // = 8,8     padding between widget frame and plot area and/or labels
+    ImVec2  LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
+    ImVec2  LegendPadding;           // = 10,10   legend padding from top-left of plot
+    ImVec2  InfoPadding;             // = 10,10   padding between plot edge and interior info text
+    ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
+    ImVec4  Colors[ImPlotCol_COUNT]; //           array of plot specific colors
     ImPlotStyle();
 };
 
