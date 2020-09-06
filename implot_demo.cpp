@@ -152,7 +152,7 @@ void ShowDemoWindow(bool* p_open) {
         return;
     }
     ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(530, 750), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(600, 750), ImGuiCond_FirstUseEver);
     ImGui::Begin("ImPlot Demo", p_open, ImGuiWindowFlags_MenuBar);
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Tools")) {
@@ -591,23 +591,10 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
     }
-    if (ImGui::CollapsingHeader("Time Formatting")) {
-        static double min = 1599242863*0.5;
-        static double max = 1599242863*1.5;
-        static bool zooming = false;
-        ImGuiCond cond = ImGuiCond_Once;
-        if (ImGui::Button("Zoom")) {
-            zooming = true;
-        }
-        if (zooming) {
-            cond = ImGuiCond_Always;
-            double range = max - min;
-            min += range * 0.005;
-            max -= range * 0.005;
-            if (range < 0.005)
-                zooming = false;            
-        }
-        ImPlot::SetNextPlotLimits(min,max,0,1,cond);
+    if (ImGui::CollapsingHeader("Time Formatted Axes")) {
+        static double min = 1577836800; // 01/01/2020 @ 12:00:00am (UTC)
+        static double max = 1609459200; // 01/01/2021 @ 12:00:00am (UTC)
+        ImPlot::SetNextPlotLimits(min,max,0,1);
         if (ImPlot::BeginPlot("##Time", "UTC Time", "Y-Axis", ImVec2(-1,0), ImPlotFlags_Default, ImPlotAxisFlags_Default | ImPlotAxisFlags_Time)) {
 
             ImPlot::EndPlot();
@@ -615,8 +602,6 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Multiple Y-Axes")) {
-
-
         static t_float xs[1001], xs2[1001], ys1[1001], ys2[1001], ys3[1001];
         for (int i = 0; i < 1001; ++i) {
             xs[i]  = (i*0.1f);
@@ -1294,7 +1279,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
     // custom tool
     if (ImPlot::IsPlotHovered() && tooltip) {
         ImPlotPoint mouse   = ImPlot::GetPlotMousePos();
-        mouse.x             = ImPlot::RoundTime(ImPlotTime(mouse.x), ImPlotTimeUnit_Day).ToDouble();
+        mouse.x             = ImPlot::RoundTime(ImPlotTime::FromDouble(mouse.x), ImPlotTimeUnit_Day).ToDouble();
         float  tool_l       = ImPlot::PlotToPixels(mouse.x - half_width * 1.5, mouse.y).x;
         float  tool_r       = ImPlot::PlotToPixels(mouse.x + half_width * 1.5, mouse.y).x;
         float  tool_t       = ImPlot::GetPlotPos().y;
@@ -1308,7 +1293,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
         if (idx != -1) {
             ImGui::BeginTooltip();
             char buff[32];
-            ImPlot::FormatTime(xs[idx],buff,32,ImPlotTimeFmt_DayMoYr);
+            ImPlot::FormatTime(ImPlotTime::FromDouble(xs[idx]),buff,32,ImPlotTimeFmt_DayMoYr);
             ImGui::Text("Day:   %s",  buff);
             ImGui::Text("Open:  $%.2f", opens[idx]);
             ImGui::Text("Close: $%.2f", closes[idx]);

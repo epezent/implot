@@ -126,10 +126,10 @@ struct ImOffsetCalculator {
 struct ImBufferWriter
 {
     char*  Buffer;
-    size_t Size;
-    size_t Pos;
+    int Size;
+    int Pos;
 
-    ImBufferWriter(char* buffer, size_t size) {
+    ImBufferWriter(char* buffer, int size) {
         Buffer = buffer;
         Size = size;
         Pos = 0;
@@ -140,7 +140,7 @@ struct ImBufferWriter
         va_start(argp, fmt);
         const int written = ::vsnprintf(&Buffer[Pos], Size - Pos - 1, fmt, argp);
         if (written > 0)
-          Pos += ImMin(size_t(written), Size-Pos-1);
+          Pos += ImMin(written, Size-Pos-1);
         va_end(argp);
     }
 };
@@ -191,6 +191,7 @@ enum ImPlotTimeFmt_ {
     ImPlotTimeFmt_HrMin,         // 7:21pm
     ImPlotTimeFmt_Hr,            // 7pm
     ImPlotTimeFmt_DayMo,         // 10/3
+    ImPlotTimeFmt_DayMoHr,       // 10/3 7pm
     ImPlotTimeFmt_DayMoHrMin,    // 10/3 7:21pm
     ImPlotTimeFmt_DayMoYr,       // 10/3/91
     ImPlotTimeFmt_DayMoYrHrMin,  // 10/3/91 7:21pm
@@ -580,13 +581,17 @@ struct ImPlotAxisScale
 struct ImPlotTime {
     time_t S;
     int    Us;
-    ImPlotTime(time_t s, int us) { 
+    ImPlotTime() { S = 0; Us = 0; }
+    ImPlotTime(time_t s, int us = 0) { 
         S  = s + us / 1000000; 
         Us = us % 1000000;
     }
-    ImPlotTime(double t) { 
-        S  = (time_t)t;
-        Us = (int)(t * 1000000 - floor(t) * 1000000);
+    void RollOver() {
+        S  = S + Us / 1000000; 
+        Us = Us % 1000000; 
+    }
+    static ImPlotTime FromDouble(double t) { 
+        return ImPlotTime((time_t)t, (int)(t * 1000000 - floor(t) * 1000000));
     }
     double ToDouble() const { return (double)S + (double)Us / 1000000.0; }    
 };
@@ -696,7 +701,7 @@ void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer);
 // Label a tick with scientific formating.
 void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer);
 // Label a tick with time formatting.
-void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, ImPlotTimeFmt fmt);
+void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotTimeFmt fmt);
 
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
 void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImPlotTickCollection& ticks);
@@ -780,6 +785,9 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
 // Time Utils
 //-----------------------------------------------------------------------------
 
+// NB: These functions only work if there is a currnet context because the 
+// internal tm struct is owned by the context!
+
 // Returns true if year is leap year (366 days long)
 inline bool IsLeapYear(int year) {
     if (year % 4 != 0)  return false;
@@ -787,7 +795,7 @@ inline bool IsLeapYear(int year) {
     if (year % 100 == 0) return false;
     return true;
 }
-// Returns the number of days in a month, accounting for Feb. leap years.
+// Returns the number of days in a month, accounting for Feb. leap years. #month is zero indexed.
 inline int GetDaysInMonth(int year, int month) {
     static const int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     return days[month] + (int)(month == 1 && IsLeapYear(year));
