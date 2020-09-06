@@ -26,6 +26,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #ifdef _MSC_VER
 #define sprintf sprintf_s
@@ -122,6 +123,25 @@ struct RollingBuffer {
             Data.shrink(0);
         Data.push_back(t_float2(xmod, y));
     }
+};
+
+// Huge data used by Time Formatting example (~500 MB allocation!)
+struct HugeTimeData {
+    HugeTimeData(double min) {
+        Ts = new double[Size];
+        Ys = new double[Size];
+        for (int i = 0; i < Size; ++i) {
+            Ts[i] = min + i;
+            Ys[i] = GetY(Ts[i]);
+        }
+    }
+    ~HugeTimeData() { delete[] Ts;  delete[] Ys; }
+    static double GetY(double t) {
+        return 0.5 + 0.25 * sin(t/86400/12) +  0.005 * sin(t/3600);
+    }
+    double* Ts;
+    double* Ys;
+    static const int Size = 60*60*24*366;
 };
 
 void ShowDemoWindow(bool* p_open) {
@@ -591,11 +611,42 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     if (ImGui::CollapsingHeader("Time Formatted Axes")) {
-        static double min = 1577836800; // 01/01/2020 @ 12:00:00am (UTC)
-        static double max = 1609459200; // 01/01/2021 @ 12:00:00am (UTC)
-        ImPlot::SetNextPlotLimits(min,max,0,1);
-        if (ImPlot::BeginPlot("##Time", "UTC Time", "Y-Axis", ImVec2(-1,0), 0, ImPlotAxisFlags_Time)) {
 
+        static double t_min = 1577836800; // 01/01/2020 @ 12:00:00am (UTC)
+        static double t_max = 1609459200; // 01/01/2021 @ 12:00:00am (UTC)
+
+        ImGui::BulletText("When ImPlotAxisFlags_Time is enabled on the X-Axis, values are interpreted as\n"
+                          "UNIX timestamps in seconds and axis labels are formated as date/time.");
+        ImGui::BulletText("By default, labels are in UTC time but can be set to use local time instead.");
+
+        ImGui::Checkbox("Use Local Time",&ImPlot::GetStyle().UseLocalTime);   
+
+        static HugeTimeData* data = NULL;
+        if (data == NULL) {
+            ImGui::SameLine();
+            if (ImGui::Button("Generate Huge Data (~500MB!)")) {
+                static HugeTimeData sdata(t_min);
+                data = &sdata;
+            }
+        }
+
+        ImPlot::SetNextPlotLimits(t_min,t_max,0,1);
+        if (ImPlot::BeginPlot("##Time", "Time", "Value", ImVec2(-1,0), 0, ImPlotAxisFlags_Time)) {
+            if (data != NULL) {       
+                // downsample our data 
+                int downsample = (int)ImPlot::GetPlotLimits().X.Size() / 1000 + 1; 
+                int start = (int)(ImPlot::GetPlotLimits().X.Min - t_min);
+                start = start < 0 ? 0 : start > HugeTimeData::Size - 1 ? HugeTimeData::Size - 1 : start;
+                int end = (int)(ImPlot::GetPlotLimits().X.Max - t_min) + 1000;
+                end = end < 0 ? 0 : end > HugeTimeData::Size - 1 ? HugeTimeData::Size - 1 : end;
+                int size = (end - start)/downsample;
+                // plot it
+                ImPlot::PlotLine("Time Series", &data->Ts[start], &data->Ys[start], size, 0, sizeof(double)*downsample);
+            }
+            // plot time now
+            double t_now = (double)time(0);
+            double y_now = HugeTimeData::GetY(t_now);
+            ImPlot::PlotScatter("Now",&t_now,&y_now,1);
             ImPlot::EndPlot();
         }
     }
@@ -1133,8 +1184,9 @@ void ShowDemoWindow(bool* p_open) {
         static ImVec4 bearCol = ImVec4(0.853f, 0.050f, 0.310f, 1.000f);
         ImGui::SameLine(); ImGui::ColorEdit4("##Bull", &bullCol.x, ImGuiColorEditFlags_NoInputs);
         ImGui::SameLine(); ImGui::ColorEdit4("##Bear", &bearCol.x, ImGuiColorEditFlags_NoInputs);
+        ImPlot::GetStyle().UseLocalTime = false;
         ImPlot::SetNextPlotLimits(1546300800, 1571961600, 1250, 1600);
-        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,-1),0,ImPlotAxisFlags_Time)) {
+        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,0),0,ImPlotAxisFlags_Time)) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
             ImPlot::EndPlot();
         }

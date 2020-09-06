@@ -577,7 +577,7 @@ struct ImPlotAxisScale
     }
 };
 
-/// Two part time struct.
+/// Two part timestamp struct.
 struct ImPlotTime {
     time_t S;  // second part
     int    Us; // microsecond part
@@ -777,8 +777,7 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
 // Time Utils
 //-----------------------------------------------------------------------------
 
-// NB: These functions only work if there is a current ImPlotContext because the 
-// internal tm struct is owned by the context!
+
 
 // Returns true if year is leap year (366 days long)
 inline bool IsLeapYear(int year) {
@@ -792,6 +791,19 @@ inline int GetDaysInMonth(int year, int month) {
     static const int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     return days[month] + (int)(month == 1 && IsLeapYear(year));
 }
+
+// Make a timestamp from a tm struct expressed as a UTC time (i.e. GMT timezone).
+ImPlotTime MkGmtTime(struct tm *ptm);
+// Make a tm struct from a timestamp expressed as a UTC time (i.e. GMT timezone).
+tm* GetGmtTime(const ImPlotTime& t, tm* ptm);
+
+// Make a timestamp from a tm struct expressed as a local time.
+ImPlotTime MkLocTime(struct tm *ptm);
+// Make a tm struct from a timestamp expressed as a local time.
+tm* GetLocTime(const ImPlotTime& t, tm* ptm);
+
+// NB: These functions only work if there is a current ImPlotContext because the 
+// internal tm struct is owned by the context!
 
 // Adds time to a timestamp. #count must be positive!
 ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count);

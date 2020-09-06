@@ -107,7 +107,6 @@ ImPlotStyle::ImPlotStyle() {
     ErrorBarWeight   = 1.5f;
     DigitalBitHeight = 8;
     DigitalBitGap    = 4;
-    AntiAliasedLines = false;
 
     PlotBorderSize   = 1;
     MinorAlpha       = 0.25f;
@@ -124,6 +123,9 @@ ImPlotStyle::ImPlotStyle() {
     PlotMinSize      = ImVec2(300,225);
 
     ImPlot::StyleColorsAuto(this);
+
+    AntiAliasedLines = false;
+    UseLocalTime     = false;
 }
 
 namespace ImPlot {
@@ -646,7 +648,7 @@ inline int GetTimeStep(int max_divs, ImPlotTimeUnit unit) {
     return 0;
 }
 
-inline time_t MakeGmTime(const struct tm *ptm) {
+ImPlotTime MkGmtTime(struct tm *ptm) {
     time_t secs = 0;
     int year = ptm->tm_year + 1900;
     for (int y = 1970; y < year; ++y) 
@@ -657,19 +659,50 @@ inline time_t MakeGmTime(const struct tm *ptm) {
     secs += ptm->tm_hour       * 3600;
     secs += ptm->tm_min        * 60;
     secs += ptm->tm_sec;
-    return secs;
+    return ImPlotTime(secs,0);
 }
 
-inline tm* GetGmTime(const time_t* time, tm* tm)
+tm* GetGmtTime(const ImPlotTime& t, tm* ptm)
 {
 #ifdef _WIN32
-  if (gmtime_s(tm, time) == 0)
-    return tm;
+  if (gmtime_s(ptm, &t.S) == 0)
+    return ptm;
   else
     return NULL;
 #else
-  return gmtime_r(time, tm);
+  return gmtime_r(&t.S, ptm);
 #endif
+}
+
+ImPlotTime MkLocTime(struct tm *ptm) {
+    ImPlotTime t;
+    t.S = mktime(ptm);
+    return t;
+}
+
+tm* GetLocTime(const ImPlotTime& t, tm* ptm) {
+#ifdef _WIN32
+  if (localtime_s(ptm, &t.S) == 0)
+    return ptm;
+  else
+    return NULL;
+#else
+    return localtime_r(&t.S, ptm);
+#endif
+}
+
+inline ImPlotTime MkTime(struct tm *ptm) {
+    if (GetStyle().UseLocalTime)
+        return MkLocTime(ptm);
+    else
+        return MkGmtTime(ptm);
+}
+
+inline tm* GetTime(const ImPlotTime& t, tm* ptm) {
+    if (GetStyle().UseLocalTime)
+        return GetLocTime(t,ptm);
+    else
+        return GetGmtTime(t,ptm);
 }
 
 ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count) {
@@ -683,7 +716,7 @@ ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count) {
         case ImPlotTimeUnit_Hr:  t_out.S  += count * 3600;  break;
         case ImPlotTimeUnit_Day: t_out.S  += count * 86400; break;
         case ImPlotTimeUnit_Mo:  for (int i = 0; i < count; ++i) {    // this might have a bug
-                                     GetGmTime(&t.S, &Tm);
+                                     GetTime(t_out, &Tm);
                                      t_out.S += 86400 * GetDaysInMonth(Tm.tm_year + 1900, Tm.tm_mon); 
                                  }
                                  break;
@@ -701,8 +734,7 @@ ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count) {
 }
 
 ImPlotTime FloorTime(const ImPlotTime& t, ImPlotTimeUnit unit) {
-    GetGmTime(&t.S, &GImPlot->Tm);
-    GImPlot->Tm.tm_isdst = -1;
+    GetTime(t, &GImPlot->Tm);
     switch (unit) {
         case ImPlotTimeUnit_S:   return ImPlotTime(t.S, 0);
         case ImPlotTimeUnit_Ms:  return ImPlotTime(t.S, (t.Us / 1000) * 1000);
@@ -714,7 +746,7 @@ ImPlotTime FloorTime(const ImPlotTime& t, ImPlotTimeUnit unit) {
         case ImPlotTimeUnit_Min: GImPlot->Tm.tm_sec  = 0; break;
         default:                 return t;
     }
-    return ImPlotTime(MakeGmTime(&GImPlot->Tm),0);
+    return MkTime(&GImPlot->Tm);
 }
 
 ImPlotTime CeilTime(const ImPlotTime& t, ImPlotTimeUnit unit) {
@@ -731,7 +763,7 @@ ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit) {
 
 int GetYear(const ImPlotTime& t) {
     tm& Tm = GImPlot->Tm;
-    GetGmTime(&t.S, &Tm);
+    GetTime(t, &Tm);
     return Tm.tm_year + 1900;
 }
 
@@ -747,14 +779,12 @@ ImPlotTime MakeYear(int year) {
     Tm.tm_mon  = 0;
     Tm.tm_year = yr;
     Tm.tm_sec  = 0;
-    Tm.tm_isdst = -1;
-    time_t s = MakeGmTime(&Tm);
-    return ImPlotTime(s);
+    return MkTime(&Tm);
 }
 
 int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt) {
     tm& Tm = GImPlot->Tm;
-    GetGmTime(&t.S, &Tm);
+    GetTime(t, &Tm);
 
     const char* ap = Tm.tm_hour < 12 ? "am" : "pm";
     const int us   = t.Us % 1000;

@@ -217,7 +217,6 @@ struct ImPlotStyle {
     float   DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
     float   DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
     // plot styling variables
-    bool    AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
     float   PlotBorderSize;          // = 1,      line thickness of border around plot area
     float   MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
     ImVec2  MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
@@ -231,7 +230,11 @@ struct ImPlotStyle {
     ImVec2  LegendPadding;           // = 10,10   legend padding from top-left of plot
     ImVec2  InfoPadding;             // = 10,10   padding between plot edge and interior info text
     ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
+    // colors
     ImVec4  Colors[ImPlotCol_COUNT]; //           array of plot specific colors
+    // settings/flags
+    bool    AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
+    bool    UseLocalTime;            // = false,  axis labels will be formatted for your timezone when ImPlotAxisFlag_Time is enabled
     ImPlotStyle();
 };
 
