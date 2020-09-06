@@ -20,12 +20,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.5 WIP
+// ImPlot v0.7 WIP
 
 #pragma once
 #include "imgui.h"
 
-#define IMPLOT_VERSION "0.5 WIP"
+//-----------------------------------------------------------------------------
+// Macros and Defines
+//-----------------------------------------------------------------------------
+
+// ImPlot version string
+#define IMPLOT_VERSION "0.7 WIP"
+// Indicates variable should deduced automatically.
+#define IMPLOT_AUTO -1
+// Special color used to indicate that a color should be deduced automatically.
+#define IMPLOT_AUTO_COL ImVec4(0,0,0,-1)
 
 //-----------------------------------------------------------------------------
 // Forward Declarations and Basic Types
@@ -44,42 +53,45 @@ typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 
 // Options for plots.
 enum ImPlotFlags_ {
-    ImPlotFlags_MousePos    = 1 << 0,  // the mouse position, in plot coordinates, will be displayed in the bottom-right
-    ImPlotFlags_Legend      = 1 << 1,  // a legend will be displayed in the top-left
-    ImPlotFlags_Highlight   = 1 << 2,  // plot items will be highlighted when their legend entry is hovered
-    ImPlotFlags_BoxSelect   = 1 << 3,  // the user will be able to box-select with right-mouse
-    ImPlotFlags_Query       = 1 << 4,  // the user will be able to draw query rects with middle-mouse
-    ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open context menus with double-right click
-    ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased = 1 << 7,  // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
-    ImPlotFlags_NoChild     = 1 << 8,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2      = 1 << 9,  // enable a 2nd y-axis
-    ImPlotFlags_YAxis3      = 1 << 10, // enable a 3rd y-axis
-    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu
+    ImPlotFlags_None          = 0,       // default
+    ImPlotFlags_NoLegend      = 1 << 0,  // the top-left legend will not be displayed
+    ImPlotFlags_NoMenus       = 1 << 1,  // the user will not be able to open context menus with double-right click
+    ImPlotFlags_NoBoxSelect   = 1 << 2,  // the user will not be able to box-select with right-mouse
+    ImPlotFlags_NoMousePos    = 1 << 3,  // the mouse position, in plot coordinates, will not be displayed in the bottom-right
+    ImPlotFlags_NoHighlight   = 1 << 4,  // plot items will not be highlighted when their legend entry is hovered
+    ImPlotFlags_NoChild       = 1 << 5,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_YAxis2        = 1 << 6,  // enable a 2nd y-axis on the right side
+    ImPlotFlags_YAxis3        = 1 << 7,  // enable a 3rd y-axis on the right side
+    ImPlotFlags_Query         = 1 << 8,  // the user will be able to draw query rects with middle-mouse
+    ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_AntiAliased   = 1 << 10, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
+    ImPlotFlags_CanvasOnly    = ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
 };
 
 // Options for plot axes (X and Y).
 enum ImPlotAxisFlags_ {
-    ImPlotAxisFlags_GridLines  = 1 << 0, // grid lines will be displayed
-    ImPlotAxisFlags_TickMarks  = 1 << 1, // tick marks will be displayed for each grid line
-    ImPlotAxisFlags_TickLabels = 1 << 2, // text labels will be displayed for each grid line
-    ImPlotAxisFlags_Invert     = 1 << 3, // the axis will be inverted
-    ImPlotAxisFlags_LockMin    = 1 << 4, // the axis minimum value will be locked when panning/zooming
-    ImPlotAxisFlags_LockMax    = 1 << 5, // the axis maximum value will be locked when panning/zooming
-    ImPlotAxisFlags_LogScale   = 1 << 6, // a logartithmic (base 10) axis scale will be used
-    ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
-    ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
+    ImPlotAxisFlags_None          = 0,      // default
+    ImPlotAxisFlags_NoGridLines   = 1 << 0, // no grid lines will be displayed
+    ImPlotAxisFlags_NoTickMarks   = 1 << 1, // no tick marks will be displayed
+    ImPlotAxisFlags_NoTickLabels  = 1 << 2, // no text labels will be displayed
+    ImPlotAxisFlags_LogScale      = 1 << 3, // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
+    ImPlotAxisFlags_Time          = 1 << 4, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
+    ImPlotAxisFlags_Invert        = 1 << 5, // the axis will be inverted
+    ImPlotAxisFlags_LockMin       = 1 << 6, // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax       = 1 << 7, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
+    ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels
 };
 
 // Plot styling colors.
 enum ImPlotCol_ {
-    // item related colors
+    // item styling colors
     ImPlotCol_Line,          // plot line/outline color (defaults to next unused color in current colormap)
     ImPlotCol_Fill,          // plot fill color for bars (defaults to the current line color)
     ImPlotCol_MarkerOutline, // marker outline color (defaults to the current line color)
     ImPlotCol_MarkerFill,    // marker fill color (defaults to the current line color)
     ImPlotCol_ErrorBar,      // error bar color (defaults to ImGuiCol_Text)
-    // plot related colors
+    // plot styling colors
     ImPlotCol_FrameBg,       // plot frame background color (defaults to ImGuiCol_FrameBg)
     ImPlotCol_PlotBg,        // plot area background color (defaults to ImGuiCol_WindowBg)
     ImPlotCol_PlotBorder,    // plot area border color (defaults to ImGuiCol_Border)
@@ -131,19 +143,20 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_COUNT
 };
 
-// Marker specifications. You can combine these with binary OR, e.g. ImPlotMarker_Circle | ImPlotMarker_Cross.
+// Marker specifications.
 enum ImPlotMarker_ {
-    ImPlotMarker_None        = 1 << 0,  // no marker
-    ImPlotMarker_Circle      = 1 << 1,  // a circle marker
-    ImPlotMarker_Square      = 1 << 2,  // a square maker
-    ImPlotMarker_Diamond     = 1 << 3,  // a diamond marker
-    ImPlotMarker_Up          = 1 << 4,  // an upward-pointing triangle marker
-    ImPlotMarker_Down        = 1 << 5,  // an downward-pointing triangle marker
-    ImPlotMarker_Left        = 1 << 6,  // an leftward-pointing triangle marker
-    ImPlotMarker_Right       = 1 << 7,  // an rightward-pointing triangle marker
-    ImPlotMarker_Cross       = 1 << 8,  // a cross marker (not fillable)
-    ImPlotMarker_Plus        = 1 << 9,  // a plus marker (not fillable)
-    ImPlotMarker_Asterisk    = 1 << 10, // a asterisk marker (not fillable)
+    ImPlotMarker_None = -1, // no marker
+    ImPlotMarker_Circle,    // a circle marker
+    ImPlotMarker_Square,    // a square maker
+    ImPlotMarker_Diamond,   // a diamond marker
+    ImPlotMarker_Up,        // an upward-pointing triangle marker
+    ImPlotMarker_Down,      // an downward-pointing triangle marker
+    ImPlotMarker_Left,      // an leftward-pointing triangle marker
+    ImPlotMarker_Right,     // an rightward-pointing triangle marker
+    ImPlotMarker_Cross,     // a cross marker (not fillable)
+    ImPlotMarker_Plus,      // a plus marker (not fillable)
+    ImPlotMarker_Asterisk,  // a asterisk marker (not fillable)
+    ImPlotMarker_COUNT
 };
 
 // Built-in colormaps
@@ -194,31 +207,34 @@ struct ImPlotLimits {
 // Plot style structure
 struct ImPlotStyle {
     // item styling variables
-    float        LineWeight;              // = 1,      item line weight in pixels
-    ImPlotMarker Marker;                  // = ImPlotMarker_None, marker specification
-    float        MarkerSize;              // = 4,      marker size in pixels (roughly the marker's "radius")
-    float        MarkerWeight;            // = 1,      outline weight of markers in pixels
-    float        FillAlpha;               // = 1,      alpha modifier applied to plot fills
-    float        ErrorBarSize;            // = 5,      error bar whisker width in pixels
-    float        ErrorBarWeight;          // = 1.5,    error bar whisker weight in pixels
-    float        DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
-    float        DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
-    bool         AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
+    float   LineWeight;              // = 1,      item line weight in pixels
+    int     Marker;                  // = ImPlotMarker_None, marker specification
+    float   MarkerSize;              // = 4,      marker size in pixels (roughly the marker's "radius")
+    float   MarkerWeight;            // = 1,      outline weight of markers in pixels
+    float   FillAlpha;               // = 1,      alpha modifier applied to plot fills
+    float   ErrorBarSize;            // = 5,      error bar whisker width in pixels
+    float   ErrorBarWeight;          // = 1.5,    error bar whisker weight in pixels
+    float   DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
+    float   DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
     // plot styling variables
-    float        PlotBorderSize;          // = 1,      line thickness of border around plot area
-    float        MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
-    ImVec2       MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
-    ImVec2       MinorTickLen;            // = 5,5     minor tick lengths for X and Y axes
-    ImVec2       MajorTickSize;           // = 1,1     line thickness of major ticks
-    ImVec2       MinorTickSize;           // = 1,1     line thickness of minor ticks
-    ImVec2       MajorGridSize;           // = 1,1     line thickness of major grid lines
-    ImVec2       MinorGridSize;           // = 1,1     line thickness of minor grid lines
-    ImVec2       PlotPadding;             // = 8,8     padding between widget frame and plot area and/or labels
-    ImVec2       LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
-    ImVec2       LegendPadding;           // = 10,10   legend padding from top-left of plot
-    ImVec2       InfoPadding;             // = 10,10   padding between plot edge and interior info text
-    ImVec2       PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
-    ImVec4       Colors[ImPlotCol_COUNT]; //           array of plot specific colors
+    float   PlotBorderSize;          // = 1,      line thickness of border around plot area
+    float   MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
+    ImVec2  MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
+    ImVec2  MinorTickLen;            // = 5,5     minor tick lengths for X and Y axes
+    ImVec2  MajorTickSize;           // = 1,1     line thickness of major ticks
+    ImVec2  MinorTickSize;           // = 1,1     line thickness of minor ticks
+    ImVec2  MajorGridSize;           // = 1,1     line thickness of major grid lines
+    ImVec2  MinorGridSize;           // = 1,1     line thickness of minor grid lines
+    ImVec2  PlotPadding;             // = 8,8     padding between widget frame and plot area and/or labels
+    ImVec2  LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
+    ImVec2  LegendPadding;           // = 10,10   legend padding from top-left of plot
+    ImVec2  InfoPadding;             // = 10,10   padding between plot edge and interior info text
+    ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
+    // colors
+    ImVec4  Colors[ImPlotCol_COUNT]; //           array of plot specific colors
+    // settings/flags
+    bool    AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
+    bool    UseLocalTime;            // = false,  axis labels will be formatted for your timezone when ImPlotAxisFlag_Time is enabled
     ImPlotStyle();
 };
 
@@ -265,17 +281,17 @@ void SetCurrentContext(ImPlotContext* ctx);
 // Starts a 2D plotting context. If this function returns true, EndPlot() must
 // be called, e.g. "if (BeginPlot(...)) { ... EndPlot(); }". #title_id must
 // be unique. If you need to avoid ID collisions or don't want to display a
-// title in the plot, use double hashes (e.g. "MyPlot##Hidden"). If #x_label
-// and/or #y_label are provided, axes labels will be displayed.
+// title in the plot, use double hashes (e.g. "MyPlot##Hidden" or "##NoTitle").
+// If #x_label and/or #y_label are provided, axes labels will be displayed.
 bool BeginPlot(const char* title_id,
                const char* x_label      = NULL,
                const char* y_label      = NULL,
                const ImVec2& size       = ImVec2(-1,0),
-               ImPlotFlags flags        = ImPlotFlags_Default,
-               ImPlotAxisFlags x_flags  = ImPlotAxisFlags_Default,
-               ImPlotAxisFlags y_flags  = ImPlotAxisFlags_Default,
-               ImPlotAxisFlags y2_flags = ImPlotAxisFlags_Auxiliary,
-               ImPlotAxisFlags y3_flags = ImPlotAxisFlags_Auxiliary);
+               ImPlotFlags flags        = ImPlotFlags_None,
+               ImPlotAxisFlags x_flags  = ImPlotAxisFlags_None,
+               ImPlotAxisFlags y_flags  = ImPlotAxisFlags_None,
+               ImPlotAxisFlags y2_flags = ImPlotAxisFlags_NoGridLines,
+               ImPlotAxisFlags y3_flags = ImPlotAxisFlags_NoGridLines);
 
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().
@@ -338,6 +354,12 @@ void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, co
 void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
 
+/// Plots vertical stems.
+void PlotStems(const char* label_id, const float* values, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
+void PlotStems(const char* label_id, const double* values, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
+void PlotStems(const char* label_id, const float* xs, const float* ys, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
+void PlotStems(const char* label_id, const double* xs, const double* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
+
 // Plots a pie chart. If the sum of values > 1 or normalize is true, each value will be normalized. Center and radius are in plot units. #label_fmt can be set to NULL for no labels.
 void PlotPieChart(const char** label_ids, const float* values, int count, float x, float y, float radius, bool normalize = false, const char* label_fmt = "%.1f", float angle0 = 90);
 void PlotPieChart(const char** label_ids, const double* values, int count, double x, double y, double radius, bool normalize = false, const char* label_fmt = "%.1f", double angle0 = 90);
@@ -351,7 +373,7 @@ void PlotDigital(const char* label_id, const float* xs, const float* ys, int cou
 void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
 void PlotDigital(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
-// Plots a centered text label at point x,y with optional pixel offset. Text color can be changed with ImGui::PushStyleColor(ImGuiCol_Text, ...).
+// Plots a centered text label at point x,y with optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
 void PlotText(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 void PlotText(const char* text, double x, double y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 
@@ -360,11 +382,13 @@ void PlotText(const char* text, double x, double y, bool vertical = false, const
 //-----------------------------------------------------------------------------
 
 // Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
-void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotLimits(double xmin, double xmax, double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once);
 // Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
-void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond = ImGuiCond_Once);
+void SetNextPlotLimitsX(double xmin, double xmax, ImGuiCond cond = ImGuiCond_Once);
 // Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
-void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+// Links the next plot limits to external values. Set to NULL for no linkage. The pointer data must remain valid until the matching call EndPlot.
+void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2 = NULL, double* ymax2 = NULL, double* ymin3 = NULL, double* ymax3 = NULL);
 // Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
 void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true);
 
@@ -380,16 +404,19 @@ void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** lab
 void SetPlotYAxis(int y_axis);
 
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = -1);
-ImPlotPoint PixelsToPlot(float x, float y, int y_axis = -1);
+ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = IMPLOT_AUTO);
+ImPlotPoint PixelsToPlot(float x, float y, int y_axis = IMPLOT_AUTO);
 
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = -1);
-ImVec2 PlotToPixels(double x, double y, int y_axis = -1);
+ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = IMPLOT_AUTO);
+ImVec2 PlotToPixels(double x, double y, int y_axis = IMPLOT_AUTO);
 
 //-----------------------------------------------------------------------------
 // Plot Queries
 //-----------------------------------------------------------------------------
+
+// Use these functions to retrieve information about the current plot. They
+// MUST be called between BeginPlot and EndPlot!
 
 // Get the current Plot position (top-left) in pixels.
 ImVec2 GetPlotPos();
@@ -402,18 +429,16 @@ bool IsPlotXAxisHovered();
 // Returns true if the YAxis[n] plot area in the current plot is hovered.
 bool IsPlotYAxisHovered(int y_axis = 0);
 // Returns the mouse position in x,y coordinates of the current plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImPlotPoint GetPlotMousePos(int y_axis = -1);
+ImPlotPoint GetPlotMousePos(int y_axis = IMPLOT_AUTO);
 // Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-ImPlotLimits GetPlotLimits(int y_axis = -1);
+ImPlotLimits GetPlotLimits(int y_axis = IMPLOT_AUTO);
 // Returns true if the current plot is being queried.
 bool IsPlotQueried();
 // Returns the current plot query bounds.
-ImPlotLimits GetPlotQuery(int y_axis = -1);
-// Returns true if a plot item legend entry is hovered.
-bool IsLegendEntryHovered(const char* label_id);
+ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
 
 //-----------------------------------------------------------------------------
-// Plot and Item Styling and Colormaps
+// Plot and Item Styling
 //-----------------------------------------------------------------------------
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
@@ -428,14 +453,14 @@ void StyleColorsDark(ImPlotStyle* dst = NULL);
 // Style colors for ImGui "Light".
 void StyleColorsLight(ImPlotStyle* dst = NULL);
 
-// Special color used to indicate that a style color should be deduced automatically from ImGui style or ImPlot colormaps.
-#define IMPLOT_COL_AUTO ImVec4(0,0,0,-1)
+// Use PushStyleX to temporarily modify your ImPlotStyle. The modification
+// will last until the matching call to PopStyleX. You MUST call a pop for
+// every push, otherwise you will leak memory! This behaves just like ImGui.
 
 // Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, ImU32 col);
-// Temporarily modify a plot color. Don't forget to call PopStyleColor!
 void PushStyleColor(ImPlotCol idx, const ImVec4& col);
-// Undo temporary color modification.
+// Undo temporary color modification. Undo multiple pushes at once by increasing count.
 void PopStyleColor(int count = 1);
 
 // Temporarily modify a style variable of float type. Don't forget to call PopStyleVar!
@@ -444,8 +469,40 @@ void PushStyleVar(ImPlotStyleVar idx, float val);
 void PushStyleVar(ImPlotStyleVar idx, int val);
 // Temporarily modify a style variable of ImVec2 type. Don't forget to call PopStyleVar!
 void PushStyleVar(ImPlotStyleVar idx, const ImVec2& val);
-// Undo temporary style modification.
+// Undo temporary style modification. Undo multiple pushes at once by increasing count.
 void PopStyleVar(int count = 1);
+
+// The following can be used to modify the style of the next plot item ONLY. They do
+// NOT require calls to PopStyleX. Leave style attributes you don't want modified to
+// IMPLOT_AUTO or IMPLOT_AUTO_COL. Automatic styles will be deduced from the current
+// values in the your ImPlotStyle or from Colormap data.
+
+// Set the line color and weight for the next item only.
+void SetNextLineStyle(const ImVec4& col = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO);
+// Set the fill color for the next item only.
+void SetNextFillStyle(const ImVec4& col = IMPLOT_AUTO_COL, float alpha_mod = IMPLOT_AUTO);
+// Set the marker style for the next item only.
+void SetNextMarkerStyle(ImPlotMarker marker = IMPLOT_AUTO, float size = IMPLOT_AUTO, const ImVec4& fill = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO, const ImVec4& outline = IMPLOT_AUTO_COL);
+// Set the error bar style for the next item only.
+void SetNextErrorBarStyle(const ImVec4& col = IMPLOT_AUTO_COL, float size = IMPLOT_AUTO, float weight = IMPLOT_AUTO);
+
+// Returns the null terminated string name for an ImPlotCol.
+const char* GetStyleColorName(ImPlotCol color);
+// Returns the null terminated string name for an ImPlotMarker.
+const char* GetMarkerName(ImPlotMarker marker);
+
+//-----------------------------------------------------------------------------
+// Colormaps
+//-----------------------------------------------------------------------------
+
+// Item styling is based on Colormaps when the relevant ImPlotCol is set to
+// IMPLOT_AUTO_COL (default). Several built in colormaps are available and can be
+// toggled in the demo. You can push/pop or set your own colormaps as well.
+
+// The Colormap data will be ignored and a custom color will be used if you have either:
+//     1) Modified an item style color in your ImPlotStyle to anything but IMPLOT_AUTO_COL.
+//     2) Pushed an item style color using PushStyleColor().
+//     3) Set the next item style with a SetNextXStyle function.
 
 // Temporarily switch to one of the built-in colormaps.
 void PushColormap(ImPlotColormap colormap);
@@ -453,6 +510,7 @@ void PushColormap(ImPlotColormap colormap);
 void PushColormap(const ImVec4* colormap, int size);
 // Undo temporary colormap modification.
 void PopColormap(int count = 1);
+
 // Permanently sets a custom colormap. The colors will be copied to internal memory. Prefer PushColormap instead of calling this each frame.
 void SetColormap(const ImVec4* colormap, int size);
 // Permanently switch to one of the built-in colormaps. If samples is greater than 1, the map will be linearly resampled. Don't call this each frame.
@@ -460,19 +518,33 @@ void SetColormap(ImPlotColormap colormap, int samples = 0);
 
 // Returns the size of the current colormap.
 int GetColormapSize();
-// Returns a color from the Color map given an index >= 0 (modulo will be performed)
+// Returns a color from the Color map given an index >= 0 (modulo will be performed).
 ImVec4 GetColormapColor(int index);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 ImVec4 LerpColormap(float t);
 // Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
 ImVec4 NextColormapColor();
 
-const char* GetStyleColorName(ImPlotCol color);
-// Returns a null terminated string name for a built-in colormap
+// Renders a vertical color scale using the current color map. Call this outside of Begin/EndPlot.
+void ShowColormapScale(double scale_min, double scale_max, float height);
+
+// Returns a null terminated string name for a built-in colormap.
 const char* GetColormapName(ImPlotColormap colormap);
 
-// Renders a vertical color scale using the current color map.
-void ShowColormapScale(double scale_min, double scale_max, float height);
+//-----------------------------------------------------------------------------
+// Legend Utils
+//-----------------------------------------------------------------------------
+
+// Returns true if a plot item legend entry is hovered.
+bool IsLegendEntryHovered(const char* label_id);
+// Begin a drag and drop source from a legend entry. The only supported flag is SourceNoPreviewTooltip
+bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags = 0);
+// End legend drag and drop source.
+void EndLegendDragDropSource();
+// Begin a popup for a legend entry.
+bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button = 1);
+// End a popup for a legend entry.
+void EndLegendPopup();
 
 //-----------------------------------------------------------------------------
 // Miscellaneous
@@ -483,17 +555,19 @@ void SetNextPlotDragDisable();
 // Allows changing how keyboard/mouse interaction works.
 ImPlotInputMap& GetInputMap();
 
+// Get the plot draw list for rendering to the current plot area.
+ImDrawList* GetPlotDrawList();
+// Push clip rect for rendering to current plot area.
+void PushPlotClipRect();
+// Pop plot clip rect.
+void PopPlotClipRect();
+
 // Shows ImPlot style selector dropdown menu.
 bool ShowStyleSelector(const char* label);
 // Shows ImPlot style editor block (not a window).
 void ShowStyleEditor(ImPlotStyle* ref = NULL);
 // Add basic help/info block (not a window): how to manipulate ImPlot as an end-user.
 void ShowUserGuide();
-
-// Push clip rect for rendering to current plot area.
-void PushPlotClipRect();
-// Pop plot clip rect.
-void PopPlotClipRect();
 
 //-----------------------------------------------------------------------------
 // Demo (add implot_demo.cpp to your sources!)
