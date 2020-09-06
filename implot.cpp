@@ -415,6 +415,16 @@ void FitPoint(const ImPlotPoint& p) {
     }
 }
 
+void PushLinkedAxis(ImPlotAxis& axis) {
+    if (axis.LinkedMin) { *axis.LinkedMin = axis.Range.Min; }
+    if (axis.LinkedMax) { *axis.LinkedMax = axis.Range.Max; }
+}
+
+void PullLinkedAxis(ImPlotAxis& axis) {
+    if (axis.LinkedMin) { axis.SetMin(*axis.LinkedMin); }
+    if (axis.LinkedMax) { axis.SetMax(*axis.LinkedMax); }    
+}
+
 //-----------------------------------------------------------------------------
 // Coordinate Utils
 //-----------------------------------------------------------------------------
@@ -1093,6 +1103,16 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     ImDrawList &DrawList = *Window->DrawList;
 
     // NextPlotData -----------------------------------------------------------
+
+    // linked axes
+    plot.XAxis.LinkedMin = gp.NextPlotData.LinkedXmin;
+    plot.XAxis.LinkedMax = gp.NextPlotData.LinkedXmax;
+    PullLinkedAxis(plot.XAxis);
+    for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+        plot.YAxis[i].LinkedMin = gp.NextPlotData.LinkedYmin[i];
+        plot.YAxis[i].LinkedMax = gp.NextPlotData.LinkedYmax[i];
+        PullLinkedAxis(plot.YAxis[i]);
+    }
 
     if (gp.NextPlotData.HasXRange) {
         if (just_created || gp.NextPlotData.XRangeCond == ImGuiCond_Always) 
@@ -2099,6 +2119,13 @@ void EndPlot() {
         ImGui::PopID();
     }
 
+
+    // LINKED AXES ------------------------------------------------------------
+
+    PushLinkedAxis(plot.XAxis);
+    for (int i = 0; i < IMPLOT_Y_AXES; ++i)
+        PushLinkedAxis(plot.YAxis[i]);
+
     // CLEANUP ----------------------------------------------------------------
 
     // reset the plot items for the next frame
@@ -2145,6 +2172,18 @@ void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond, int y_axis) 
     gp.NextPlotData.YRangeCond[y_axis] = cond;
     gp.NextPlotData.Y[y_axis].Min = y_min;
     gp.NextPlotData.Y[y_axis].Max = y_max;
+}
+
+void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2, double* ymax2, double* ymin3, double* ymax3) {
+    ImPlotContext& gp = *GImPlot;
+    gp.NextPlotData.LinkedXmin    = xmin;
+    gp.NextPlotData.LinkedXmax    = xmax;
+    gp.NextPlotData.LinkedYmin[0] = ymin;
+    gp.NextPlotData.LinkedYmax[0] = ymax;
+    gp.NextPlotData.LinkedYmin[1] = ymin2;
+    gp.NextPlotData.LinkedYmax[1] = ymax2;
+    gp.NextPlotData.LinkedYmin[2] = ymin3;
+    gp.NextPlotData.LinkedYmax[2] = ymax3;
 }
 
 void FitNextPlotAxes(bool x, bool y, bool y2, bool y3) {
