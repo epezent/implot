@@ -425,7 +425,7 @@ void ShowDemoWindow(bool* p_open) {
         }
 
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoTicks, ImPlotAxisFlags_NoTicks)) {
+        if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotPieChart(labels1, data1, 4, 0.5f, 0.5f, 0.4f, normalize, "%.2f");
             ImPlot::EndPlot();
         }
@@ -437,7 +437,7 @@ void ShowDemoWindow(bool* p_open) {
 
         ImPlot::PushColormap(ImPlotColormap_Pastel);
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoTicks, ImPlotAxisFlags_NoTicks)) {
+        if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotPieChart(labels2, data2, 5, 0.5f, 0.5f, 0.4f, true, "%.0f", 180);
             ImPlot::EndPlot();
         }
@@ -487,7 +487,7 @@ void ShowDemoWindow(bool* p_open) {
         static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
         ImPlot::PushColormap(gray, 2);
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
-        if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),0,ImPlotAxisFlags_NoTicks,ImPlotAxisFlags_NoTicks)) {
+        if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),0,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotHeatmap("heat1",values2,100,100,0,1,NULL);
             ImPlot::PlotHeatmap("heat2",values2,100,100,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
             ImPlot::EndPlot();
@@ -1174,7 +1174,7 @@ ImPlotPoint Spiral(void*, int idx) {
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size) {
     ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
     ImPlot::SetNextPlotLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
-    if (ImPlot::BeginPlot(id,0,0,size,ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild,ImPlotAxisFlags_NoTicks,ImPlotAxisFlags_NoTicks)) {
+    if (ImPlot::BeginPlot(id,0,0,size,ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations)) {
         ImPlot::PushStyleColor(ImPlotCol_Line, col);
         ImPlot::PlotLine(id, values, count, offset);
         ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
