@@ -53,18 +53,18 @@ typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 
 // Options for plots.
 enum ImPlotFlags_ {
-    ImPlotFlags_MousePos    = 1 << 0,  // the mouse position, in plot coordinates, will be displayed in the bottom-right
-    ImPlotFlags_Legend      = 1 << 1,  // a legend will be displayed in the top-left
-    ImPlotFlags_Highlight   = 1 << 2,  // plot items will be highlighted when their legend entry is hovered
-    ImPlotFlags_BoxSelect   = 1 << 3,  // the user will be able to box-select with right-mouse
-    ImPlotFlags_Query       = 1 << 4,  // the user will be able to draw query rects with middle-mouse
-    ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open context menus with double-right click
-    ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased = 1 << 7,  // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
-    ImPlotFlags_NoChild     = 1 << 8,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2      = 1 << 9,  // enable a 2nd y-axis
-    ImPlotFlags_YAxis3      = 1 << 10, // enable a 3rd y-axis
-    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu
+    ImPlotFlags_None          = 0,       // default
+    ImPlotFlags_NoLegend      = 1 << 0,  // the top-left legend will not be displayed
+    ImPlotFlags_NoMenus       = 1 << 1,  // the user will be able to open context menus with double-right click
+    ImPlotFlags_NoBoxSelect   = 1 << 2,  // the user will be able to box-select with right-mouse
+    ImPlotFlags_NoMousePos    = 1 << 3,  // the mouse position, in plot coordinates, will not be displayed in the bottom-right
+    ImPlotFlags_NoHighlight   = 1 << 4,  // plot items will be highlighted when their legend entry is hovered
+    ImPlotFlags_NoChild       = 1 << 5,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_YAxis2        = 1 << 6,  // enable a 2nd y-axis
+    ImPlotFlags_YAxis3        = 1 << 7,  // enable a 3rd y-axis
+    ImPlotFlags_Query         = 1 << 8,  // the user will be able to draw query rects with middle-mouse
+    ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_AntiAliased   = 1 << 10  // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
 };
 
 // Options for plot axes (X and Y).
@@ -282,7 +282,7 @@ bool BeginPlot(const char* title_id,
                const char* x_label      = NULL,
                const char* y_label      = NULL,
                const ImVec2& size       = ImVec2(-1,0),
-               ImPlotFlags flags        = ImPlotFlags_Default,
+               ImPlotFlags flags        = ImPlotFlags_None,
                ImPlotAxisFlags x_flags  = ImPlotAxisFlags_Default,
                ImPlotAxisFlags y_flags  = ImPlotAxisFlags_Default,
                ImPlotAxisFlags y2_flags = ImPlotAxisFlags_Auxiliary,

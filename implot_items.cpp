@@ -145,7 +145,7 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
         s.Colors[ImPlotCol_Fill].w       *= s.FillAlpha;
         // s.Colors[ImPlotCol_MarkerFill].w *= s.FillAlpha; // TODO: this should be separate, if it at all
         // apply highlight mods
-        if (item->LegendHovered && ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_Highlight)) {
+        if (item->LegendHovered && !ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_NoHighlight)) {
             s.LineWeight   *= 2;
             s.MarkerWeight *= 2;
             // TODO: highlight fills?

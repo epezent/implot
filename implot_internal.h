@@ -433,7 +433,7 @@ struct ImPlotState
     int                CurrentYAxis;
 
     ImPlotState() {
-        Flags        = PreviousFlags = ImPlotFlags_Default;
+        Flags        = PreviousFlags = ImPlotFlags_None;
         SelectStart  = QueryStart = ImVec2(0,0);
         Selecting    = Querying = Queried = DraggingQuery = false;
         ColormapIdx  = CurrentYAxis = 0;

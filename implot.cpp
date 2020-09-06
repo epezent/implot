@@ -1212,7 +1212,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const bool any_hov_y_axis_region = plot.YAxis[0].HoveredTot || plot.YAxis[1].HoveredTot || plot.YAxis[2].HoveredTot;
 
     // legend hovered from last frame
-    const bool hov_legend = ImHasFlag(plot.Flags, ImPlotFlags_Legend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;
+    const bool hov_legend = !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;
 
     bool hov_query = false;
     if (gp.Hov_Frame && gp.Hov_Plot && plot.Queried && !plot.Querying) {
@@ -1349,7 +1349,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (plot.Selecting && (IO.MouseReleased[gp.InputMap.BoxSelectButton] || !IO.MouseDown[gp.InputMap.BoxSelectButton])) {
         UpdateTransformCache();
         ImVec2 select_size = plot.SelectStart - IO.MousePos;
-        if (ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect)) {
+        if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)) {
             ImPlotPoint p1 = PixelsToPlot(plot.SelectStart);
             ImPlotPoint p2 = PixelsToPlot(IO.MousePos);
             const bool x_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImFabs(select_size.x) > 2;
@@ -1370,7 +1370,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.Selecting = false;
     }
     // bad selection
-    if (plot.Selecting && (!ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect) || gp.LockPlot) && ImLengthSqr(plot.SelectStart - IO.MousePos) > 4) {
+    if (plot.Selecting && (ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) || gp.LockPlot) && ImLengthSqr(plot.SelectStart - IO.MousePos) > 4) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
     }
     // cancel selection
@@ -1417,7 +1417,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         plot.Queried  = true;
         plot.QueryStart = plot.SelectStart;
     }
-    if (ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect) && plot.Querying && !ImHasFlag(IO.KeyMods, gp.InputMap.QueryToggleMod) && !IO.MouseDown[gp.InputMap.QueryButton]) {
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) && plot.Querying && !ImHasFlag(IO.KeyMods, gp.InputMap.QueryToggleMod) && !IO.MouseDown[gp.InputMap.QueryButton]) {
         plot.Selecting = true;
         plot.Querying = false;
         plot.Queried = false;
@@ -1694,8 +1694,8 @@ void ShowPlotContextMenu(ImPlotState& plot) {
 
     ImGui::Separator();
     if ((ImGui::BeginMenu("Settings"))) {
-        if (ImGui::MenuItem("Box Select",NULL,ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect))) {
-            ImFlipFlag(plot.Flags, ImPlotFlags_BoxSelect);
+        if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect))) {
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
         }
         if (ImGui::MenuItem("Query",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Query))) {
             ImFlipFlag(plot.Flags, ImPlotFlags_Query);
@@ -1703,16 +1703,16 @@ void ShowPlotContextMenu(ImPlotState& plot) {
         if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs))) {
             ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
         }
-        if (ImGui::MenuItem("Mouse Position",NULL,ImHasFlag(plot.Flags, ImPlotFlags_MousePos))) {
-            ImFlipFlag(plot.Flags, ImPlotFlags_MousePos);
+        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos))) {
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
         }
         if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased))) {
             ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
         }
         ImGui::EndMenu();
     }
-    if (ImGui::MenuItem("Legend",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Legend))) {
-        ImFlipFlag(plot.Flags, ImPlotFlags_Legend);
+    if (ImGui::MenuItem("Legend",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend))) {
+        ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
     }
 #ifdef IMPLOT_DEBUG
     if (ImGui::BeginMenu("Debug")) {
@@ -1817,7 +1817,7 @@ void EndPlot() {
         const bool wide_enough = ImFabs(select_bb.GetWidth())  > 2;
         const bool tall_enough = ImFabs(select_bb.GetHeight()) > 2;
         const bool big_enough  = wide_enough && tall_enough;
-        if (plot.Selecting && !gp.LockPlot && ImHasFlag(plot.Flags, ImPlotFlags_BoxSelect)) {
+        if (plot.Selecting && !gp.LockPlot && !ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)) {
             const ImVec4 col   = GetStyleColorVec4(ImPlotCol_Selection);
             const ImU32 col_bg = ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
             const ImU32 col_bd = ImGui::GetColorU32(col);
@@ -1868,7 +1868,7 @@ void EndPlot() {
     ImRect legend_content_bb;
     int nItems = GetLegendCount();
     bool hov_legend = false;
-    if (ImHasFlag(plot.Flags, ImPlotFlags_Legend) && nItems > 0) {
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && nItems > 0) {
         // get max width
         float max_label_width = 0;
         for (int i = 0; i < nItems; ++i) {
@@ -1878,7 +1878,7 @@ void EndPlot() {
         }
         legend_content_bb = ImRect(gp.BB_Plot.Min + legend_offset, gp.BB_Plot.Min + legend_offset + ImVec2(max_label_width, nItems * txt_ht));
         plot.BB_Legend    = ImRect(legend_content_bb.Min, legend_content_bb.Max + legend_spacing * 2 + ImVec2(legend_icon_size, 0));
-        hov_legend = ImHasFlag(plot.Flags, ImPlotFlags_Legend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;
+        hov_legend = !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;
         // render legend box
         ImU32  col_bg = GetStyleColorU32(ImPlotCol_LegendBg);
         ImU32  col_bd = GetStyleColorU32(ImPlotCol_LegendBorder);
@@ -1947,7 +1947,7 @@ void EndPlot() {
     }
 
     // render mouse pos
-    if (ImHasFlag(plot.Flags, ImPlotFlags_MousePos) && gp.Hov_Plot) {
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos) && gp.Hov_Plot) {
         char buffer[128] = {};
         ImBufferWriter writer(buffer, sizeof(buffer));
 
@@ -2035,14 +2035,14 @@ void EndPlot() {
 
     // CONTEXT MENUS -----------------------------------------------------------
 
-    if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && gp.Hov_Plot && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend)
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && gp.Hov_Frame && gp.Hov_Plot && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend)
         ImGui::OpenPopup("##PlotContext");
     if (ImGui::BeginPopup("##PlotContext")) {
         ShowPlotContextMenu(plot);
         ImGui::EndPopup();
     }
 
-    if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && plot.XAxis.HoveredExt && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend)
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && gp.Hov_Frame && plot.XAxis.HoveredExt && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend)
         ImGui::OpenPopup("##XContext");
     if (ImGui::BeginPopup("##XContext")) {
         ImGui::Text("X-Axis"); ImGui::Separator();
@@ -2052,7 +2052,7 @@ void EndPlot() {
 
     for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
         ImGui::PushID(i);
-        if (ImHasFlag(plot.Flags, ImPlotFlags_ContextMenu) && gp.Hov_Frame && plot.YAxis[i].HoveredExt && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend)
+        if (!ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && gp.Hov_Frame && plot.YAxis[i].HoveredExt && IO.MouseDoubleClicked[gp.InputMap.ContextMenuButton] && !hov_legend)
             ImGui::OpenPopup("##YContext");
         if (ImGui::BeginPopup("##YContext")) {
             if (i == 0) {
