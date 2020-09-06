@@ -79,7 +79,7 @@ Of course, this assumes you already have an ImGui-ready environment. If not, con
 - If you experience data truncation and/or visual glitches, it is **HIGHLY** recommended that you EITHER:
     1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be), OR...
     2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file.
-- By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can enable AA per-plot with the `ImPlotFlags_AntiAliased` flag, or globablly with `ImPlot::GetStyle().AntiAliasedLines = true;`.
+- By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can enable software AA per-plot with the `ImPlotFlags_AntiAliased` flag, or globally with `ImPlot::GetStyle().AntiAliasedLines = true;`.
 
 ## FAQ
 
@@ -89,7 +89,7 @@ A: ImGui is an incredibly powerful tool for rapid prototyping and development, b
 
 **Q: Is ImPlot the right plotting library for me?**
 
-A: If you're looking to generate publication quality plots and/or export plots to a file, ImPlot is NOT the library for you. ImPlot is geared toward plotting application data at realtime speeds with as little user code as possible. ImPlot does its best to create pretty plots (indeed there are quite a few styling options avaialble), but it will always favor function over form.
+A: If you're looking to generate publication quality plots and/or export plots to a file, ImPlot is NOT the library for you. ImPlot is geared toward plotting application data at realtime speeds with as little user code as possible. ImPlot does its best to create pretty plots (indeed there are quite a few styling options available), but it will always favor function over form.
 
 **Q: Is ImPlot suitable for plotting large datasets?**
 
@@ -125,7 +125,7 @@ A: Not exactly, but it does give you the ability to query plot sub-ranges, with 
 
 **Q: Can plots be exported/saved to image?**
 
-A: Not currently. Use your OS's screen capturing mechanisms if you need to capture a plot. ImPlot is not suitable for rendering publication quality plots; it is only intended to be used as a visualization tool. Post-process your data with MATLAB and matplotlib for these purposes.
+A: Not currently. Use your OS's screen capturing mechanisms if you need to capture a plot. ImPlot is not suitable for rendering publication quality plots; it is only intended to be used as a visualization tool. Post-process your data with MATLAB or matplotlib for these purposes.
 
 **Q: Does ImPlot handle double precision data?**
 
