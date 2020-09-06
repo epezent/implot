@@ -1,5 +1,5 @@
 # ImPlot
-ImPlot is an immediate mode plotting library for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that ImGui fans will love. ImPlot is well suited for visualizing program data in real-time or creating interactive plots, and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself.
+ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that ImGui fans will love. ImPlot is well suited for visualizing program data in real-time or creating interactive plots, and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself.  
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/controls.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/dnd.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots/log.gif" width="270">
 
@@ -11,6 +11,7 @@ ImPlot is an immediate mode plotting library for [Dear ImGui](https://github.com
 
 ## Features
 
+- GPU accelerated rendering
 - multiple plot types:
     - line plots
     - shaded plots
@@ -54,6 +55,10 @@ if (ImPlot::BeginPlot("My Plot")) {
 
 Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features.
 
+## Interactive Demo
+
+An online version of the demo is hosted [here](https://traineq.org/implot_demo/src/implot_demo.html). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implementation, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this!
+
 ## Integration
 
 1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources. Alternatively, you can get ImPlot using [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/implot). 
@@ -72,13 +77,9 @@ Of course, this assumes you already have an ImGui-ready environment. If not, con
 ## Special Notes
 
 - If you experience data truncation and/or visual glitches, it is **HIGHLY** recommended that you EITHER:
-    1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be).
+    1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be), OR...
     2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file.
-- By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can re-enable AA with the `ImPlotFlags_AntiAliased` flag.
-
-## Interactive Demo
-
-An online version of the demo is hosted [here](https://traineq.org/implot_demo/src/implot_demo.html). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implementation, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this!
+- By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can enable AA per-plot with the `ImPlotFlags_AntiAliased` flag, or globablly with `ImPlot::GetStyle().AntiAliasedLines = true;`.
 
 ## FAQ
 
@@ -86,21 +87,25 @@ An online version of the demo is hosted [here](https://traineq.org/implot_demo/s
 
 A: ImGui is an incredibly powerful tool for rapid prototyping and development, but provides only limited mechanisms for data visualization. Two dimensional plots are ubiquitous and useful to almost any application. Being able to visualize your data in real-time will give you insight and better understanding of your application.
 
+**Q: Is ImPlot the right plotting library for me?**
+
+A: If you're looking to generate publication quality plots and/or export plots to a file, ImPlot is NOT the library for you. ImPlot is geared toward plotting application data at realtime speeds with as little user code as possible. ImPlot does its best to create pretty plots (indeed there are quite a few styling options avaialble), but it will always favor function over form.
+
 **Q: Is ImPlot suitable for plotting large datasets?**
 
-A: Yes, within reason. You can plot tens to hundreds of thousands of points without issue, but don't expect plotting over a million to be a buttery smooth experience. We do our best to keep it fast and avoid memory allocations.
+A: Yes, within reason. You can plot tens to hundreds of thousands of points without issue, but don't expect millions to be a buttery smooth experience. However, you can downsample extremely large datasets by telling ImPlot to stride your data at larger intervals if needed. 
 
 **Q: Can plot styles be modified?**
 
-A: Yes. Plot colors, palettes, and various styling variables can be pushed/popped or modified permanently on startup.
+A: Yes. Plot colors, palettes, and various styling variables can be pushed/popped or modified permanently on startup. Three default styles are available, as well as an automatic style. 
 
-**Q: Does ImPlot support logarithmic scaling?**
+**Q: Does ImPlot support logarithmic scaling or time formatting?**
 
-A: Yep!
+A: Yep! Both logscale and timescale are supported.
 
 **Q: Does ImPlot support multiple y-axes? x-axes?**
 
-A: Yes to y-axes (up to three), "not yet" to x-axes.
+A: Yes. Up to three y-axes can be enabled. Multiple x-axes are not supported. 
 
 **Q: Does ImPlot support [insert plot type]?**
 
@@ -129,5 +134,3 @@ A: Yes, ImPlot accepts both `float` and `double` for all of its plotting functio
 **Q: Can ImPlot be used with other languages/bindings?**
 
 A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. [DearPyGui](https://github.com/hoffstadt/DearPyGui) provides a Python wrapper, among other things. A Rust binding, [implot-rs](https://github.com/4bb4/implot-rs), is currently in the works. An example using Emscripten can be found [here](https://github.com/pthom/implot_demo). 
-
-
