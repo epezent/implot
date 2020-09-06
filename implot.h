@@ -53,31 +53,34 @@ typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 
 // Options for plots.
 enum ImPlotFlags_ {
-    ImPlotFlags_MousePos    = 1 << 0,  // the mouse position, in plot coordinates, will be displayed in the bottom-right
-    ImPlotFlags_Legend      = 1 << 1,  // a legend will be displayed in the top-left
-    ImPlotFlags_Highlight   = 1 << 2,  // plot items will be highlighted when their legend entry is hovered
-    ImPlotFlags_BoxSelect   = 1 << 3,  // the user will be able to box-select with right-mouse
-    ImPlotFlags_Query       = 1 << 4,  // the user will be able to draw query rects with middle-mouse
-    ImPlotFlags_ContextMenu = 1 << 5,  // the user will be able to open context menus with double-right click
-    ImPlotFlags_Crosshairs  = 1 << 6,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased = 1 << 7,  // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
-    ImPlotFlags_NoChild     = 1 << 8,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2      = 1 << 9,  // enable a 2nd y-axis
-    ImPlotFlags_YAxis3      = 1 << 10, // enable a 3rd y-axis
-    ImPlotFlags_Default     = ImPlotFlags_MousePos | ImPlotFlags_Legend | ImPlotFlags_Highlight | ImPlotFlags_BoxSelect | ImPlotFlags_ContextMenu
+    ImPlotFlags_None          = 0,       // default
+    ImPlotFlags_NoLegend      = 1 << 0,  // the top-left legend will not be displayed
+    ImPlotFlags_NoMenus       = 1 << 1,  // the user will not be able to open context menus with double-right click
+    ImPlotFlags_NoBoxSelect   = 1 << 2,  // the user will not be able to box-select with right-mouse
+    ImPlotFlags_NoMousePos    = 1 << 3,  // the mouse position, in plot coordinates, will not be displayed in the bottom-right
+    ImPlotFlags_NoHighlight   = 1 << 4,  // plot items will not be highlighted when their legend entry is hovered
+    ImPlotFlags_NoChild       = 1 << 5,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_YAxis2        = 1 << 6,  // enable a 2nd y-axis on the right side
+    ImPlotFlags_YAxis3        = 1 << 7,  // enable a 3rd y-axis on the right side
+    ImPlotFlags_Query         = 1 << 8,  // the user will be able to draw query rects with middle-mouse
+    ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_AntiAliased   = 1 << 10, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
+    ImPlotFlags_CanvasOnly    = ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
 };
 
 // Options for plot axes (X and Y).
 enum ImPlotAxisFlags_ {
-    ImPlotAxisFlags_GridLines  = 1 << 0, // grid lines will be displayed
-    ImPlotAxisFlags_TickMarks  = 1 << 1, // tick marks will be displayed for each grid line
-    ImPlotAxisFlags_TickLabels = 1 << 2, // text labels will be displayed for each grid line
-    ImPlotAxisFlags_Invert     = 1 << 3, // the axis will be inverted
-    ImPlotAxisFlags_LockMin    = 1 << 4, // the axis minimum value will be locked when panning/zooming
-    ImPlotAxisFlags_LockMax    = 1 << 5, // the axis maximum value will be locked when panning/zooming
-    ImPlotAxisFlags_LogScale   = 1 << 6, // a logartithmic (base 10) axis scale will be used
-    ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
-    ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
+    ImPlotAxisFlags_None          = 0,      // default
+    ImPlotAxisFlags_NoGridLines   = 1 << 0, // no grid lines will be displayed
+    ImPlotAxisFlags_NoTickMarks   = 1 << 1, // no tick marks will be displayed
+    ImPlotAxisFlags_NoTickLabels  = 1 << 2, // no text labels will be displayed
+    ImPlotAxisFlags_LogScale      = 1 << 3, // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
+    ImPlotAxisFlags_Time          = 1 << 4, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
+    ImPlotAxisFlags_Invert        = 1 << 5, // the axis will be inverted
+    ImPlotAxisFlags_LockMin       = 1 << 6, // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax       = 1 << 7, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
+    ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels
 };
 
 // Plot styling colors.
@@ -204,31 +207,34 @@ struct ImPlotLimits {
 // Plot style structure
 struct ImPlotStyle {
     // item styling variables
-    float        LineWeight;              // = 1,      item line weight in pixels
-    ImPlotMarker Marker;                  // = ImPlotMarker_None, marker specification
-    float        MarkerSize;              // = 4,      marker size in pixels (roughly the marker's "radius")
-    float        MarkerWeight;            // = 1,      outline weight of markers in pixels
-    float        FillAlpha;               // = 1,      alpha modifier applied to plot fills
-    float        ErrorBarSize;            // = 5,      error bar whisker width in pixels
-    float        ErrorBarWeight;          // = 1.5,    error bar whisker weight in pixels
-    float        DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
-    float        DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
+    float   LineWeight;              // = 1,      item line weight in pixels
+    int     Marker;                  // = ImPlotMarker_None, marker specification
+    float   MarkerSize;              // = 4,      marker size in pixels (roughly the marker's "radius")
+    float   MarkerWeight;            // = 1,      outline weight of markers in pixels
+    float   FillAlpha;               // = 1,      alpha modifier applied to plot fills
+    float   ErrorBarSize;            // = 5,      error bar whisker width in pixels
+    float   ErrorBarWeight;          // = 1.5,    error bar whisker weight in pixels
+    float   DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
+    float   DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
     // plot styling variables
-    bool         AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
-    float        PlotBorderSize;          // = 1,      line thickness of border around plot area
-    float        MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
-    ImVec2       MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
-    ImVec2       MinorTickLen;            // = 5,5     minor tick lengths for X and Y axes
-    ImVec2       MajorTickSize;           // = 1,1     line thickness of major ticks
-    ImVec2       MinorTickSize;           // = 1,1     line thickness of minor ticks
-    ImVec2       MajorGridSize;           // = 1,1     line thickness of major grid lines
-    ImVec2       MinorGridSize;           // = 1,1     line thickness of minor grid lines
-    ImVec2       PlotPadding;             // = 8,8     padding between widget frame and plot area and/or labels
-    ImVec2       LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
-    ImVec2       LegendPadding;           // = 10,10   legend padding from top-left of plot
-    ImVec2       InfoPadding;             // = 10,10   padding between plot edge and interior info text
-    ImVec2       PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
-    ImVec4       Colors[ImPlotCol_COUNT]; //           array of plot specific colors
+    float   PlotBorderSize;          // = 1,      line thickness of border around plot area
+    float   MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
+    ImVec2  MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
+    ImVec2  MinorTickLen;            // = 5,5     minor tick lengths for X and Y axes
+    ImVec2  MajorTickSize;           // = 1,1     line thickness of major ticks
+    ImVec2  MinorTickSize;           // = 1,1     line thickness of minor ticks
+    ImVec2  MajorGridSize;           // = 1,1     line thickness of major grid lines
+    ImVec2  MinorGridSize;           // = 1,1     line thickness of minor grid lines
+    ImVec2  PlotPadding;             // = 8,8     padding between widget frame and plot area and/or labels
+    ImVec2  LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
+    ImVec2  LegendPadding;           // = 10,10   legend padding from top-left of plot
+    ImVec2  InfoPadding;             // = 10,10   padding between plot edge and interior info text
+    ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
+    // colors
+    ImVec4  Colors[ImPlotCol_COUNT]; //           array of plot specific colors
+    // settings/flags
+    bool    AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
+    bool    UseLocalTime;            // = false,  axis labels will be formatted for your timezone when ImPlotAxisFlag_Time is enabled
     ImPlotStyle();
 };
 
@@ -281,11 +287,11 @@ bool BeginPlot(const char* title_id,
                const char* x_label      = NULL,
                const char* y_label      = NULL,
                const ImVec2& size       = ImVec2(-1,0),
-               ImPlotFlags flags        = ImPlotFlags_Default,
-               ImPlotAxisFlags x_flags  = ImPlotAxisFlags_Default,
-               ImPlotAxisFlags y_flags  = ImPlotAxisFlags_Default,
-               ImPlotAxisFlags y2_flags = ImPlotAxisFlags_Auxiliary,
-               ImPlotAxisFlags y3_flags = ImPlotAxisFlags_Auxiliary);
+               ImPlotFlags flags        = ImPlotFlags_None,
+               ImPlotAxisFlags x_flags  = ImPlotAxisFlags_None,
+               ImPlotAxisFlags y_flags  = ImPlotAxisFlags_None,
+               ImPlotAxisFlags y2_flags = ImPlotAxisFlags_NoGridLines,
+               ImPlotAxisFlags y3_flags = ImPlotAxisFlags_NoGridLines);
 
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().
