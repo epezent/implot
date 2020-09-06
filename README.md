@@ -23,21 +23,21 @@ ImPlot is an immediate mode plotting library for [Dear ImGui](https://github.com
     - and more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
+- support for time formatted x-axes
 - reversible and lockable axes
 - support for up to three independent y-axes
 - controls for zooming, panning, box selection, and auto-fitting data
 - controls for creating persistent query ranges (see demo)
 - remappable input controls
 - several plot styling options: 10 marker types, adjustable marker sizes, line weights, outline colors, fill colors, etc.
-- built-in and user definable colormaps
+- 10 built-in and user definable colormaps
 - optional plot titles, axis labels, and grid labels
 - optional legend with toggle buttons to quickly show/hide items
-- size-aware grid with smart labels that are always power-of-ten multiples of 1, 2, and 5
 - default styling based on current ImGui theme, but most elements can be customized independently
-- mouse cursor location display and optional crosshairs cursor
 - customizable data getters and data striding (just like ImGui:PlotLine)
 - relatively good performance for high density plots
 - support for single and double precision data
+- and more! (see [Announcements](https://github.com/epezent/implot/issues/48))
 
 ## Usage
 
