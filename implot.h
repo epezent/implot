@@ -55,30 +55,32 @@ typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 enum ImPlotFlags_ {
     ImPlotFlags_None          = 0,       // default
     ImPlotFlags_NoLegend      = 1 << 0,  // the top-left legend will not be displayed
-    ImPlotFlags_NoMenus       = 1 << 1,  // the user will be able to open context menus with double-right click
-    ImPlotFlags_NoBoxSelect   = 1 << 2,  // the user will be able to box-select with right-mouse
+    ImPlotFlags_NoMenus       = 1 << 1,  // the user will not be able to open context menus with double-right click
+    ImPlotFlags_NoBoxSelect   = 1 << 2,  // the user will not be able to box-select with right-mouse
     ImPlotFlags_NoMousePos    = 1 << 3,  // the mouse position, in plot coordinates, will not be displayed in the bottom-right
-    ImPlotFlags_NoHighlight   = 1 << 4,  // plot items will be highlighted when their legend entry is hovered
+    ImPlotFlags_NoHighlight   = 1 << 4,  // plot items will not be highlighted when their legend entry is hovered
     ImPlotFlags_NoChild       = 1 << 5,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2        = 1 << 6,  // enable a 2nd y-axis
-    ImPlotFlags_YAxis3        = 1 << 7,  // enable a 3rd y-axis
+    ImPlotFlags_YAxis2        = 1 << 6,  // enable a 2nd y-axis on the right side
+    ImPlotFlags_YAxis3        = 1 << 7,  // enable a 3rd y-axis on the right side
     ImPlotFlags_Query         = 1 << 8,  // the user will be able to draw query rects with middle-mouse
     ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased   = 1 << 10  // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
+    ImPlotFlags_AntiAliased   = 1 << 10, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
+    ImPlotFlags_CanvasOnly    = ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
 };
 
 // Options for plot axes (X and Y).
 enum ImPlotAxisFlags_ {
-    ImPlotAxisFlags_GridLines  = 1 << 0, // grid lines will be displayed
-    ImPlotAxisFlags_TickMarks  = 1 << 1, // tick marks will be displayed for each grid line
-    ImPlotAxisFlags_TickLabels = 1 << 2, // text labels will be displayed for each grid line
-    ImPlotAxisFlags_Invert     = 1 << 3, // the axis will be inverted
-    ImPlotAxisFlags_LockMin    = 1 << 4, // the axis minimum value will be locked when panning/zooming
-    ImPlotAxisFlags_LockMax    = 1 << 5, // the axis maximum value will be locked when panning/zooming
-    ImPlotAxisFlags_LogScale   = 1 << 6, // a logartithmic (base 10) axis scale will be used
-    ImPlotAxisFlags_Time       = 1 << 7, // axis will display data/time formatted labels 
-    ImPlotAxisFlags_Default    = ImPlotAxisFlags_GridLines | ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
-    ImPlotAxisFlags_Auxiliary  = ImPlotAxisFlags_TickMarks | ImPlotAxisFlags_TickLabels,
+    ImPlotAxisFlags_None         = 0,      // default
+    ImPlotAxisFlags_NoGridLines  = 1 << 0, // no grid lines will be displayed
+    ImPlotAxisFlags_NoTickMarks  = 1 << 1, // no tick marks will be displayed
+    ImPlotAxisFlags_NoTickLabels = 1 << 2, // no text labels will be displayed
+    ImPlotAxisFlags_LogScale     = 1 << 3, // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
+    ImPlotAxisFlags_Time         = 1 << 4, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
+    ImPlotAxisFlags_Invert       = 1 << 5, // the axis will be inverted
+    ImPlotAxisFlags_LockMin      = 1 << 6, // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax      = 1 << 7, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_Lock         = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
+    ImPlotAxisFlags_NoTicks      = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels
 };
 
 // Plot styling colors.
@@ -283,10 +285,10 @@ bool BeginPlot(const char* title_id,
                const char* y_label      = NULL,
                const ImVec2& size       = ImVec2(-1,0),
                ImPlotFlags flags        = ImPlotFlags_None,
-               ImPlotAxisFlags x_flags  = ImPlotAxisFlags_Default,
-               ImPlotAxisFlags y_flags  = ImPlotAxisFlags_Default,
-               ImPlotAxisFlags y2_flags = ImPlotAxisFlags_Auxiliary,
-               ImPlotAxisFlags y3_flags = ImPlotAxisFlags_Auxiliary);
+               ImPlotAxisFlags x_flags  = ImPlotAxisFlags_None,
+               ImPlotAxisFlags y_flags  = ImPlotAxisFlags_None,
+               ImPlotAxisFlags y2_flags = ImPlotAxisFlags_NoGridLines,
+               ImPlotAxisFlags y3_flags = ImPlotAxisFlags_NoGridLines);
 
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().

@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2020/09/06 (0.7) - Several flags under ImPlotFlags and ImPlotAxisFlags were inverted so that the default flagset is simply 0. This more closely matches ImGui's style.
 - 2020/08/28 (0.5) - ImPlotMarker_ can no longer be combined with bitwise OR, |. This features caused unecessary slow-down, and almost no one used it.
 - 2020/08/25 (0.5) - ImPlotAxisFlags_Scientific was removed. Logarithmic axes automatically uses scientific notation.
 - 2020/08/17 (0.5) - PlotText was changed so that text is centered horizontally and vertically about the desired point.
@@ -1120,14 +1121,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // canvas bb
     gp.BB_Canvas = ImRect(gp.BB_Frame.Min + gp.Style.PlotPadding, gp.BB_Frame.Max - gp.Style.PlotPadding);
 
-    gp.RenderX = (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_GridLines) ||
-                  ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickMarks) ||
-                  ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels));
+    gp.RenderX = (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoGridLines) ||
+                  !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickMarks) ||
+                  !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickLabels));
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
         gp.RenderY[i] = gp.Y[i].Present &&
-                        (ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_GridLines) ||
-                         ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks) ||
-                         ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels));
+                        (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoGridLines) ||
+                         !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoTickMarks) ||
+                         !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoTickLabels));
     }
 
     // plot bb
@@ -1488,7 +1489,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // render grid
-    if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_GridLines)) {
+    if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoGridLines)) {
         float density   = gp.XTicks.Size / gp.BB_Plot.GetWidth();
         ImVec4 col_min  = ImGui::ColorConvertU32ToFloat4(gp.Col_X.Minor);
         col_min.w      *= ImClamp(ImRemap(density, 0.1f, 0.2f, 1.0f, 0.0f), 0.0f, 1.0f);
@@ -1505,7 +1506,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        if (gp.Y[i].Present && ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_GridLines)) {
+        if (gp.Y[i].Present && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoGridLines)) {
             float density   = gp.YTicks[i].Size / gp.BB_Plot.GetHeight();
             ImVec4 col_min  = ImGui::ColorConvertU32ToFloat4(gp.Col_Y[i].Minor);
             col_min.w      *= ImClamp(ImRemap(density, 0.1f, 0.2f, 1.0f, 0.0f), 0.0f, 1.0f);
@@ -1543,7 +1544,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // render tick labels
     ImGui::PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
-    if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickLabels)) {
+    if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickLabels)) {
         for (int t = 0; t < gp.XTicks.Size; t++) {
             ImPlotTick *xt = &gp.XTicks.Ticks[t];
             if (xt->ShowLabel && xt->PixelPos >= gp.BB_Plot.Min.x - 1 && xt->PixelPos <= gp.BB_Plot.Max.x + 1)
@@ -1552,7 +1553,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        if (gp.Y[i].Present && ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickLabels)) {
+        if (gp.Y[i].Present && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoTickLabels)) {
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
                 const float x_start = gp.YAxisReference[i] + (i == 0 ?  (-gp.Style.LabelPadding.x - gp.YTicks[i].Ticks[t].LabelSize.x) : gp.Style.LabelPadding.x);
                 ImPlotTick *yt = &gp.YTicks[i].Ticks[t];
@@ -1608,9 +1609,9 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
     bool total_lock = state.HasRange && state.RangeCond == ImGuiCond_Always;
     bool logscale  = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_LogScale);
     bool timescale = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_Time);
-    bool grid      = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_GridLines);
-    bool ticks     = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_TickMarks);
-    bool labels    = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_TickLabels);
+    bool grid      = !ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_NoGridLines);
+    bool ticks     = !ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_NoTickMarks);
+    bool labels    = !ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_NoTickLabels);
     double drag_speed = (state.Axis->Range.Size() <= DBL_EPSILON) ? DBL_EPSILON * 1.0e+13 : 0.01 * state.Axis->Range.Size(); // recover from almost equal axis limits.
 
     BeginDisabledControls(total_lock);
@@ -1655,11 +1656,11 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
 
     ImGui::Separator();
     if (ImGui::Checkbox("Grid Lines", &grid))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_GridLines);
+        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_NoGridLines);
     if (ImGui::Checkbox("Tick Marks", &ticks))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_TickMarks);
+        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_NoTickMarks);
     if (ImGui::Checkbox("Labels", &labels))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_TickLabels);
+        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_NoTickLabels);
 
 }
 
@@ -1756,7 +1757,7 @@ void EndPlot() {
 
     // render ticks
     PushPlotClipRect();
-    if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_TickMarks)) {
+    if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickMarks)) {
         for (int t = 0; t < gp.XTicks.Size; t++) {
             ImPlotTick *xt = &gp.XTicks.Ticks[t];
             if (xt->Level == 0) 
@@ -1775,7 +1776,7 @@ void EndPlot() {
         axis_count++;
 
         float x_start = gp.YAxisReference[i];
-        if (ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_TickMarks)) {
+        if (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoTickMarks)) {
             float direction = (i == 0) ? 1.0f : -1.0f;
             bool no_major = axis_count >= 3;
             for (int t = 0; t < gp.YTicks[i].Size; t++) {

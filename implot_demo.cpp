@@ -346,8 +346,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::SetNextPlotTicksX(positions, 10, labels);
         }
         if (ImPlot::BeginPlot("Bar Plot", horz ? "Score" :  "Student", horz ? "Student" : "Score",
-                              ImVec2(-1,0), 0, ImPlotAxisFlags_Default,
-                              horz ? ImPlotAxisFlags_Default | ImPlotAxisFlags_Invert : ImPlotAxisFlags_Default))
+                              ImVec2(-1,0), 0, 0, horz ? ImPlotAxisFlags_Invert : 0))
         {
             if (horz) {
                 ImPlot::PlotBarsH("Midterm Exam", midtm, 10, 0.2f, -0.2f);
@@ -426,7 +425,7 @@ void ShowDemoWindow(bool* p_open) {
         }
 
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos | ImPlotFlags_NoMousePos, 0, 0)) {
+        if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoTicks, ImPlotAxisFlags_NoTicks)) {
             ImPlot::PlotPieChart(labels1, data1, 4, 0.5f, 0.5f, 0.4f, normalize, "%.2f");
             ImPlot::EndPlot();
         }
@@ -438,7 +437,7 @@ void ShowDemoWindow(bool* p_open) {
 
         ImPlot::PushColormap(ImPlotColormap_Pastel);
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos | ImPlotFlags_NoMousePos, 0, 0)) {
+        if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoTicks, ImPlotAxisFlags_NoTicks)) {
             ImPlot::PlotPieChart(labels2, data2, 5, 0.5f, 0.5f, 0.4f, true, "%.0f", 180);
             ImPlot::EndPlot();
         }
@@ -470,12 +469,12 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::LabelText("##Colormap Index", "%s", ImPlot::GetColormapName(map));
         ImGui::SetNextItemWidth(225);
         ImGui::DragFloatRange2("Min / Max",&scale_min, &scale_max, 0.01f, -20, 20);
-        static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax | ImPlotAxisFlags_TickLabels;
+        static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks;
 
         ImPlot::PushColormap(map);
         SetNextPlotTicksX(0 + 1.0/14.0, 1 - 1.0/14.0, 7, xlabels);
         SetNextPlotTicksY(1 - 1.0/14.0, 0 + 1.0/14.0, 7, ylabels);
-        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(225,225),ImPlotFlags_NoLegend,axes_flags,axes_flags)) {
+        if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(225,225),ImPlotFlags_NoLegend|ImPlotFlags_NoMousePos,axes_flags,axes_flags)) {
             ImPlot::PlotHeatmap("heat",values1[0],7,7,scale_min,scale_max);
             ImPlot::EndPlot();
         }
@@ -488,7 +487,7 @@ void ShowDemoWindow(bool* p_open) {
         static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
         ImPlot::PushColormap(gray, 2);
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
-        if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),0,0,0)) {
+        if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),0,ImPlotAxisFlags_NoTicks,ImPlotAxisFlags_NoTicks)) {
             ImPlot::PlotHeatmap("heat1",values2,100,100,0,1,NULL);
             ImPlot::PlotHeatmap("heat2",values2,100,100,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
             ImPlot::EndPlot();
@@ -514,7 +513,7 @@ void ShowDemoWindow(bool* p_open) {
         rdata1.Span = history;
         rdata2.Span = history;
 
-        static ImPlotAxisFlags rt_axis = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_TickLabels;
+        static ImPlotAxisFlags rt_axis = ImPlotAxisFlags_NoTickLabels;
         ImPlot::SetNextPlotLimitsX(t - history, t, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
             ImPlot::PlotShaded("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), 0, sdata1.Offset, 2 * sizeof(t_float));
@@ -583,7 +582,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("Open the plot context menu (double right click) to change scales.");
 
         ImPlot::SetNextPlotLimits(0.1, 100, 0, 10);
-        if (ImPlot::BeginPlot("Log Plot", NULL, NULL, ImVec2(-1,0), 0, ImPlotAxisFlags_Default | ImPlotAxisFlags_LogScale )) {
+        if (ImPlot::BeginPlot("Log Plot", NULL, NULL, ImVec2(-1,0), 0, ImPlotAxisFlags_LogScale )) {
             ImPlot::PlotLine("f(x) = x",        xs, xs,  1001);
             ImPlot::PlotLine("f(x) = sin(x)+1", xs, ys1, 1001);
             ImPlot::PlotLine("f(x) = log(x)",   xs, ys2, 1001);
@@ -595,7 +594,7 @@ void ShowDemoWindow(bool* p_open) {
         static double min = 1577836800; // 01/01/2020 @ 12:00:00am (UTC)
         static double max = 1609459200; // 01/01/2021 @ 12:00:00am (UTC)
         ImPlot::SetNextPlotLimits(min,max,0,1);
-        if (ImPlot::BeginPlot("##Time", "UTC Time", "Y-Axis", ImVec2(-1,0), 0, ImPlotAxisFlags_Default | ImPlotAxisFlags_Time)) {
+        if (ImPlot::BeginPlot("##Time", "UTC Time", "Y-Axis", ImVec2(-1,0), 0, ImPlotAxisFlags_Time)) {
 
             ImPlot::EndPlot();
         }
@@ -655,7 +654,7 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::BulletText("The query rect can be dragged after it's created.");
         ImGui::Unindent();
 
-        if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Query, ImPlotAxisFlags_GridLines, ImPlotAxisFlags_GridLines)) {
+        if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Query)) {
             if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) {
                 ImPlotPoint pt = ImPlot::GetPlotMousePos();
                 data.push_back(t_float2((t_float)pt.x, (t_float)pt.y));
@@ -706,7 +705,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImGui::BulletText("Query the first plot to render a subview in the second plot (see above for controls).");
         ImPlot::SetNextPlotLimits(0,0.01,-1,1);
-        ImPlotAxisFlags flags = ImPlotAxisFlags_Default & ~ImPlotAxisFlags_TickLabels;
+        ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
         ImPlotLimits query;
         if (ImPlot::BeginPlot("##View1",NULL,NULL,ImVec2(-1,150), ImPlotFlags_Query, flags, flags)) {
             ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
@@ -1135,7 +1134,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SameLine(); ImGui::ColorEdit4("##Bull", &bullCol.x, ImGuiColorEditFlags_NoInputs);
         ImGui::SameLine(); ImGui::ColorEdit4("##Bear", &bearCol.x, ImGuiColorEditFlags_NoInputs);
         ImPlot::SetNextPlotLimits(1546300800, 1571961600, 1250, 1600);
-        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,-1),0,ImPlotAxisFlags_Default | ImPlotAxisFlags_Time)) {
+        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,-1),0,ImPlotAxisFlags_Time)) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
             ImPlot::EndPlot();
         }
@@ -1175,7 +1174,7 @@ ImPlotPoint Spiral(void*, int idx) {
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size) {
     ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
     ImPlot::SetNextPlotLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
-    if (ImPlot::BeginPlot(id,0,0,size,ImPlotFlags_NoChild,0,0,0,0)) {
+    if (ImPlot::BeginPlot(id,0,0,size,ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild,ImPlotAxisFlags_NoTicks,ImPlotAxisFlags_NoTicks)) {
         ImPlot::PushStyleColor(ImPlotCol_Line, col);
         ImPlot::PlotLine(id, values, count, offset);
         ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);

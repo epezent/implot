@@ -297,7 +297,7 @@ struct ImPlotAxis
     bool            HoveredTot;
 
     ImPlotAxis() {
-        Flags      = PreviousFlags = ImPlotAxisFlags_Default;
+        Flags      = PreviousFlags = ImPlotAxisFlags_None;
         Range.Min  = 0;
         Range.Max  = 1;
         Dragging   = false;
@@ -374,7 +374,7 @@ struct ImPlotAxisState
         HasRange     = has_range;
         RangeCond    = range_cond;
         Present      = present;
-        HasLabels    = ImHasFlag(Axis->Flags, ImPlotAxisFlags_TickLabels);
+        HasLabels    = !ImHasFlag(Axis->Flags, ImPlotAxisFlags_NoTickLabels);
         Invert       = ImHasFlag(Axis->Flags, ImPlotAxisFlags_Invert);
         LockMin      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always);
         LockMax      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always);
