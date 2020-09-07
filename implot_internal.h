@@ -715,7 +715,7 @@ void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollect
 // Populates a list of ImPlotTicks with time formatted ticks.
 void AddTicksTime(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
-void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTickCollection& ticks);
+void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Styling Utils

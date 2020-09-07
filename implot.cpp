@@ -579,7 +579,7 @@ void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollect
     }
 }
 
-void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTickCollection& ticks) {
+void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks) {
     for (int i = 0; i < n; ++i) {
         ImPlotTick tick(values[i], false, true);
         if (labels != NULL) {
@@ -2201,21 +2201,21 @@ void FitNextPlotAxes(bool x, bool y, bool y2, bool y3) {
     gp.NextPlotData.FitY[2] = y3;
 }
 
-void SetNextPlotTicksX(const double* values, int n_ticks, const char** labels, bool show_default) {
+void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[], bool show_default) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksX() needs to be called before BeginPlot()!");
     gp.NextPlotData.ShowDefaultTicksX = show_default;
     AddTicksCustom(values, labels, n_ticks, gp.XTicks);
 }
 
-void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char** labels, bool show_default) {
+void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[], bool show_default) {
     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
     static ImVector<double> buffer;
     FillRange(buffer, n_ticks, x_min, x_max);
     SetNextPlotTicksX(&buffer[0], n_ticks, labels, show_default);
 }
 
-void SetNextPlotTicksY(const double* values, int n_ticks, const char** labels, bool show_default, int y_axis) {
+void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[], bool show_default, int y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksY() needs to be called before BeginPlot()!");
     IM_ASSERT_USER_ERROR(y_axis >= 0 && y_axis < IMPLOT_Y_AXES, "y_axis needs to be between 0 and IMPLOT_Y_AXES");
@@ -2223,7 +2223,7 @@ void SetNextPlotTicksY(const double* values, int n_ticks, const char** labels, b
     AddTicksCustom(values, labels, n_ticks, gp.YTicks[y_axis]);
 }
 
-void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char** labels, bool show_default, int y_axis) {
+void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[], bool show_default, int y_axis) {
     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
     static ImVector<double> buffer;
     FillRange(buffer, n_ticks, y_min, y_max);
