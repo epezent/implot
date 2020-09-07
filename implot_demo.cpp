@@ -558,7 +558,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::DragFloat("Marker Weight", &mk_weight,0.05f,0.5f,3.0f,"%.2f px");
 
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
-        if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), 0, 0, 0)) {
+        if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), ImPlotFlags_CanvasOnly, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             t_float xs[2] = {1,4};
             t_float ys[2] = {10,11};
 
@@ -724,7 +724,7 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::BulletText("The query rect can be dragged after it's created.");
         ImGui::Unindent();
 
-        if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Query)) {
+        if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Query, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) {
                 ImPlotPoint pt = ImPlot::GetPlotMousePos();
                 data.push_back(t_float2((t_float)pt.x, (t_float)pt.y));
@@ -785,7 +785,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
         ImPlot::SetNextPlotLimits(query.X.Min, query.X.Max, query.Y.Min, query.Y.Max, ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##View2",NULL,NULL,ImVec2(-1,150), 0, 0, 0)) {
+        if (ImPlot::BeginPlot("##View2",NULL,NULL,ImVec2(-1,150), ImPlotFlags_CanvasOnly, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
             ImPlot::PlotLine("Signal 2", x_data, y_data2, 512);
             ImPlot::PlotLine("Signal 3", x_data, y_data3, 512);
@@ -842,7 +842,7 @@ void ShowDemoWindow(bool* p_open) {
             }
         }
         ImPlot::SetNextPlotLimitsX((double)t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##DND", NULL, NULL, ImVec2(-1,0), ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
+        if (ImPlot::BeginPlot("##DND", NULL, NULL, ImVec2(-1,0), ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3, ImPlotAxisFlags_NoTickLabels)) {
             for (int i = 0; i < K_CHANNELS; ++i) {
                 if (show[i] && data[i].Data.size() > 0) {
                     char label[K_CHANNELS];
