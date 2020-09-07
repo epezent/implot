@@ -1069,7 +1069,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotLineG("Waves", MyImPlot::SineWave, &data1, 1000);
             ImPlot::PlotLineG("Waves", MyImPlot::SawWave, &data2, 1000);
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-            ImPlot::PlotShaded("Waves", MyImPlot::SineWave, &data1, MyImPlot::SawWave, &data2, 1000);
+            ImPlot::PlotShadedG("Waves", MyImPlot::SineWave, &data1, MyImPlot::SawWave, &data2, 1000);
             ImPlot::PopStyleVar();
             // you can also pass C++ lambdas:
             // auto lamda = [](void* data, int idx) { ... return ImPlotPoint(x,y); };

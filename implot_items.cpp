@@ -257,9 +257,9 @@ struct GetterYRef {
 };
 
 // Interprets an array of X points as ImPlotPoints where the Y value is a constant reference value
-template <typename T>
+template <typename T, typename Y>
 struct GetterXsYRef {
-    GetterXsYRef(const T* xs, T y_ref, int count, int offset, int stride) {
+    GetterXsYRef(const T* xs, Y y_ref, int count, int offset, int stride) {
         Xs = xs;
         YRef = y_ref;
         Count = count;
@@ -267,7 +267,7 @@ struct GetterXsYRef {
         Stride = stride;
     }
     const T* Xs;
-    T YRef;
+    Y YRef;
     int Count;
     int Offset;
     int Stride;
@@ -328,15 +328,15 @@ struct GetterFuncPtrImPlotPoint {
 
 template <typename T>
 struct GetterBarV {
-    const T* Ys; T XShift; int Count; int Offset; int Stride;
-    GetterBarV(const T* ys, T xshift, int count, int offset, int stride) { Ys = ys; XShift = xshift; Count = count; Offset = offset; Stride = stride; }
+    const T* Ys; double XShift; int Count; int Offset; int Stride;
+    GetterBarV(const T* ys, double xshift, int count, int offset, int stride) { Ys = ys; XShift = xshift; Count = count; Offset = offset; Stride = stride; }
     inline ImPlotPoint operator()(int idx) { return ImPlotPoint((double)idx + (double)XShift, (double)OffsetAndStride(Ys, idx, Count, Offset, Stride)); }
 };
 
 template <typename T>
 struct GetterBarH {
-    const T* Xs; T YShift; int Count; int Offset; int Stride;
-    GetterBarH(const T* xs, T yshift, int count, int offset, int stride) { Xs = xs; YShift = yshift; Count = count; Offset = offset; Stride = stride; }
+    const T* Xs; double YShift; int Count; int Offset; int Stride;
+    GetterBarH(const T* xs, double yshift, int count, int offset, int stride) { Xs = xs; YShift = yshift; Count = count; Offset = offset; Stride = stride; }
     inline ImPlotPoint operator()(int idx) { return ImPlotPoint((double)OffsetAndStride(Xs, idx, Count, Offset, Stride), (double)idx + (double)YShift); }
 };
 
@@ -359,7 +359,6 @@ struct GetterError {
 //-----------------------------------------------------------------------------
 
 // Transforms convert points in plot space (i.e. ImPlotPoint) to pixel space (i.e. ImVec2)
-// TODO: Cache transformation variables
 
 // Transforms points for linear x and linear y space
 struct TransformerLinLin {
@@ -371,7 +370,6 @@ struct TransformerLinLin {
         return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
                        (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
-
     int YAxis;
 };
 
@@ -420,7 +418,6 @@ struct TransformerLogLog {
         return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
                        (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
-
     int YAxis;
 };
 
@@ -813,7 +810,7 @@ inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& Dr
 }
 
 //-----------------------------------------------------------------------------
-// PLOT LINES / MARKERS
+// PLOT LINES
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
@@ -881,7 +878,6 @@ void PlotLine<ImPlotPoint>(const char* label_id, const ImPlotPoint* data, int co
 }
 
 
-
 template <typename T> 
 void PlotLine(const char* label_id, const T* xs, const T* ys, int count, int offset, int stride) {
     GetterXsYs<T> getter(xs,ys,count,offset,stride);
@@ -936,40 +932,55 @@ inline void PlotScatterEx(const char* label_id, Getter getter) {
     }
 }
 
-// float
-void PlotScatter(const char* label_id, const float* values, int count, int offset, int stride) {
-    GetterYs<float> getter(values,count,offset,stride);
+template <typename T> 
+void PlotScatter(const char* label_id, const T* values, int count, int offset, int stride) {
+    GetterYs<T> getter(values,count,offset,stride);
     PlotScatterEx(label_id, getter);
 }
 
-void PlotScatter(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
-    GetterXsYs<float> getter(xs,ys,count,offset,stride);
-    return PlotScatterEx(label_id, getter);
-}
+template void PlotScatter<ImS8>(const char* label_id, const ImS8* values, int count, int offset, int stride);
+template void PlotScatter<ImU8>(const char* label_id, const ImU8* values, int count, int offset, int stride);
+template void PlotScatter<ImS16>(const char* label_id, const ImS16* values, int count, int offset, int stride);
+template void PlotScatter<ImU16>(const char* label_id, const ImU16* values, int count, int offset, int stride);
+template void PlotScatter<ImS32>(const char* label_id, const ImS32* values, int count, int offset, int stride);
+template void PlotScatter<ImU32>(const char* label_id, const ImU32* values, int count, int offset, int stride);
+template void PlotScatter<ImS64>(const char* label_id, const ImS64* values, int count, int offset, int stride);
+template void PlotScatter<ImU64>(const char* label_id, const ImU64* values, int count, int offset, int stride);
+template void PlotScatter<float>(const char* label_id, const float* values, int count, int offset, int stride);
+template void PlotScatter<double>(const char* label_id, const double* values, int count, int offset, int stride);
 
-void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset) {
+template <>
+void PlotScatter<ImVec2>(const char* label_id, const ImVec2* data, int count, int offset, int) {
     GetterImVec2 getter(data, count, offset);
     return PlotScatterEx(label_id, getter);
 }
 
-// double
-void PlotScatter(const char* label_id, const double* values, int count, int offset, int stride) {
-    GetterYs<double> getter(values,count,offset,stride);
-    PlotScatterEx(label_id, getter);
-}
-
-void PlotScatter(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride) {
-    GetterXsYs<double> getter(xs,ys,count,offset,stride);
-    return PlotScatterEx(label_id, getter);
-}
-
-void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int offset) {
+template <>
+void PlotScatter<ImPlotPoint>(const char* label_id, const ImPlotPoint* data, int count, int offset, int) {
     GetterImPlotPoint getter(data, count, offset);
     return PlotScatterEx(label_id, getter);
 }
 
+
+template <typename T> 
+void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, int offset, int stride) {
+    GetterXsYs<T> getter(xs,ys,count,offset,stride);
+    return PlotScatterEx(label_id, getter);
+}
+
+template void PlotScatter<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys, int count, int offset, int stride);
+template void PlotScatter<ImU8>(const char* label_id, const ImU8* xs, const ImU8* ys, int count, int offset, int stride);
+template void PlotScatter<ImS16>(const char* label_id, const ImS16* xs, const ImS16* ys, int count, int offset, int stride);
+template void PlotScatter<ImU16>(const char* label_id, const ImU16* xs, const ImU16* ys, int count, int offset, int stride);
+template void PlotScatter<ImS32>(const char* label_id, const ImS32* xs, const ImS32* ys, int count, int offset, int stride);
+template void PlotScatter<ImU32>(const char* label_id, const ImU32* xs, const ImU32* ys, int count, int offset, int stride);
+template void PlotScatter<ImS64>(const char* label_id, const ImS64* xs, const ImS64* ys, int count, int offset, int stride);
+template void PlotScatter<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys, int count, int offset, int stride);
+template void PlotScatter<float>(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride);
+template void PlotScatter<double>(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride);
+
 // custom
-void PlotScatter(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
+void PlotScatterG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func,data, count, offset);
     return PlotScatterEx(label_id, getter);
 }
@@ -1004,52 +1015,69 @@ inline void PlotShadedEx(const char* label_id, Getter1 getter1, Getter2 getter2)
     }
 }
 
-// float
-void PlotShaded(const char* label_id, const float* values, int count, float y_ref, int offset, int stride) {
-    GetterYs<float> getter1(values,count,offset,stride);
-    GetterYRef<float> getter2(y_ref, count);
-    PlotShadedEx(label_id, getter1, getter2);}
-
-void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset, int stride) {
-    GetterXsYs<float> getter1(xs, ys1, count, offset, stride);
-    GetterXsYs<float> getter2(xs, ys2, count, offset, stride);
-    PlotShadedEx(label_id, getter1, getter2);
-}
-
-void PlotShaded(const char* label_id, const float* xs, const float* ys, int count, float y_ref, int offset, int stride) {
-    GetterXsYs<float> getter1(xs, ys, count, offset, stride);
-    GetterXsYRef<float> getter2(xs, y_ref, count, offset, stride);
-    PlotShadedEx(label_id, getter1, getter2);
-}
-
-// double
-void PlotShaded(const char* label_id, const double* values, int count, double y_ref, int offset, int stride) {
-    GetterYs<double> getter1(values,count,offset,stride);
+template <typename T> 
+void PlotShaded(const char* label_id, const T* values, int count, double y_ref, int offset, int stride) {
+    GetterYs<T> getter1(values,count,offset,stride);
     GetterYRef<double> getter2(y_ref, count);
     PlotShadedEx(label_id, getter1, getter2);
 }
 
-void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride) {
-    GetterXsYs<double> getter1(xs, ys1, count, offset, stride);
-    GetterXsYs<double> getter2(xs, ys2, count, offset, stride);
+template void PlotShaded<ImS8>(const char* label_id, const ImS8* values, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImU8>(const char* label_id, const ImU8* values, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImS16>(const char* label_id, const ImS16* values, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImU16>(const char* label_id, const ImU16* values, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImS32>(const char* label_id, const ImS32* values, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImU32>(const char* label_id, const ImU32* values, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImS64>(const char* label_id, const ImS64* values, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImU64>(const char* label_id, const ImU64* values, int count, double y_ref, int offset, int stride);
+template void PlotShaded<float>(const char* label_id, const float* values, int count, double y_ref, int offset, int stride);
+template void PlotShaded<double>(const char* label_id, const double* values, int count, double y_ref, int offset, int stride);
+
+template <typename T> 
+void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref, int offset, int stride) {
+    GetterXsYs<T> getter1(xs, ys, count, offset, stride);
+    GetterXsYRef<T,double> getter2(xs, y_ref, count, offset, stride);
     PlotShadedEx(label_id, getter1, getter2);
 }
 
-void PlotShaded(const char* label_id, const double* xs, const double* ys, int count, double y_ref, int offset, int stride) {
-    GetterXsYs<double> getter1(xs, ys, count, offset, stride);
-    GetterXsYRef<double> getter2(xs, y_ref, count, offset, stride);
+template void PlotShaded<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImU8>(const char* label_id, const ImU8* xs, const ImU8* ys, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImS16>(const char* label_id, const ImS16* xs, const ImS16* ys, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImU16>(const char* label_id, const ImU16* xs, const ImU16* ys, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImS32>(const char* label_id, const ImS32* xs, const ImS32* ys, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImU32>(const char* label_id, const ImU32* xs, const ImU32* ys, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImS64>(const char* label_id, const ImS64* xs, const ImS64* ys, int count, double y_ref, int offset, int stride);
+template void PlotShaded<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys, int count, double y_ref, int offset, int stride);
+template void PlotShaded<float>(const char* label_id, const float* xs, const float* ys, int count, double y_ref, int offset, int stride);
+template void PlotShaded<double>(const char* label_id, const double* xs, const double* ys, int count, double y_ref, int offset, int stride);
+
+template <typename T> 
+void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, int offset, int stride) {
+    GetterXsYs<T> getter1(xs, ys1, count, offset, stride);
+    GetterXsYs<T> getter2(xs, ys2, count, offset, stride);
     PlotShadedEx(label_id, getter1, getter2);
 }
+
+template void PlotShaded<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys1, const ImS8* ys2, int count, int offset, int stride);
+template void PlotShaded<ImU8>(const char* label_id, const ImU8* xs, const ImU8* ys1, const ImU8* ys2, int count, int offset, int stride);
+template void PlotShaded<ImS16>(const char* label_id, const ImS16* xs, const ImS16* ys1, const ImS16* ys2, int count, int offset, int stride);
+template void PlotShaded<ImU16>(const char* label_id, const ImU16* xs, const ImU16* ys1, const ImU16* ys2, int count, int offset, int stride);
+template void PlotShaded<ImS32>(const char* label_id, const ImS32* xs, const ImS32* ys1, const ImS32* ys2, int count, int offset, int stride);
+template void PlotShaded<ImU32>(const char* label_id, const ImU32* xs, const ImU32* ys1, const ImU32* ys2, int count, int offset, int stride);
+template void PlotShaded<ImS64>(const char* label_id, const ImS64* xs, const ImS64* ys1, const ImS64* ys2, int count, int offset, int stride);
+template void PlotShaded<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys1, const ImU64* ys2, int count, int offset, int stride);
+template void PlotShaded<float>(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset, int stride);
+template void PlotShaded<double>(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride);
 
 // custom
-void PlotShaded(const char* label_id, ImPlotPoint (*g1)(void* data, int idx), void* data1, ImPlotPoint (*g2)(void* data, int idx), void* data2, int count, int offset) {
+void PlotShadedG(const char* label_id, ImPlotPoint (*g1)(void* data, int idx), void* data1, ImPlotPoint (*g2)(void* data, int idx), void* data2, int count, int offset) {
     GetterFuncPtrImPlotPoint getter1(g1, data1, count, offset);
     GetterFuncPtrImPlotPoint getter2(g2, data2, count, offset);
     PlotShadedEx(label_id, getter1, getter2);
 }
 
 //-----------------------------------------------------------------------------
-// PLOT BAR V
+// PLOT BAR
 //-----------------------------------------------------------------------------
 
 // TODO: Migrate to RenderPrimitives
@@ -1087,30 +1115,42 @@ void PlotBarsEx(const char* label_id, Getter getter, TWidth width) {
     }
 }
 
-// float
-void PlotBars(const char* label_id, const float* values, int count, float width, float shift, int offset, int stride) {
-    GetterBarV<float> getter(values,shift,count,offset,stride);
+template <typename T> 
+void PlotBars(const char* label_id, const T* values, int count, double width, double shift, int offset, int stride) {
+    GetterBarV<T> getter(values,shift,count,offset,stride);
     PlotBarsEx(label_id, getter, width);
 }
 
-void PlotBars(const char* label_id, const float* xs, const float* ys, int count, float width, int offset, int stride) {
-    GetterXsYs<float> getter(xs,ys,count,offset,stride);
+template void PlotBars<ImS8>(const char* label_id, const ImS8* values, int count, double width, double shift, int offset, int stride);
+template void PlotBars<ImU8>(const char* label_id, const ImU8* values, int count, double width, double shift, int offset, int stride);
+template void PlotBars<ImS16>(const char* label_id, const ImS16* values, int count, double width, double shift, int offset, int stride);
+template void PlotBars<ImU16>(const char* label_id, const ImU16* values, int count, double width, double shift, int offset, int stride);
+template void PlotBars<ImS32>(const char* label_id, const ImS32* values, int count, double width, double shift, int offset, int stride);
+template void PlotBars<ImU32>(const char* label_id, const ImU32* values, int count, double width, double shift, int offset, int stride);
+template void PlotBars<ImS64>(const char* label_id, const ImS64* values, int count, double width, double shift, int offset, int stride);
+template void PlotBars<ImU64>(const char* label_id, const ImU64* values, int count, double width, double shift, int offset, int stride);
+template void PlotBars<float>(const char* label_id, const float* values, int count, double width, double shift, int offset, int stride);
+template void PlotBars<double>(const char* label_id, const double* values, int count, double width, double shift, int offset, int stride);
+
+template <typename T> 
+void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double width, int offset, int stride) {
+    GetterXsYs<T> getter(xs,ys,count,offset,stride);
     PlotBarsEx(label_id, getter, width);
 }
 
-// double
-void PlotBars(const char* label_id, const double* values, int count, double width, double shift, int offset, int stride) {
-    GetterBarV<double> getter(values,shift,count,offset,stride);
-    PlotBarsEx(label_id, getter, width);
-}
-
-void PlotBars(const char* label_id, const double* xs, const double* ys, int count, double width, int offset, int stride) {
-    GetterXsYs<double> getter(xs,ys,count,offset,stride);
-    PlotBarsEx(label_id, getter, width);
-}
+template void PlotBars<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys, int count, double width, int offset, int stride);
+template void PlotBars<ImU8>(const char* label_id, const ImU8* xs, const ImU8* ys, int count, double width, int offset, int stride);
+template void PlotBars<ImS16>(const char* label_id, const ImS16* xs, const ImS16* ys, int count, double width, int offset, int stride);
+template void PlotBars<ImU16>(const char* label_id, const ImU16* xs, const ImU16* ys, int count, double width, int offset, int stride);
+template void PlotBars<ImS32>(const char* label_id, const ImS32* xs, const ImS32* ys, int count, double width, int offset, int stride);
+template void PlotBars<ImU32>(const char* label_id, const ImU32* xs, const ImU32* ys, int count, double width, int offset, int stride);
+template void PlotBars<ImS64>(const char* label_id, const ImS64* xs, const ImS64* ys, int count, double width, int offset, int stride);
+template void PlotBars<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys, int count, double width, int offset, int stride);
+template void PlotBars<float>(const char* label_id, const float* xs, const float* ys, int count, double width, int offset, int stride);
+template void PlotBars<double>(const char* label_id, const double* xs, const double* ys, int count, double width, int offset, int stride);
 
 // custom
-void PlotBars(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double width, int offset) {
+void PlotBarsG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double width, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func, data, count, offset);
     PlotBarsEx(label_id, getter, width);
 }
@@ -1154,30 +1194,41 @@ void PlotBarsHEx(const char* label_id, Getter getter, THeight height) {
     }
 }
 
-// float
-void PlotBarsH(const char* label_id, const float* values, int count, float height, float shift, int offset, int stride) {
-    GetterBarH<float> getter(values,shift,count,offset,stride);
+template <typename T> 
+void PlotBarsH(const char* label_id, const T* values, int count, double height, double shift, int offset, int stride) {
+    GetterBarH<T> getter(values,shift,count,offset,stride);
     PlotBarsHEx(label_id, getter, height);
 }
 
-void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset, int stride) {
-    GetterXsYs<float> getter(xs,ys,count,offset,stride);
+template void PlotBarsH<ImS8>(const char* label_id, const ImS8* values, int count, double height, double shift, int offset, int stride);
+template void PlotBarsH<ImU8>(const char* label_id, const ImU8* values, int count, double height, double shift, int offset, int stride);
+template void PlotBarsH<ImS16>(const char* label_id, const ImS16* values, int count, double height, double shift, int offset, int stride);
+template void PlotBarsH<ImU16>(const char* label_id, const ImU16* values, int count, double height, double shift, int offset, int stride);
+template void PlotBarsH<ImS32>(const char* label_id, const ImS32* values, int count, double height, double shift, int offset, int stride);
+template void PlotBarsH<ImU32>(const char* label_id, const ImU32* values, int count, double height, double shift, int offset, int stride);
+template void PlotBarsH<ImS64>(const char* label_id, const ImS64* values, int count, double height, double shift, int offset, int stride);
+template void PlotBarsH<ImU64>(const char* label_id, const ImU64* values, int count, double height, double shift, int offset, int stride);
+template void PlotBarsH<float>(const char* label_id, const float* values, int count, double height, double shift, int offset, int stride);
+template void PlotBarsH<double>(const char* label_id, const double* values, int count, double height, double shift, int offset, int stride);
+
+template <typename T> 
+void PlotBarsH(const char* label_id, const T* xs, const T* ys, int count, double height, int offset, int stride) {
+    GetterXsYs<T> getter(xs,ys,count,offset,stride);
     PlotBarsHEx(label_id, getter, height);
 }
 
-// double
-void PlotBarsH(const char* label_id, const double* values, int count, double height, double shift, int offset, int stride) {
-    GetterBarH<double> getter(values,shift,count,offset,stride);
-    PlotBarsHEx(label_id, getter, height);
-}
-
-void PlotBarsH(const char* label_id, const double* xs, const double* ys, int count, double height,  int offset, int stride) {
-    GetterXsYs<double> getter(xs,ys,count,offset,stride);
-    PlotBarsHEx(label_id, getter, height);
-}
-
+template void PlotBarsH<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys, int count, double height, int offset, int stride);
+template void PlotBarsH<ImU8>(const char* label_id, const ImU8* xs, const ImU8* ys, int count, double height, int offset, int stride);
+template void PlotBarsH<ImS16>(const char* label_id, const ImS16* xs, const ImS16* ys, int count, double height, int offset, int stride);
+template void PlotBarsH<ImU16>(const char* label_id, const ImU16* xs, const ImU16* ys, int count, double height, int offset, int stride);
+template void PlotBarsH<ImS32>(const char* label_id, const ImS32* xs, const ImS32* ys, int count, double height, int offset, int stride);
+template void PlotBarsH<ImU32>(const char* label_id, const ImU32* xs, const ImU32* ys, int count, double height, int offset, int stride);
+template void PlotBarsH<ImS64>(const char* label_id, const ImS64* xs, const ImS64* ys, int count, double height, int offset, int stride);
+template void PlotBarsH<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys, int count, double height, int offset, int stride);
+template void PlotBarsH<float>(const char* label_id, const float* xs, const float* ys, int count, double height, int offset, int stride);
+template void PlotBarsH<double>(const char* label_id, const double* xs, const double* ys, int count, double height, int offset, int stride);
 // custom
-void PlotBarsH(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double height,  int offset) {
+void PlotBarsHG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double height,  int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func, data, count, offset);
     PlotBarsHEx(label_id, getter, height);
 }
@@ -1347,13 +1398,13 @@ void PlotStems(const char* label_id, const double* values, int count, double y_r
 
 void PlotStems(const char* label_id, const float* xs, const float* ys, int count, float y_ref, int offset, int stride) {
     GetterXsYs<float> get_mark(xs,ys,count,offset,stride);
-    GetterXsYRef<float> get_base(xs,y_ref,count,offset,stride);
+    GetterXsYRef<float,float> get_base(xs,y_ref,count,offset,stride);
     PlotStemsEx(label_id, get_mark, get_base);
 }
 
 void PlotStems(const char* label_id, const double* xs, const double* ys, int count, double y_ref, int offset, int stride) {
     GetterXsYs<double> get_mark(xs,ys,count,offset,stride);
-    GetterXsYRef<double> get_base(xs,y_ref,count,offset,stride);
+    GetterXsYRef<double,double> get_base(xs,y_ref,count,offset,stride);
     PlotStemsEx(label_id, get_mark, get_base);
 }
 

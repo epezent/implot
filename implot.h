@@ -301,50 +301,34 @@ void EndPlot();
 // Plot Items
 //-----------------------------------------------------------------------------
 
-// Plots a standard 2D line plot.
-// void PlotLine(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
-// void PlotLine(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
-// void PlotLine(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-// void PlotLine(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
-// void PlotLine(const char* label_id, const ImVec2* data, int count, int offset = 0);
-// void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
+// Supported Types for T* 
+// float, double, ImS8, ImU8, ImS16, ImU16, ImS32, ImU32, ImS64, ImU64
 
+// Plots a standard 2D line plot.
 template <typename T> void PlotLine(const char* label_id, const T* values, int count, int offset = 0, int stride = sizeof(T));
 template <typename T> void PlotLine(const char* label_id, const T* xs, const T* ys, int count, int offset = 0, int stride = sizeof(T));
-void PlotLineG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
-
+                      void PlotLineG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
-void PlotScatter(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
-void PlotScatter(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
-void PlotScatter(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-void PlotScatter(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
-void PlotScatter(const char* label_id, const ImVec2* data, int count, int offset = 0);
-void PlotScatter(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
-void PlotScatter(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+template <typename T> void PlotScatter(const char* label_id, const T* values, int count, int offset = 0, int stride = sizeof(T));
+template <typename T> void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, int offset = 0, int stride = sizeof(T));
+                      void PlotScatterG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 // Plots a shaded (filled) region between two lines, or a line and a horizontal reference.
-void PlotShaded(const char* label_id, const float* values, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
-void PlotShaded(const char* label_id, const double* values, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
-void PlotShaded(const char* label_id, const float* xs, const float* ys, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
-void PlotShaded(const char* label_id, const double* xs, const double* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
-void PlotShaded(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset = 0, int stride = sizeof(float));
-void PlotShaded(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset = 0, int stride = sizeof(double));
-void PlotShaded(const char* label_id, ImPlotPoint (*getter1)(void* data, int idx), void* data1, ImPlotPoint (*getter2)(void* data, int idx), void* data2, int count, int offset = 0);
+template <typename T> void PlotShaded(const char* label_id, const T* values, int count, double y_ref = 0, int offset = 0, int stride = sizeof(T));
+template <typename T> void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(T));
+template <typename T> void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, int offset = 0, int stride = sizeof(T));
+                      void PlotShadedG(const char* label_id, ImPlotPoint (*getter1)(void* data, int idx), void* data1, ImPlotPoint (*getter2)(void* data, int idx), void* data2, int count, int offset = 0);
 
 // Plots a vertical bar graph. #width and #shift are in X units.
-void PlotBars(const char* label_id, const float* values, int count, float width = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
-void PlotBars(const char* label_id, const double* values, int count, double width = 0.67f, double shift = 0, int offset = 0, int stride = sizeof(double));
-void PlotBars(const char* label_id, const float* xs, const float* ys, int count, float width, int offset = 0, int stride = sizeof(float));
-void PlotBars(const char* label_id, const double* xs, const double* ys, int count, double width, int offset = 0, int stride = sizeof(double));
-void PlotBars(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double width, int offset = 0);
+template <typename T> void PlotBars(const char* label_id, const T* values, int count, double width = 0.67, double shift = 0, int offset = 0, int stride = sizeof(T));
+template <typename T> void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double width, int offset = 0, int stride = sizeof(T));
+                      void PlotBarsG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double width, int offset = 0);
 
 // Plots a horizontal bar graph. #height and #shift are in Y units.
-void PlotBarsH(const char* label_id, const float* values, int count, float height = 0.67f, float shift = 0, int offset = 0, int stride = sizeof(float));
-void PlotBarsH(const char* label_id, const double* values, int count, double height = 0.67f, double shift = 0, int offset = 0, int stride = sizeof(double));
-void PlotBarsH(const char* label_id, const float* xs, const float* ys, int count, float height,  int offset = 0, int stride = sizeof(float));
-void PlotBarsH(const char* label_id, const double* xs, const double* ys, int count, double height,  int offset = 0, int stride = sizeof(double));
-void PlotBarsH(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double height,  int offset = 0);
+template <typename T> void PlotBarsH(const char* label_id, const T* values, int count, double height = 0.67, double shift = 0, int offset = 0, int stride = sizeof(T));
+template <typename T> void PlotBarsH(const char* label_id, const T* xs, const T* ys, int count, double height, int offset = 0, int stride = sizeof(T));
+                      void PlotBarsHG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double height,  int offset = 0);
 
 // Plots vertical error bar. The label_id should be the same as the label_id of the associated line or bar plot.
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
