@@ -7,7 +7,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/rt.gif" width="270">
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/stem.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/markers.gif" width="270">
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/filled.gif" width="270">
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/shaded.gif" width="270">
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/candle.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/error.gif" width="270">
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/tables.gif" width="270">
