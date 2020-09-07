@@ -32,9 +32,16 @@
 #define sprintf sprintf_s
 #endif
 
+// Encapsulates examples for customizing ImPlot.
 namespace MyImPlot {
 
-// Examples for passing custom function pointers to ImPlot in Custom Getters section.
+// Example for Custom Data and Getters section.
+struct Vector2f {
+    Vector2f(float _x, float _y) { x = _x; y = _y; }
+    float x, y;
+};
+
+// Example for Custom Data and Getters section.
 struct WaveData {
     double X, Amp, Freq, Offset;
     WaveData(double x, double amp, double freq, double offset) { X = x; Amp = amp; Freq = freq; Offset = offset; }
@@ -42,44 +49,25 @@ struct WaveData {
 ImPlotPoint SineWave(void* wave_data, int idx);
 ImPlotPoint SawWave(void* wave_data, int idx);
 ImPlotPoint Spiral(void*, int idx);
-// Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom.
+
+// Example for Tables section. 
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size);
-// Example for Custom Plotters and Tooltips section. Plots a candlestick chart for financial data. See implementation at bottom.
+
+// Example for Custom Plotters and Tooltips section.
 void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip = true, float width_percent = 0.25f, ImVec4 bullCol = ImVec4(0,1,0,1), ImVec4 bearCol = ImVec4(1,0,0,1));
-// Sets style to mimic Seaborn
+
+// Example for Custom Styles section.
 void StyleSeaborn();
 
 } // namespace MyImPlot
 
 namespace ImPlot {
 
-/// Choose whether the demo uses double or float versions of the ImPlot API.
-/// NB: You don't ever need to typdef of define values for ImPlot. This
-/// is only being done here for the sake of demoing both precision types.
-
-// #define IMPLOT_DEMO_USE_DOUBLE
-#ifdef IMPLOT_DEMO_USE_DOUBLE
-typedef double t_float;
-typedef ImPlotPoint t_float2;
-#define Sin sin
-#define Cos cos
-#define Pow pow
-#define Log log
-#define Fmod fmod
-#else
-typedef float t_float;
-typedef ImVec2 t_float2;
-#define Sin sinf
-#define Cos cosf
-#define Pow powf
-#define Log logf
-#define Fmod fmodf
-#endif
-
 void ShowBenchmarkTool();
 
-inline t_float RandomRange(t_float min, t_float max) {
-    t_float scale = rand() / (t_float) RAND_MAX;
+template <typename T>
+inline T RandomRange(T min, T max) {
+    T scale = rand() / (T) RAND_MAX;
     return min + scale * ( max - min );
 }
 
@@ -87,17 +75,17 @@ inline t_float RandomRange(t_float min, t_float max) {
 struct ScrollingBuffer {
     int MaxSize;
     int Offset;
-    ImVector<t_float2> Data;
+    ImVector<ImVec2> Data;
     ScrollingBuffer() {
         MaxSize = 2000;
         Offset  = 0;
         Data.reserve(MaxSize);
     }
-    void AddPoint(t_float x, t_float y) {
+    void AddPoint(float x, float y) {
         if (Data.size() < MaxSize)
-            Data.push_back(t_float2(x,y));
+            Data.push_back(ImVec2(x,y));
         else {
-            Data[Offset] = t_float2(x,y);
+            Data[Offset] = ImVec2(x,y);
             Offset =  (Offset + 1) % MaxSize;
         }
     }
@@ -111,17 +99,17 @@ struct ScrollingBuffer {
 
 // utility structure for realtime plot
 struct RollingBuffer {
-    t_float Span;
-    ImVector<t_float2> Data;
+    float Span;
+    ImVector<ImVec2> Data;
     RollingBuffer() {
         Span = 10.0f;
         Data.reserve(2000);
     }
-    void AddPoint(t_float x, t_float y) {
-        t_float xmod = Fmod(x, Span);
+    void AddPoint(float x, float y) {
+        float xmod = fmodf(x, Span);
         if (!Data.empty() && xmod < Data.back().x)
             Data.shrink(0);
-        Data.push_back(t_float2(xmod, y));
+        Data.push_back(ImVec2(xmod, y));
     }
 };
 
@@ -145,7 +133,7 @@ struct HugeTimeData {
 };
 
 void ShowDemoWindow(bool* p_open) {
-    t_float DEMO_TIME = (t_float)ImGui::GetTime();
+    double DEMO_TIME = ImGui::GetTime();
     static bool show_imgui_metrics       = false;
     static bool show_imgui_style_editor  = false;
     static bool show_implot_style_editor = false;
@@ -249,7 +237,7 @@ void ShowDemoWindow(bool* p_open) {
         static float xs1[1001], ys1[1001];
         for (int i = 0; i < 1001; ++i) {
             xs1[i] = i * 0.001f;
-            ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + DEMO_TIME / 10));
+            ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + (float)DEMO_TIME / 10));
         }
         static double xs2[11], ys2[11];
         for (int i = 0; i < 11; ++i) {
@@ -266,13 +254,13 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Filled Line Plots")) {
-        static t_float xs1[101], ys1[101], ys2[101], ys3[101];
+        static double xs1[101], ys1[101], ys2[101], ys3[101];
         srand(0);
         for (int i = 0; i < 101; ++i) {
             xs1[i] = (float)i;
-            ys1[i] = RandomRange(400,450);
-            ys2[i] = RandomRange(275,350);
-            ys3[i] = RandomRange(150,225);
+            ys1[i] = RandomRange(400.0,450.0);
+            ys2[i] = RandomRange(275.0,350.0);
+            ys3[i] = RandomRange(150.0,225.0);
         }
         static bool show_lines = true;
         static bool show_fills = true;
@@ -300,15 +288,15 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Shaded Plots")) {
-        static t_float xs[1001], ys[1001], ys1[1001], ys2[1001], ys3[1001], ys4[1001];
+        static float xs[1001], ys[1001], ys1[1001], ys2[1001], ys3[1001], ys4[1001];
         srand(0);
         for (int i = 0; i < 1001; ++i) {
             xs[i]  = i * 0.001f;
-            ys[i]  = 0.25f + 0.25f * Sin(25 * xs[i]) * Sin(5 * xs[i]) + RandomRange(-0.01f, 0.01f);
+            ys[i]  = 0.25f + 0.25f * sinf(25 * xs[i]) * sinf(5 * xs[i]) + RandomRange(-0.01f, 0.01f);
             ys1[i] = ys[i] + RandomRange(0.1f, 0.12f);
             ys2[i] = ys[i] - RandomRange(0.1f, 0.12f);
-            ys3[i] = 0.75f + 0.2f * Sin(25 * xs[i]);
-            ys4[i] = 0.75f + 0.1f * Cos(25 * xs[i]);
+            ys3[i] = 0.75f + 0.2f * sinf(25 * xs[i]);
+            ys4[i] = 0.75f + 0.1f * cosf(25 * xs[i]);
         }
         static float alpha = 0.25f;
         ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
@@ -327,15 +315,15 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Scatter Plots")) {
         srand(0);
-        static t_float xs1[100], ys1[100];
+        static float xs1[100], ys1[100];
         for (int i = 0; i < 100; ++i) {
             xs1[i] = i * 0.01f;
-            ys1[i] = xs1[i] + 0.1f * ((t_float)rand() / (t_float)RAND_MAX);
+            ys1[i] = xs1[i] + 0.1f * ((float)rand() / (float)RAND_MAX);
         }
-        static t_float xs2[50], ys2[50];
+        static float xs2[50], ys2[50];
         for (int i = 0; i < 50; i++) {
-            xs2[i] = 0.25f + 0.2f * ((t_float)rand() / (t_float)RAND_MAX);
-            ys2[i] = 0.75f + 0.2f * ((t_float)rand() / (t_float)RAND_MAX);
+            xs2[i] = 0.25f + 0.2f * ((float)rand() / (float)RAND_MAX);
+            ys2[i] = 0.75f + 0.2f * ((float)rand() / (float)RAND_MAX);
         }
 
         if (ImPlot::BeginPlot("Scatter Plot", NULL, NULL)) {
@@ -386,14 +374,14 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Error Bars")) {
-        static t_float xs[5]    = {1,2,3,4,5};
-        static t_float bar[5]   = {1,2,5,3,4};
-        static t_float lin1[5]  = {8,8,9,7,8};
-        static t_float lin2[5]  = {6,7,6,9,6};
-        static t_float err1[5]  = {0.2f, 0.4f, 0.2f, 0.6f, 0.4f};
-        static t_float err2[5]  = {0.4f, 0.2f, 0.4f, 0.8f, 0.6f};
-        static t_float err3[5]  = {0.09f, 0.14f, 0.09f, 0.12f, 0.16f};
-        static t_float err4[5]  = {0.02f, 0.08f, 0.15f, 0.05f, 0.2f};
+        static float xs[5]    = {1,2,3,4,5};
+        static float bar[5]   = {1,2,5,3,4};
+        static float lin1[5]  = {8,8,9,7,8};
+        static float lin2[5]  = {6,7,6,9,6};
+        static float err1[5]  = {0.2f, 0.4f, 0.2f, 0.6f, 0.4f};
+        static float err2[5]  = {0.4f, 0.2f, 0.4f, 0.8f, 0.6f};
+        static float err3[5]  = {0.09f, 0.14f, 0.09f, 0.12f, 0.16f};
+        static float err4[5]  = {0.02f, 0.08f, 0.15f, 0.05f, 0.2f};
 
 
         ImPlot::SetNextPlotLimits(0, 6, 0, 10);
@@ -417,11 +405,11 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     if (ImGui::CollapsingHeader("Stem Plots")) {
-        static t_float xs[51], ys1[51], ys2[51];
+        static double xs[51], ys1[51], ys2[51];
         for (int i = 0; i < 51; ++i) {
-            xs[i] = i * 0.02f;
-            ys1[i] = 1.0f + 0.5f * Sin(25*xs[i])*Cos(2*xs[i]);
-            ys2[i] = 0.5f + 0.25f  * Sin(10*xs[i]) * Sin(xs[i]);
+            xs[i] = i * 0.02;
+            ys1[i] = 1.0 + 0.5 * sin(25*xs[i])*cos(2*xs[i]);
+            ys2[i] = 0.5 + 0.25  * sin(10*xs[i]) * sin(xs[i]);
         }
         ImPlot::SetNextPlotLimits(0,1,0,1.6);
         if (ImPlot::BeginPlot("Stem Plots")) {
@@ -449,38 +437,34 @@ void ShowDemoWindow(bool* p_open) {
 
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
-            ImPlot::PlotPieChart(labels1, data1, 4, 0.5f, 0.5f, 0.4f, normalize, "%.2f");
+            ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, normalize, "%.2f");
             ImPlot::EndPlot();
         }
 
         ImGui::SameLine();
 
         static const char* labels2[]   = {"A","B","C","D","E"};
-        static t_float data2[]         = {1,1,2,3,5};
+        static int data2[]             = {1,1,2,3,5};
 
         ImPlot::PushColormap(ImPlotColormap_Pastel);
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
-            ImPlot::PlotPieChart(labels2, data2, 5, 0.5f, 0.5f, 0.4f, true, "%.0f", 180);
+            ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.4, true, "%.0f", 180);
             ImPlot::EndPlot();
         }
         ImPlot::PopColormap();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Heatmaps")) {
-        static t_float values1[7][7] = {{0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f},
-                                        {2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f},
-                                        {1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f},
-                                        {0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f},
-                                        {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f},
-                                        {1.3f, 1.2f, 0.0f, 0.0f, 0.0f, 3.2f, 5.1f},
-                                        {0.1f, 2.0f, 0.0f, 1.4f, 0.0f, 1.9f, 6.3f}};
-        static float scale_min = 0;
-        static float scale_max = 6.3f;
-        static t_float values2[100*100];
-        srand((unsigned int)(DEMO_TIME*1000000));
-        for (int i = 0; i < 100*100; ++i)
-            values2[i] = RandomRange(0,1);
+        static float values1[7][7]  = {{0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f},
+                                       {2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f},
+                                       {1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f},
+                                       {0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f},
+                                       {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f},
+                                       {1.3f, 1.2f, 0.0f, 0.0f, 0.0f, 3.2f, 5.1f},
+                                       {0.1f, 2.0f, 0.0f, 1.4f, 0.0f, 1.9f, 6.3f}};
+        static float scale_min       = 0;
+        static float scale_max       = 6.3f;
         static const char* xlabels[] = {"C1","C2","C3","C4","C5","C6","C7"};
         static const char* ylabels[] = {"R1","R2","R3","R4","R5","R6","R7"};
 
@@ -507,6 +491,11 @@ void ShowDemoWindow(bool* p_open) {
 
         ImGui::SameLine();
 
+        static double values2[100*100];
+        srand((unsigned int)(DEMO_TIME*1000000));
+        for (int i = 0; i < 100*100; ++i)
+            values2[i] = RandomRange(0.0,1.0);
+
         static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
         ImPlot::PushColormap(gray, 2);
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
@@ -524,7 +513,7 @@ void ShowDemoWindow(bool* p_open) {
         static ScrollingBuffer sdata1, sdata2;
         static RollingBuffer   rdata1, rdata2;
         ImVec2 mouse = ImGui::GetMousePos();
-        static t_float t = 0;
+        static float t = 0;
         t += ImGui::GetIO().DeltaTime;
         sdata1.AddPoint(t, mouse.x * 0.0005f);
         rdata1.AddPoint(t, mouse.x * 0.0005f);
@@ -539,7 +528,7 @@ void ShowDemoWindow(bool* p_open) {
         static ImPlotAxisFlags rt_axis = ImPlotAxisFlags_NoTickLabels;
         ImPlot::SetNextPlotLimitsX(t - history, t, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
-            ImPlot::PlotShaded("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), 0, sdata1.Offset, 2 * sizeof(t_float));
+            ImPlot::PlotShaded("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), 0, sdata1.Offset, 2 * sizeof(float));
             ImPlot::PlotLine("Data 2", &sdata2.Data[0], sdata2.Data.size(), sdata2.Offset);
             ImPlot::EndPlot();
         }
@@ -549,7 +538,7 @@ void ShowDemoWindow(bool* p_open) {
             // as ImVec2* (or ImPlot*):
             ImPlot::PlotLine("Data 1", &rdata1.Data[0], rdata1.Data.size());
             // as float*, float* (or double*, double*) with stride of 2 * sizeof
-            ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(t_float));
+            ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(float));
             ImPlot::EndPlot();
         }
     }
@@ -562,8 +551,8 @@ void ShowDemoWindow(bool* p_open) {
 
         ImPlot::SetNextPlotLimits(0, 10, 0, 12);
         if (ImPlot::BeginPlot("##MarkerStyles", NULL, NULL, ImVec2(-1,0), ImPlotFlags_CanvasOnly, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
-            t_float xs[2] = {1,4};
-            t_float ys[2] = {10,11};
+            ImS8 xs[2] = {1,4};
+            ImS8 ys[2] = {10,11};
 
             // filled markers
             for (int m = 1; m < ImPlotMarker_COUNT; ++m) {
@@ -595,12 +584,12 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Log Scale")) {
-        static t_float xs[1001], ys1[1001], ys2[1001], ys3[1001];
+        static double xs[1001], ys1[1001], ys2[1001], ys3[1001];
         for (int i = 0; i < 1001; ++i) {
             xs[i]  = i*0.1f;
-            ys1[i] = Sin(xs[i]) + 1;
-            ys2[i] = Log(xs[i]);
-            ys3[i] = Pow(10.0f, xs[i]);
+            ys1[i] = sin(xs[i]) + 1;
+            ys2[i] = log(xs[i]);
+            ys3[i] = pow(10.0, xs[i]);
         }
         ImGui::BulletText("Open the plot context menu (double right click) to change scales.");
 
@@ -655,12 +644,12 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Multiple Y-Axes")) {
-        static t_float xs[1001], xs2[1001], ys1[1001], ys2[1001], ys3[1001];
+        static float xs[1001], xs2[1001], ys1[1001], ys2[1001], ys3[1001];
         for (int i = 0; i < 1001; ++i) {
             xs[i]  = (i*0.1f);
-            ys1[i] = Sin(xs[i]) * 3 + 1;
-            ys2[i] = Cos(xs[i]) * 0.2f + 0.5f;
-            ys3[i] = Sin(xs[i]+0.5f) * 100 + 200;
+            ys1[i] = sinf(xs[i]) * 3 + 1;
+            ys2[i] = cosf(xs[i]) * 0.2f + 0.5f;
+            ys3[i] = sinf(xs[i]+0.5f) * 100 + 200;
             xs2[i] = xs[i] + 10.0f;
         }
         static bool y2_axis = true;
@@ -699,7 +688,7 @@ void ShowDemoWindow(bool* p_open) {
     if (ImGui::CollapsingHeader("Linked Axes")) {
         static double xmin = 0, xmax = 1, ymin = 0, ymax = 1;
         static bool linkx = true, linky = true;
-        t_float data[2] = {0,1};
+        int data[2] = {0,1};
         ImGui::Checkbox("Link X", &linkx);
         ImGui::SameLine();
         ImGui::Checkbox("Link Y", &linky);
@@ -716,7 +705,7 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
-        static ImVector<t_float2> data;
+        static ImVector<ImPlotPoint> data;
         static ImPlotLimits range, query;
 
         ImGui::BulletText("Ctrl + click in the plot area to draw points.");
@@ -730,14 +719,14 @@ void ShowDemoWindow(bool* p_open) {
         if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Query, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) {
                 ImPlotPoint pt = ImPlot::GetPlotMousePos();
-                data.push_back(t_float2((t_float)pt.x, (t_float)pt.y));
+                data.push_back(pt);
             }
             if (data.size() > 0)
-                ImPlot::PlotScatter("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(t_float));
+                ImPlot::PlotScatter("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(double));
             if (ImPlot::IsPlotQueried() && data.size() > 0) {
                 ImPlotLimits range2 = ImPlot::GetPlotQuery();
                 int cnt = 0;
-                t_float2 avg;
+                ImPlotPoint avg;
                 for (int i = 0; i < data.size(); ++i) {
                     if (range2.Contains(data[i].x, data[i].y)) {
                         avg.x += data[i].x;
@@ -762,19 +751,19 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Views")) {
         // mimic's soulthread's imgui_plot demo
-        static t_float x_data[512];
-        static t_float y_data1[512];
-        static t_float y_data2[512];
-        static t_float y_data3[512];
-        static t_float sampling_freq = 44100;
-        static t_float freq = 500;
+        static float x_data[512];
+        static float y_data1[512];
+        static float y_data2[512];
+        static float y_data3[512];
+        static float sampling_freq = 44100;
+        static float freq = 500;
         for (size_t i = 0; i < 512; ++i) {
-            const t_float t = i / sampling_freq;
+            const float t = i / sampling_freq;
             x_data[i] = t;
-            const t_float arg = 2 * 3.14f * freq * t;
-            y_data1[i] = Sin(arg);
-            y_data2[i] = y_data1[i] * -0.6f + Sin(2 * arg) * 0.4f;
-            y_data3[i] = y_data2[i] * -0.6f + Sin(3 * arg) * 0.4f;
+            const float arg = 2 * 3.14f * freq * t;
+            y_data1[i] = sinf(arg);
+            y_data2[i] = y_data1[i] * -0.6f + sinf(2 * arg) * 0.4f;
+            y_data3[i] = y_data2[i] * -0.6f + sinf(3 * arg) * 0.4f;
         }
         ImGui::BulletText("Query the first plot to render a subview in the second plot (see above for controls).");
         ImPlot::SetNextPlotLimits(0,0.01,-1,1);
@@ -836,7 +825,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::EndGroup();
         ImGui::SameLine();
         srand((unsigned int)DEMO_TIME*10000000);
-        static t_float t = 0;
+        static float t = 0;
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;
             for (int i = 0; i < K_CHANNELS; ++i) {
@@ -851,7 +840,7 @@ void ShowDemoWindow(bool* p_open) {
                     char label[K_CHANNELS];
                     sprintf(label, "data_%d", i);
 					ImPlot::SetPlotYAxis(yAxis[i]);
-                    ImPlot::PlotLine(label, &data[i].Data[0].x, &data[i].Data[0].y, data[i].Data.size(), data[i].Offset, 2 * sizeof(t_float));
+                    ImPlot::PlotLine(label, &data[i].Data[0].x, &data[i].Data[0].y, data[i].Data.size(), data[i].Offset, 2 * sizeof(float));
                     // allow legend labels to be dragged and dropped
                     if (ImPlot::BeginLegendDragDropSource(label)) {
                         ImGui::SetDragDropPayload("DND_PLOT", &i, sizeof(int));
@@ -923,35 +912,35 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImGui::EndGroup();
         ImGui::SameLine();
-        static t_float t = 0;
+        static float t = 0;
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;
             //digital signal values
             int i = 0;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, Sin(2*t) > 0.45);
+                dataDigital[i].AddPoint(t, sinf(2*t) > 0.45);
             i++;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, Sin(2*t) < 0.45);
+                dataDigital[i].AddPoint(t, sinf(2*t) < 0.45);
             i++;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, Fmod(t,5.0f));
+                dataDigital[i].AddPoint(t, fmodf(t,5.0f));
             i++;
             if (showDigital[i])
-                dataDigital[i].AddPoint(t, Sin(2*t) < 0.17);
+                dataDigital[i].AddPoint(t, sinf(2*t) < 0.17);
             //Analog signal values
             i = 0;
             if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, Sin(2*t));
+                dataAnalog[i].AddPoint(t, sinf(2*t));
             i++;
             if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, Cos(2*t));
+                dataAnalog[i].AddPoint(t, cosf(2*t));
             i++;
             if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, Sin(2*t) * Cos(2*t));
+                dataAnalog[i].AddPoint(t, sinf(2*t) * cosf(2*t));
             i++;
             if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, Sin(2*t) - Cos(2*t));
+                dataAnalog[i].AddPoint(t, sinf(2*t) - cosf(2*t));
         }
         ImPlot::SetNextPlotLimitsY(-1, 1);
         ImPlot::SetNextPlotLimitsX(t - 10.0, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
@@ -960,7 +949,7 @@ void ShowDemoWindow(bool* p_open) {
                 if (showDigital[i] && dataDigital[i].Data.size() > 0) {
                     char label[32];
                     sprintf(label, "digital_%d", i);
-                    ImPlot::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), dataDigital[i].Offset, 2 * sizeof(t_float));
+                    ImPlot::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), dataDigital[i].Offset, 2 * sizeof(float));
                 }
             }
             for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
@@ -968,7 +957,7 @@ void ShowDemoWindow(bool* p_open) {
                     char label[32];
                     sprintf(label, "analog_%d", i);
                     if (dataAnalog[i].Data.size() > 0)
-                        ImPlot::PlotLine(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), dataAnalog[i].Offset, 2 * sizeof(t_float));
+                        ImPlot::PlotLine(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), dataAnalog[i].Offset, 2 * sizeof(float));
                 }
             }
             ImPlot::EndPlot();
@@ -1010,7 +999,7 @@ void ShowDemoWindow(bool* p_open) {
                 static float data[100];
                 srand(row);
                 for (int i = 0; i < 100; ++i)
-                    data[i] = (float)RandomRange(0,10);
+                    data[i] = RandomRange(0.0f,10.0f);
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("EMG %d", row);
                 ImGui::TableSetColumnIndex(1);
@@ -1032,12 +1021,12 @@ void ShowDemoWindow(bool* p_open) {
         static const int k_circles    = 11;
         static const int k_points_per = 50;
         static const int k_size       = 2 * k_points_per * k_circles;
-        static t_float interleaved_data[k_size];
+        static double interleaved_data[k_size];
         for (int p = 0; p < k_points_per; ++p) {
             for (int c = 0; c < k_circles; ++c) {
-                t_float r = (t_float)c / (k_circles - 1) * 0.2f + 0.2f;
-                interleaved_data[p*2*k_circles + 2*c + 0] = 0.5f + r * Cos((t_float)p/k_points_per * 6.28f);
-                interleaved_data[p*2*k_circles + 2*c + 1] = 0.5f + r * Sin((t_float)p/k_points_per * 6.28f);
+                double r = (double)c / (k_circles - 1) * 0.2 + 0.2;
+                interleaved_data[p*2*k_circles + 2*c + 0] = 0.5 + r * cos((double)p/k_points_per * 6.28);
+                interleaved_data[p*2*k_circles + 2*c + 1] = 0.5 + r * sin((double)p/k_points_per * 6.28);
             }
         }
         static int offset = 0;
@@ -1053,7 +1042,7 @@ void ShowDemoWindow(bool* p_open) {
             char buff[16];
             for (int c = 0; c < k_circles; ++c) {
                 sprintf(buff, "Circle %d", c);
-                ImPlot::PlotLine(buff, &interleaved_data[c*2 + 0], &interleaved_data[c*2 + 1], k_points_per, offset, 2*k_circles*sizeof(t_float));
+                ImPlot::PlotLine(buff, &interleaved_data[c*2 + 0], &interleaved_data[c*2 + 1], k_points_per, offset, 2*k_circles*sizeof(double));
             }
             ImPlot::EndPlot();
             ImPlot::PopColormap();
@@ -1061,12 +1050,25 @@ void ShowDemoWindow(bool* p_open) {
         // offset++; uncomment for animation!
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Custom Getters")) {
-        ImGui::BulletText("Most plotters can be passed a function pointer for getting data.");
-        ImGui::BulletText("You can optionally pass user data to be given to your getter.");
-        ImGui::BulletText("C++ lambdas can be passed as function pointers as well.");
-        if (ImPlot::BeginPlot("##Custom Getters")) {
+    if (ImGui::CollapsingHeader("Custom Data and Getters")) {
+        ImGui::BulletText("You can plot custom structs using the stride feature.");
+        ImGui::BulletText("Most plotters can also be passed a function pointer for getting data.");
+        ImGui::Indent();
+            ImGui::BulletText("You can optionally pass user data to be given to your getter function.");
+            ImGui::BulletText("C++ lambdas can be passed as function pointers as well!");
+        ImGui::Unindent();
+
+        MyImPlot::Vector2f vec2_data[2] = { MyImPlot::Vector2f(0,0), MyImPlot::Vector2f(1,1) };
+
+        if (ImPlot::BeginPlot("##Custom Data")) {
+
+            // custom structs using stride example:
+            ImPlot::PlotLine("Vector2f", &vec2_data[0].x, &vec2_data[0].y, 2, 0, sizeof(MyImPlot::Vector2f) /* or sizeof(float) * 2 */);
+
+            // custom getter example 1:
             ImPlot::PlotLineG("Spiral", MyImPlot::Spiral, NULL, 1000);
+
+            // custom getter example 2:
             static MyImPlot::WaveData data1(0.001, 0.2, 2, 0.75);
             static MyImPlot::WaveData data2(0.001, 0.2, 4, 0.25);
             ImPlot::PlotLineG("Waves", MyImPlot::SineWave, &data1, 1000);
@@ -1074,9 +1076,11 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
             ImPlot::PlotShadedG("Waves", MyImPlot::SineWave, &data1, MyImPlot::SawWave, &data2, 1000);
             ImPlot::PopStyleVar();
+
             // you can also pass C++ lambdas:
             // auto lamda = [](void* data, int idx) { ... return ImPlotPoint(x,y); };
             // ImPlot::PlotLine("My Lambda", lambda, data, 1000);
+
             ImPlot::EndPlot();
         }
     }
@@ -1115,9 +1119,9 @@ void ShowDemoWindow(bool* p_open) {
         MyImPlot::StyleSeaborn();
         ImPlot::SetNextPlotLimits(-0.5f, 9.5f, 0, 10);
         if (ImPlot::BeginPlot("seaborn style", "x-axis", "y-axis")) {
-            t_float lin[10] = {8,8,9,7,8,8,8,9,7,8};
-            t_float bar[10] = {1,2,5,3,4,1,2,5,3,4};
-            t_float dot[10] = {7,6,6,7,8,5,6,5,8,7};
+            unsigned int lin[10] = {8,8,9,7,8,8,8,9,7,8};
+            unsigned int bar[10] = {1,2,5,3,4,1,2,5,3,4};
+            unsigned int dot[10] = {7,6,6,7,8,5,6,5,8,7};
             ImPlot::PlotBars("Bars", bar, 10, 0.5f);
             ImPlot::PlotLine("Line", lin, 10);
             ImPlot::NextColormapColor(); // skip green
@@ -1154,9 +1158,9 @@ void ShowDemoWindow(bool* p_open) {
         static bool   markers   = false;
         static bool   shaded    = false;
 
-        static t_float vals[101];
+        static float vals[101];
         for (int i = 0; i < 101; ++i)
-            vals[i] = amplitude * Sin(frequency * i);
+            vals[i] = amplitude * sinf(frequency * i);
 
         ImPlot::SetNextPlotLimits(0,100,-1,1);
         if (ImPlot::BeginPlot("Right Click the Legend")) {
@@ -1240,8 +1244,8 @@ ImPlotPoint Spiral(void*, int idx) {
     float n = (r - a) / b;     // number  of revolutions
     double th = 2 * n * 3.14;  // angle
     float Th = float(th * idx / (1000 - 1));
-    return ImPlotPoint(0.5f+(a + b*Th / (2.0f * (float) 3.14))*Cos(Th),
-                       0.5f + (a + b*Th / (2.0f * (float)3.14))*Sin(Th));
+    return ImPlotPoint(0.5f+(a + b*Th / (2.0f * (float) 3.14))*cos(Th),
+                       0.5f + (a + b*Th / (2.0f * (float)3.14))*sin(Th));
 }
 
 // Example for Tables section. Generates a quick and simple shaded line plot. See implementation at bottom.
@@ -1412,12 +1416,12 @@ namespace ImPlot {
 
 struct BenchData {
     BenchData() {
-        float y = (float)RandomRange(0,1);
+        float y = RandomRange(0.0f,1.0f);
         Data = new float[1000];
         for (int i = 0; i < 1000; ++i) {
-            Data[i] = y + (float)RandomRange(-0.01f,0.01f);
+            Data[i] = y + RandomRange(-0.01f,0.01f);
         }
-        Col = ImVec4((float)RandomRange(0,1),(float)RandomRange(0,1),(float)RandomRange(0,1),1);
+        Col = ImVec4(RandomRange(0.0f,1.0f),RandomRange(0.0f,1.0f),RandomRange(0.0f,1.0f),0.5f);
     }
     ~BenchData() { delete[] Data; }
     float* Data;

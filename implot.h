@@ -301,8 +301,40 @@ void EndPlot();
 // Plot Items
 //-----------------------------------------------------------------------------
 
-// Supported Types for T* 
+// The template functions below are explicitly instantiated in implot_items.cpp. 
+// They are not intended to be used generically with custom types. You will get 
+// a linker error if you try! All functions support the following scalar types:
+//
 // float, double, ImS8, ImU8, ImS16, ImU16, ImS32, ImU32, ImS64, ImU64
+//
+//
+// If you need to plot custom or non-homogenous data you have a few options:
+//
+// 1. If your data is a simple struct/class (e.g. Vector2f), you can use striding.
+//    This is the most performant option if applicable.
+//
+//    struct Vector2f { float X, Y; }; 
+//    ...
+//    Vector2f data[42]; 
+//    ImPlot::PlotLine("line", &data[0].x, &data[0].y, 42, 0, sizeof(Vector2f)); // or sizeof(float)*2
+// 
+// 2. Write a custom getter function or C++ lambda and pass it and your data to 
+//    an ImPlot function post-fixed with a G (e.g. PlotScatterG). This has a 
+//    slight performance cost, but probably not enough to worry about.
+//
+//    ImPlotPoint MyDataGetter(void* data, int idx) {
+//        MyData* my_data = (MyData*)data; 
+//        ImPlotPoint p;
+//        p.X = my_data->GetTime(idx);
+//        p.Y = my_data->GetValue(idx);
+//        return p
+//    }
+//    ...
+//    MyData my_data;  
+//    ImPlot::PlotScatterG("scatter", MyDataGetter, &my_data, my_data.Size());  
+// 
+// NB: All types are converted to double before plotting. You may loose information
+// if you try plotting extremely large 64-bit integral types. Proceed with caution!
 
 // Plots a standard 2D line plot.
 template <typename T> void PlotLine(const char* label_id, const T* values, int count, int offset = 0, int stride = sizeof(T));
@@ -330,41 +362,29 @@ template <typename T> void PlotBarsH(const char* label_id, const T* values, int 
 template <typename T> void PlotBarsH(const char* label_id, const T* xs, const T* ys, int count, double height, int offset = 0, int stride = sizeof(T));
                       void PlotBarsHG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double height,  int offset = 0);
 
-// TODO ...
-
 // Plots vertical error bar. The label_id should be the same as the label_id of the associated line or bar plot.
-void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset = 0, int stride = sizeof(double));
-void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
+template <typename T> void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* err, int count, int offset = 0, int stride = sizeof(T));
+template <typename T> void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, int offset = 0, int stride = sizeof(T));
 
 // Plots horizontal error bars. The label_id should be the same as the label_id of the associated line or bar plot.
-void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset = 0, int stride = sizeof(double));
-void PlotErrorBarsH(const char* label_id, const float* xs, const float* ys, const float* neg, const float* pos, int count, int offset = 0, int stride = sizeof(float));
-void PlotErrorBarsH(const char* label_id, const double* xs, const double* ys, const double* neg, const double* pos, int count, int offset = 0, int stride = sizeof(double));
+template <typename T> void PlotErrorBarsH(const char* label_id, const T* xs, const T* ys, const T* err, int count, int offset = 0, int stride = sizeof(T));
+template <typename T> void PlotErrorBarsH(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, int offset = 0, int stride = sizeof(T));
 
 /// Plots vertical stems.
-void PlotStems(const char* label_id, const float* values, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
-void PlotStems(const char* label_id, const double* values, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
-void PlotStems(const char* label_id, const float* xs, const float* ys, int count, float y_ref = 0, int offset = 0, int stride = sizeof(float));
-void PlotStems(const char* label_id, const double* xs, const double* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(double));
+template <typename T> void PlotStems(const char* label_id, const T* values, int count, double y_ref = 0, int offset = 0, int stride = sizeof(T));
+template <typename T> void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double y_ref = 0, int offset = 0, int stride = sizeof(T));
 
 // Plots a pie chart. If the sum of values > 1 or normalize is true, each value will be normalized. Center and radius are in plot units. #label_fmt can be set to NULL for no labels.
-void PlotPieChart(const char* const label_ids[], const float* values, int count, float x, float y, float radius, bool normalize = false, const char* label_fmt = "%.1f", float angle0 = 90);
-void PlotPieChart(const char* const label_ids[], const double* values, int count, double x, double y, double radius, bool normalize = false, const char* label_fmt = "%.1f", double angle0 = 90);
+template <typename T> void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, bool normalize = false, const char* label_fmt = "%.1f", double angle0 = 90);
 
 // Plots a 2D heatmap chart. Values are expected to be in row-major order. #label_fmt can be set to NULL for no labels.
-void PlotHeatmap(const char* label_id, const float* values, int rows, int cols, float scale_min, float scale_max, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
-void PlotHeatmap(const char* label_id, const double* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
+template <typename T> void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0,0), const ImPlotPoint& bounds_max = ImPlotPoint(1,1));
 
 // Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
-void PlotDigital(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-void PlotDigital(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
-void PlotDigital(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+template <typename T> void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset = 0, int stride = sizeof(T));
+                      void PlotDigitalG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 // Plots a centered text label at point x,y with optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
-void PlotText(const char* text, float x, float y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 void PlotText(const char* text, double x, double y, bool vertical = false, const ImVec2& pixel_offset = ImVec2(0,0));
 
 //-----------------------------------------------------------------------------
