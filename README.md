@@ -1,7 +1,7 @@
 # ImPlot
 ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that ImGui fans will love. ImPlot is well suited for visualizing program data in real-time or creating interactive plots, and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself.  
 
-<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots2/shaded.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots2/stems.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots2/dnd.gif" width="270">
+<img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots2/shaded.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots2/stem.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots2/dnd.gif" width="270">
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots2/bars.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots2/query.gif" width="270">
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots2/filled.gif" width="270">
