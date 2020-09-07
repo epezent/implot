@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.7 WIP
+// ImPlot v0.8 WIP
 
 #pragma once
 #include "imgui.h"
@@ -30,7 +30,7 @@
 //-----------------------------------------------------------------------------
 
 // ImPlot version string
-#define IMPLOT_VERSION "0.7 WIP"
+#define IMPLOT_VERSION "0.8 WIP"
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
@@ -475,7 +475,7 @@ void PopStyleVar(int count = 1);
 // The following can be used to modify the style of the next plot item ONLY. They do
 // NOT require calls to PopStyleX. Leave style attributes you don't want modified to
 // IMPLOT_AUTO or IMPLOT_AUTO_COL. Automatic styles will be deduced from the current
-// values in the your ImPlotStyle or from Colormap data.
+// values in your ImPlotStyle or from Colormap data.
 
 // Set the line color and weight for the next item only.
 void SetNextLineStyle(const ImVec4& col = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO);
