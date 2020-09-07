@@ -302,13 +302,17 @@ void EndPlot();
 //-----------------------------------------------------------------------------
 
 // Plots a standard 2D line plot.
-void PlotLine(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
-void PlotLine(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
-void PlotLine(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-void PlotLine(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
-void PlotLine(const char* label_id, const ImVec2* data, int count, int offset = 0);
-void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
-void PlotLine(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+// void PlotLine(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));
+// void PlotLine(const char* label_id, const double* values, int count, int offset = 0, int stride = sizeof(double));
+// void PlotLine(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
+// void PlotLine(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
+// void PlotLine(const char* label_id, const ImVec2* data, int count, int offset = 0);
+// void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offset = 0);
+
+template <typename T> void PlotLine(const char* label_id, const T* values, int count, int offset = 0, int stride = sizeof(T));
+template <typename T> void PlotLine(const char* label_id, const T* xs, const T* ys, int count, int offset = 0, int stride = sizeof(T));
+void PlotLineG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
 void PlotScatter(const char* label_id, const float* values, int count, int offset = 0, int stride = sizeof(float));

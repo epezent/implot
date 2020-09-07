@@ -851,40 +851,56 @@ inline void PlotLineEx(const char* label_id, Getter getter) {
     }
 }
 
-// float
-void PlotLine(const char* label_id, const float* values, int count, int offset, int stride) {
-    GetterYs<float> getter(values,count,offset,stride);
+template <typename T> 
+void PlotLine(const char* label_id, const T* values, int count, int offset, int stride) {
+    GetterYs<T> getter(values,count,offset,stride);
     PlotLineEx(label_id, getter);
 }
 
-void PlotLine(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
-    GetterXsYs<float> getter(xs,ys,count,offset,stride);
-    return PlotLineEx(label_id, getter);
-}
+template void PlotLine<ImS8>(const char* label_id, const ImS8* values, int count, int offset, int stride);
+template void PlotLine<ImU8>(const char* label_id, const ImU8* values, int count, int offset, int stride);
+template void PlotLine<ImS16>(const char* label_id, const ImS16* values, int count, int offset, int stride);
+template void PlotLine<ImU16>(const char* label_id, const ImU16* values, int count, int offset, int stride);
+template void PlotLine<ImS32>(const char* label_id, const ImS32* values, int count, int offset, int stride);
+template void PlotLine<ImU32>(const char* label_id, const ImU32* values, int count, int offset, int stride);
+template void PlotLine<ImS64>(const char* label_id, const ImS64* values, int count, int offset, int stride);
+template void PlotLine<ImU64>(const char* label_id, const ImU64* values, int count, int offset, int stride);
+template void PlotLine<float>(const char* label_id, const float* values, int count, int offset, int stride);
+template void PlotLine<double>(const char* label_id, const double* values, int count, int offset, int stride);
 
-void PlotLine(const char* label_id, const ImVec2* data, int count, int offset) {
+template <>
+void PlotLine<ImVec2>(const char* label_id, const ImVec2* data, int count, int offset, int) {
     GetterImVec2 getter(data, count, offset);
     return PlotLineEx(label_id, getter);
 }
 
-// double
-void PlotLine(const char* label_id, const double* values, int count, int offset, int stride) {
-    GetterYs<double> getter(values,count,offset,stride);
-    PlotLineEx(label_id, getter);
-}
-
-void PlotLine(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride) {
-    GetterXsYs<double> getter(xs,ys,count,offset,stride);
-    return PlotLineEx(label_id, getter);
-}
-
-void PlotLine(const char* label_id, const ImPlotPoint* data, int count, int offset) {
+template <>
+void PlotLine<ImPlotPoint>(const char* label_id, const ImPlotPoint* data, int count, int offset, int) {
     GetterImPlotPoint getter(data, count, offset);
     return PlotLineEx(label_id, getter);
 }
 
+
+
+template <typename T> 
+void PlotLine(const char* label_id, const T* xs, const T* ys, int count, int offset, int stride) {
+    GetterXsYs<T> getter(xs,ys,count,offset,stride);
+    return PlotLineEx(label_id, getter);
+}
+
+template void PlotLine<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys, int count, int offset, int stride);
+template void PlotLine<ImU8>(const char* label_id, const ImU8* xs, const ImU8* ys, int count, int offset, int stride);
+template void PlotLine<ImS16>(const char* label_id, const ImS16* xs, const ImS16* ys, int count, int offset, int stride);
+template void PlotLine<ImU16>(const char* label_id, const ImU16* xs, const ImU16* ys, int count, int offset, int stride);
+template void PlotLine<ImS32>(const char* label_id, const ImS32* xs, const ImS32* ys, int count, int offset, int stride);
+template void PlotLine<ImU32>(const char* label_id, const ImU32* xs, const ImU32* ys, int count, int offset, int stride);
+template void PlotLine<ImS64>(const char* label_id, const ImS64* xs, const ImS64* ys, int count, int offset, int stride);
+template void PlotLine<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys, int count, int offset, int stride);
+template void PlotLine<float>(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride);
+template void PlotLine<double>(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride);
+
 // custom
-void PlotLine(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
+void PlotLineG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func,data, count, offset);
     return PlotLineEx(label_id, getter);
 }

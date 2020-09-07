@@ -1063,11 +1063,11 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("You can optionally pass user data to be given to your getter.");
         ImGui::BulletText("C++ lambdas can be passed as function pointers as well.");
         if (ImPlot::BeginPlot("##Custom Getters")) {
-            ImPlot::PlotLine("Spiral", MyImPlot::Spiral, NULL, 1000);
+            ImPlot::PlotLineG("Spiral", MyImPlot::Spiral, NULL, 1000);
             static MyImPlot::WaveData data1(0.001, 0.2, 2, 0.75);
             static MyImPlot::WaveData data2(0.001, 0.2, 4, 0.25);
-            ImPlot::PlotLine("Waves", MyImPlot::SineWave, &data1, 1000);
-            ImPlot::PlotLine("Waves", MyImPlot::SawWave, &data2, 1000);
+            ImPlot::PlotLineG("Waves", MyImPlot::SineWave, &data1, 1000);
+            ImPlot::PlotLineG("Waves", MyImPlot::SawWave, &data2, 1000);
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
             ImPlot::PlotShaded("Waves", MyImPlot::SineWave, &data1, MyImPlot::SawWave, &data2, 1000);
             ImPlot::PopStyleVar();
