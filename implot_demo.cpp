@@ -246,12 +246,12 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Line Plots")) {
-        static t_float xs1[1001], ys1[1001];
+        static float xs1[1001], ys1[1001];
         for (int i = 0; i < 1001; ++i) {
             xs1[i] = i * 0.001f;
-            ys1[i] = 0.5f + 0.5f * Sin(50 * (xs1[i] + DEMO_TIME / 10));
+            ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + DEMO_TIME / 10));
         }
-        static t_float xs2[11], ys2[11];
+        static double xs2[11], ys2[11];
         for (int i = 0; i < 11; ++i) {
             xs2[i] = i * 0.1f;
             ys2[i] = xs2[i] * xs2[i];
@@ -349,12 +349,15 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Bar Plots")) {
+
+        static bool horz                = false;
+        static ImS8  midtm[10]          = {83, 67, 23, 89, 83, 78, 91, 82, 85, 90};
+        static ImS16 final[10]          = {80, 62, 56, 99, 55, 78, 88, 78, 90, 100};
+        static ImS32 grade[10]          = {80, 69, 52, 92, 72, 78, 75, 76, 89, 95};
+
         static const char*  labels[]    = {"S1","S2","S3","S4","S5","S6","S7","S8","S9","S10"};
         static const double positions[] = {0,1,2,3,4,5,6,7,8,9};
-        static bool horz                = false;
-        static t_float midtm[10]        = {83, 67, 23, 89, 83, 78, 91, 82, 85, 90};
-        static t_float final[10]        = {80, 62, 56, 99, 55, 78, 88, 78, 90, 100};
-        static t_float grade[10]        = {80, 69, 52, 92, 72, 78, 75, 76, 89, 95};
+
         ImGui::Checkbox("Horizontal",&horz);
 
         if (horz) {
@@ -369,14 +372,14 @@ void ShowDemoWindow(bool* p_open) {
                               ImVec2(-1,0), 0, 0, horz ? ImPlotAxisFlags_Invert : 0))
         {
             if (horz) {
-                ImPlot::PlotBarsH("Midterm Exam", midtm, 10, 0.2f, -0.2f);
-                ImPlot::PlotBarsH("Final Exam",   final, 10, 0.2f,     0);
-                ImPlot::PlotBarsH("Course Grade", grade, 10, 0.2f,  0.2f);
+                ImPlot::PlotBarsH("Midterm Exam", midtm, 10, 0.2, -0.2);
+                ImPlot::PlotBarsH("Final Exam",   final, 10, 0.2,    0);
+                ImPlot::PlotBarsH("Course Grade", grade, 10, 0.2,  0.2);
             }
             else {
-                ImPlot::PlotBars("Midterm Exam", midtm, 10, 0.2f, -0.2f);
-                ImPlot::PlotBars("Final Exam",   final, 10, 0.2f,     0);
-                ImPlot::PlotBars("Course Grade", grade, 10, 0.2f,  0.2f);
+                ImPlot::PlotBars("Midterm Exam", midtm, 10, 0.2, -0.2);
+                ImPlot::PlotBars("Final Exam",   final, 10, 0.2,    0);
+                ImPlot::PlotBars("Course Grade", grade, 10, 0.2,  0.2);
             }
             ImPlot::EndPlot();
         }

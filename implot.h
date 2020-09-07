@@ -330,6 +330,8 @@ template <typename T> void PlotBarsH(const char* label_id, const T* values, int 
 template <typename T> void PlotBarsH(const char* label_id, const T* xs, const T* ys, int count, double height, int offset = 0, int stride = sizeof(T));
                       void PlotBarsHG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double height,  int offset = 0);
 
+// TODO ...
+
 // Plots vertical error bar. The label_id should be the same as the label_id of the associated line or bar plot.
 void PlotErrorBars(const char* label_id, const float* xs, const float* ys, const float* err, int count, int offset = 0, int stride = sizeof(float));
 void PlotErrorBars(const char* label_id, const double* xs, const double* ys, const double* err, int count, int offset = 0, int stride = sizeof(double));

@@ -1227,6 +1227,7 @@ template void PlotBarsH<ImS64>(const char* label_id, const ImS64* xs, const ImS6
 template void PlotBarsH<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys, int count, double height, int offset, int stride);
 template void PlotBarsH<float>(const char* label_id, const float* xs, const float* ys, int count, double height, int offset, int stride);
 template void PlotBarsH<double>(const char* label_id, const double* xs, const double* ys, int count, double height, int offset, int stride);
+
 // custom
 void PlotBarsHG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double height,  int offset) {
     GetterFuncPtrImPlotPoint getter(getter_func, data, count, offset);
