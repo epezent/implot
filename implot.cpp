@@ -1145,6 +1145,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             gp.Scales[i] = ImPlotScale_LogLog;
     }
 
+    // constraints
+    plot.XAxis.Constrain();
+    for (int i = 0; i < IMPLOT_Y_AXES; ++i)
+        plot.YAxis[i].Constrain();
+
+
     // AXIS COLORS -----------------------------------------------------------------
 
     UpdateAxisColors(ImPlotCol_XAxis,  &gp.Col_X);
