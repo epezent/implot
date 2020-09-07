@@ -170,15 +170,15 @@ enum ImPlotScale_ {
     ImPlotScale_LogLog  // log x,    log y
 };
 
-enum ImPlotTimeUnit_ {                  
-    ImPlotTimeUnit_Us,  // microsecond    
-    ImPlotTimeUnit_Ms,  // millisecond    
-    ImPlotTimeUnit_S,   // second        
-    ImPlotTimeUnit_Min, // minute         
-    ImPlotTimeUnit_Hr,  // hour          
-    ImPlotTimeUnit_Day, // day            
-    ImPlotTimeUnit_Mo,  // month         
-    ImPlotTimeUnit_Yr,  // year           
+enum ImPlotTimeUnit_ {
+    ImPlotTimeUnit_Us,  // microsecond
+    ImPlotTimeUnit_Ms,  // millisecond
+    ImPlotTimeUnit_S,   // second
+    ImPlotTimeUnit_Min, // minute
+    ImPlotTimeUnit_Hr,  // hour
+    ImPlotTimeUnit_Day, // day
+    ImPlotTimeUnit_Mo,  // month
+    ImPlotTimeUnit_Yr,  // year
     ImPlotTimeUnit_COUNT
 };
 
@@ -308,28 +308,28 @@ struct ImPlotAxis
         LinkedMin  = LinkedMax = NULL;
     }
 
-    bool SetMin(double _min) { 
+    bool SetMin(double _min) {
         _min = ImConstrainNan(ImConstrainInf(_min));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _min = ImConstrainLog(_min);
-        if (ImHasFlag(Flags, ImPlotAxisFlags_Time)) 
-            _min = ImConstrainTime(_min);          
-        if (_min >= Range.Max) 
+        if (ImHasFlag(Flags, ImPlotAxisFlags_Time))
+            _min = ImConstrainTime(_min);
+        if (_min >= Range.Max)
             return false;
         Range.Min = _min;
-        return true;        
+        return true;
     };
 
-    bool SetMax(double _max) { 
+    bool SetMax(double _max) {
         _max = ImConstrainNan(ImConstrainInf(_max));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _max = ImConstrainLog(_max);
-        if (ImHasFlag(Flags, ImPlotAxisFlags_Time))  
-            _max = ImConstrainTime(_max);               
-        if (_max <= Range.Min) 
+        if (ImHasFlag(Flags, ImPlotAxisFlags_Time))
+            _max = ImConstrainTime(_max);
+        if (_max <= Range.Min)
             return false;
         Range.Max = _max;
-        return true;  
+        return true;
     };
 
     void SetRange(double _min, double _max) {
@@ -597,19 +597,19 @@ struct ImPlotTime {
     static ImPlotTime FromDouble(double t) { return ImPlotTime((time_t)t, (int)(t * 1000000 - floor(t) * 1000000)); }
 };
 
-static inline ImPlotTime operator+(const ImPlotTime& lhs, const ImPlotTime& rhs)  
+static inline ImPlotTime operator+(const ImPlotTime& lhs, const ImPlotTime& rhs)
 { return ImPlotTime(lhs.S + rhs.S, lhs.Us + rhs.Us); }
-static inline ImPlotTime operator-(const ImPlotTime& lhs, const ImPlotTime& rhs)  
+static inline ImPlotTime operator-(const ImPlotTime& lhs, const ImPlotTime& rhs)
 { return ImPlotTime(lhs.S - rhs.S, lhs.Us - rhs.Us); }
-static inline bool operator==(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+static inline bool operator==(const ImPlotTime& lhs, const ImPlotTime& rhs)
 { return lhs.S == rhs.S && lhs.Us == rhs.Us; }
-static inline bool operator<(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+static inline bool operator<(const ImPlotTime& lhs, const ImPlotTime& rhs)
 { return lhs.S == rhs.S ? lhs.Us < rhs.Us : lhs.S < rhs.S; }
-static inline bool operator>(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+static inline bool operator>(const ImPlotTime& lhs, const ImPlotTime& rhs)
 { return rhs < lhs; }
-static inline bool operator<=(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+static inline bool operator<=(const ImPlotTime& lhs, const ImPlotTime& rhs)
 { return lhs < rhs || lhs == rhs; }
-static inline bool operator>=(const ImPlotTime& lhs, const ImPlotTime& rhs) 
+static inline bool operator>=(const ImPlotTime& lhs, const ImPlotTime& rhs)
 { return lhs > rhs || lhs == rhs; }
 
 //-----------------------------------------------------------------------------
@@ -681,7 +681,7 @@ inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
 void FitPoint(const ImPlotPoint& p);
 
 // Returns true if two ranges overlap
-inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2) 
+inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)
 { return r1.Min <= r2.Max && r2.Min <= r1.Max; }
 
 // Updates pointers for linked axes from axis internal range.
@@ -816,7 +816,7 @@ ImPlotTime MkLocTime(struct tm *ptm);
 // Make a tm struct from a timestamp expressed as a local time.
 tm* GetLocTime(const ImPlotTime& t, tm* ptm);
 
-// NB: These functions only work if there is a current ImPlotContext because the 
+// NB: These functions only work if there is a current ImPlotContext because the
 // internal tm struct is owned by the context!
 
 // Adds time to a timestamp. #count must be positive!

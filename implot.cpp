@@ -422,7 +422,7 @@ void PushLinkedAxis(ImPlotAxis& axis) {
 
 void PullLinkedAxis(ImPlotAxis& axis) {
     if (axis.LinkedMin) { axis.SetMin(*axis.LinkedMin); }
-    if (axis.LinkedMax) { axis.SetMax(*axis.LinkedMax); }    
+    if (axis.LinkedMax) { axis.SetMax(*axis.LinkedMax); }
 }
 
 //-----------------------------------------------------------------------------
@@ -600,13 +600,13 @@ void AddTicksCustom(const double* values, const char** labels, int n, ImPlotTick
 
 // this may not be thread safe?
 static const double TimeUnitSpans[ImPlotTimeUnit_COUNT] = {
-    0.000001, 
-    0.001, 
-    1, 
-    60, 
-    3600, 
-    86400, 
-    2629800, 
+    0.000001,
+    0.001,
+    1,
+    60,
+    3600,
+    86400,
+    2629800,
     31557600
 };
 
@@ -661,10 +661,10 @@ inline int GetTimeStep(int max_divs, ImPlotTimeUnit unit) {
 ImPlotTime MkGmtTime(struct tm *ptm) {
     time_t secs = 0;
     int year = ptm->tm_year + 1900;
-    for (int y = 1970; y < year; ++y) 
-        secs += (IsLeapYear(y)? 366: 365) * 86400;    
-    for (int m = 0; m < ptm->tm_mon; ++m) 
-        secs += GetDaysInMonth(year, m) * 86400;    
+    for (int y = 1970; y < year; ++y)
+        secs += (IsLeapYear(y)? 366: 365) * 86400;
+    for (int m = 0; m < ptm->tm_mon; ++m)
+        secs += GetDaysInMonth(year, m) * 86400;
     secs += (ptm->tm_mday - 1) * 86400;
     secs += ptm->tm_hour       * 3600;
     secs += ptm->tm_min        * 60;
@@ -727,12 +727,12 @@ ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count) {
         case ImPlotTimeUnit_Day: t_out.S  += count * 86400; break;
         case ImPlotTimeUnit_Mo:  for (int i = 0; i < count; ++i) {    // this might have a bug
                                      GetTime(t_out, &Tm);
-                                     t_out.S += 86400 * GetDaysInMonth(Tm.tm_year + 1900, Tm.tm_mon); 
+                                     t_out.S += 86400 * GetDaysInMonth(Tm.tm_year + 1900, Tm.tm_mon);
                                  }
                                  break;
         case ImPlotTimeUnit_Yr:  for (int i = 0; i < count; ++i) {
                                     if (IsLeapYear(GetYear(t_out)))
-                                        t_out.S += 366 * 86400; 
+                                        t_out.S += 366 * 86400;
                                     else
                                         t_out.S += 365 * 86400;
                                  }
@@ -809,31 +809,31 @@ int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt) {
 
     static const char mnames[12][4] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 
-    switch(fmt) {        
-        case ImPlotTimeFmt_Us:            return snprintf(buffer, size, ".%03d %03d", ms, us);                                               
-        case ImPlotTimeFmt_SUs:           return snprintf(buffer, size, ":%02d.%03d %03d", sec, ms, us);                                     
-        case ImPlotTimeFmt_SMs:           return snprintf(buffer, size, ":%02d.%03d", sec, ms);                                     
-        case ImPlotTimeFmt_S:             return snprintf(buffer, size, ":%02d", sec);                                         
-        case ImPlotTimeFmt_HrMinS:        return snprintf(buffer, size, "%d:%02d:%02d%s", hr, min, sec, ap);                        
-        case ImPlotTimeFmt_HrMin:         return snprintf(buffer, size, "%d:%02d%s", hr, min, ap);                                  
-        case ImPlotTimeFmt_Hr:            return snprintf(buffer, size, "%d%s", hr, ap);                                            
-        case ImPlotTimeFmt_DayMo:         return snprintf(buffer, size, "%d/%d", mon, day);            
-        case ImPlotTimeFmt_DayMoHr:       return snprintf(buffer, size, "%d/%d %d%s", mon, day, hr, ap);               
-        case ImPlotTimeFmt_DayMoHrMin:    return snprintf(buffer, size, "%d/%d %d:%02d%s", mon, day, hr, min, ap);                  
-        case ImPlotTimeFmt_DayMoYr:       return snprintf(buffer, size, "%d/%d/%02d", mon, day, yr);                                  
-        case ImPlotTimeFmt_DayMoYrHrMin:  return snprintf(buffer, size, "%d/%d/%02d %d:%02d%s", mon, day, yr, hr, min, ap);           
-        case ImPlotTimeFmt_DayMoYrHrMinS: return snprintf(buffer, size, "%d/%d/%02d %d:%02d:%02d%s", mon, day, yr, hr, min, sec, ap); 
+    switch(fmt) {
+        case ImPlotTimeFmt_Us:            return snprintf(buffer, size, ".%03d %03d", ms, us);
+        case ImPlotTimeFmt_SUs:           return snprintf(buffer, size, ":%02d.%03d %03d", sec, ms, us);
+        case ImPlotTimeFmt_SMs:           return snprintf(buffer, size, ":%02d.%03d", sec, ms);
+        case ImPlotTimeFmt_S:             return snprintf(buffer, size, ":%02d", sec);
+        case ImPlotTimeFmt_HrMinS:        return snprintf(buffer, size, "%d:%02d:%02d%s", hr, min, sec, ap);
+        case ImPlotTimeFmt_HrMin:         return snprintf(buffer, size, "%d:%02d%s", hr, min, ap);
+        case ImPlotTimeFmt_Hr:            return snprintf(buffer, size, "%d%s", hr, ap);
+        case ImPlotTimeFmt_DayMo:         return snprintf(buffer, size, "%d/%d", mon, day);
+        case ImPlotTimeFmt_DayMoHr:       return snprintf(buffer, size, "%d/%d %d%s", mon, day, hr, ap);
+        case ImPlotTimeFmt_DayMoHrMin:    return snprintf(buffer, size, "%d/%d %d:%02d%s", mon, day, hr, min, ap);
+        case ImPlotTimeFmt_DayMoYr:       return snprintf(buffer, size, "%d/%d/%02d", mon, day, yr);
+        case ImPlotTimeFmt_DayMoYrHrMin:  return snprintf(buffer, size, "%d/%d/%02d %d:%02d%s", mon, day, yr, hr, min, ap);
+        case ImPlotTimeFmt_DayMoYrHrMinS: return snprintf(buffer, size, "%d/%d/%02d %d:%02d:%02d%s", mon, day, yr, hr, min, sec, ap);
         case ImPlotTimeFmt_MoYr:          return snprintf(buffer, size, "%s %d", mnames[Tm.tm_mon], year);
-        case ImPlotTimeFmt_Mo:            return snprintf(buffer, size, "%s", mnames[Tm.tm_mon]);                                   
-        case ImPlotTimeFmt_Yr:            return snprintf(buffer, size, "%d", year);                                                
-        default:                          return 0;                                                                                   
+        case ImPlotTimeFmt_Mo:            return snprintf(buffer, size, "%s", mnames[Tm.tm_mon]);
+        case ImPlotTimeFmt_Yr:            return snprintf(buffer, size, "%d", year);
+        default:                          return 0;
     }
 }
 
-void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt) { 
-    static char buff[32];  
-    FormatTime(t, buff, 32, fmt); 
-    printf("%s\n",buff); 
+void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt) {
+    static char buff[32];
+    FormatTime(t, buff, 32, fmt);
+    printf("%s\n",buff);
 }
 
 // Returns the nominally largest possible width for a time format
@@ -949,8 +949,8 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
         // generate ticks
         ImPlotTime t1 = FloorTime(ImPlotTime::FromDouble(range.Min), unit1);
         while (t1 < t_max) {
-            // get next major 
-            const ImPlotTime t2 = AddTime(t1, unit1, 1);   
+            // get next major
+            const ImPlotTime t2 = AddTime(t1, unit1, 1);
             // add major tick
             if (t1 >= t_min && t1 <= t_max) {
                 // minor level 0 tick
@@ -961,12 +961,12 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                 // major level 1 tick
                 ImPlotTick tick_maj(t1.ToDouble(),true,true);
                 tick_maj.Level = 1;
-                LabelTickTime(tick_maj,ticks.Labels,t1, last_major == NULL ? fmtf : fmt1); 
+                LabelTickTime(tick_maj,ticks.Labels,t1, last_major == NULL ? fmtf : fmt1);
                 const char* this_major = ticks.Labels.Buf.Data + tick_maj.BufferOffset;
-                if (last_major && TimeLabelSame(last_major,this_major)) 
-                    tick_maj.ShowLabel = false;                
-                last_major = this_major;                       
-                ticks.AddTick(tick_maj);           
+                if (last_major && TimeLabelSame(last_major,this_major))
+                    tick_maj.ShowLabel = false;
+                last_major = this_major;
+                ticks.AddTick(tick_maj);
             }
             // add minor ticks up until next major
             if (minor_per_major > 1 && (t_min <= t2 && t1 <= t_max)) {
@@ -987,7 +987,7 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                         }
                     }
                     t12 = AddTime(t12, unit0, step);
-                }                
+                }
             }
             t1 = t2;
         }
@@ -1033,8 +1033,8 @@ void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col) {
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
-bool BeginPlot(const char* title, const char* x_label, const char* y_label, const ImVec2& size, 
-               ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags) 
+bool BeginPlot(const char* title, const char* x_label, const char* y_label, const ImVec2& size,
+               ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags)
 {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     ImPlotContext& gp = *GImPlot;
@@ -1115,14 +1115,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     if (gp.NextPlotData.HasXRange) {
-        if (just_created || gp.NextPlotData.XRangeCond == ImGuiCond_Always) 
-            plot.XAxis.SetRange(gp.NextPlotData.X);        
+        if (just_created || gp.NextPlotData.XRangeCond == ImGuiCond_Always)
+            plot.XAxis.SetRange(gp.NextPlotData.X);
     }
 
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
         if (gp.NextPlotData.HasYRange[i]) {
-            if (just_created || gp.NextPlotData.YRangeCond[i] == ImGuiCond_Always) 
-                plot.YAxis[i].SetRange(gp.NextPlotData.Y[i]);            
+            if (just_created || gp.NextPlotData.YRangeCond[i] == ImGuiCond_Always)
+                plot.YAxis[i].SetRange(gp.NextPlotData.Y[i]);
         }
     }
 
@@ -1195,8 +1195,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const float txt_height  = ImGui::GetTextLineHeight();
 
     const float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
-    const float pad_bot = (gp.X.HasLabels ? txt_height + gp.Style.LabelPadding.y + (gp.X.IsTime ? txt_height + gp.Style.LabelPadding.y : 0) : 0) 
-                        + (x_label ? txt_height + gp.Style.LabelPadding.y : 0); 
+    const float pad_bot = (gp.X.HasLabels ? txt_height + gp.Style.LabelPadding.y + (gp.X.IsTime ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
+                        + (x_label ? txt_height + gp.Style.LabelPadding.y : 0);
 
     const float plot_height = gp.BB_Canvas.GetHeight() - pad_top - pad_bot;
 
@@ -1605,7 +1605,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         for (int t = 0; t < gp.XTicks.Size; t++) {
             ImPlotTick *xt = &gp.XTicks.Ticks[t];
             if (xt->ShowLabel && xt->PixelPos >= gp.BB_Plot.Min.x - 1 && xt->PixelPos <= gp.BB_Plot.Max.x + 1)
-                DrawList.AddText(ImVec2(xt->PixelPos - xt->LabelSize.x * 0.5f, gp.BB_Plot.Max.y + gp.Style.LabelPadding.y + xt->Level * (txt_height + gp.Style.LabelPadding.y)), 
+                DrawList.AddText(ImVec2(xt->PixelPos - xt->LabelSize.x * 0.5f, gp.BB_Plot.Max.y + gp.Style.LabelPadding.y + xt->Level * (txt_height + gp.Style.LabelPadding.y)),
                 xt->Major ? gp.Col_X.MajTxt : gp.Col_X.MinTxt, gp.XTicks.GetLabel(t));
         }
     }
@@ -1817,7 +1817,7 @@ void EndPlot() {
     if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickMarks)) {
         for (int t = 0; t < gp.XTicks.Size; t++) {
             ImPlotTick *xt = &gp.XTicks.Ticks[t];
-            if (xt->Level == 0) 
+            if (xt->Level == 0)
                 DrawList.AddLine(ImVec2(xt->PixelPos, gp.BB_Plot.Max.y),
                                 ImVec2(xt->PixelPos, gp.BB_Plot.Max.y - (xt->Major ? gp.Style.MajorTickLen.x : gp.Style.MinorTickLen.x)),
                                 gp.Col_X.Major,

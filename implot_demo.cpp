@@ -619,7 +619,7 @@ void ShowDemoWindow(bool* p_open) {
                           "UNIX timestamps in seconds and axis labels are formated as date/time.");
         ImGui::BulletText("By default, labels are in UTC time but can be set to use local time instead.");
 
-        ImGui::Checkbox("Use Local Time",&ImPlot::GetStyle().UseLocalTime);   
+        ImGui::Checkbox("Use Local Time",&ImPlot::GetStyle().UseLocalTime);
 
         static HugeTimeData* data = NULL;
         if (data == NULL) {
@@ -632,9 +632,9 @@ void ShowDemoWindow(bool* p_open) {
 
         ImPlot::SetNextPlotLimits(t_min,t_max,0,1);
         if (ImPlot::BeginPlot("##Time", "Time", "Value", ImVec2(-1,0), 0, ImPlotAxisFlags_Time)) {
-            if (data != NULL) {       
-                // downsample our data 
-                int downsample = (int)ImPlot::GetPlotLimits().X.Size() / 1000 + 1; 
+            if (data != NULL) {
+                // downsample our data
+                int downsample = (int)ImPlot::GetPlotLimits().X.Size() / 1000 + 1;
                 int start = (int)(ImPlot::GetPlotLimits().X.Min - t_min);
                 start = start < 0 ? 0 : start > HugeTimeData::Size - 1 ? HugeTimeData::Size - 1 : start;
                 int end = (int)(ImPlot::GetPlotLimits().X.Max - t_min) + 1000;
@@ -701,14 +701,14 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SameLine();
         ImGui::Checkbox("Link Y", &linky);
         ImPlot::LinkNextPlotLimits(linkx ? &xmin : NULL , linkx ? &xmax : NULL, linky ? &ymin : NULL, linky ? &ymax : NULL);
-        if (ImPlot::BeginPlot("Plot A")) { 
+        if (ImPlot::BeginPlot("Plot A")) {
             ImPlot::PlotLine("Line",data,2);
-            ImPlot::EndPlot(); 
+            ImPlot::EndPlot();
         }
         ImPlot::LinkNextPlotLimits(linkx ? &xmin : NULL , linkx ? &xmax : NULL, linky ? &ymin : NULL, linky ? &ymax : NULL);
-        if (ImPlot::BeginPlot("Plot B")) { 
+        if (ImPlot::BeginPlot("Plot B")) {
             ImPlot::PlotLine("Line",data,2);
-            ImPlot::EndPlot(); 
+            ImPlot::EndPlot();
         }
     }
     //-------------------------------------------------------------------------
@@ -1339,7 +1339,7 @@ int BinarySearch(const T* arr, int l, int r, T x) {
 }
 
 void PlotCandlestick(const char* label_id, const double* xs, const double* opens, const double* closes, const double* lows, const double* highs, int count, bool tooltip, float width_percent, ImVec4 bullCol, ImVec4 bearCol) {
-    
+
     // get ImGui window DrawList
     ImDrawList* draw_list = ImPlot::GetPlotDrawList();
     // calc real value width
