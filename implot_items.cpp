@@ -1359,7 +1359,7 @@ inline void RenderPieSlice(ImDrawList& DrawList, const ImPlotPoint& center, doub
 }
 
 template <typename T>
-void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y, T radius, bool normalize, const char* fmt, T angle0) {
+void PlotPieChartEx(const char* const label_ids[], const T* values, int count, T x, T y, T radius, bool normalize, const char* fmt, T angle0) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *GetPlotDrawList();
     T sum = 0;
@@ -1409,12 +1409,12 @@ void PlotPieChartEx(const char** label_ids, const T* values, int count, T x, T y
 }
 
 // float
-void PlotPieChart(const char** label_ids, const float* values, int count, float x, float y, float radius, bool normalize, const char* fmt, float angle0) {
+void PlotPieChart(const char* const label_ids[], const float* values, int count, float x, float y, float radius, bool normalize, const char* fmt, float angle0) {
     return PlotPieChartEx(label_ids, values, count, x, y, radius, normalize, fmt, angle0);
 }
 
 // double
-void PlotPieChart(const char** label_ids, const double* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0) {
+void PlotPieChart(const char* const label_ids[], const double* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0) {
     return PlotPieChartEx(label_ids, values, count, x, y, radius, normalize, fmt, angle0);
 }
 

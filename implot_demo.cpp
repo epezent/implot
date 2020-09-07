@@ -1403,8 +1403,12 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
 
 namespace ImPlot {
 
-struct BenchmarkItem {
-    BenchmarkItem() {
+//-----------------------------------------------------------------------------
+// BENCHMARK
+//-----------------------------------------------------------------------------
+
+struct BenchData {
+    BenchData() {
         float y = (float)RandomRange(0,1);
         Data = new float[1000];
         for (int i = 0; i < 1000; ++i) {
@@ -1412,34 +1416,49 @@ struct BenchmarkItem {
         }
         Col = ImVec4((float)RandomRange(0,1),(float)RandomRange(0,1),(float)RandomRange(0,1),1);
     }
-    ~BenchmarkItem() { delete[] Data; }
+    ~BenchData() { delete[] Data; }
     float* Data;
     ImVec4 Col;
 };
 
+enum BenchMode {
+    Line = 0,
+    Shaded = 1,
+    Scatter = 2,
+    Bars = 3
+};
+
+struct BenchRecord {
+    int Mode;
+    bool AA;
+    ImVector<ImPlotPoint> Data;
+};
+
 void ShowBenchmarkTool() {
-    static const int max_lines = 500;
-    static BenchmarkItem items[max_lines];
+    static const int max_items = 500;
+    static BenchData items[max_items];
     static bool running = false;
     static int frames   = 60;
     static int L        = 0;
     static int F        = 0;
     static double t1, t2;
+    static int mode     = BenchMode::Line;
+    const char* names[] = {"Line","Shaded","Scatter","Bars"};
 
-    static ImVector<ImVector<ImPlotPoint>> records;
+    static ImVector<BenchRecord> records;
 
     if (running) {
         F++;
         if (F == frames) {
             t2 = ImGui::GetTime();
-            records.back().push_back(ImPlotPoint(L, frames / (t2 - t1)));
+            records.back().Data.push_back(ImPlotPoint(L, frames / (t2 - t1)));
             L  += 5;
             F  = 0;
             t1 = ImGui::GetTime();
         }
-        if (L > max_lines) {
+        if (L > max_items) {
             running = false;
-            L = max_lines;
+            L = max_items;
         }
     }
 
@@ -1457,35 +1476,67 @@ void ShowBenchmarkTool() {
     if (ImGui::Button("Benchmark")) {
         running = true;
         L = F = 0;
-        records.push_back(ImVector<ImPlotPoint>());
-        records.back().reserve(max_lines + 1);
+        records.push_back(BenchRecord());
+        records.back().Data.reserve(max_items+1);
+        records.back().Mode = mode;
+        records.back().AA   = ImPlot::GetStyle().AntiAliasedLines;
         t1 = ImGui::GetTime();
     }
     ImGui::SameLine();
+    ImGui::SetNextItemWidth(200);
+    ImGui::Combo("##Mode",&mode,names,4);
+    ImGui::SameLine();
+
     ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines);
     if (was_running) { ImGui::PopItemFlag(); ImGui::PopStyleVar(); }
 
-    ImGui::ProgressBar((float)L / (float)(max_lines - 1));
+    ImGui::ProgressBar((float)L / (float)(max_items - 1));
 
     ImPlot::SetNextPlotLimits(0,1000,0,1,ImGuiCond_Always);
-    if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_NoChild,0,0,0,0)) {
+    if (ImPlot::BeginPlot("##Bench",NULL,NULL,ImVec2(-1,0),ImPlotFlags_NoChild | ImPlotFlags_CanvasOnly,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations)) {
         if (running) {
-            for (int i = 0; i < L; ++i) {
-                ImGui::PushID(i);
-                ImPlot::SetNextLineStyle(items[i].Col);
-                ImPlot::PlotLine("##item", items[i].Data, 1000);
-                ImGui::PopID();
+            if (mode == BenchMode::Line) {
+                for (int i = 0; i < L; ++i) {
+                    ImGui::PushID(i);
+                    ImPlot::SetNextLineStyle(items[i].Col);
+                    ImPlot::PlotLine("##item", items[i].Data, 1000);
+                    ImGui::PopID();
+                }
+            }
+            else if (mode == BenchMode::Shaded) {
+                for (int i = 0; i < L; ++i) {
+                    ImGui::PushID(i);
+                    ImPlot::SetNextFillStyle(items[i].Col,0.5f);
+                    ImPlot::PlotShaded("##item", items[i].Data, 1000);
+                    ImGui::PopID();
+                }
+            }
+            else if (mode == BenchMode::Scatter) {
+                for (int i = 0; i < L; ++i) {
+                    ImGui::PushID(i);
+                    ImPlot::SetNextLineStyle(items[i].Col);
+                    ImPlot::PlotScatter("##item", items[i].Data, 1000);
+                    ImGui::PopID();
+                }
+            }
+            else if (mode == BenchMode::Bars) {
+                for (int i = 0; i < L; ++i) {
+                    ImGui::PushID(i);
+                    ImPlot::SetNextFillStyle(items[i].Col,0.5f);
+                    ImPlot::PlotBars("##item", items[i].Data, 1000);
+                    ImGui::PopID();
+                }
             }
         }
         ImPlot::EndPlot();
     }
 
     ImPlot::SetNextPlotLimits(0,500,0,500,ImGuiCond_Always);
-    static char buffer[8];
-    if (ImPlot::BeginPlot("##Stats", "Lines (1,000 pts each)", "Framerate (Hz)", ImVec2(-1,0), ImPlotFlags_NoChild)) {
+    static char buffer[64];
+    if (ImPlot::BeginPlot("##Stats", "Items (1,000 pts each)", "Framerate (Hz)", ImVec2(-1,0), ImPlotFlags_NoChild)) {
         for (int run = 0; run < records.size(); ++run) {
-            sprintf(buffer, "Run %d", run + 1);
-            ImPlot::PlotLine(buffer, records[run].Data, records[run].Size);
+            sprintf(buffer, "B%d-%s%s", run + 1, names[records[run].Mode], records[run].AA ? "-AA" : "");
+            ImPlot::PlotLine(buffer, records[run].Data.Data, records[run].Data.Size);
         }
         ImPlot::EndPlot();
     }
