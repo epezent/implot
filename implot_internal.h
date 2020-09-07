@@ -494,8 +494,7 @@ struct ImPlotItemStyle {
     ImPlotItemStyle() {
         for (int i = 0; i < 5; ++i)
             Colors[i] = IMPLOT_AUTO_COL;
-        LineWeight = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize =
-        ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
+        LineWeight = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker = IMPLOT_AUTO;
     }
 };
