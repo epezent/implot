@@ -800,7 +800,7 @@ inline bool IsLeapYear(int year) {
 // Returns the number of days in a month, accounting for Feb. leap years. #month is zero indexed.
 inline int GetDaysInMonth(int year, int month) {
     static const int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    return days[month] + (int)(month == 1 && IsLeapYear(year));
+    return  days[month] + (int)(month == 1 && IsLeapYear(year));
 }
 
 // Make a timestamp from a tm struct expressed as a UTC time (i.e. GMT timezone).
@@ -834,6 +834,9 @@ IMPLOT_API ImPlotTime MakeYear(int year);
 IMPLOT_API int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt);
 // Prints a timestamp to console
 IMPLOT_API void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt);
+
+// Shows a date picker widget block.
+IMPLOT_API bool ShowDatePicker(ImPlotTime* t);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Internal / Experimental Plotters

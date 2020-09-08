@@ -725,9 +725,12 @@ ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count) {
         case ImPlotTimeUnit_Min: t_out.S  += count * 60;    break;
         case ImPlotTimeUnit_Hr:  t_out.S  += count * 3600;  break;
         case ImPlotTimeUnit_Day: t_out.S  += count * 86400; break;
-        case ImPlotTimeUnit_Mo:  for (int i = 0; i < count; ++i) {    // this might have a bug
+        case ImPlotTimeUnit_Mo:  for (int i = 0; i < abs(count); ++i) {
                                      GetTime(t_out, &Tm);
-                                     t_out.S += 86400 * GetDaysInMonth(Tm.tm_year + 1900, Tm.tm_mon);
+                                     if (count > 0)    
+                                        t_out.S += 86400 * GetDaysInMonth(Tm.tm_year + 1900, Tm.tm_mon);
+                                     else if (count < 0)
+                                        t_out.S -= 86400 * GetDaysInMonth(Tm.tm_year + 1900 - Tm.tm_mon == 0 ? 1 : 0, Tm.tm_mon == 0 ? 11 : Tm.tm_mon - 1); // NOT WORKING
                                  }
                                  break;
         case ImPlotTimeUnit_Yr:  for (int i = 0; i < count; ++i) {
@@ -3107,6 +3110,100 @@ void ShowUserGuide() {
         ImGui::BulletText("Double right click on an axis to open the axis context menu.");
     ImGui::Unindent();
     ImGui::BulletText("Click legend label icons to show/hide plot items.");
+}
+
+bool ShowDatePicker(ImPlotTime* t) {
+
+    static const char* names_mo[] = {"January","February","March","April","May","June","July","August","September","October","November","December"};
+    static const char* names_wd[]  = {"Su","Mo","Tu","We","Th","Fr","Sa"};
+
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    tm& Tm = GImPlot->Tm;
+    GetTime(*t, &Tm);
+
+    const int this_year = Tm.tm_year + 1900;
+    const int last_year = this_year - 1;
+    const int this_mon  = Tm.tm_mon;
+    const int last_mon  = this_mon == 0 ? 11 : this_mon - 1;
+    const int days_this_mo = GetDaysInMonth(this_year, this_mon);
+    const int days_last_mo = GetDaysInMonth(this_mon == 0 ? last_year : this_year, last_mon);
+
+    ImPlotTime t_first_mo = FloorTime(*t,ImPlotTimeUnit_Mo); 
+    GetTime(*t,&Tm);
+
+    const int first_wd = Tm.tm_wday;
+
+    // sizing
+    float ht = ImGui::GetFrameHeight();
+    const ImVec2 cell_size(ht*1.25f,ht);
+
+    // begin group
+    ImGui::BeginGroup();
+
+    // month year    
+    ImGui::Text("%s %d", names_mo[this_mon], this_year);
+
+    // up/down arrows for month
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
+    ImGui::SameLine(style.WindowPadding.x + 5*cell_size.x);
+    if (ImGui::ArrowButtonEx("##Up",ImGuiDir_Up,cell_size)) {
+        *t = AddTime(*t, ImPlotTimeUnit_Mo, -1);
+    }
+    ImGui::SameLine();
+    if (ImGui::ArrowButtonEx("##Down",ImGuiDir_Down,cell_size)) {
+        *t = AddTime(*t, ImPlotTimeUnit_Mo, 1);
+    }
+
+    // render weekday abbreviations
+    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+    for (int i = 0; i < 7; ++i) {
+        ImGui::Button(names_wd[i],cell_size); 
+        if (i != 6) ImGui::SameLine();
+    }
+    ImGui::PopItemFlag();
+
+    // 0 = last mo, 1 = this mo, 2 = next mo
+    int mo = first_wd > 0 ? 0 : 1;
+    int day = mo == 1 ? 1 : days_last_mo - first_wd + 1;
+
+    char buff[4];
+
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 7; ++j) {
+
+            if (mo == 0 && day > days_last_mo) {   
+                 mo = 1; day = 1;
+            }
+            else if (mo == 1 && day > days_this_mo) {
+                mo = 2; day = 1;
+            }
+
+            if (mo == 0 || mo == 2)            
+                ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
+            else if (mo == 1 && day == Tm.tm_mday)
+                ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_TextDisabled]);
+
+            snprintf(buff,4,"%d",day);
+            ImGui::Button(buff,cell_size);
+            if (j != 6)
+                ImGui::SameLine();
+
+            if (mo == 0 || mo == 2)            
+                ImGui::PopStyleColor();
+            else if (mo == 1 && day == Tm.tm_mday)
+                ImGui::PopStyleColor();
+
+            day++;
+        }
+    }
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+
+    ImGui::EndGroup();
+    return true;
 }
 
 void StyleColorsAuto(ImPlotStyle* dst) {
