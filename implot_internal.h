@@ -150,8 +150,8 @@ template <int N>
 struct ImPlotPointArray {
     inline ImPlotPoint&       operator[](int i)       { return Data[i]; }
     inline const ImPlotPoint& operator[](int i) const { return Data[i]; }
+    inline int Size()                                 { return N; }
     ImPlotPoint Data[N];
-    const int Size = N;
 };
 
 //-----------------------------------------------------------------------------

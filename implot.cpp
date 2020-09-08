@@ -1633,7 +1633,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 //-----------------------------------------------------------------------------
 
 template <typename F>
-bool DragFloat(const char* label, F* v, float v_speed, F v_min, F v_max) {
+bool DragFloat(const char*, F*, float, F, F) {
     return false;
 }
 
