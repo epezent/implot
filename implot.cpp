@@ -77,11 +77,6 @@ ImPlotContext* GImPlot = NULL;
 // Struct Implementations
 //-----------------------------------------------------------------------------
 
-ImPlotRange::ImPlotRange() {
-    Min = NAN;
-    Max = NAN;
-}
-
 ImPlotInputMap::ImPlotInputMap() {
     PanButton             = ImGuiMouseButton_Left;
     PanMod                = ImGuiKeyModFlags_None;
@@ -315,6 +310,10 @@ double NiceNum(double x, bool round) {
 //-----------------------------------------------------------------------------
 // Context Utils
 //-----------------------------------------------------------------------------
+
+void SetImGuiContext(ImGuiContext* ctx) {
+    ImGui::SetCurrentContext(ctx);
+}
 
 ImPlotContext* CreateContext() {
     ImPlotContext* ctx = IM_NEW(ImPlotContext)();

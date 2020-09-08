@@ -58,7 +58,7 @@ struct ImPlotNextPlotData;
 // [SECTION] Context Pointer
 //-----------------------------------------------------------------------------
 
-extern ImPlotContext* GImPlot; // Current implicit context pointer
+extern IMPLOT_API ImPlotContext* GImPlot; // Current implicit context pointer
 
 //-----------------------------------------------------------------------------
 // [SECTION] Macros and Constants
@@ -623,42 +623,42 @@ namespace ImPlot {
 //-----------------------------------------------------------------------------
 
 // Initializes an ImPlotContext
-void Initialize(ImPlotContext* ctx);
+IMPLOT_API void Initialize(ImPlotContext* ctx);
 // Resets an ImPlot context for the next call to BeginPlot
-void Reset(ImPlotContext* ctx);
+IMPLOT_API void Reset(ImPlotContext* ctx);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Utils
 //-----------------------------------------------------------------------------
 
 // Gets a plot from the current ImPlotContext
-ImPlotState* GetPlot(const char* title);
+IMPLOT_API ImPlotState* GetPlot(const char* title);
 // Gets the current plot from the current ImPlotContext
-ImPlotState* GetCurrentPlot();
+IMPLOT_API ImPlotState* GetCurrentPlot();
 // Busts the cache for every plot in the current context
-void BustPlotCache();
+IMPLOT_API void BustPlotCache();
 
 //-----------------------------------------------------------------------------
 // [SECTION] Item Utils
 //-----------------------------------------------------------------------------
 
 // Begins a new item. Returns false if the item should not be plotted. Pushes PlotClipRect.
-bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
+IMPLOT_API bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
 // Ends an item (call only if BeginItem returns true). Pops PlotClipRect.
-void EndItem();
+IMPLOT_API void EndItem();
 
 // Register or get an existing item from the current plot
-ImPlotItem* RegisterOrGetItem(const char* label_id);
+IMPLOT_API ImPlotItem* RegisterOrGetItem(const char* label_id);
 // Get the ith plot item from the current plot
-ImPlotItem* GetItem(int i);
+IMPLOT_API ImPlotItem* GetItem(int i);
 // Get a plot item from the current plot
-ImPlotItem* GetItem(const char* label_id);
+IMPLOT_API ImPlotItem* GetItem(const char* label_id);
 // Gets a plot item from a specific plot
-ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
+IMPLOT_API ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
 // Gets the current item
-ImPlotItem* GetCurrentItem();
+IMPLOT_API ImPlotItem* GetCurrentItem();
 // Busts the cache for every item for every plot in the current context.
-void BustItemCache();
+IMPLOT_API void BustItemCache();
 
 //-----------------------------------------------------------------------------
 // [SECTION] Axis Utils
@@ -667,55 +667,55 @@ void BustItemCache();
 // Gets the current y-axis for the current plot
 inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
 // Updates axis ticks, lins, and label colors
-void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
+IMPLOT_API void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
 
 // Updates plot-to-pixel space transformation variables for the current plot.
-void UpdateTransformCache();
+IMPLOT_API void UpdateTransformCache();
 // Gets the XY scale for the current plot and y-axis
 inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
 
 // Returns true if the user has requested data to be fit.
 inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
 // Extends the current plots axes so that it encompasses point p
-void FitPoint(const ImPlotPoint& p);
+IMPLOT_API void FitPoint(const ImPlotPoint& p);
 
 // Returns true if two ranges overlap
 inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)
 { return r1.Min <= r2.Max && r2.Min <= r1.Max; }
 
 // Updates pointers for linked axes from axis internal range.
-void PushLinkedAxis(ImPlotAxis& axis);
+IMPLOT_API void PushLinkedAxis(ImPlotAxis& axis);
 // Updates axis internal range from points for linked axes.
-void PullLinkedAxis(ImPlotAxis& axis);
+IMPLOT_API void PullLinkedAxis(ImPlotAxis& axis);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils
 //-----------------------------------------------------------------------------
 
 // Returns the number of entries in the current legend
-int GetLegendCount();
+IMPLOT_API int GetLegendCount();
 // Gets the ith entry string for the current legend
-const char* GetLegendLabel(int i);
+IMPLOT_API const char* GetLegendLabel(int i);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Tick Utils
 //-----------------------------------------------------------------------------
 
 // Label a tick with default formatting.
-void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer);
+IMPLOT_API void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer);
 // Label a tick with scientific formating.
-void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer);
+IMPLOT_API void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer);
 // Label a tick with time formatting.
-void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotTimeFmt fmt);
+IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotTimeFmt fmt);
 
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
-void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
-void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with time formatted ticks.
-void AddTicksTime(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksTime(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
-void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Styling Utils
@@ -729,21 +729,21 @@ inline bool IsColorAuto(const ImVec4& col) { return col.w == -1; }
 // Returns true if a style color is set to be automaticaly determined
 inline bool IsColorAuto(ImPlotCol idx) { return IsColorAuto(GImPlot->Style.Colors[idx]); }
 // Returns the automatically deduced style color
-ImVec4 GetAutoColor(ImPlotCol idx);
+IMPLOT_API ImVec4 GetAutoColor(ImPlotCol idx);
 
 // Returns the style color whether it is automatic or custom set
 inline ImVec4 GetStyleColorVec4(ImPlotCol idx) { return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
 inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
 
 // Get built-in colormap data and size
-const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out);
+IMPLOT_API const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
-ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
+IMPLOT_API ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
 // Resamples a colormap. #size_out must be greater than 1.
-void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
+IMPLOT_API void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
 
 // Draws vertical text. The position is the bottom left of the text rect.
-void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
+IMPLOT_API void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
 inline ImVec2 CalcTextSizeVertical(const char *text) { ImVec2 sz = ImGui::CalcTextSize(text); return ImVec2(sz.y, sz.x); }
 // Returns white or black text given background color
@@ -754,7 +754,7 @@ inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.5
 //-----------------------------------------------------------------------------
 
 // Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
-double NiceNum(double x, bool round);
+IMPLOT_API double NiceNum(double x, bool round);
 // Computes order of magnitude of double.
 inline int OrderOfMagnitude(double val) { return val == 0 ? 0 : (int)(floor(log10(fabs(val)))); }
 // Returns the precision required for a order of magnitude.
@@ -790,8 +790,6 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
 // Time Utils
 //-----------------------------------------------------------------------------
 
-
-
 // Returns true if year is leap year (366 days long)
 inline bool IsLeapYear(int year) {
     if (year % 4 != 0)  return false;
@@ -806,36 +804,36 @@ inline int GetDaysInMonth(int year, int month) {
 }
 
 // Make a timestamp from a tm struct expressed as a UTC time (i.e. GMT timezone).
-ImPlotTime MkGmtTime(struct tm *ptm);
+IMPLOT_API ImPlotTime MkGmtTime(struct tm *ptm);
 // Make a tm struct from a timestamp expressed as a UTC time (i.e. GMT timezone).
-tm* GetGmtTime(const ImPlotTime& t, tm* ptm);
+IMPLOT_API tm* GetGmtTime(const ImPlotTime& t, tm* ptm);
 
 // Make a timestamp from a tm struct expressed as a local time.
-ImPlotTime MkLocTime(struct tm *ptm);
+IMPLOT_API ImPlotTime MkLocTime(struct tm *ptm);
 // Make a tm struct from a timestamp expressed as a local time.
-tm* GetLocTime(const ImPlotTime& t, tm* ptm);
+IMPLOT_API tm* GetLocTime(const ImPlotTime& t, tm* ptm);
 
 // NB: These functions only work if there is a current ImPlotContext because the
 // internal tm struct is owned by the context!
 
 // Adds time to a timestamp. #count must be positive!
-ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count);
+IMPLOT_API ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count);
 // Rounds a timestamp down to nearest.
-ImPlotTime FloorTime(const ImPlotTime& t, ImPlotTimeUnit unit);
+IMPLOT_API ImPlotTime FloorTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Rounds a timestamp up to the nearest unit.
-ImPlotTime CeilTime(const ImPlotTime& t, ImPlotTimeUnit unit);
+IMPLOT_API ImPlotTime CeilTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Rounds a timestamp up or down to the nearest unit.
-ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit);
+IMPLOT_API ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 
 // Get year from timestamp
-int GetYear(const ImPlotTime& t);
+IMPLOT_API int GetYear(const ImPlotTime& t);
 // Make a timestamp starting at the first day of a year
-ImPlotTime MakeYear(int year);
+IMPLOT_API ImPlotTime MakeYear(int year);
 
 // Formates a timestamp t into a buffer according to fmt.
-int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt);
+IMPLOT_API int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt);
 // Prints a timestamp to console
-void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt);
+IMPLOT_API void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Internal / Experimental Plotters
@@ -843,8 +841,8 @@ void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt);
 //-----------------------------------------------------------------------------
 
 // Plots axis-aligned, filled rectangles. Every two consecutive points defines opposite corners of a single rectangle.
-void PlotRects(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-void PlotRects(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
-void PlotRects(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
+IMPLOT_API void PlotRects(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
+IMPLOT_API void PlotRects(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
+IMPLOT_API void PlotRects(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 } // namespace ImPlot

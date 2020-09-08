@@ -50,7 +50,7 @@ ImPlotPoint SineWave(void* wave_data, int idx);
 ImPlotPoint SawWave(void* wave_data, int idx);
 ImPlotPoint Spiral(void*, int idx);
 
-// Example for Tables section. 
+// Example for Tables section.
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size);
 
 // Example for Custom Plotters and Tooltips section.
