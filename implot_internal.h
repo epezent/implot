@@ -183,27 +183,54 @@ enum ImPlotTimeUnit_ {
 };
 
 enum ImPlotTimeFmt_ {
-    ImPlotTimeFmt_Us,            // .428 552
-    ImPlotTimeFmt_SUs,           // :29.428 552
-    ImPlotTimeFmt_SMs,           // :29.428
-    ImPlotTimeFmt_S,             // :29
-    ImPlotTimeFmt_HrMinS,        // 7:21:29pm
-    ImPlotTimeFmt_HrMin,         // 7:21pm
-    ImPlotTimeFmt_Hr,            // 7pm
-    ImPlotTimeFmt_DayMo,         // 10/3
-    ImPlotTimeFmt_DayMoHr,       // 10/3 7pm
-    ImPlotTimeFmt_DayMoHrMin,    // 10/3 7:21pm
-    ImPlotTimeFmt_DayMoYr,       // 10/3/91
-    ImPlotTimeFmt_DayMoYrHrMin,  // 10/3/91 7:21pm
-    ImPlotTimeFmt_DayMoYrHrMinS, // 10/3/91 7:21:29pm
-    ImPlotTimeFmt_MoYr,          // Oct 1991
-    ImPlotTimeFmt_Mo,            // Oct
-    ImPlotTimeFmt_Yr             // 1991
+    ImPlotTimeFmt_Us,              // .428 552
+    ImPlotTimeFmt_SUs,             // :29.428 552
+    ImPlotTimeFmt_SMs,             // :29.428
+    ImPlotTimeFmt_S,               // :29
+    ImPlotTimeFmt_HrMinS,          // 7:21:29pm
+    ImPlotTimeFmt_HrMin,           // 7:21pm
+    ImPlotTimeFmt_Hr,              // 7pm
+    ImPlotTimeFmt_DayMo,           // 10/3
+    ImPlotTimeFmt_DayMoHr,         // 10/3 7pm
+    ImPlotTimeFmt_DayMoHrMin,      // 10/3 7:21pm
+    ImPlotTimeFmt_DayMoYr,         // 10/3/91
+    ImPlotTimeFmt_DayMoYrHrMin,    // 10/3/91 7:21pm
+    ImPlotTimeFmt_DayMoYrHrMinS,   // 10/3/91 7:21:29pm
+    ImPlotTimeFmt_DayMoYrHrMinSUs, // 10/3/91 7:21:29.123456pm
+    ImPlotTimeFmt_MoYr,            // Oct 1991
+    ImPlotTimeFmt_Mo,              // Oct
+    ImPlotTimeFmt_Yr               // 1991
 };
 
 //-----------------------------------------------------------------------------
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
+
+/// Two part timestamp struct.
+struct ImPlotTime {
+    time_t S;  // second part
+    int    Us; // microsecond part
+    ImPlotTime() { S = 0; Us = 0; }
+    ImPlotTime(time_t s, int us = 0) { S  = s + us / 1000000; Us = us % 1000000; }
+    void RollOver() { S  = S + Us / 1000000;  Us = Us % 1000000; }
+    double ToDouble() const { return (double)S + (double)Us / 1000000.0; }
+    static ImPlotTime FromDouble(double t) { return ImPlotTime((time_t)t, (int)(t * 1000000 - floor(t) * 1000000)); }
+};
+
+static inline ImPlotTime operator+(const ImPlotTime& lhs, const ImPlotTime& rhs)
+{ return ImPlotTime(lhs.S + rhs.S, lhs.Us + rhs.Us); }
+static inline ImPlotTime operator-(const ImPlotTime& lhs, const ImPlotTime& rhs)
+{ return ImPlotTime(lhs.S - rhs.S, lhs.Us - rhs.Us); }
+static inline bool operator==(const ImPlotTime& lhs, const ImPlotTime& rhs)
+{ return lhs.S == rhs.S && lhs.Us == rhs.Us; }
+static inline bool operator<(const ImPlotTime& lhs, const ImPlotTime& rhs)
+{ return lhs.S == rhs.S ? lhs.Us < rhs.Us : lhs.S < rhs.S; }
+static inline bool operator>(const ImPlotTime& lhs, const ImPlotTime& rhs)
+{ return rhs < lhs; }
+static inline bool operator<=(const ImPlotTime& lhs, const ImPlotTime& rhs)
+{ return lhs < rhs || lhs == rhs; }
+static inline bool operator>=(const ImPlotTime& lhs, const ImPlotTime& rhs)
+{ return lhs > rhs || lhs == rhs; }
 
 // Storage for colormap modifiers
 struct ImPlotColormapMod {
@@ -297,6 +324,8 @@ struct ImPlotAxis
     bool            HoveredTot;
     double*         LinkedMin;
     double*         LinkedMax;
+    ImPlotTime      PickerTimeMin, PickerTimeMax;
+    int             PickerLevel;
 
     ImPlotAxis() {
         Flags      = PreviousFlags = ImPlotAxisFlags_None;
@@ -306,6 +335,7 @@ struct ImPlotAxis
         HoveredExt = false;
         HoveredTot = false;
         LinkedMin  = LinkedMax = NULL;
+        PickerLevel = 0;
     }
 
     bool SetMin(double _min) {
@@ -317,6 +347,7 @@ struct ImPlotAxis
         if (_min >= Range.Max)
             return false;
         Range.Min = _min;
+        PickerTimeMin = ImPlotTime::FromDouble(Range.Min);
         return true;
     };
 
@@ -329,6 +360,7 @@ struct ImPlotAxis
         if (_max <= Range.Min)
             return false;
         Range.Max = _max;
+        PickerTimeMax = ImPlotTime::FromDouble(Range.Max);
         return true;
     };
 
@@ -336,6 +368,8 @@ struct ImPlotAxis
         Range.Min = _min;
         Range.Max = _max;
         Constrain();
+        PickerTimeMin = ImPlotTime::FromDouble(Range.Min);
+        PickerTimeMax = ImPlotTime::FromDouble(Range.Max);
     }
 
     void SetRange(const ImPlotRange& range) {
@@ -585,32 +619,6 @@ struct ImPlotAxisScale
     }
 };
 
-/// Two part timestamp struct.
-struct ImPlotTime {
-    time_t S;  // second part
-    int    Us; // microsecond part
-    ImPlotTime() { S = 0; Us = 0; }
-    ImPlotTime(time_t s, int us = 0) { S  = s + us / 1000000; Us = us % 1000000; }
-    void RollOver() { S  = S + Us / 1000000;  Us = Us % 1000000; }
-    double ToDouble() const { return (double)S + (double)Us / 1000000.0; }
-    static ImPlotTime FromDouble(double t) { return ImPlotTime((time_t)t, (int)(t * 1000000 - floor(t) * 1000000)); }
-};
-
-static inline ImPlotTime operator+(const ImPlotTime& lhs, const ImPlotTime& rhs)
-{ return ImPlotTime(lhs.S + rhs.S, lhs.Us + rhs.Us); }
-static inline ImPlotTime operator-(const ImPlotTime& lhs, const ImPlotTime& rhs)
-{ return ImPlotTime(lhs.S - rhs.S, lhs.Us - rhs.Us); }
-static inline bool operator==(const ImPlotTime& lhs, const ImPlotTime& rhs)
-{ return lhs.S == rhs.S && lhs.Us == rhs.Us; }
-static inline bool operator<(const ImPlotTime& lhs, const ImPlotTime& rhs)
-{ return lhs.S == rhs.S ? lhs.Us < rhs.Us : lhs.S < rhs.S; }
-static inline bool operator>(const ImPlotTime& lhs, const ImPlotTime& rhs)
-{ return rhs < lhs; }
-static inline bool operator<=(const ImPlotTime& lhs, const ImPlotTime& rhs)
-{ return lhs < rhs || lhs == rhs; }
-static inline bool operator>=(const ImPlotTime& lhs, const ImPlotTime& rhs)
-{ return lhs > rhs || lhs == rhs; }
-
 //-----------------------------------------------------------------------------
 // [SECTION] Internal API
 // No guarantee of forward compatibility here!
@@ -792,10 +800,7 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
 
 // Returns true if year is leap year (366 days long)
 inline bool IsLeapYear(int year) {
-    if (year % 4 != 0)  return false;
-    if (year % 400 == 0) return true;
-    if (year % 100 == 0) return false;
-    return true;
+    return  year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
 }
 // Returns the number of days in a month, accounting for Feb. leap years. #month is zero indexed.
 inline int GetDaysInMonth(int year, int month) {
@@ -803,18 +808,26 @@ inline int GetDaysInMonth(int year, int month) {
     return  days[month] + (int)(month == 1 && IsLeapYear(year));
 }
 
-// Make a timestamp from a tm struct expressed as a UTC time (i.e. GMT timezone).
+// Make a UNIX timestamp from a tm struct expressed in UTC time (i.e. GMT timezone).
 IMPLOT_API ImPlotTime MkGmtTime(struct tm *ptm);
-// Make a tm struct from a timestamp expressed as a UTC time (i.e. GMT timezone).
+// Make a tm struct expressed in UTC time (i.e. GMT timezone) from a UNIX timestamp.
 IMPLOT_API tm* GetGmtTime(const ImPlotTime& t, tm* ptm);
 
-// Make a timestamp from a tm struct expressed as a local time.
+// Make a UNIX timestamp from a tm struct expressed in local time.
 IMPLOT_API ImPlotTime MkLocTime(struct tm *ptm);
-// Make a tm struct from a timestamp expressed as a local time.
+// Make a tm struct expressed in local time from a UNIX timestamp.
 IMPLOT_API tm* GetLocTime(const ImPlotTime& t, tm* ptm);
 
-// NB: These functions only work if there is a current ImPlotContext because the
-// internal tm struct is owned by the context!
+// NB: The following functions only work if there is a current ImPlotContext because the
+// internal tm struct is owned by the context! They are aware of ImPlotStyle.UseLocalTime.
+
+// Make a timestamp from time components.
+// year[1970-3000], month[0-11], day[1-31], hour[0-23], min[0-59], sec[0-59], us[0,999999]
+IMPLOT_API ImPlotTime MakeTime(int year, int month = 0, int day = 1, int hour = 0, int min = 0, int sec = 0, int us = 0);
+// Make a timestamp starting at the first day of a year [1970-3000]
+IMPLOT_API ImPlotTime MakeYear(int year);
+// Get year component from timestamp [1970-3000]
+IMPLOT_API int GetYear(const ImPlotTime& t);
 
 // Adds time to a timestamp. #count must be positive!
 IMPLOT_API ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count);
@@ -825,18 +838,19 @@ IMPLOT_API ImPlotTime CeilTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Rounds a timestamp up or down to the nearest unit.
 IMPLOT_API ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 
-// Get year from timestamp
-IMPLOT_API int GetYear(const ImPlotTime& t);
-// Make a timestamp starting at the first day of a year
-IMPLOT_API ImPlotTime MakeYear(int year);
-
 // Formates a timestamp t into a buffer according to fmt.
 IMPLOT_API int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt);
 // Prints a timestamp to console
-IMPLOT_API void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt);
+IMPLOT_API void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt = ImPlotTimeFmt_DayMoYrHrMinSUs);
 
-// Shows a date picker widget block.
-IMPLOT_API bool ShowDatePicker(ImPlotTime* t);
+// Shows a date picker widget block (year/month/day).
+// #level = 0 for day, 1 for month, 2 for year. Modified by user interaction.
+// #t will be set when a day is clicked and the function will return true.
+// #t1 and #t2 are optional dates to highlight.
+IMPLOT_API bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime* t1 = NULL, const ImPlotTime* t2 = NULL);
+// Shows a time picker widget block (hour/min/sec).
+// #t will be set when a new hour, minute, or sec is selected and the function will return true.
+IMPLOT_API bool ShowTimePicker(const char* id, ImPlotTime* t);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Internal / Experimental Plotters

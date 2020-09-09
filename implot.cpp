@@ -659,17 +659,13 @@ inline int GetTimeStep(int max_divs, ImPlotTimeUnit unit) {
 }
 
 ImPlotTime MkGmtTime(struct tm *ptm) {
-    time_t secs = 0;
-    int year = ptm->tm_year + 1900;
-    for (int y = 1970; y < year; ++y)
-        secs += (IsLeapYear(y)? 366: 365) * 86400;
-    for (int m = 0; m < ptm->tm_mon; ++m)
-        secs += GetDaysInMonth(year, m) * 86400;
-    secs += (ptm->tm_mday - 1) * 86400;
-    secs += ptm->tm_hour       * 3600;
-    secs += ptm->tm_min        * 60;
-    secs += ptm->tm_sec;
-    return ImPlotTime(secs,0);
+    ImPlotTime t;
+#ifdef _WIN32
+    t.S = _mkgmtime(ptm);
+#else
+    t.S = timegm(ptm);
+#endif
+    return t;
 }
 
 tm* GetGmtTime(const ImPlotTime& t, tm* ptm)
@@ -715,6 +711,49 @@ inline tm* GetTime(const ImPlotTime& t, tm* ptm) {
         return GetGmtTime(t,ptm);
 }
 
+ImPlotTime MakeTime(int year, int month, int day, int hour, int min, int sec, int us) {
+    tm& Tm = GImPlot->Tm;
+
+    int yr = year - 1900;
+    if (yr < 0)
+        yr = 0;
+
+    sec  = sec + us / 1000000;
+    us   = us % 1000000;
+
+    Tm.tm_sec  = sec;
+    Tm.tm_min  = min;
+    Tm.tm_hour = hour;
+    Tm.tm_mday = day;
+    Tm.tm_mon  = month;
+    Tm.tm_year = yr;
+
+    ImPlotTime t = MkTime(&Tm);
+
+    t.Us = us;
+    return t;
+}
+
+ImPlotTime MakeYear(int year) {
+    int yr = year - 1900;
+    if (yr < 0)
+        yr = 0;
+    tm& Tm = GImPlot->Tm;
+    Tm.tm_sec  = 0;
+    Tm.tm_min  = 0;
+    Tm.tm_hour = 0;
+    Tm.tm_mday = 1;
+    Tm.tm_mon  = 0;
+    Tm.tm_year = yr;
+    return MkTime(&Tm);
+}
+
+int GetYear(const ImPlotTime& t) {
+    tm& Tm = GImPlot->Tm;
+    GetTime(t, &Tm);
+    return Tm.tm_year + 1900;
+}
+
 ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count) {
     tm& Tm = GImPlot->Tm;
     ImPlotTime t_out = t;
@@ -727,17 +766,18 @@ ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count) {
         case ImPlotTimeUnit_Day: t_out.S  += count * 86400; break;
         case ImPlotTimeUnit_Mo:  for (int i = 0; i < abs(count); ++i) {
                                      GetTime(t_out, &Tm);
-                                     if (count > 0)    
+                                     if (count > 0)
                                         t_out.S += 86400 * GetDaysInMonth(Tm.tm_year + 1900, Tm.tm_mon);
                                      else if (count < 0)
-                                        t_out.S -= 86400 * GetDaysInMonth(Tm.tm_year + 1900 - Tm.tm_mon == 0 ? 1 : 0, Tm.tm_mon == 0 ? 11 : Tm.tm_mon - 1); // NOT WORKING
+                                        t_out.S -= 86400 * GetDaysInMonth(Tm.tm_year + 1900 - (Tm.tm_mon == 0 ? 1 : 0), Tm.tm_mon == 0 ? 11 : Tm.tm_mon - 1); // NOT WORKING
                                  }
                                  break;
-        case ImPlotTimeUnit_Yr:  for (int i = 0; i < count; ++i) {
-                                    if (IsLeapYear(GetYear(t_out)))
-                                        t_out.S += 366 * 86400;
-                                    else
-                                        t_out.S += 365 * 86400;
+        case ImPlotTimeUnit_Yr:  for (int i = 0; i < abs(count); ++i) {
+                                    if (count > 0)
+                                        t_out.S += 86400 * (365 + (int)IsLeapYear(GetYear(t_out)));
+                                    else if (count < 0)
+                                        t_out.S -= 86400 * (365 + (int)IsLeapYear(GetYear(t_out) - 1));
+                                    // this is incorrect if leap year and we are past Feb 28
                                  }
                                  break;
         default:                 break;
@@ -774,27 +814,6 @@ ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit) {
     return t.S - t1.S < t2.S - t.S ? t1 : t2;
 }
 
-int GetYear(const ImPlotTime& t) {
-    tm& Tm = GImPlot->Tm;
-    GetTime(t, &Tm);
-    return Tm.tm_year + 1900;
-}
-
-ImPlotTime MakeYear(int year) {
-    int yr = year - 1900;
-    if (yr < 0)
-        yr = 0;
-    tm& Tm = GImPlot->Tm;
-    Tm.tm_sec  = 0;
-    Tm.tm_min  = 0;
-    Tm.tm_hour = 0;
-    Tm.tm_mday = 1;
-    Tm.tm_mon  = 0;
-    Tm.tm_year = yr;
-    Tm.tm_sec  = 0;
-    return MkTime(&Tm);
-}
-
 int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt) {
     tm& Tm = GImPlot->Tm;
     GetTime(t, &Tm);
@@ -813,23 +832,24 @@ int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt) {
     static const char mnames[12][4] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 
     switch(fmt) {
-        case ImPlotTimeFmt_Us:            return snprintf(buffer, size, ".%03d %03d", ms, us);
-        case ImPlotTimeFmt_SUs:           return snprintf(buffer, size, ":%02d.%03d %03d", sec, ms, us);
-        case ImPlotTimeFmt_SMs:           return snprintf(buffer, size, ":%02d.%03d", sec, ms);
-        case ImPlotTimeFmt_S:             return snprintf(buffer, size, ":%02d", sec);
-        case ImPlotTimeFmt_HrMinS:        return snprintf(buffer, size, "%d:%02d:%02d%s", hr, min, sec, ap);
-        case ImPlotTimeFmt_HrMin:         return snprintf(buffer, size, "%d:%02d%s", hr, min, ap);
-        case ImPlotTimeFmt_Hr:            return snprintf(buffer, size, "%d%s", hr, ap);
-        case ImPlotTimeFmt_DayMo:         return snprintf(buffer, size, "%d/%d", mon, day);
-        case ImPlotTimeFmt_DayMoHr:       return snprintf(buffer, size, "%d/%d %d%s", mon, day, hr, ap);
-        case ImPlotTimeFmt_DayMoHrMin:    return snprintf(buffer, size, "%d/%d %d:%02d%s", mon, day, hr, min, ap);
-        case ImPlotTimeFmt_DayMoYr:       return snprintf(buffer, size, "%d/%d/%02d", mon, day, yr);
-        case ImPlotTimeFmt_DayMoYrHrMin:  return snprintf(buffer, size, "%d/%d/%02d %d:%02d%s", mon, day, yr, hr, min, ap);
-        case ImPlotTimeFmt_DayMoYrHrMinS: return snprintf(buffer, size, "%d/%d/%02d %d:%02d:%02d%s", mon, day, yr, hr, min, sec, ap);
-        case ImPlotTimeFmt_MoYr:          return snprintf(buffer, size, "%s %d", mnames[Tm.tm_mon], year);
-        case ImPlotTimeFmt_Mo:            return snprintf(buffer, size, "%s", mnames[Tm.tm_mon]);
-        case ImPlotTimeFmt_Yr:            return snprintf(buffer, size, "%d", year);
-        default:                          return 0;
+        case ImPlotTimeFmt_Us:              return snprintf(buffer, size, ".%03d %03d", ms, us);
+        case ImPlotTimeFmt_SUs:             return snprintf(buffer, size, ":%02d.%03d %03d", sec, ms, us);
+        case ImPlotTimeFmt_SMs:             return snprintf(buffer, size, ":%02d.%03d", sec, ms);
+        case ImPlotTimeFmt_S:               return snprintf(buffer, size, ":%02d", sec);
+        case ImPlotTimeFmt_HrMinS:          return snprintf(buffer, size, "%d:%02d:%02d%s", hr, min, sec, ap);
+        case ImPlotTimeFmt_HrMin:           return snprintf(buffer, size, "%d:%02d%s", hr, min, ap);
+        case ImPlotTimeFmt_Hr:              return snprintf(buffer, size, "%d%s", hr, ap);
+        case ImPlotTimeFmt_DayMo:           return snprintf(buffer, size, "%d/%d", mon, day);
+        case ImPlotTimeFmt_DayMoHr:         return snprintf(buffer, size, "%d/%d %d%s", mon, day, hr, ap);
+        case ImPlotTimeFmt_DayMoHrMin:      return snprintf(buffer, size, "%d/%d %d:%02d%s", mon, day, hr, min, ap);
+        case ImPlotTimeFmt_DayMoYr:         return snprintf(buffer, size, "%d/%d/%02d", mon, day, yr);
+        case ImPlotTimeFmt_DayMoYrHrMin:    return snprintf(buffer, size, "%d/%d/%02d %d:%02d%s", mon, day, yr, hr, min, ap);
+        case ImPlotTimeFmt_DayMoYrHrMinS:   return snprintf(buffer, size, "%d/%d/%02d %d:%02d:%02d%s", mon, day, yr, hr, min, sec, ap);
+        case ImPlotTimeFmt_DayMoYrHrMinSUs: return snprintf(buffer, size, "%d/%d/%d %d:%02d:%02d.%03d%03d%s", mon, day, yr, hr, min, sec, ms, us, ap);
+        case ImPlotTimeFmt_MoYr:            return snprintf(buffer, size, "%s %d", mnames[Tm.tm_mon], year);
+        case ImPlotTimeFmt_Mo:              return snprintf(buffer, size, "%s", mnames[Tm.tm_mon]);
+        case ImPlotTimeFmt_Yr:              return snprintf(buffer, size, "%d", year);
+        default:                            return 0;
     }
 }
 
@@ -842,23 +862,24 @@ void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt) {
 // Returns the nominally largest possible width for a time format
 inline float GetTimeLabelWidth(ImPlotTimeFmt fmt) {
     switch (fmt) {
-        case ImPlotTimeFmt_Us:            return ImGui::CalcTextSize(".888 888").x;             // .428 552
-        case ImPlotTimeFmt_SUs:           return ImGui::CalcTextSize(":88.888 888").x;          // :29.428 552
-        case ImPlotTimeFmt_SMs:           return ImGui::CalcTextSize(":88.888").x;             // :29.428
-        case ImPlotTimeFmt_S:             return ImGui::CalcTextSize(":88").x;                 // :29
-        case ImPlotTimeFmt_HrMinS:        return ImGui::CalcTextSize("88:88:88pm").x;          // 7:21:29pm
-        case ImPlotTimeFmt_HrMin:         return ImGui::CalcTextSize("88:88pm").x;             // 7:21pm
-        case ImPlotTimeFmt_Hr:            return ImGui::CalcTextSize("88pm").x;                // 7pm
-        case ImPlotTimeFmt_DayMo:         return ImGui::CalcTextSize("88/88").x;               // 10/3
-        case ImPlotTimeFmt_DayMoHr:       return ImGui::CalcTextSize("88/88 88pm").x;          // 10/3 7:21pm
-        case ImPlotTimeFmt_DayMoHrMin:    return ImGui::CalcTextSize("88/88 88:88pm").x;       // 10/3 7:21pm
-        case ImPlotTimeFmt_DayMoYr:       return ImGui::CalcTextSize("88/88/88").x;            // 10/3/1991
-        case ImPlotTimeFmt_DayMoYrHrMin:  return ImGui::CalcTextSize("88/88/88 88:88pm").x;    // 10/3/91 7:21pm
-        case ImPlotTimeFmt_DayMoYrHrMinS: return ImGui::CalcTextSize("88/88/88 88:88:88pm").x; // 10/3/91 7:21:29pm
-        case ImPlotTimeFmt_MoYr:          return ImGui::CalcTextSize("MMM 8888").x;            // Oct 1991
-        case ImPlotTimeFmt_Mo:            return ImGui::CalcTextSize("MMM").x;                 // Oct
-        case ImPlotTimeFmt_Yr:            return ImGui::CalcTextSize("8888").x;                // 1991
-        default:                          return 0;
+        case ImPlotTimeFmt_Us:              return ImGui::CalcTextSize(".888 888").x;                     // .428 552
+        case ImPlotTimeFmt_SUs:             return ImGui::CalcTextSize(":88.888 888").x;                  // :29.428 552
+        case ImPlotTimeFmt_SMs:             return ImGui::CalcTextSize(":88.888").x;                      // :29.428
+        case ImPlotTimeFmt_S:               return ImGui::CalcTextSize(":88").x;                          // :29
+        case ImPlotTimeFmt_HrMinS:          return ImGui::CalcTextSize("88:88:88pm").x;                   // 7:21:29pm
+        case ImPlotTimeFmt_HrMin:           return ImGui::CalcTextSize("88:88pm").x;                      // 7:21pm
+        case ImPlotTimeFmt_Hr:              return ImGui::CalcTextSize("88pm").x;                         // 7pm
+        case ImPlotTimeFmt_DayMo:           return ImGui::CalcTextSize("88/88").x;                        // 10/3
+        case ImPlotTimeFmt_DayMoHr:         return ImGui::CalcTextSize("88/88 88pm").x;                   // 10/3 7:21pm
+        case ImPlotTimeFmt_DayMoHrMin:      return ImGui::CalcTextSize("88/88 88:88pm").x;                // 10/3 7:21pm
+        case ImPlotTimeFmt_DayMoYr:         return ImGui::CalcTextSize("88/88/88").x;                     // 10/3/1991
+        case ImPlotTimeFmt_DayMoYrHrMin:    return ImGui::CalcTextSize("88/88/88 88:88pm").x;             // 10/3/91 7:21pm
+        case ImPlotTimeFmt_DayMoYrHrMinS:   return ImGui::CalcTextSize("88/88/88 88:88:88pm").x;          // 10/3/91 7:21:29pm
+        case ImPlotTimeFmt_DayMoYrHrMinSUs: return ImGui::CalcTextSize("88/88/8888 88:88:88.888888pm").x; // 10/3/1991 7:21:29.123456pm
+        case ImPlotTimeFmt_MoYr:            return ImGui::CalcTextSize("MMM 8888").x;                     // Oct 1991
+        case ImPlotTimeFmt_Mo:              return ImGui::CalcTextSize("MMM").x;                          // Oct
+        case ImPlotTimeFmt_Yr:              return ImGui::CalcTextSize("8888").x;                         // 1991
+        default:                            return 0;
     }
 }
 
@@ -1665,62 +1686,104 @@ inline void EndDisabledControls(bool cond) {
 }
 
 inline void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
+
     ImGui::PushItemWidth(75);
-    bool total_lock = state.HasRange && state.RangeCond == ImGuiCond_Always;
-    bool logscale  = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_LogScale);
-    bool timescale = ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_Time);
-    bool grid      = !ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_NoGridLines);
-    bool ticks     = !ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_NoTickMarks);
-    bool labels    = !ImHasFlag(state.Axis->Flags, ImPlotAxisFlags_NoTickLabels);
-    double drag_speed = (state.Axis->Range.Size() <= DBL_EPSILON) ? DBL_EPSILON * 1.0e+13 : 0.01 * state.Axis->Range.Size(); // recover from almost equal axis limits.
+    ImPlotAxis& axis = *state.Axis;
+    bool total_lock  = state.HasRange && state.RangeCond == ImGuiCond_Always;
+    bool logscale     = ImHasFlag(axis.Flags, ImPlotAxisFlags_LogScale);
+    bool timescale    = ImHasFlag(axis.Flags, ImPlotAxisFlags_Time);
+    bool grid         = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
+    bool ticks        = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
+    bool labels       = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
+    double drag_speed = (axis.Range.Size() <= DBL_EPSILON) ? DBL_EPSILON * 1.0e+13 : 0.01 * axis.Range.Size(); // recover from almost equal axis limits.
 
-    BeginDisabledControls(total_lock);
-    if (ImGui::Checkbox("##LockMin", &state.LockMin))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_LockMin);
-    EndDisabledControls(total_lock);
+    if (timescale) {
+        ImPlotTime tmin = ImPlotTime::FromDouble(axis.Range.Min);
+        ImPlotTime tmax = ImPlotTime::FromDouble(axis.Range.Max);
 
-    ImGui::SameLine();
-    BeginDisabledControls(state.LockMin);
-    double temp_min = state.Axis->Range.Min;
-    if (DragFloat("Min", &temp_min, (float)drag_speed, -HUGE_VAL, state.Axis->Range.Max - DBL_EPSILON))
-        state.Axis->SetMin(temp_min);
-    EndDisabledControls(state.LockMin);
+        BeginDisabledControls(total_lock);
+        if (ImGui::Checkbox("##LockMin", &state.LockMin))
+            ImFlipFlag(axis.Flags, ImPlotAxisFlags_LockMin);
+        EndDisabledControls(total_lock);
+        ImGui::SameLine();
+        BeginDisabledControls(state.LockMin);
+        if (ImGui::BeginMenu("Min Time")) {
+            if (ShowDatePicker("minpick",&axis.PickerLevel,&axis.PickerTimeMin,&tmin,&tmax)) {
+                if (axis.PickerTimeMin >= tmax) {
+                    tmax = AddTime(axis.PickerTimeMin, ImPlotTimeUnit_Day, 1);
+                    axis.SetMax(tmax.ToDouble());
+                }
+                axis.SetMin(axis.PickerTimeMin.ToDouble());
+            }
+            ImGui::EndMenu();
+        }
+        EndDisabledControls(state.LockMin);
 
-    BeginDisabledControls(total_lock);
-    if (ImGui::Checkbox("##LockMax", &state.LockMax))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_LockMax);
-    EndDisabledControls(total_lock);
+        BeginDisabledControls(total_lock);
+        if (ImGui::Checkbox("##LockMax", &state.LockMax))
+            ImFlipFlag(axis.Flags, ImPlotAxisFlags_LockMax);
+        EndDisabledControls(total_lock);
+        ImGui::SameLine();
+        BeginDisabledControls(state.LockMax);
+        if (ImGui::BeginMenu("Max Time")) {
+            if (ShowDatePicker("macpick",&axis.PickerLevel,&axis.PickerTimeMax,&tmin,&tmax)) {
+                if (axis.PickerTimeMax <= tmin) {
+                    tmin = AddTime(axis.PickerTimeMax, ImPlotTimeUnit_Day, -1);
+                    axis.SetMin(tmin.ToDouble());
+                }
+                axis.SetMax(axis.PickerTimeMax.ToDouble());
+            }
+            ImGui::EndMenu();
+        }
+        EndDisabledControls(state.LockMax);
+    }
+    else {
+        BeginDisabledControls(total_lock);
+        if (ImGui::Checkbox("##LockMin", &state.LockMin))
+            ImFlipFlag(axis.Flags, ImPlotAxisFlags_LockMin);
+        EndDisabledControls(total_lock);
+        ImGui::SameLine();
+        BeginDisabledControls(state.LockMin);
+        double temp_min = axis.Range.Min;
+        if (DragFloat("Min", &temp_min, (float)drag_speed, -HUGE_VAL, axis.Range.Max - DBL_EPSILON))
+            axis.SetMin(temp_min);
+        EndDisabledControls(state.LockMin);
 
-    ImGui::SameLine();
-    BeginDisabledControls(state.LockMax);
-    double temp_max = state.Axis->Range.Max;
-    if (DragFloat("Max", &temp_max, (float)drag_speed, state.Axis->Range.Min + DBL_EPSILON, HUGE_VAL))
-        state.Axis->SetMax(temp_max);
-    EndDisabledControls(state.LockMax);
+        BeginDisabledControls(total_lock);
+        if (ImGui::Checkbox("##LockMax", &state.LockMax))
+            ImFlipFlag(axis.Flags, ImPlotAxisFlags_LockMax);
+        EndDisabledControls(total_lock);
+        ImGui::SameLine();
+        BeginDisabledControls(state.LockMax);
+        double temp_max = axis.Range.Max;
+        if (DragFloat("Max", &temp_max, (float)drag_speed, axis.Range.Min + DBL_EPSILON, HUGE_VAL))
+            axis.SetMax(temp_max);
+        EndDisabledControls(state.LockMax);
+    }
 
     ImGui::Separator();
 
     if (ImGui::Checkbox("Invert", &state.Invert))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_Invert);
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_Invert);
     BeginDisabledControls(timescale && time_allowed);
     if (ImGui::Checkbox("Log Scale", &logscale))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_LogScale);
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_LogScale);
     EndDisabledControls(timescale && time_allowed);
 
     if (time_allowed) {
         BeginDisabledControls(logscale);
         if (ImGui::Checkbox("Time", &timescale))
-            ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_Time);
+            ImFlipFlag(axis.Flags, ImPlotAxisFlags_Time);
         EndDisabledControls(logscale);
     }
 
     ImGui::Separator();
     if (ImGui::Checkbox("Grid Lines", &grid))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_NoGridLines);
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
     if (ImGui::Checkbox("Tick Marks", &ticks))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_NoTickMarks);
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
     if (ImGui::Checkbox("Labels", &labels))
-        ImFlipFlag(state.Axis->Flags, ImPlotAxisFlags_NoTickLabels);
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
 
 }
 
@@ -3112,98 +3175,304 @@ void ShowUserGuide() {
     ImGui::BulletText("Click legend label icons to show/hide plot items.");
 }
 
-bool ShowDatePicker(ImPlotTime* t) {
+bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime* t1, const ImPlotTime* t2) {
 
-    static const char* names_mo[] = {"January","February","March","April","May","June","July","August","September","October","November","December"};
-    static const char* names_wd[]  = {"Su","Mo","Tu","We","Th","Fr","Sa"};
-
-    ImGuiStyle& style = ImGui::GetStyle();
-
-    tm& Tm = GImPlot->Tm;
-    GetTime(*t, &Tm);
-
-    const int this_year = Tm.tm_year + 1900;
-    const int last_year = this_year - 1;
-    const int this_mon  = Tm.tm_mon;
-    const int last_mon  = this_mon == 0 ? 11 : this_mon - 1;
-    const int days_this_mo = GetDaysInMonth(this_year, this_mon);
-    const int days_last_mo = GetDaysInMonth(this_mon == 0 ? last_year : this_year, last_mon);
-
-    ImPlotTime t_first_mo = FloorTime(*t,ImPlotTimeUnit_Mo); 
-    GetTime(*t,&Tm);
-
-    const int first_wd = Tm.tm_wday;
-
-    // sizing
-    float ht = ImGui::GetFrameHeight();
-    const ImVec2 cell_size(ht*1.25f,ht);
-
-    // begin group
+    ImGui::PushID(id);
     ImGui::BeginGroup();
-
-    // month year    
-    ImGui::Text("%s %d", names_mo[this_mon], this_year);
-
-    // up/down arrows for month
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
-    ImGui::SameLine(style.WindowPadding.x + 5*cell_size.x);
-    if (ImGui::ArrowButtonEx("##Up",ImGuiDir_Up,cell_size)) {
-        *t = AddTime(*t, ImPlotTimeUnit_Mo, -1);
+
+    static const char* names_mo[] = {"January","February","March","April","May","June","July","August","September","October","November","December"};
+    static const char* abrvs_mo[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+    static const char* abrvs_wd[] = {"Su","Mo","Tu","We","Th","Fr","Sa"};
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImVec4 col_txt    = style.Colors[ImGuiCol_Text];
+    ImVec4 col_dis    = style.Colors[ImGuiCol_TextDisabled];
+    const float ht    = ImGui::GetFrameHeight();
+    ImVec2 cell_size(ht*1.25f,ht);
+    char buff[32];
+    bool clk = false;
+    tm& Tm = GImPlot->Tm;
+
+    const int min_yr = 1970;
+    const int max_yr = 2999;
+
+    // t1 parts
+    int t1_mo = 0; int t1_md = 0; int t1_yr = 0;
+    if (t1 != NULL) {
+        GetTime(*t1,&Tm);
+        t1_mo = Tm.tm_mon;
+        t1_md = Tm.tm_mday;
+        t1_yr = Tm.tm_year + 1900;
     }
-    ImGui::SameLine();
-    if (ImGui::ArrowButtonEx("##Down",ImGuiDir_Down,cell_size)) {
-        *t = AddTime(*t, ImPlotTimeUnit_Mo, 1);
+
+     // t2 parts
+    int t2_mo = 0; int t2_md = 0; int t2_yr = 0;
+    if (t2 != NULL) {
+        GetTime(*t2,&Tm);
+        t2_mo = Tm.tm_mon;
+        t2_md = Tm.tm_mday;
+        t2_yr = Tm.tm_year + 1900;
     }
 
-    // render weekday abbreviations
-    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-    for (int i = 0; i < 7; ++i) {
-        ImGui::Button(names_wd[i],cell_size); 
-        if (i != 6) ImGui::SameLine();
-    }
-    ImGui::PopItemFlag();
+    // day widget
+    if (*level == 0) {
+        *t = FloorTime(*t, ImPlotTimeUnit_Day);
+        GetTime(*t, &Tm);
+        const int this_year = Tm.tm_year + 1900;
+        const int last_year = this_year - 1;
+        const int next_year = this_year + 1;
+        const int this_mon  = Tm.tm_mon;
+        const int last_mon  = this_mon == 0 ? 11 : this_mon - 1;
+        const int next_mon  = this_mon == 11 ? 0 : this_mon + 1;
+        const int days_this_mo = GetDaysInMonth(this_year, this_mon);
+        const int days_last_mo = GetDaysInMonth(this_mon == 0 ? last_year : this_year, last_mon);
+        ImPlotTime t_first_mo = FloorTime(*t,ImPlotTimeUnit_Mo);
+        GetTime(t_first_mo,&Tm);
+        const int first_wd = Tm.tm_wday;
+        // month year
+        snprintf(buff, 32, "%s %d", names_mo[this_mon], this_year);
+        if (ImGui::Button(buff))
+            *level = 1;
+        ImGui::SameLine(5*cell_size.x);
+        BeginDisabledControls(this_year <= min_yr && this_mon == 0);
+        if (ImGui::ArrowButtonEx("##Up",ImGuiDir_Up,cell_size))
+            *t = AddTime(*t, ImPlotTimeUnit_Mo, -1);
+        EndDisabledControls(this_year <= min_yr && this_mon == 0);
+        ImGui::SameLine();
+        BeginDisabledControls(this_year >= max_yr && this_mon == 11);
+        if (ImGui::ArrowButtonEx("##Down",ImGuiDir_Down,cell_size))
+            *t = AddTime(*t, ImPlotTimeUnit_Mo, 1);
+        EndDisabledControls(this_year >= max_yr && this_mon == 11);
+        // render weekday abbreviations
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        for (int i = 0; i < 7; ++i) {
+            ImGui::Button(abrvs_wd[i],cell_size);
+            if (i != 6) { ImGui::SameLine(); }
+        }
+        ImGui::PopItemFlag();
+        // 0 = last mo, 1 = this mo, 2 = next mo
+        int mo = first_wd > 0 ? 0 : 1;
+        int day = mo == 1 ? 1 : days_last_mo - first_wd + 1;
+        for (int i = 0; i < 6; ++i) {
+            for (int j = 0; j < 7; ++j) {
+                if (mo == 0 && day > days_last_mo) {
+                    mo = 1; day = 1;
+                }
+                else if (mo == 1 && day > days_this_mo) {
+                    mo = 2; day = 1;
+                }
+                const int now_yr = (mo == 0 && this_mon == 0) ? last_year : ((mo == 2 && this_mon == 11) ? next_year : this_year);
+                const int now_mo = mo == 0 ? last_mon : (mo == 1 ? this_mon : next_mon);
+                const int now_md = day;
 
-    // 0 = last mo, 1 = this mo, 2 = next mo
-    int mo = first_wd > 0 ? 0 : 1;
-    int day = mo == 1 ? 1 : days_last_mo - first_wd + 1;
+                const bool off_mo   = mo == 0 || mo == 2;
+                const bool t1_or_t2 = (t1 != NULL && t1_mo == now_mo && t1_yr == now_yr && t1_md == now_md) ||
+                                      (t2 != NULL && t2_mo == now_mo && t2_yr == now_yr && t2_md == now_md);
 
-    char buff[4];
-
-    for (int i = 0; i < 6; ++i) {
-        for (int j = 0; j < 7; ++j) {
-
-            if (mo == 0 && day > days_last_mo) {   
-                 mo = 1; day = 1;
+                if (off_mo)
+                    ImGui::PushStyleColor(ImGuiCol_Text, col_dis);
+                if (t1_or_t2) {
+                    ImGui::PushStyleColor(ImGuiCol_Button, col_dis);
+                    ImGui::PushStyleColor(ImGuiCol_Text, col_txt);
+                }
+                ImGui::PushID(i*7+j);
+                snprintf(buff,32,"%d",day);
+                if (now_yr == min_yr-1 || now_yr == max_yr+1) {
+                    ImGui::Dummy(cell_size);
+                }
+                else if (ImGui::Button(buff,cell_size) && !clk) {
+                    *t = MakeTime(now_yr, now_mo, now_md);
+                    clk = true;
+                }
+                ImGui::PopID();
+                if (t1_or_t2)
+                    ImGui::PopStyleColor(2);
+                if (off_mo)
+                    ImGui::PopStyleColor();
+                if (j != 6)
+                    ImGui::SameLine();
+                day++;
             }
-            else if (mo == 1 && day > days_this_mo) {
-                mo = 2; day = 1;
-            }
-
-            if (mo == 0 || mo == 2)            
-                ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
-            else if (mo == 1 && day == Tm.tm_mday)
-                ImGui::PushStyleColor(ImGuiCol_Button, style.Colors[ImGuiCol_TextDisabled]);
-
-            snprintf(buff,4,"%d",day);
-            ImGui::Button(buff,cell_size);
-            if (j != 6)
-                ImGui::SameLine();
-
-            if (mo == 0 || mo == 2)            
-                ImGui::PopStyleColor();
-            else if (mo == 1 && day == Tm.tm_mday)
-                ImGui::PopStyleColor();
-
-            day++;
         }
     }
-
+    // month widget
+    else if (*level == 1) {
+        *t = FloorTime(*t, ImPlotTimeUnit_Mo);
+        GetTime(*t, &Tm);
+        int this_yr  = Tm.tm_year + 1900;
+        snprintf(buff, 32, "%d", this_yr);
+        if (ImGui::Button(buff))
+            *level = 2;
+        BeginDisabledControls(this_yr <= min_yr);
+        ImGui::SameLine(5*cell_size.x);
+        if (ImGui::ArrowButtonEx("##Up",ImGuiDir_Up,cell_size))
+            *t = AddTime(*t, ImPlotTimeUnit_Yr, -1);
+        EndDisabledControls(this_yr <= min_yr);
+        ImGui::SameLine();
+        BeginDisabledControls(this_yr >= max_yr);
+        if (ImGui::ArrowButtonEx("##Down",ImGuiDir_Down,cell_size))
+            *t = AddTime(*t, ImPlotTimeUnit_Yr, 1);
+        EndDisabledControls(this_yr >= max_yr);
+        // ImGui::Dummy(cell_size);
+        cell_size.x *= 7.0f/4.0f;
+        cell_size.y *= 7.0f/3.0f;
+        int mo = 0;
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                const bool t1_or_t2 = (t1 != NULL && t1_yr == this_yr && t1_mo == mo) ||
+                                      (t2 != NULL && t2_yr == this_yr && t2_mo == mo);
+                if (t1_or_t2)
+                    ImGui::PushStyleColor(ImGuiCol_Button, col_dis);
+                if (ImGui::Button(abrvs_mo[mo],cell_size) && !clk) {
+                    *t = MakeTime(this_yr, mo);
+                    *level = 0;
+                }
+                if (t1_or_t2)
+                    ImGui::PopStyleColor();
+                if (j != 3)
+                    ImGui::SameLine();
+                mo++;
+            }
+        }
+    }
+    else if (*level == 2) {
+        *t = FloorTime(*t, ImPlotTimeUnit_Yr);
+        int this_yr = GetYear(*t);
+        int yr = this_yr  - this_yr % 20;
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        snprintf(buff,32,"%d-%d",yr,yr+19);
+        ImGui::Button(buff);
+        ImGui::PopItemFlag();
+        ImGui::SameLine(5*cell_size.x);
+        BeginDisabledControls(yr <= min_yr);
+        if (ImGui::ArrowButtonEx("##Up",ImGuiDir_Up,cell_size))
+            *t = MakeYear(yr-20);
+        EndDisabledControls(yr <= min_yr);
+        ImGui::SameLine();
+        BeginDisabledControls(yr + 20 >= max_yr);
+        if (ImGui::ArrowButtonEx("##Down",ImGuiDir_Down,cell_size))
+            *t = MakeYear(yr+20);
+        EndDisabledControls(yr+ 20 >= max_yr);
+        // ImGui::Dummy(cell_size);
+        cell_size.x *= 7.0f/4.0f;
+        cell_size.y *= 7.0f/5.0f;
+        for (int i = 0; i < 5; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                const bool t1_or_t2 = (t1 != NULL && t1_yr == yr) || (t2 != NULL && t2_yr == yr);
+                if (t1_or_t2)
+                    ImGui::PushStyleColor(ImGuiCol_Button, col_dis);
+                snprintf(buff,32,"%d",yr);
+                if (yr<1970||yr>3000) {
+                    ImGui::Dummy(cell_size);
+                }
+                else if (ImGui::Button(buff,cell_size)) {
+                    *t = MakeYear(yr);
+                    *level = 1;
+                }
+                if (t1_or_t2)
+                    ImGui::PopStyleColor();
+                if (j != 3)
+                    ImGui::SameLine();
+                yr++;
+            }
+        }
+    }
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
-
     ImGui::EndGroup();
-    return true;
+    ImGui::PopID();
+    return clk;
+}
+
+bool ShowTimePicker(const char* id, ImPlotTime* t) {
+    ImGui::PushID(id);
+    tm& Tm = GImPlot->Tm;
+    GetTime(*t,&Tm);
+
+    static const char* nums[] = { "00","01","02","03","04","05","06","07","08","09",
+                                  "10","11","12","13","14","15","16","17","18","19",
+                                  "20","21","22","23","24","25","26","27","28","29",
+                                  "30","31","32","33","34","35","36","37","38","39",
+                                  "40","41","42","43","44","45","46","47","48","49",
+                                  "50","51","52","53","54","55","56","57","58","59"};
+
+    static const char* am_pm[] = {"am","pm"};
+
+    int hr  = (Tm.tm_hour == 0 || Tm.tm_hour == 12) ? 12 : Tm.tm_hour % 12;
+    int min = Tm.tm_min;
+    int sec = Tm.tm_sec;
+    int ap  = Tm.tm_hour < 12 ? 0 : 1;
+
+    bool changed = false;
+
+    ImVec2 spacing = ImGui::GetStyle().ItemSpacing;
+    spacing.x = 0;
+    float width    = ImGui::CalcTextSize("888").x;
+    float height   = ImGui::GetFrameHeight();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, spacing);
+    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize,2.0f);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0,0,0,0));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered));
+
+    ImGui::SetNextItemWidth(width);
+    if (ImGui::BeginCombo("##hr",nums[hr],ImGuiComboFlags_NoArrowButton)) {
+        for (int i = 1; i < 13; ++i) {
+            if (ImGui::Selectable(nums[i],i==hr)) {
+                hr = i;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    ImGui::Text(":");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(width);
+    if (ImGui::BeginCombo("##min",nums[min],ImGuiComboFlags_NoArrowButton)) {
+        for (int i = 0; i < 60; ++i) {
+            if (ImGui::Selectable(nums[i],i==min)) {
+                min = i;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    ImGui::Text(":");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(width);
+    if (ImGui::BeginCombo("##sec",nums[sec],ImGuiComboFlags_NoArrowButton)) {
+        for (int i = 0; i < 60; ++i) {
+            if (ImGui::Selectable(nums[i],i==sec)) {
+                sec = i;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(am_pm[ap],ImVec2(height,height))) {
+        ap = 1 - ap;
+        changed = true;
+    }
+
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(2);
+    ImGui::PopID();
+
+    if (changed) {
+        hr = hr % 12 + ap * 12;
+        Tm.tm_hour = hr;
+        Tm.tm_min  = min;
+        Tm.tm_sec  = sec;
+        *t = MkTime(&Tm);
+    }
+
+    return changed;
 }
 
 void StyleColorsAuto(ImPlotStyle* dst) {
