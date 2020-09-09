@@ -27,9 +27,9 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
     - and more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
-- support for time formatted x-axes
+- time formatted x-axes
 - reversible and lockable axes
-- support for up to three independent y-axes
+- up to three independent y-axes
 - controls for zooming, panning, box selection, and auto-fitting data
 - controls for creating persistent query ranges (see demo)
 - remappable input controls
@@ -39,8 +39,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
 - optional legend with toggle buttons to quickly show/hide items
 - default styling based on current ImGui theme, but most elements can be customized independently
 - customizable data getters and data striding (just like ImGui:PlotLine)
-- relatively good performance for high density plots
-- support for single and double precision data
+- accepts data as float, double, and 8, 16, 32, and 64-bit signed/unsigned integral types
 - and more! (see [Announcements](https://github.com/epezent/implot/issues/48))
 
 ## Usage
@@ -56,7 +55,7 @@ if (ImPlot::BeginPlot("My Plot")) {
 }
 ```
 
-Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features.
+Of course, there's much more you can do with ImPlot. Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features.
 
 ## Interactive Demo
 
@@ -64,6 +63,7 @@ An online version of the demo is hosted [here](https://traineq.org/implot_demo/s
 
 ## Integration
 
+0) Set up an [ImGui](https://github.com/ocornut/imgui) environment if you don't already have one. 
 1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources. Alternatively, you can get ImPlot using [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/implot). 
 2) Create and destroy an `ImPlotContext` wherever you do so for your `ImGuiContext`:
 
@@ -75,14 +75,16 @@ ImPlot::DestroyContext();
 ImGui::DestroyContext();
 ```
 
-Of course, this assumes you already have an ImGui-ready environment. If not, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
+You should be good to go!  
+
+If you want to test ImPlot quickly, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
 
 ## Special Notes
 
 - If you experience data truncation and/or visual glitches, it is **HIGHLY** recommended that you EITHER:
     1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be), OR...
-    2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your `imconfig.h` file.
-- By default, no anti-aliasing is done on line plots for performance reasons. If you use 4x MSAA, then you likely won't even notice. However, you can enable software AA per-plot with the `ImPlotFlags_AntiAliased` flag, or globally with `ImPlot::GetStyle().AntiAliasedLines = true;`.
+    2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your ImGui `imconfig.h` file.
+- By default, no anti-aliasing is done on line plots for performance gains. If you use 4x MSAA, then you likely won't even notice. However, you can enable software AA per-plot with the `ImPlotFlags_AntiAliased` flag, or globally with `ImPlot::GetStyle().AntiAliasedLines = true;`.
 
 ## FAQ
 
@@ -92,7 +94,7 @@ A: ImGui is an incredibly powerful tool for rapid prototyping and development, b
 
 **Q: Is ImPlot the right plotting library for me?**
 
-A: If you're looking to generate publication quality plots and/or export plots to a file, ImPlot is NOT the library for you. ImPlot is geared toward plotting application data at realtime speeds with as little user code as possible. ImPlot does its best to create pretty plots (indeed there are quite a few styling options available), but it will always favor function over form.
+A: If you're looking to generate publication quality plots and/or export plots to a file, ImPlot is NOT the library for you. ImPlot is geared toward plotting application data at realtime speeds. ImPlot does its best to create pretty plots (indeed, there are quite a few styling options available), but it will always favor function over form.
 
 **Q: Is ImPlot suitable for plotting large datasets?**
 
@@ -100,7 +102,7 @@ A: Yes, within reason. You can plot tens to hundreds of thousands of points with
 
 **Q: Can plot styles be modified?**
 
-A: Yes. Plot colors, palettes, and various styling variables can be pushed/popped or modified permanently on startup. Three default styles are available, as well as an automatic style. 
+A: Yes. Plot colors, palettes, and various styling variables can be pushed/popped or modified permanently on startup. Three default styles are available, as well as an automatic style that attempts to match you ImGui style. 
 
 **Q: Does ImPlot support logarithmic scaling or time formatting?**
 
@@ -130,10 +132,11 @@ A: Not exactly, but it does give you the ability to query plot sub-ranges, with 
 
 A: Not currently. Use your OS's screen capturing mechanisms if you need to capture a plot. ImPlot is not suitable for rendering publication quality plots; it is only intended to be used as a visualization tool. Post-process your data with MATLAB or matplotlib for these purposes.
 
-**Q: Does ImPlot handle double precision data?**
+**Q: What date types can I plot?**
 
-A: Yes, ImPlot accepts both `float` and `double` for all of its plotting functions.
+A: ImPlot plotting functions accept most scalar types: 
+`float`, `double`, `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`.
 
 **Q: Can ImPlot be used with other languages/bindings?**
 
-A: Yes, you can use the C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. [DearPyGui](https://github.com/hoffstadt/DearPyGui) provides a Python wrapper, among other things. A Rust binding, [implot-rs](https://github.com/4bb4/implot-rs), is currently in the works. An example using Emscripten can be found [here](https://github.com/pthom/implot_demo). 
+A: Yes, you can use the generated C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. [DearPyGui](https://github.com/hoffstadt/DearPyGui) provides a Python wrapper, among other things. A Rust binding, [implot-rs](https://github.com/4bb4/implot-rs), is currently in the works. An example using Emscripten can be found [here](https://github.com/pthom/implot_demo). 
