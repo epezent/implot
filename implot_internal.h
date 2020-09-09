@@ -196,7 +196,7 @@ enum ImPlotTimeFmt_ {
     ImPlotTimeFmt_DayMoYr,         // 10/3/91
     ImPlotTimeFmt_DayMoYrHrMin,    // 10/3/91 7:21pm
     ImPlotTimeFmt_DayMoYrHrMinS,   // 10/3/91 7:21:29pm
-    ImPlotTimeFmt_DayMoYrHrMinSUs, // 10/3/91 7:21:29.123456pm
+    ImPlotTimeFmt_DayMoYrHrMinSUs, // 10/3/1991 7:21:29.123456pm
     ImPlotTimeFmt_MoYr,            // Oct 1991
     ImPlotTimeFmt_Mo,              // Oct
     ImPlotTimeFmt_Yr               // 1991
@@ -646,6 +646,9 @@ IMPLOT_API ImPlotState* GetCurrentPlot();
 // Busts the cache for every plot in the current context
 IMPLOT_API void BustPlotCache();
 
+// Shows a plot's context menu.
+IMPLOT_API void ShowPlotContextMenu(ImPlotState& plot);
+
 //-----------------------------------------------------------------------------
 // [SECTION] Item Utils
 //-----------------------------------------------------------------------------
@@ -695,6 +698,9 @@ inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)
 IMPLOT_API void PushLinkedAxis(ImPlotAxis& axis);
 // Updates axis internal range from points for linked axes.
 IMPLOT_API void PullLinkedAxis(ImPlotAxis& axis);
+
+// Shows an axis's context menu.
+IMPLOT_API void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed = false);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils
@@ -829,16 +835,18 @@ IMPLOT_API ImPlotTime MakeYear(int year);
 // Get year component from timestamp [1970-3000]
 IMPLOT_API int GetYear(const ImPlotTime& t);
 
-// Adds time to a timestamp. #count must be positive!
+// Adds or subtracts time from a timestamp. #count > 0 to add, < 0 to subtract.
 IMPLOT_API ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count);
-// Rounds a timestamp down to nearest.
+// Rounds a timestamp down to nearest unit.
 IMPLOT_API ImPlotTime FloorTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Rounds a timestamp up to the nearest unit.
 IMPLOT_API ImPlotTime CeilTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Rounds a timestamp up or down to the nearest unit.
 IMPLOT_API ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit);
+// Combines the date of one timestamp with the time-of-day of another timestamp.
+IMPLOT_API ImPlotTime CombineDateTime(const ImPlotTime& date_part, const ImPlotTime& tod_part);
 
-// Formates a timestamp t into a buffer according to fmt.
+// Formulates a timestamp t into a buffer according to fmt.
 IMPLOT_API int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt);
 // Prints a timestamp to console
 IMPLOT_API void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt = ImPlotTimeFmt_DayMoYrHrMinSUs);

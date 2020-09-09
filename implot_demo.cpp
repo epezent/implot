@@ -623,7 +623,7 @@ void ShowDemoWindow(bool* p_open) {
         }
 
         ImPlot::SetNextPlotLimits(t_min,t_max,0,1);
-        if (ImPlot::BeginPlot("##Time", "Time", "Value", ImVec2(-1,0), 0, ImPlotAxisFlags_Time)) {
+        if (ImPlot::BeginPlot("##Time", NULL, NULL, ImVec2(-1,0), 0, ImPlotAxisFlags_Time)) {
             if (data != NULL) {
                 // downsample our data
                 int downsample = (int)ImPlot::GetPlotLimits().X.Size() / 1000 + 1;

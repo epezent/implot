@@ -814,6 +814,21 @@ ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit) {
     return t.S - t1.S < t2.S - t.S ? t1 : t2;
 }
 
+ImPlotTime CombineDateTime(const ImPlotTime& date_part, const ImPlotTime& tod_part) {
+    tm& Tm = GImPlot->Tm;
+    GetTime(date_part, &GImPlot->Tm);
+    int y = Tm.tm_year;
+    int m = Tm.tm_mon;
+    int d = Tm.tm_mday;
+    GetTime(tod_part, &GImPlot->Tm);
+    Tm.tm_year = y;
+    Tm.tm_mon  = m;
+    Tm.tm_mday = d;
+    ImPlotTime t = MkTime(&Tm);
+    t.Us = tod_part.Us;
+    return t;
+}
+
 int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt) {
     tm& Tm = GImPlot->Tm;
     GetTime(t, &Tm);
@@ -1685,7 +1700,7 @@ inline void EndDisabledControls(bool cond) {
     }
 }
 
-inline void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
+void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
 
     ImGui::PushItemWidth(75);
     ImPlotAxis& axis = *state.Axis;
@@ -1708,12 +1723,17 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
         ImGui::SameLine();
         BeginDisabledControls(state.LockMin);
         if (ImGui::BeginMenu("Min Time")) {
-            if (ShowDatePicker("minpick",&axis.PickerLevel,&axis.PickerTimeMin,&tmin,&tmax)) {
-                if (axis.PickerTimeMin >= tmax) {
-                    tmax = AddTime(axis.PickerTimeMin, ImPlotTimeUnit_Day, 1);
-                    axis.SetMax(tmax.ToDouble());
-                }
-                axis.SetMin(axis.PickerTimeMin.ToDouble());
+            if (ShowTimePicker("mintime", &tmin)) {
+                if (tmin >= tmax)
+                    tmax = AddTime(tmin, ImPlotTimeUnit_S, 1);
+                axis.SetRange(tmin.ToDouble(),tmax.ToDouble());
+            }
+            ImGui::Separator();
+            if (ShowDatePicker("mindate",&axis.PickerLevel,&axis.PickerTimeMin,&tmin,&tmax)) {
+                tmin = CombineDateTime(axis.PickerTimeMin, tmin);
+                if (tmin >= tmax)
+                    tmax = AddTime(tmin, ImPlotTimeUnit_S, 1);
+                axis.SetRange(tmin.ToDouble(), tmax.ToDouble());
             }
             ImGui::EndMenu();
         }
@@ -1726,12 +1746,17 @@ inline void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
         ImGui::SameLine();
         BeginDisabledControls(state.LockMax);
         if (ImGui::BeginMenu("Max Time")) {
-            if (ShowDatePicker("macpick",&axis.PickerLevel,&axis.PickerTimeMax,&tmin,&tmax)) {
-                if (axis.PickerTimeMax <= tmin) {
-                    tmin = AddTime(axis.PickerTimeMax, ImPlotTimeUnit_Day, -1);
-                    axis.SetMin(tmin.ToDouble());
-                }
-                axis.SetMax(axis.PickerTimeMax.ToDouble());
+            if (ShowTimePicker("maxtime", &tmax)) {
+                if (tmax <= tmin)
+                    tmin = AddTime(tmax, ImPlotTimeUnit_S, -1);
+                axis.SetRange(tmin.ToDouble(),tmax.ToDouble());
+            }
+            ImGui::Separator();
+            if (ShowDatePicker("maxdate",&axis.PickerLevel,&axis.PickerTimeMax,&tmin,&tmax)) {
+                tmax = CombineDateTime(axis.PickerTimeMax, tmax);
+                if (tmax <= tmin)
+                    tmin = AddTime(tmax, ImPlotTimeUnit_S, -1);
+                axis.SetRange(tmin.ToDouble(), tmax.ToDouble());
             }
             ImGui::EndMenu();
         }
