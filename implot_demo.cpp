@@ -529,15 +529,12 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimitsX(t - history, t, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
             ImPlot::PlotShaded("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), 0, sdata1.Offset, 2 * sizeof(float));
-            ImPlot::PlotLine("Data 2", &sdata2.Data[0], sdata2.Data.size(), sdata2.Offset);
+            ImPlot::PlotLine("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2*sizeof(float));
             ImPlot::EndPlot();
         }
         ImPlot::SetNextPlotLimitsX(0, history, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Rolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis)) {
-            // two methods of plotting Data
-            // as ImVec2* (or ImPlot*):
-            ImPlot::PlotLine("Data 1", &rdata1.Data[0], rdata1.Data.size());
-            // as float*, float* (or double*, double*) with stride of 2 * sizeof
+            ImPlot::PlotLine("Data 1", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 2 * sizeof(float));
             ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(float));
             ImPlot::EndPlot();
         }
@@ -1212,7 +1209,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SameLine(); ImGui::ColorEdit4("##Bear", &bearCol.x, ImGuiColorEditFlags_NoInputs);
         ImPlot::GetStyle().UseLocalTime = false;
         ImPlot::SetNextPlotLimits(1546300800, 1571961600, 1250, 1600);
-        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,-1),0,ImPlotAxisFlags_Time)) {
+        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,0),0,ImPlotAxisFlags_Time)) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
             ImPlot::EndPlot();
         }
@@ -1542,8 +1539,10 @@ void ShowBenchmarkTool() {
     static char buffer[64];
     if (ImPlot::BeginPlot("##Stats", "Items (1,000 pts each)", "Framerate (Hz)", ImVec2(-1,0), ImPlotFlags_NoChild)) {
         for (int run = 0; run < records.size(); ++run) {
-            sprintf(buffer, "B%d-%s%s", run + 1, names[records[run].Mode], records[run].AA ? "-AA" : "");
-            ImPlot::PlotLine(buffer, records[run].Data.Data, records[run].Data.Size);
+            if (records[run].Data.Size > 1) {
+                sprintf(buffer, "B%d-%s%s", run + 1, names[records[run].Mode], records[run].AA ? "-AA" : "");
+                ImPlot::PlotLine(buffer, &records[run].Data.Data[0].x, &records[run].Data.Data[0].y, records[run].Data.Size, 2*sizeof(double));
+            }
         }
         ImPlot::EndPlot();
     }
