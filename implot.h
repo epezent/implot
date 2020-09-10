@@ -567,6 +567,8 @@ IMPLOT_API void EndLegendPopup();
 //-----------------------------------------------------------------------------
 // Miscellaneous
 //-----------------------------------------------------------------------------
+//Set drag operations disable for the next plot. Call right before BeginPlot(). 
+IMPLOT_API void SetNextPlotDragDisable();
 
 // Allows changing how keyboard/mouse interaction works.
 IMPLOT_API ImPlotInputMap& GetInputMap();

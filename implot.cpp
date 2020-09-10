@@ -841,6 +841,7 @@ int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt) {
         case ImPlotTimeFmt_SUs:             return snprintf(buffer, size, ":%02d.%03d %03d", sec, ms, us);
         case ImPlotTimeFmt_SMs:             return snprintf(buffer, size, ":%02d.%03d", sec, ms);
         case ImPlotTimeFmt_S:               return snprintf(buffer, size, ":%02d", sec);
+        case ImPlotTimeFmt_HrMinSMs:        return snprintf(buffer, size, "%d:%02d:%02d.%03d%s", hr, min, sec, ms, ap);
         case ImPlotTimeFmt_HrMinS:          return snprintf(buffer, size, "%d:%02d:%02d%s", hr, min, sec, ap);
         case ImPlotTimeFmt_HrMin:           return snprintf(buffer, size, "%d:%02d%s", hr, min, ap);
         case ImPlotTimeFmt_Hr:              return snprintf(buffer, size, "%d%s", hr, ap);
@@ -871,6 +872,7 @@ inline float GetTimeLabelWidth(ImPlotTimeFmt fmt) {
         case ImPlotTimeFmt_SUs:             return ImGui::CalcTextSize(":88.888 888").x;                  // :29.428 552
         case ImPlotTimeFmt_SMs:             return ImGui::CalcTextSize(":88.888").x;                      // :29.428
         case ImPlotTimeFmt_S:               return ImGui::CalcTextSize(":88").x;                          // :29
+        case ImPlotTimeFmt_HrMinSMs:        return ImGui::CalcTextSize("88:88:88.888pm").x;      // 7:21:29.428pm
         case ImPlotTimeFmt_HrMinS:          return ImGui::CalcTextSize("88:88:88pm").x;                   // 7:21:29pm
         case ImPlotTimeFmt_HrMin:           return ImGui::CalcTextSize("88:88pm").x;                      // 7:21pm
         case ImPlotTimeFmt_Hr:              return ImGui::CalcTextSize("88pm").x;                         // 7pm
@@ -1388,7 +1390,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     // start drag
-    if (!drag_in_progress && gp.Hov_Frame && IO.MouseClicked[gp.InputMap.PanButton] && ImHasFlag(IO.KeyMods, gp.InputMap.PanMod) && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
+    if (!gp.NextPlotData.DragDisable && !drag_in_progress && gp.Hov_Frame && IO.MouseClicked[gp.InputMap.PanButton] && ImHasFlag(IO.KeyMods, gp.InputMap.PanMod) && !plot.Selecting && !hov_legend && !hov_query && !plot.DraggingQuery) {
         if (plot.XAxis.HoveredTot) {
             plot.XAxis.Dragging = true;
         }
@@ -1408,7 +1410,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));
         float tx = ImRemap(IO.MousePos.x, gp.BB_Plot.Min.x, gp.BB_Plot.Max.x, 0.0f, 1.0f);
         float ty = ImRemap(IO.MousePos.y, gp.BB_Plot.Min.y, gp.BB_Plot.Max.y, 0.0f, 1.0f);
-        if (plot.XAxis.HoveredTot && !gp.X.Lock) {
+        if (plot.XAxis.HoveredTot && !gp.X.Lock && !gp.NextPlotData.FitX) {
             ImPlotAxisScale axis_scale(0, tx, ty, zoom_rate);
             const ImPlotPoint& plot_tl = axis_scale.Min;
             const ImPlotPoint& plot_br = axis_scale.Max;
@@ -1418,7 +1420,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 plot.XAxis.SetMax(gp.X.Invert ? plot_tl.x : plot_br.x);
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-            if (plot.YAxis[i].HoveredTot && !gp.Y[i].Lock) {
+            if (plot.YAxis[i].HoveredTot && !gp.Y[i].Lock && !gp.NextPlotData.FitY[i]) {
                 ImPlotAxisScale axis_scale(i, tx, ty, zoom_rate);
                 const ImPlotPoint& plot_tl = axis_scale.Min;
                 const ImPlotPoint& plot_br = axis_scale.Max;
@@ -1426,6 +1428,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                     plot.YAxis[i].SetMin(gp.Y[i].Invert ? plot_tl.y : plot_br.y);
                 if (!gp.Y[i].LockMax)
                     plot.YAxis[i].SetMax(gp.Y[i].Invert ? plot_br.y : plot_tl.y);
+                if ((plot.YAxis[i].Range.Max - plot.YAxis[i].Range.Min) <= (2.0 * FLT_EPSILON))  {
+                    plot.YAxis[i].Range.Max += FLT_EPSILON;
+                    plot.YAxis[i].Range.Min -= FLT_EPSILON;
+                }
             }
         }
     }
@@ -1694,7 +1700,7 @@ void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
 
     ImGui::PushItemWidth(75);
     ImPlotAxis& axis = *state.Axis;
-    bool total_lock  = state.HasRange && state.RangeCond == ImGuiCond_Always;
+    bool total_lock   = state.HasRange && state.RangeCond == ImGuiCond_Always;
     bool logscale     = ImHasFlag(axis.Flags, ImPlotAxisFlags_LogScale);
     bool timescale    = ImHasFlag(axis.Flags, ImPlotAxisFlags_Time);
     bool grid         = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
@@ -2232,6 +2238,12 @@ void EndPlot() {
 
 ImPlotInputMap& GetInputMap() {
     return GImPlot->InputMap;
+}
+
+void SetNextPlotDragDisable() {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotDragDisable() needs to be called before BeginPlot()!");
+    gp.NextPlotData.DragDisable = true;
 }
 
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond) {

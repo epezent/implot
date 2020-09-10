@@ -187,6 +187,7 @@ enum ImPlotTimeFmt_ {
     ImPlotTimeFmt_SUs,             // :29.428 552
     ImPlotTimeFmt_SMs,             // :29.428
     ImPlotTimeFmt_S,               // :29
+    ImPlotTimeFmt_HrMinSMs,        // 7:21:29.428pm
     ImPlotTimeFmt_HrMinS,          // 7:21:29pm
     ImPlotTimeFmt_HrMin,           // 7:21pm
     ImPlotTimeFmt_Hr,              // 7pm
@@ -494,6 +495,7 @@ struct ImPlotNextPlotData
     double*     LinkedXmax;
     double*     LinkedYmin[IMPLOT_Y_AXES];
     double*     LinkedYmax[IMPLOT_Y_AXES];
+    bool        DragDisable;
 
     ImPlotNextPlotData() {
         HasXRange         = false;
@@ -506,6 +508,7 @@ struct ImPlotNextPlotData
             FitY[i]              = false;
             LinkedYmin[i] = LinkedYmax[i] = NULL;
         }
+        DragDisable = false;
     }
 };
 
@@ -811,7 +814,7 @@ inline bool IsLeapYear(int year) {
 // Returns the number of days in a month, accounting for Feb. leap years. #month is zero indexed.
 inline int GetDaysInMonth(int year, int month) {
     static const int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    return  days[month] + (int)(month == 1 && IsLeapYear(year));
+    return days[month] + (int)(month == 1 && IsLeapYear(year));
 }
 
 // Make a UNIX timestamp from a tm struct expressed in UTC time (i.e. GMT timezone).
