@@ -250,14 +250,15 @@ struct GetterXsYs {
 };
 
 // Always returns a constant Y reference value where the X value is the index
-template <typename T>
 struct GetterYRef {
-    GetterYRef(T y_ref, int count) { YRef = y_ref; Count = count; }
+    GetterYRef(double y_ref, int count, double xscale, double x0) : YRef(y_ref), Count(count), XScale(xscale), X0(x0) { }
     inline ImPlotPoint operator()(int idx) const {
-        return ImPlotPoint((double)idx, (double)YRef);
+        return ImPlotPoint(X0 + XScale*idx, YRef);
     }
-    T YRef;
-    int Count;
+    const double YRef;
+    const int Count;
+    const double XScale;
+    const double X0;
 };
 
 // Interprets an array of X points as ImPlotPoints where the Y value is a constant reference value
@@ -986,7 +987,7 @@ inline void PlotShadedEx(const char* label_id, const Getter1& getter1, const Get
 template <typename T>
 void PlotShaded(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, int offset, int stride) {
     GetterYs<T> getter1(values,count,xscale,x0,offset,stride);
-    GetterYRef<double> getter2(y_ref,count);
+    GetterYRef getter2(y_ref,count,xscale,x0);
     PlotShadedEx(label_id, getter1, getter2);
 }
 
@@ -1379,7 +1380,7 @@ inline void PlotStemsEx(const char* label_id, const GetterM& get_mark, const Get
 template <typename T>
 void PlotStems(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, int offset, int stride) {
     GetterYs<T> get_mark(values,count,xscale,x0,offset,stride);
-    GetterYRef<double> get_base(y_ref,count);
+    GetterYRef get_base(y_ref,count,xscale,x0);
     PlotStemsEx(label_id, get_mark, get_base);
 }
 

@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <iostream>
 
 #ifdef _MSC_VER
 #define sprintf sprintf_s
@@ -1251,9 +1252,9 @@ void Sparkline(const char* id, const float* values, int count, float min_v, floa
     ImPlot::SetNextPlotLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
     if (ImPlot::BeginPlot(id,0,0,size,ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations)) {
         ImPlot::PushStyleColor(ImPlotCol_Line, col);
-        ImPlot::PlotLine(id, values, count, offset);
+        ImPlot::PlotLine(id, values, count, 1, 0, offset);
         ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-        ImPlot::PlotShaded(id, values, count, 0, offset);
+        ImPlot::PlotShaded(id, values, count, 0, 1, 0, offset);
         ImPlot::PopStyleVar();
         ImPlot::PopStyleColor();
         ImPlot::EndPlot();
@@ -1534,14 +1535,14 @@ void ShowBenchmarkTool() {
         }
         ImPlot::EndPlot();
     }
-
     ImPlot::SetNextPlotLimits(0,500,0,500,ImGuiCond_Always);
     static char buffer[64];
     if (ImPlot::BeginPlot("##Stats", "Items (1,000 pts each)", "Framerate (Hz)", ImVec2(-1,0), ImPlotFlags_NoChild)) {
         for (int run = 0; run < records.size(); ++run) {
             if (records[run].Data.Size > 1) {
                 sprintf(buffer, "B%d-%s%s", run + 1, names[records[run].Mode], records[run].AA ? "-AA" : "");
-                ImPlot::PlotLine(buffer, &records[run].Data.Data[0].x, &records[run].Data.Data[0].y, records[run].Data.Size, 2*sizeof(double));
+                ImVector<ImPlotPoint>& d = records[run].Data;
+                ImPlot::PlotLine(buffer, &d[0].x, &d[0].y, d.Size, 0, 2*sizeof(double));
             }
         }
         ImPlot::EndPlot();
