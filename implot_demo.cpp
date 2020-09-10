@@ -623,7 +623,7 @@ void ShowDemoWindow(bool* p_open) {
         }
 
         ImPlot::SetNextPlotLimits(t_min,t_max,0,1);
-        if (ImPlot::BeginPlot("##Time", "Time", "Value", ImVec2(-1,0), 0, ImPlotAxisFlags_Time)) {
+        if (ImPlot::BeginPlot("##Time", NULL, NULL, ImVec2(-1,0), 0, ImPlotAxisFlags_Time)) {
             if (data != NULL) {
                 // downsample our data
                 int downsample = (int)ImPlot::GetPlotLimits().X.Size() / 1000 + 1;
@@ -1212,7 +1212,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SameLine(); ImGui::ColorEdit4("##Bear", &bearCol.x, ImGuiColorEditFlags_NoInputs);
         ImPlot::GetStyle().UseLocalTime = false;
         ImPlot::SetNextPlotLimits(1546300800, 1571961600, 1250, 1600);
-        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,0),0,ImPlotAxisFlags_Time)) {
+        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,-1),0,ImPlotAxisFlags_Time)) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
             ImPlot::EndPlot();
         }
