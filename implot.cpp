@@ -665,6 +665,8 @@ ImPlotTime MkGmtTime(struct tm *ptm) {
 #else
     t.S = timegm(ptm);
 #endif
+    if (t.S < 0)
+        t.S = 0;
     return t;
 }
 
@@ -683,6 +685,8 @@ tm* GetGmtTime(const ImPlotTime& t, tm* ptm)
 ImPlotTime MkLocTime(struct tm *ptm) {
     ImPlotTime t;
     t.S = mktime(ptm);
+    if (t.S < 0)
+        t.S = 0;
     return t;
 }
 
@@ -732,20 +736,6 @@ ImPlotTime MakeTime(int year, int month, int day, int hour, int min, int sec, in
 
     t.Us = us;
     return t;
-}
-
-ImPlotTime MakeYear(int year) {
-    int yr = year - 1900;
-    if (yr < 0)
-        yr = 0;
-    tm& Tm = GImPlot->Tm;
-    Tm.tm_sec  = 0;
-    Tm.tm_min  = 0;
-    Tm.tm_hour = 0;
-    Tm.tm_mday = 1;
-    Tm.tm_mon  = 0;
-    Tm.tm_year = yr;
-    return MkTime(&Tm);
 }
 
 int GetYear(const ImPlotTime& t) {
@@ -860,7 +850,7 @@ int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt) {
         case ImPlotTimeFmt_DayMoYr:         return snprintf(buffer, size, "%d/%d/%02d", mon, day, yr);
         case ImPlotTimeFmt_DayMoYrHrMin:    return snprintf(buffer, size, "%d/%d/%02d %d:%02d%s", mon, day, yr, hr, min, ap);
         case ImPlotTimeFmt_DayMoYrHrMinS:   return snprintf(buffer, size, "%d/%d/%02d %d:%02d:%02d%s", mon, day, yr, hr, min, sec, ap);
-        case ImPlotTimeFmt_DayMoYrHrMinSUs: return snprintf(buffer, size, "%d/%d/%d %d:%02d:%02d.%03d%03d%s", mon, day, yr, hr, min, sec, ms, us, ap);
+        case ImPlotTimeFmt_DayMoYrHrMinSUs: return snprintf(buffer, size, "%d/%d/%d %d:%02d:%02d.%03d%03d%s", mon, day, year, hr, min, sec, ms, us, ap);
         case ImPlotTimeFmt_MoYr:            return snprintf(buffer, size, "%s %d", mnames[Tm.tm_mon], year);
         case ImPlotTimeFmt_Mo:              return snprintf(buffer, size, "%s", mnames[Tm.tm_mon]);
         case ImPlotTimeFmt_Yr:              return snprintf(buffer, size, "%d", year);
@@ -1043,7 +1033,7 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
         const int step          = (int)interval <= 0 ? 1 : (int)interval;
 
         for (int y = graphmin; y < graphmax; y += step) {
-            ImPlotTime t = MakeYear(y);
+            ImPlotTime t = MakeTime(y);
             if (t >= t_min && t <= t_max) {
                 ImPlotTick tick(t.ToDouble(), true, true);
                 tick.Level = 0;
@@ -3373,12 +3363,12 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
         ImGui::SameLine(5*cell_size.x);
         BeginDisabledControls(yr <= min_yr);
         if (ImGui::ArrowButtonEx("##Up",ImGuiDir_Up,cell_size))
-            *t = MakeYear(yr-20);
+            *t = MakeTime(yr-20);
         EndDisabledControls(yr <= min_yr);
         ImGui::SameLine();
         BeginDisabledControls(yr + 20 >= max_yr);
         if (ImGui::ArrowButtonEx("##Down",ImGuiDir_Down,cell_size))
-            *t = MakeYear(yr+20);
+            *t = MakeTime(yr+20);
         EndDisabledControls(yr+ 20 >= max_yr);
         // ImGui::Dummy(cell_size);
         cell_size.x *= 7.0f/4.0f;
@@ -3393,7 +3383,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
                     ImGui::Dummy(cell_size);
                 }
                 else if (ImGui::Button(buff,cell_size)) {
-                    *t = MakeYear(yr);
+                    *t = MakeTime(yr);
                     *level = 1;
                 }
                 if (t1_or_t2)

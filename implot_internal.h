@@ -830,8 +830,6 @@ IMPLOT_API tm* GetLocTime(const ImPlotTime& t, tm* ptm);
 // Make a timestamp from time components.
 // year[1970-3000], month[0-11], day[1-31], hour[0-23], min[0-59], sec[0-59], us[0,999999]
 IMPLOT_API ImPlotTime MakeTime(int year, int month = 0, int day = 1, int hour = 0, int min = 0, int sec = 0, int us = 0);
-// Make a timestamp starting at the first day of a year [1970-3000]
-IMPLOT_API ImPlotTime MakeYear(int year);
 // Get year component from timestamp [1970-3000]
 IMPLOT_API int GetYear(const ImPlotTime& t);
 
@@ -844,7 +842,7 @@ IMPLOT_API ImPlotTime CeilTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Rounds a timestamp up or down to the nearest unit.
 IMPLOT_API ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Combines the date of one timestamp with the time-of-day of another timestamp.
-IMPLOT_API ImPlotTime CombineDateTime(const ImPlotTime& date_part, const ImPlotTime& tod_part);
+IMPLOT_API ImPlotTime CombineDateTime(const ImPlotTime& date_part, const ImPlotTime& time_part);
 
 // Formulates a timestamp t into a buffer according to fmt.
 IMPLOT_API int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt);
@@ -857,7 +855,7 @@ IMPLOT_API void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt = ImPlotTimeFmt
 // #t1 and #t2 are optional dates to highlight.
 IMPLOT_API bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime* t1 = NULL, const ImPlotTime* t2 = NULL);
 // Shows a time picker widget block (hour/min/sec).
-// #t will be set when a new hour, minute, or sec is selected and the function will return true.
+// #t will be set when a new hour, minute, or sec is selected or am/pm is toggled, and the function will return true.
 IMPLOT_API bool ShowTimePicker(const char* id, ImPlotTime* t);
 
 //-----------------------------------------------------------------------------
