@@ -610,6 +610,8 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("By default, labels are in UTC time but can be set to use local time instead.");
 
         ImGui::Checkbox("Use Local Time",&ImPlot::GetStyle().UseLocalTime);
+        ImGui::SameLine();
+        ImGui::Checkbox("Use 24 Hour Clock",&ImPlot::GetStyle().Use24HourClock);
 
         static HugeTimeData* data = NULL;
         if (data == NULL) {
@@ -1367,7 +1369,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
         if (idx != -1) {
             ImGui::BeginTooltip();
             char buff[32];
-            ImPlot::FormatTime(ImPlotTime::FromDouble(xs[idx]),buff,32,ImPlotTimeFmt_DayMoYr);
+            ImPlot::FormatTime12(ImPlotTime::FromDouble(xs[idx]),buff,32,ImPlotTimeFmt_DayMoYr);
             ImGui::Text("Day:   %s",  buff);
             ImGui::Text("Open:  $%.2f", opens[idx]);
             ImGui::Text("Close: $%.2f", closes[idx]);
