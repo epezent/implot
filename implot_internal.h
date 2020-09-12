@@ -844,9 +844,9 @@ IMPLOT_API ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Combines the date of one timestamp with the time-of-day of another timestamp.
 IMPLOT_API ImPlotTime CombineDateTime(const ImPlotTime& date_part, const ImPlotTime& time_part);
 
-// Formulates a timestamp t into a buffer according to fmt for 12 hour clock
+// Formats a timestamp t into a buffer according to #fmt for 12 hour clock
 IMPLOT_API int FormatTime12(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt);
-// Formulates a timestamp t into a buffer according to fmt for 24 hur clock.
+// Formats a timestamp t into a buffer according to #fmt for 24 hour clock.
 IMPLOT_API int FormatTime24(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt);
 // Prints a timestamp to console
 IMPLOT_API void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt = ImPlotTimeFmt_DayMoYrHrMinSUs);
@@ -856,7 +856,7 @@ IMPLOT_API void PrintTime(const ImPlotTime& t, ImPlotTimeFmt fmt = ImPlotTimeFmt
 // #t will be set when a day is clicked and the function will return true.
 // #t1 and #t2 are optional dates to highlight.
 IMPLOT_API bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime* t1 = NULL, const ImPlotTime* t2 = NULL);
-// Shows a time picker widget block (hour/min/sec).
+// Shows a time picker widget block (hour/min/sec). #hour24 will format time for 24 hour clock.
 // #t will be set when a new hour, minute, or sec is selected or am/pm is toggled, and the function will return true.
 IMPLOT_API bool ShowTimePicker(const char* id, ImPlotTime* t, bool hour24);
 
