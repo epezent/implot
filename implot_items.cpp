@@ -238,6 +238,7 @@ struct GetterXsYs {
         Count = count;
         Offset = count ? ImPosMod(offset, count) : 0;
         Stride = stride;
+        
     }
     const T* Xs;
     const T* Ys;
@@ -279,38 +280,6 @@ struct GetterXsYRef {
     inline ImPlotPoint operator()(int idx) const {
         return ImPlotPoint((double)OffsetAndStride(Xs, idx, Count, Offset, Stride), (double)YRef);
     }
-};
-
-// Interprets an array of ImVec2 points as ImPlotPoints
-struct GetterImVec2 {
-    GetterImVec2(const ImVec2* data, int count, int offset) {
-        Data = data;
-        Count = count;
-        Offset = count ? ImPosMod(offset, count) : 0;
-    }
-    inline ImPlotPoint operator()(int idx) const {
-        idx = ImPosMod(Offset + idx, Count);
-        return ImPlotPoint((double)Data[idx].x, (double)Data[idx].y);
-    }
-    const ImVec2* Data;
-    int Count;
-    int Offset;
-};
-
-// Interprets an array of ImPlotPoints as ImPlotPoints (essentially a pass through)
-struct GetterImPlotPoint {
-    GetterImPlotPoint(const ImPlotPoint* data, int count, int offset) {
-        Data = data;
-        Count = count;
-        Offset = count ? ImPosMod(offset, count) : 0;
-    }
-    inline ImPlotPoint operator()(int idx) const {
-        idx = ImPosMod(Offset + idx, Count);
-        return Data[idx];
-    }
-    const ImPlotPoint* Data;
-    int Count;
-    int Offset;
 };
 
 /// Interprets a user's function pointer as ImPlotPoints
