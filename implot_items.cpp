@@ -211,48 +211,56 @@ void EndItem() {
 // Getters can be thought of as iterators that convert user data (e.g. raw arrays)
 // to ImPlotPoints
 
-// TODO: Make members const
-
 // Interprets an array of Y points as ImPlotPoints where the X value is the index
 template <typename T>
 struct GetterYs {
     GetterYs(const T* ys, int count, double xscale, double x0, int offset, int stride) :
-        Ys(ys), Count(count), XScale(xscale), X0(x0), Offset(count ? ImPosMod(offset, count) : 0), Stride(stride)
+        Ys(ys), 
+        Count(count), 
+        XScale(xscale), 
+        X0(x0), 
+        Offset(count ? ImPosMod(offset, count) : 0), 
+        Stride(stride) 
     { }
+    inline ImPlotPoint operator()(int idx) const {
+        return ImPlotPoint(X0 + XScale * idx, (double)OffsetAndStride(Ys, idx, Count, Offset, Stride));
+    }
     const T* const Ys;
     const int Count;
     const double XScale;
     const double X0;
     const int Offset;
     const int Stride;
-    inline ImPlotPoint operator()(int idx) const {
-        return ImPlotPoint(X0 + XScale * idx, (double)OffsetAndStride(Ys, idx, Count, Offset, Stride));
-    }
 };
 
 // Interprets separate arrays for X and Y points as ImPlotPoints
 template <typename T>
 struct GetterXsYs {
-    GetterXsYs(const T* xs, const T* ys, int count, int offset, int stride) {
-        Xs = xs; Ys = ys;
-        Count = count;
-        Offset = count ? ImPosMod(offset, count) : 0;
-        Stride = stride;
-        
-    }
-    const T* Xs;
-    const T* Ys;
-    int Count;
-    int Offset;
-    int Stride;
+    GetterXsYs(const T* xs, const T* ys, int count, int offset, int stride) :
+        Xs(xs), 
+        Ys(ys), 
+        Count(count), 
+        Offset(count ? ImPosMod(offset, count) : 0), 
+        Stride(stride)
+    { }
     inline ImPlotPoint operator()(int idx) const {
         return ImPlotPoint((double)OffsetAndStride(Xs, idx, Count, Offset, Stride), (double)OffsetAndStride(Ys, idx, Count, Offset, Stride));
     }
+    const T* const Xs;
+    const T* const Ys;
+    const int Count;
+    const int Offset;
+    const int Stride;
 };
 
 // Always returns a constant Y reference value where the X value is the index
 struct GetterYRef {
-    GetterYRef(double y_ref, int count, double xscale, double x0) : YRef(y_ref), Count(count), XScale(xscale), X0(x0) { }
+    GetterYRef(double y_ref, int count, double xscale, double x0) : 
+        YRef(y_ref), 
+        Count(count), 
+        XScale(xscale), 
+        X0(x0) 
+    { }
     inline ImPlotPoint operator()(int idx) const {
         return ImPlotPoint(X0 + XScale*idx, YRef);
     }
@@ -263,41 +271,41 @@ struct GetterYRef {
 };
 
 // Interprets an array of X points as ImPlotPoints where the Y value is a constant reference value
-template <typename T, typename Y>
+template <typename T>
 struct GetterXsYRef {
-    GetterXsYRef(const T* xs, Y y_ref, int count, int offset, int stride) {
-        Xs = xs;
-        YRef = y_ref;
-        Count = count;
-        Offset = count ? ImPosMod(offset, count) : 0;
-        Stride = stride;
-    }
-    const T* Xs;
-    Y YRef;
-    int Count;
-    int Offset;
-    int Stride;
+    GetterXsYRef(const T* xs, double y_ref, int count, int offset, int stride) :
+        Xs(xs), 
+        YRef(y_ref), 
+        Count(count), 
+        Offset(count ? ImPosMod(offset, count) : 0), 
+        Stride(stride) 
+    { }
     inline ImPlotPoint operator()(int idx) const {
-        return ImPlotPoint((double)OffsetAndStride(Xs, idx, Count, Offset, Stride), (double)YRef);
+        return ImPlotPoint((double)OffsetAndStride(Xs, idx, Count, Offset, Stride), YRef);
     }
+    const T* const Xs;
+    const double YRef;
+    const int Count;
+    const int Offset;
+    const int Stride;
 };
 
 /// Interprets a user's function pointer as ImPlotPoints
-struct GetterFuncPtrImPlotPoint {
-    GetterFuncPtrImPlotPoint(ImPlotPoint (*g)(void* data, int idx), void* d, int count, int offset) {
-        getter = g;
-        Data = d;
-        Count = count;
-        Offset = count ? ImPosMod(offset, count) : 0;
-    }
+struct GetterFuncPtr {
+    GetterFuncPtr(ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset) :
+        Getter(getter),
+        Data(data),
+        Count(count),
+        Offset(count ? ImPosMod(offset, count) : 0)
+    { }
     inline ImPlotPoint operator()(int idx) const {
         idx = ImPosMod(Offset + idx, Count);
-        return getter(Data, idx);
+        return Getter(Data, idx);
     }
-    ImPlotPoint (*getter)(void* data, int idx);
-    void* Data;
-    int Count;
-    int Offset;
+    ImPlotPoint (* const Getter)(void* data, int idx);
+    void* const Data;
+    const int Count;
+    const int Offset;
 };
 
 template <typename T>
@@ -316,16 +324,29 @@ struct GetterBarH {
 
 template <typename T>
 struct GetterError {
-    const T* Xs; const T* Ys; const T* Neg; const T* Pos; int Count; int Offset; int Stride;
-    GetterError(const T* xs, const T* ys, const T* neg, const T* pos, int count, int offset, int stride) {
-        Xs = xs; Ys = ys; Neg = neg; Pos = pos; Count = count; Offset = offset; Stride = stride;
-    }
-    ImPlotPointError operator()(int idx) const {
+    GetterError(const T* xs, const T* ys, const T* neg, const T* pos, int count, int offset, int stride) :
+        Xs(xs),
+        Ys(ys),
+        Neg(neg),
+        Pos(pos),
+        Count(count),
+        Offset(count ? ImPosMod(offset, count) : 0),
+        Stride(stride)
+    { }
+    inline ImPlotPointError operator()(int idx) const {
         return ImPlotPointError((double)OffsetAndStride(Xs,  idx, Count, Offset, Stride),
                                 (double)OffsetAndStride(Ys,  idx, Count, Offset, Stride),
                                 (double)OffsetAndStride(Neg, idx, Count, Offset, Stride),
                                 (double)OffsetAndStride(Pos, idx, Count, Offset, Stride));
     }
+    const T* const Xs; 
+    const T* const Ys; 
+    const T* const Neg; 
+    const T* const Pos; 
+    const int Count; 
+    const int Offset; 
+    const int Stride;
+
 };
 
 //-----------------------------------------------------------------------------
@@ -848,7 +869,7 @@ template IMPLOT_API void PlotLine<double>(const char* label_id, const double* xs
 
 // custom
 void PlotLineG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtrImPlotPoint getter(getter_func,data, count, offset);
+    GetterFuncPtr getter(getter_func,data, count, offset);
     return PlotLineEx(label_id, getter);
 }
 
@@ -919,7 +940,7 @@ template IMPLOT_API void PlotScatter<double>(const char* label_id, const double*
 
 // custom
 void PlotScatterG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtrImPlotPoint getter(getter_func,data, count, offset);
+    GetterFuncPtr getter(getter_func,data, count, offset);
     return PlotScatterEx(label_id, getter);
 }
 
@@ -974,7 +995,7 @@ template IMPLOT_API void PlotShaded<double>(const char* label_id, const double* 
 template <typename T>
 void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref, int offset, int stride) {
     GetterXsYs<T> getter1(xs, ys, count, offset, stride);
-    GetterXsYRef<T,double> getter2(xs, y_ref, count, offset, stride);
+    GetterXsYRef<T> getter2(xs, y_ref, count, offset, stride);
     PlotShadedEx(label_id, getter1, getter2);
 }
 
@@ -1009,8 +1030,8 @@ template IMPLOT_API void PlotShaded<double>(const char* label_id, const double* 
 
 // custom
 void PlotShadedG(const char* label_id, ImPlotPoint (*g1)(void* data, int idx), void* data1, ImPlotPoint (*g2)(void* data, int idx), void* data2, int count, int offset) {
-    GetterFuncPtrImPlotPoint getter1(g1, data1, count, offset);
-    GetterFuncPtrImPlotPoint getter2(g2, data2, count, offset);
+    GetterFuncPtr getter1(g1, data1, count, offset);
+    GetterFuncPtr getter2(g2, data2, count, offset);
     PlotShadedEx(label_id, getter1, getter2);
 }
 
@@ -1089,7 +1110,7 @@ template IMPLOT_API void PlotBars<double>(const char* label_id, const double* xs
 
 // custom
 void PlotBarsG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double width, int offset) {
-    GetterFuncPtrImPlotPoint getter(getter_func, data, count, offset);
+    GetterFuncPtr getter(getter_func, data, count, offset);
     PlotBarsEx(label_id, getter, width);
 }
 
@@ -1168,7 +1189,7 @@ template IMPLOT_API void PlotBarsH<double>(const char* label_id, const double* x
 
 // custom
 void PlotBarsHG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double height,  int offset) {
-    GetterFuncPtrImPlotPoint getter(getter_func, data, count, offset);
+    GetterFuncPtr getter(getter_func, data, count, offset);
     PlotBarsHEx(label_id, getter, height);
 }
 
@@ -1367,7 +1388,7 @@ template IMPLOT_API void PlotStems<double>(const char* label_id, const double* v
 template <typename T>
 void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double y_ref, int offset, int stride) {
     GetterXsYs<T> get_mark(xs,ys,count,offset,stride);
-    GetterXsYRef<T,double> get_base(xs,y_ref,count,offset,stride);
+    GetterXsYRef<T> get_base(xs,y_ref,count,offset,stride);
     PlotStemsEx(label_id, get_mark, get_base);
 }
 
@@ -1619,7 +1640,7 @@ template IMPLOT_API void PlotDigital<double>(const char* label_id, const double*
 
 // custom
 void PlotDigitalG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtrImPlotPoint getter(getter_func,data,count,offset);
+    GetterFuncPtr getter(getter_func,data,count,offset);
     return PlotDigitalEx(label_id, getter);
 }
 
@@ -1664,7 +1685,7 @@ void PlotRects(const char* label_id, const double* xs, const double* ys, int cou
 
 // custom
 void PlotRects(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtrImPlotPoint getter(getter_func,data,count,offset);
+    GetterFuncPtr getter(getter_func,data,count,offset);
     return PlotRectsEx(label_id, getter);
 }
 
