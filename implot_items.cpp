@@ -48,9 +48,11 @@ namespace ImPlot {
 // Item Utils
 //-----------------------------------------------------------------------------
 
-ImPlotItem* RegisterOrGetItem(const char* label_id) {
+ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created) {
     ImPlotContext& gp = *GImPlot;
     ImGuiID id = ImGui::GetID(label_id);
+    if (just_created != NULL)
+        *just_created = gp.CurrentPlot->Items.GetByKey(id) == NULL;
     ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);
     if (item->SeenThisFrame)
         return item;
@@ -97,30 +99,37 @@ ImPlotItem* GetCurrentItem() {
 
 void SetNextLineStyle(const ImVec4& col, float weight) {
     ImPlotContext& gp = *GImPlot;
-    gp.NextItemStyle.Colors[ImPlotCol_Line] = col;
-    gp.NextItemStyle.LineWeight             = weight;
+    gp.NextItemData.Colors[ImPlotCol_Line] = col;
+    gp.NextItemData.LineWeight             = weight;
 }
 
 void SetNextFillStyle(const ImVec4& col, float alpha) {
     ImPlotContext& gp = *GImPlot;
-    gp.NextItemStyle.Colors[ImPlotCol_Fill] = col;
-    gp.NextItemStyle.FillAlpha              = alpha;
+    gp.NextItemData.Colors[ImPlotCol_Fill] = col;
+    gp.NextItemData.FillAlpha              = alpha;
 }
 
 void SetNextMarkerStyle(ImPlotMarker marker, float size, const ImVec4& fill, float weight, const ImVec4& outline) {
     ImPlotContext& gp = *GImPlot;
-    gp.NextItemStyle.Marker                          = marker;
-    gp.NextItemStyle.Colors[ImPlotCol_MarkerFill]    = fill;
-    gp.NextItemStyle.MarkerSize                      = size;
-    gp.NextItemStyle.Colors[ImPlotCol_MarkerOutline] = outline;
-    gp.NextItemStyle.MarkerWeight                    = weight;
+    gp.NextItemData.Marker                          = marker;
+    gp.NextItemData.Colors[ImPlotCol_MarkerFill]    = fill;
+    gp.NextItemData.MarkerSize                      = size;
+    gp.NextItemData.Colors[ImPlotCol_MarkerOutline] = outline;
+    gp.NextItemData.MarkerWeight                    = weight;
 }
 
 void SetNextErrorBarStyle(const ImVec4& col, float size, float weight) {
     ImPlotContext& gp = *GImPlot;
-    gp.NextItemStyle.Colors[ImPlotCol_ErrorBar] = col;
-    gp.NextItemStyle.ErrorBarSize               = size;
-    gp.NextItemStyle.ErrorBarWeight             = weight;
+    gp.NextItemData.Colors[ImPlotCol_ErrorBar] = col;
+    gp.NextItemData.ErrorBarSize               = size;
+    gp.NextItemData.ErrorBarWeight             = weight;
+}
+
+void HideNextItem(bool hidden, ImGuiCond cond) {
+    ImPlotContext& gp = *GImPlot;
+    gp.NextItemData.HasHidden  = true;
+    gp.NextItemData.Hidden     = hidden;
+    gp.NextItemData.HiddenCond = cond;
 }
 
 void BustItemCache() {
@@ -140,16 +149,24 @@ void BustItemCache() {
 bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotX() needs to be called between BeginPlot() and EndPlot()!");
-    ImPlotItem* item = RegisterOrGetItem(label_id);
+    bool just_created;
+    ImPlotItem* item = RegisterOrGetItem(label_id, &just_created);
+
+    // hide/show item
+    if (gp.NextItemData.HasHidden) {
+        if (just_created || gp.NextItemData.HiddenCond == ImGuiCond_Always)
+            item->Show = !gp.NextItemData.Hidden;
+    }
+
     if (!item->Show) {
         // reset next item data
-        gp.NextItemStyle = ImPlotItemStyle();
+        gp.NextItemData = ImPlotNextItemData();
         return false;
     }
     else {
         // set current item
         gp.CurrentItem = item;
-        ImPlotItemStyle& s = gp.NextItemStyle;
+        ImPlotNextItemData& s = gp.NextItemData;
         // override item color
         if (recolor_from != -1) {
             if (!IsColorAuto(s.Colors[recolor_from]))
@@ -199,7 +216,7 @@ void EndItem() {
     // pop rendering clip rect
     PopPlotClipRect();
     // reset next item data
-    gp.NextItemStyle = ImPlotItemStyle();
+    gp.NextItemData = ImPlotNextItemData();
     // set current item
     gp.CurrentItem = NULL;
 }
@@ -215,12 +232,12 @@ void EndItem() {
 template <typename T>
 struct GetterYs {
     GetterYs(const T* ys, int count, double xscale, double x0, int offset, int stride) :
-        Ys(ys), 
-        Count(count), 
-        XScale(xscale), 
-        X0(x0), 
-        Offset(count ? ImPosMod(offset, count) : 0), 
-        Stride(stride) 
+        Ys(ys),
+        Count(count),
+        XScale(xscale),
+        X0(x0),
+        Offset(count ? ImPosMod(offset, count) : 0),
+        Stride(stride)
     { }
     inline ImPlotPoint operator()(int idx) const {
         return ImPlotPoint(X0 + XScale * idx, (double)OffsetAndStride(Ys, idx, Count, Offset, Stride));
@@ -237,10 +254,10 @@ struct GetterYs {
 template <typename T>
 struct GetterXsYs {
     GetterXsYs(const T* xs, const T* ys, int count, int offset, int stride) :
-        Xs(xs), 
-        Ys(ys), 
-        Count(count), 
-        Offset(count ? ImPosMod(offset, count) : 0), 
+        Xs(xs),
+        Ys(ys),
+        Count(count),
+        Offset(count ? ImPosMod(offset, count) : 0),
         Stride(stride)
     { }
     inline ImPlotPoint operator()(int idx) const {
@@ -255,11 +272,11 @@ struct GetterXsYs {
 
 // Always returns a constant Y reference value where the X value is the index
 struct GetterYRef {
-    GetterYRef(double y_ref, int count, double xscale, double x0) : 
-        YRef(y_ref), 
-        Count(count), 
-        XScale(xscale), 
-        X0(x0) 
+    GetterYRef(double y_ref, int count, double xscale, double x0) :
+        YRef(y_ref),
+        Count(count),
+        XScale(xscale),
+        X0(x0)
     { }
     inline ImPlotPoint operator()(int idx) const {
         return ImPlotPoint(X0 + XScale*idx, YRef);
@@ -274,11 +291,11 @@ struct GetterYRef {
 template <typename T>
 struct GetterXsYRef {
     GetterXsYRef(const T* xs, double y_ref, int count, int offset, int stride) :
-        Xs(xs), 
-        YRef(y_ref), 
-        Count(count), 
-        Offset(count ? ImPosMod(offset, count) : 0), 
-        Stride(stride) 
+        Xs(xs),
+        YRef(y_ref),
+        Count(count),
+        Offset(count ? ImPosMod(offset, count) : 0),
+        Stride(stride)
     { }
     inline ImPlotPoint operator()(int idx) const {
         return ImPlotPoint((double)OffsetAndStride(Xs, idx, Count, Offset, Stride), YRef);
@@ -339,14 +356,13 @@ struct GetterError {
                                 (double)OffsetAndStride(Neg, idx, Count, Offset, Stride),
                                 (double)OffsetAndStride(Pos, idx, Count, Offset, Stride));
     }
-    const T* const Xs; 
-    const T* const Ys; 
-    const T* const Neg; 
-    const T* const Pos; 
-    const int Count; 
-    const int Offset; 
+    const T* const Xs;
+    const T* const Ys;
+    const T* const Neg;
+    const T* const Pos;
+    const int Count;
+    const int Offset;
     const int Stride;
-
 };
 
 //-----------------------------------------------------------------------------
@@ -807,7 +823,7 @@ inline void PlotLineEx(const char* label_id, const Getter& getter) {
                 FitPoint(p);
             }
         }
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         ImDrawList& DrawList = *GetPlotDrawList();
         if (getter.Count > 1 && s.RenderLine) {
             const ImU32 col_line    = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
@@ -886,7 +902,7 @@ inline void PlotScatterEx(const char* label_id, const Getter& getter) {
                 FitPoint(p);
             }
         }
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         ImDrawList& DrawList = *GetPlotDrawList();
         // render markers
         ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle : s.Marker;
@@ -959,7 +975,7 @@ inline void PlotShadedEx(const char* label_id, const Getter1& getter1, const Get
                 FitPoint(p2);
             }
         }
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         ImDrawList & DrawList = *GetPlotDrawList();
         if (s.RenderFill) {
             ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
@@ -1052,7 +1068,7 @@ void PlotBarsEx(const char* label_id, const Getter& getter, double width) {
                 FitPoint(ImPlotPoint(p.x + half_width, 0));
             }
         }
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         ImDrawList& DrawList = *GetPlotDrawList();
         ImU32 col_line  = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
         ImU32 col_fill  = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
@@ -1131,7 +1147,7 @@ void PlotBarsHEx(const char* label_id, const Getter& getter, THeight height) {
                 FitPoint(ImPlotPoint(p.x, p.y + half_height));
             }
         }
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         ImDrawList& DrawList = *GetPlotDrawList();
         ImU32 col_line  = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
         ImU32 col_fill  = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
@@ -1207,7 +1223,7 @@ void PlotErrorBarsEx(const char* label_id, const Getter& getter) {
                 FitPoint(ImPlotPoint(e.X , e.Y + e.Pos ));
             }
         }
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         ImDrawList& DrawList = *GetPlotDrawList();
         const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_ErrorBar]);
         const bool rend_whisker  = s.ErrorBarSize > 0;
@@ -1273,7 +1289,7 @@ void PlotErrorBarsHEx(const char* label_id, const Getter& getter) {
                 FitPoint(ImPlotPoint(e.X + e.Pos, e.Y));
             }
         }
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         ImDrawList& DrawList = *GetPlotDrawList();
         const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_ErrorBar]);
         const bool rend_whisker  = s.ErrorBarSize > 0;
@@ -1339,7 +1355,7 @@ inline void PlotStemsEx(const char* label_id, const GetterM& get_mark, const Get
                 FitPoint(get_base(i));
             }
         }
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         ImDrawList& DrawList = *GetPlotDrawList();
         // render stems
         if (s.RenderLine) {
@@ -1569,7 +1585,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter) {
     if (BeginItem(label_id, ImPlotCol_Fill)) {
         ImPlotContext& gp = *GImPlot;
         ImDrawList& DrawList = *GetPlotDrawList();
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1 && s.RenderFill) {
             const int y_axis = GetCurrentYAxis();
             int pixYMax = 0;
@@ -1656,7 +1672,7 @@ void PlotRectsEx(const char* label_id, const Getter& getter) {
                 FitPoint(p);
             }
         }
-        const ImPlotItemStyle& s = GetItemStyle();
+        const ImPlotNextItemData& s = GetItemData();
         if (s.RenderFill) {
             ImDrawList& DrawList = *GetPlotDrawList();
             ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);

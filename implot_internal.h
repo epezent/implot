@@ -510,7 +510,7 @@ struct ImPlotNextPlotData
 };
 
 // Temporary data storage for upcoming item
-struct ImPlotItemStyle {
+struct ImPlotNextItemData {
     ImVec4       Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
     float        LineWeight;
     ImPlotMarker Marker;
@@ -525,11 +525,15 @@ struct ImPlotItemStyle {
     bool         RenderFill;
     bool         RenderMarkerLine;
     bool         RenderMarkerFill;
-    ImPlotItemStyle() {
+    bool         HasHidden;
+    bool         Hidden;
+    ImGuiCond    HiddenCond;
+    ImPlotNextItemData() {
         for (int i = 0; i < 5; ++i)
             Colors[i] = IMPLOT_AUTO_COL;
-        LineWeight = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
-        Marker = IMPLOT_AUTO;
+        LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
+        Marker        = IMPLOT_AUTO;
+        HasHidden     = Hidden = false;
     }
 };
 
@@ -603,7 +607,7 @@ struct ImPlotContext {
     int                DigitalPlotItemCnt;
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
-    ImPlotItemStyle    NextItemStyle;
+    ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
 };
@@ -659,7 +663,7 @@ IMPLOT_API bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
 IMPLOT_API void EndItem();
 
 // Register or get an existing item from the current plot
-IMPLOT_API ImPlotItem* RegisterOrGetItem(const char* label_id);
+IMPLOT_API ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created = NULL);
 // Get the ith plot item from the current plot
 IMPLOT_API ImPlotItem* GetItem(int i);
 // Get a plot item from the current plot
@@ -736,7 +740,7 @@ IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[],
 //-----------------------------------------------------------------------------
 
 // Get styling data for next item (call between Begin/EndItem)
-inline const ImPlotItemStyle& GetItemStyle() { return GImPlot->NextItemStyle; }
+inline const ImPlotNextItemData& GetItemData() { return GImPlot->NextItemData; }
 
 // Returns true if a color is set to be automatically determined
 inline bool IsColorAuto(const ImVec4& col) { return col.w == -1; }
