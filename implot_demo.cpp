@@ -1218,6 +1218,38 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Custom Dragable Lines")) {
+        static float line_value = 0.5f;
+        const float line_width = 3.0f;
+        const float grabbable_width = 5.0f;
+        if (ImPlot::BeginPlot("Dragable Lines")) {
+
+            auto x0 = ImPlot::GetPlotPos().x;
+            auto x1 = ImPlot::GetPlotPos().x + ImPlot::GetPlotSize().x;
+            auto y = ImPlot::PlotToPixels(0, line_value).y;
+            ImPlot::PushPlotClipRect();
+            ImPlot::GetPlotDrawList()->AddLine({ x0, y }, { x1, y }, IM_COL32_WHITE, line_width);
+            ImPlot::PopPlotClipRect();
+
+            ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
+            ImVec2 new_cursor_pos = ImVec2(x0, y - grabbable_width / 2.0f);
+            ImGui::SetItemAllowOverlap();
+            ImGui::SetCursorScreenPos(new_cursor_pos);
+            ImGui::InvisibleButton("horizontal_line", ImVec2(x1 - x0, grabbable_width));
+            ImGui::SetCursorScreenPos(old_cursor_pos);
+
+            if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+            }
+
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+                line_value = ImPlot::GetPlotMousePos().y;
+            }
+
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     ImGui::End();
 }
 
