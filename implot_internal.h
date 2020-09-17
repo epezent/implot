@@ -187,6 +187,7 @@ enum ImPlotTimeFmt_ {
     ImPlotTimeFmt_SUs,             // :29.428 552
     ImPlotTimeFmt_SMs,             // :29.428
     ImPlotTimeFmt_S,               // :29
+    ImPlotTimeFmt_HrMinSMs,        // 7:21:29.428pm (19:21:29.428)
     ImPlotTimeFmt_HrMinS,          // 7:21:29pm (19:21:29)
     ImPlotTimeFmt_HrMin,           // 7:21pm (19:21)
     ImPlotTimeFmt_Hr,              // 7pm (19:00)
