@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <iostream>
 
 #ifdef _MSC_VER
 #define sprintf sprintf_s
@@ -529,15 +530,12 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimitsX(t - history, t, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
             ImPlot::PlotShaded("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), 0, sdata1.Offset, 2 * sizeof(float));
-            ImPlot::PlotLine("Data 2", &sdata2.Data[0], sdata2.Data.size(), sdata2.Offset);
+            ImPlot::PlotLine("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2*sizeof(float));
             ImPlot::EndPlot();
         }
         ImPlot::SetNextPlotLimitsX(0, history, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Rolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis)) {
-            // two methods of plotting Data
-            // as ImVec2* (or ImPlot*):
-            ImPlot::PlotLine("Data 1", &rdata1.Data[0], rdata1.Data.size());
-            // as float*, float* (or double*, double*) with stride of 2 * sizeof
+            ImPlot::PlotLine("Data 1", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 2 * sizeof(float));
             ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(float));
             ImPlot::EndPlot();
         }
@@ -612,6 +610,8 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("By default, labels are in UTC time but can be set to use local time instead.");
 
         ImGui::Checkbox("Use Local Time",&ImPlot::GetStyle().UseLocalTime);
+        ImGui::SameLine();
+        ImGui::Checkbox("Use 24 Hour Clock",&ImPlot::GetStyle().Use24HourClock);
 
         static HugeTimeData* data = NULL;
         if (data == NULL) {
@@ -1212,7 +1212,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SameLine(); ImGui::ColorEdit4("##Bear", &bearCol.x, ImGuiColorEditFlags_NoInputs);
         ImPlot::GetStyle().UseLocalTime = false;
         ImPlot::SetNextPlotLimits(1546300800, 1571961600, 1250, 1600);
-        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,-1),0,ImPlotAxisFlags_Time)) {
+        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,0),0,ImPlotAxisFlags_Time)) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
             ImPlot::EndPlot();
         }
@@ -1254,9 +1254,9 @@ void Sparkline(const char* id, const float* values, int count, float min_v, floa
     ImPlot::SetNextPlotLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
     if (ImPlot::BeginPlot(id,0,0,size,ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations)) {
         ImPlot::PushStyleColor(ImPlotCol_Line, col);
-        ImPlot::PlotLine(id, values, count, offset);
+        ImPlot::PlotLine(id, values, count, 1, 0, offset);
         ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-        ImPlot::PlotShaded(id, values, count, 0, offset);
+        ImPlot::PlotShaded(id, values, count, 0, 1, 0, offset);
         ImPlot::PopStyleVar();
         ImPlot::PopStyleColor();
         ImPlot::EndPlot();
@@ -1328,7 +1328,7 @@ void StyleSeaborn() {
 // into the public API and expose the necessary building blocks to fully support
 // custom plotters. For now, proceed at your own risk!
 
-#include "implot_internal.h"
+#include <implot_internal.h>
 
 namespace MyImPlot {
 
@@ -1369,7 +1369,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
         if (idx != -1) {
             ImGui::BeginTooltip();
             char buff[32];
-            ImPlot::FormatTime(ImPlotTime::FromDouble(xs[idx]),buff,32,ImPlotTimeFmt_DayMoYr);
+            ImPlot::FormatTime12(ImPlotTime::FromDouble(xs[idx]),buff,32,ImPlotTimeFmt_DayMoYr);
             ImGui::Text("Day:   %s",  buff);
             ImGui::Text("Open:  $%.2f", opens[idx]);
             ImGui::Text("Close: $%.2f", closes[idx]);
@@ -1537,13 +1537,15 @@ void ShowBenchmarkTool() {
         }
         ImPlot::EndPlot();
     }
-
     ImPlot::SetNextPlotLimits(0,500,0,500,ImGuiCond_Always);
     static char buffer[64];
     if (ImPlot::BeginPlot("##Stats", "Items (1,000 pts each)", "Framerate (Hz)", ImVec2(-1,0), ImPlotFlags_NoChild)) {
         for (int run = 0; run < records.size(); ++run) {
-            sprintf(buffer, "B%d-%s%s", run + 1, names[records[run].Mode], records[run].AA ? "-AA" : "");
-            ImPlot::PlotLine(buffer, records[run].Data.Data, records[run].Data.Size);
+            if (records[run].Data.Size > 1) {
+                sprintf(buffer, "B%d-%s%s", run + 1, names[records[run].Mode], records[run].AA ? "-AA" : "");
+                ImVector<ImPlotPoint>& d = records[run].Data;
+                ImPlot::PlotLine(buffer, &d[0].x, &d[0].y, d.Size, 0, 2*sizeof(double));
+            }
         }
         ImPlot::EndPlot();
     }
