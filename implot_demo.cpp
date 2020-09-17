@@ -785,6 +785,23 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Guide Lines")) {
+        static double v1 = 0.2;
+        static double v2 = 0.6;
+        static double h1 = 0.25;
+        static double h2 = 0.75;
+        static double h3 = 0.5;
+        if (ImPlot::BeginPlot("##guides",0,0,ImVec2(-1,0),ImPlotFlags_YAxis2)) {            
+            ImPlot::VerticalGuide("v1",&v1, ImVec4(0,1,0,1));
+            ImPlot::VerticalGuide("v2",&v2, ImVec4(0,1,0,1));
+            ImPlot::HorizontalGuide("h1",&h1, ImVec4(1,0,0,1));
+            ImPlot::HorizontalGuide("h2",&h2, ImVec4(1,0,0,1));
+            ImPlot::SetPlotYAxis(1);
+            ImPlot::HorizontalGuide("h3",&h3, ImVec4(1,1,0,1));
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag and Drop")) {
         const int K_CHANNELS = 9;
         srand((int)(10000000 * DEMO_TIME));
@@ -1214,38 +1231,6 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimits(1546300800, 1571961600, 1250, 1600);
         if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,0),0,ImPlotAxisFlags_Time)) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
-            ImPlot::EndPlot();
-        }
-    }
-    //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Custom Dragable Lines")) {
-        static float line_value = 0.5f;
-        const float line_width = 3.0f;
-        const float grabbable_width = 5.0f;
-        if (ImPlot::BeginPlot("Dragable Lines")) {
-
-            auto x0 = ImPlot::GetPlotPos().x;
-            auto x1 = ImPlot::GetPlotPos().x + ImPlot::GetPlotSize().x;
-            auto y = ImPlot::PlotToPixels(0, line_value).y;
-            ImPlot::PushPlotClipRect();
-            ImPlot::GetPlotDrawList()->AddLine({ x0, y }, { x1, y }, IM_COL32_WHITE, line_width);
-            ImPlot::PopPlotClipRect();
-
-            ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
-            ImVec2 new_cursor_pos = ImVec2(x0, y - grabbable_width / 2.0f);
-            ImGui::SetItemAllowOverlap();
-            ImGui::SetCursorScreenPos(new_cursor_pos);
-            ImGui::InvisibleButton("horizontal_line", ImVec2(x1 - x0, grabbable_width));
-            ImGui::SetCursorScreenPos(old_cursor_pos);
-
-            if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
-                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-            }
-
-            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
-                line_value = ImPlot::GetPlotMousePos().y;
-            }
-
             ImPlot::EndPlot();
         }
     }

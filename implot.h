@@ -459,6 +459,11 @@ IMPLOT_API bool IsPlotQueried();
 // Returns the current plot query bounds.
 IMPLOT_API ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
 
+// Shows a draggable horizontal guide line.
+IMPLOT_API bool HorizontalGuide(const char* id, double* value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 2);
+// Shows a draggable vertical guide line.
+IMPLOT_API bool VerticalGuide(const char* id, double* value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 2);
+
 //-----------------------------------------------------------------------------
 // Plot and Item Styling
 //-----------------------------------------------------------------------------

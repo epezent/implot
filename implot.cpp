@@ -1185,7 +1185,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // capture scroll with a child region
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoChild)) {
-        ImGui::BeginChild(title, ImVec2(size.x == 0 ? IMPLOT_DEFAULT_W : size.x, size.y == 0 ? IMPLOT_DEFAULT_H : size.y));
+        ImGui::BeginChild(title, ImVec2(size.x == 0 ? IMPLOT_DEFAULT_W : size.x, size.y == 0 ? IMPLOT_DEFAULT_H : size.y), false, ImGuiWindowFlags_NoScrollbar);
         Window = ImGui::GetCurrentWindow();
         Window->ScrollMax.y = 1.0f;
         gp.ChildWindowMade = true;
@@ -2477,6 +2477,68 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
     result.Y.Min = ImMin(p1.y, p2.y);
     result.Y.Max = ImMax(p1.y, p2.y);
     return result;
+}
+
+bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thickness) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "HorizontalGuide() needs to be called between BeginPlot() and EndPlot()!");
+    const float grab_size = 2*thickness;
+    float xl = gp.BB_Plot.Min.x;
+    float xr = gp.BB_Plot.Max.x;
+    float y  = PlotToPixels(0, *value).y;
+    ImU32 col32 = IsColorAuto(col) ? GetStyleColorU32(ImPlotCol_Query) : ImGui::ColorConvertFloat4ToU32(col);
+    PushPlotClipRect();
+    GetPlotDrawList()->AddLine(ImVec2(xl,y), ImVec2(xr,y), col32, thickness);
+    PopPlotClipRect();
+    const bool outside = (y < gp.BB_Plot.Min.y - grab_size / 2 || y > gp.BB_Plot.Max.y + grab_size / 2);
+    if (outside)
+        return false;
+    ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
+    ImVec2 new_cursor_pos = ImVec2(xl, y - grab_size / 2.0f);    
+    ImGui::SetItemAllowOverlap();
+    ImGui::SetCursorScreenPos(new_cursor_pos);
+    ImGui::InvisibleButton(id, ImVec2(xr - xl, grab_size));
+    ImGui::SetCursorScreenPos(old_cursor_pos);
+    if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+    }
+    bool dragging = false;
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+        *value = ImPlot::GetPlotMousePos().y;
+        dragging = true;
+    }
+    return dragging;
+}
+
+bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thickness) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "VerticalGuide() needs to be called between BeginPlot() and EndPlot()!");
+    const float grab_size = 2*thickness;
+    float yt = gp.BB_Plot.Min.y;
+    float yb = gp.BB_Plot.Max.y;
+    float x  = PlotToPixels(*value,0).x;
+    ImU32 col32 = IsColorAuto(col) ? GetStyleColorU32(ImPlotCol_Query) : ImGui::ColorConvertFloat4ToU32(col);
+    PushPlotClipRect();
+    GetPlotDrawList()->AddLine(ImVec2(x,yt), ImVec2(x,yb), col32, thickness);
+    PopPlotClipRect();
+    const bool outside = (x < gp.BB_Plot.Min.x - grab_size / 2 || x > gp.BB_Plot.Max.x + grab_size / 2);
+    if (outside)
+        return false;
+    ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
+    ImVec2 new_cursor_pos = ImVec2(x - grab_size / 2.0f, yt);    
+    ImGui::SetItemAllowOverlap();
+    ImGui::SetCursorScreenPos(new_cursor_pos);
+    ImGui::InvisibleButton(id, ImVec2(grab_size, yb-yt));
+    ImGui::SetCursorScreenPos(old_cursor_pos);
+    if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+    }
+    bool dragging = false;
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+        *value = ImPlot::GetPlotMousePos().x;
+        dragging = true;
+    }
+    return dragging;
 }
 
 bool IsLegendEntryHovered(const char* label_id) {
