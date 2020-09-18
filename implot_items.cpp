@@ -1706,6 +1706,27 @@ void PlotRects(const char* label_id, ImPlotPoint (*getter_func)(void* data, int 
 }
 
 //-----------------------------------------------------------------------------
+// PLOT IMAGE
+//-----------------------------------------------------------------------------
+
+void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col) {
+    if (BeginItem(label_id)) {
+        if (FitThisFrame()) {
+            FitPoint(bmin);
+            FitPoint(bmax);
+        }
+        GetCurrentItem()->Color = tint_col;
+        ImDrawList& DrawList = *GetPlotDrawList();
+        ImVec2 p1 = PlotToPixels(bmin.x, bmax.y);
+        ImVec2 p2 = PlotToPixels(bmax.x, bmin.y);
+        PushPlotClipRect();
+        DrawList.AddImage(user_texture_id, p1, p2, uv0, uv1, ImGui::ColorConvertFloat4ToU32(tint_col));
+        PopPlotClipRect();
+        EndItem();
+    }
+}
+
+//-----------------------------------------------------------------------------
 // PLOT TEXT
 //-----------------------------------------------------------------------------
 
