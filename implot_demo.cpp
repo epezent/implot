@@ -806,18 +806,27 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Guide Lines")) {
-        static double v1 = 0.2;
-        static double v2 = 0.6;
-        static double h1 = 0.25;
-        static double h2 = 0.75;
-        static double h3 = 0.5;
-        if (ImPlot::BeginPlot("##guides",0,0,ImVec2(-1,0),ImPlotFlags_YAxis2)) {            
-            ImPlot::VerticalGuide("v1",&v1, ImVec4(0,1,0,1));
-            ImPlot::VerticalGuide("v2",&v2, ImVec4(0,1,0,1));
-            ImPlot::HorizontalGuide("h1",&h1, ImVec4(1,0,0,1));
-            ImPlot::HorizontalGuide("h2",&h2, ImVec4(1,0,0,1));
+        ImGui::BulletText("Click and drag the horizontal and vertical guide lines.");
+        static double x1 = 0.2;
+        static double x2 = 0.8;
+        static double y1 = 0.25;
+        static double y2 = 0.75;
+        static double f = 0.1;
+        if (ImPlot::BeginPlot("##guides",0,0,ImVec2(-1,0),ImPlotFlags_YAxis2)) {
+            ImPlot::VerticalGuide("x1",&x1);
+            ImPlot::VerticalGuide("x2",&x2);
+            ImPlot::HorizontalGuide("y1",&y1);
+            ImPlot::HorizontalGuide("y2",&y2);
             ImPlot::SetPlotYAxis(1);
-            ImPlot::HorizontalGuide("h3",&h3, ImVec4(1,1,0,1));
+            ImPlot::HorizontalGuide("f",&f, ImVec4(1,0.5f,1,1));
+
+            ImPlot::SetPlotYAxis(0);
+            double xs[1000], ys[1000];
+            for (int i = 0; i < 1000; ++i) {
+                xs[i] = (x2+x1)/2+abs(x2-x1)*(i/990.0f - 0.5f);
+                ys[i] = (y1+y2)/2+abs(y2-y1)/2*sin(f*i/10);
+            }
+            ImPlot::PlotLine("Why Not?", xs, ys, 1000);
             ImPlot::EndPlot();
         }
     }
