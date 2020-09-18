@@ -404,6 +404,8 @@ IMPLOT_API void PlotText(const char* text, double x, double y, bool vertical=fal
 // Plot Utils
 //-----------------------------------------------------------------------------
 
+// The following functions MUST be called before BeginPlot!
+
 // Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
 IMPLOT_API void SetNextPlotLimits(double xmin, double xmax, double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once);
 // Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
@@ -423,27 +425,19 @@ IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const
 IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool show_default = false, int y_axis = 0);
 IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool show_default = false, int y_axis = 0);
 
+// The following functions MUST be called between Begin/EndPlot!
+
 // Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis. Enable 2nd and 3rd axes with ImPlotFlags_YAxisX.
 IMPLOT_API void SetPlotYAxis(int y_axis);
+// Hides or shows the next plot item (i.e. as if it were toggled from the legend). Use ImGuiCond_Always if you need to change this every frame.
+IMPLOT_API void HideNextItem(bool hidden = true, ImGuiCond cond = ImGuiCond_Once);
 
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 IMPLOT_API ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = IMPLOT_AUTO);
 IMPLOT_API ImPlotPoint PixelsToPlot(float x, float y, int y_axis = IMPLOT_AUTO);
-
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 IMPLOT_API ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = IMPLOT_AUTO);
 IMPLOT_API ImVec2 PlotToPixels(double x, double y, int y_axis = IMPLOT_AUTO);
-
-// Hides or shows the next plot item (i.e. as if it were toggled from the legend). Use ImGuiCond_Always if you need to change this every frame.
-IMPLOT_API void HideNextItem(bool hidden = true, ImGuiCond cond = ImGuiCond_Once);
-
-//-----------------------------------------------------------------------------
-// Plot Queries
-//-----------------------------------------------------------------------------
-
-// Use these functions to retrieve information about the current plot. They
-// MUST be called between BeginPlot and EndPlot!
-
 // Get the current Plot position (top-left) in pixels.
 IMPLOT_API ImVec2 GetPlotPos();
 // Get the curent Plot size in pixels.
@@ -458,15 +452,35 @@ IMPLOT_API bool IsPlotYAxisHovered(int y_axis = 0);
 IMPLOT_API ImPlotPoint GetPlotMousePos(int y_axis = IMPLOT_AUTO);
 // Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 IMPLOT_API ImPlotLimits GetPlotLimits(int y_axis = IMPLOT_AUTO);
+
 // Returns true if the current plot is being queried.
 IMPLOT_API bool IsPlotQueried();
 // Returns the current plot query bounds.
 IMPLOT_API ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
 
+//-----------------------------------------------------------------------------
+// Plot Tools
+//-----------------------------------------------------------------------------
+
 // Shows a draggable horizontal guide line. #col defaults to ImGuiCol_Text.
 IMPLOT_API bool HorizontalGuide(const char* id, double* y_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
 // Shows a draggable vertical guide line. #col defaults to ImGuiCol_Text.
 IMPLOT_API bool VerticalGuide(const char* id, double* x_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
+
+//-----------------------------------------------------------------------------
+// Legend Utils and Tools
+//-----------------------------------------------------------------------------
+
+// Returns true if a plot item legend entry is hovered.
+IMPLOT_API bool IsLegendEntryHovered(const char* label_id);
+// Begin a drag and drop source from a legend entry. The only supported flag is SourceNoPreviewTooltip
+IMPLOT_API bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags = 0);
+// End legend drag and drop source.
+IMPLOT_API void EndLegendDragDropSource();
+// Begin a popup for a legend entry.
+IMPLOT_API bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button = 1);
+// End a popup for a legend entry.
+IMPLOT_API void EndLegendPopup();
 
 //-----------------------------------------------------------------------------
 // Plot and Item Styling
@@ -561,21 +575,6 @@ IMPLOT_API void ShowColormapScale(double scale_min, double scale_max, float heig
 
 // Returns a null terminated string name for a built-in colormap.
 IMPLOT_API const char* GetColormapName(ImPlotColormap colormap);
-
-//-----------------------------------------------------------------------------
-// Legend Utils
-//-----------------------------------------------------------------------------
-
-// Returns true if a plot item legend entry is hovered.
-IMPLOT_API bool IsLegendEntryHovered(const char* label_id);
-// Begin a drag and drop source from a legend entry. The only supported flag is SourceNoPreviewTooltip
-IMPLOT_API bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags = 0);
-// End legend drag and drop source.
-IMPLOT_API void EndLegendDragDropSource();
-// Begin a popup for a legend entry.
-IMPLOT_API bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button = 1);
-// End a popup for a legend entry.
-IMPLOT_API void EndLegendPopup();
 
 //-----------------------------------------------------------------------------
 // Miscellaneous

@@ -823,7 +823,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::SetPlotYAxis(0);
             double xs[1000], ys[1000];
             for (int i = 0; i < 1000; ++i) {
-                xs[i] = (x2+x1)/2+abs(x2-x1)*(i/990.0f - 0.5f);
+                xs[i] = (x2+x1)/2+abs(x2-x1)*(i/1000.0f - 0.5f);
                 ys[i] = (y1+y2)/2+abs(y2-y1)/2*sin(f*i/10);
             }
             ImPlot::PlotLine("Why Not?", xs, ys, 1000);

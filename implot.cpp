@@ -2503,6 +2503,11 @@ bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thi
     DrawList.AddLine(ImVec2(xl,y), ImVec2(xr,y),     col32, thickness);
     DrawList.AddLine(ImVec2(xl,y), ImVec2(xl+len,y), col32, 3*thickness);
     DrawList.AddLine(ImVec2(xr,y), ImVec2(xr-len,y), col32, 3*thickness);
+    PopPlotClipRect();
+
+    if (gp.CurrentPlot->Selecting || gp.CurrentPlot->Querying)
+        return false;
+
     ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
     ImVec2 new_cursor_pos = ImVec2(xl, y - grab_size / 2.0f);
     ImGui::SetItemAllowOverlap();
@@ -2517,6 +2522,7 @@ bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thi
         snprintf(buf, 32, "%s = %.*f", id, Precision(range_y), *value);
         ImVec2 size = ImGui::CalcTextSize(buf);
         const int pad = 2;
+        PushPlotClipRect();
         if (yax == 0) {
             DrawList.AddRectFilled(ImVec2(xl,y-pad-size.y/2), ImVec2(xl + size.x + 2 * pad, y+pad+size.y/2), col32);
             DrawList.AddText(ImVec2(xl+pad,y-size.y/2),CalcTextColor(color),buf);
@@ -2525,8 +2531,8 @@ bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thi
             DrawList.AddRectFilled(ImVec2(xr-size.x-2*pad,y-pad-size.y/2), ImVec2(xr, y+pad+size.y/2), col32);
             DrawList.AddText(ImVec2(xr-size.x-pad,y-size.y/2),CalcTextColor(color),buf);
         }
+        PopPlotClipRect();
     }
-    PopPlotClipRect();
 
     bool dragging = false;
     if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
@@ -2557,6 +2563,11 @@ bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thick
     DrawList.AddLine(ImVec2(x,yt), ImVec2(x,yb),     col32, thickness);
     DrawList.AddLine(ImVec2(x,yt), ImVec2(x,yt+len), col32, 3*thickness);
     DrawList.AddLine(ImVec2(x,yb), ImVec2(x,yb-len), col32, 3*thickness);
+    PopPlotClipRect();
+
+    if (gp.CurrentPlot->Selecting || gp.CurrentPlot->Querying)
+        return false;
+
     ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
     ImVec2 new_cursor_pos = ImVec2(x - grab_size / 2.0f, yt);
     ImGui::SetItemAllowOverlap();
@@ -2570,10 +2581,11 @@ bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thick
         snprintf(buf, 32, "%s = %.*f", id, Precision(range_x), *value);
         ImVec2 size = ImGui::CalcTextSize(buf);
         const int pad = 2;
+        PushPlotClipRect();
         DrawList.AddRectFilled(ImVec2(x - size.x/2 - pad, yb - size.y - 2*pad), ImVec2(x + pad + size.x/2, yb), col32);
         DrawList.AddText(ImVec2(x - size.x/2, yb - size.y - pad), CalcTextColor(color), buf);
+        PopPlotClipRect();
     }
-    PopPlotClipRect();
 
     bool dragging = false;
     if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
