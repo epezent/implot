@@ -2509,9 +2509,9 @@ bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thi
     ImGui::SetCursorScreenPos(new_cursor_pos);
     ImGui::InvisibleButton(id, ImVec2(xr - xl, grab_size));
     ImGui::SetCursorScreenPos(old_cursor_pos);
+    int yax = GetCurrentYAxis();
     if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-        int yax = GetCurrentYAxis();
         double range_y = gp.YTicks[yax].Size > 1 ? (gp.YTicks[yax].Ticks[1].PlotPos - gp.YTicks[yax].Ticks[0].PlotPos) : gp.CurrentPlot->YAxis[yax].Range.Size();
         char buf[32];
         snprintf(buf, 32, "%s = %.*f", id, Precision(range_y), *value);
@@ -2531,6 +2531,7 @@ bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thi
     bool dragging = false;
     if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos().y;
+        *value = ImClamp(*value, gp.Y[yax].Axis->Range.Min, gp.Y[yax].Axis->Range.Max);
         dragging = true;
     }
     return dragging;
@@ -2577,6 +2578,7 @@ bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thick
     bool dragging = false;
     if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos().x;
+        *value = ImClamp(*value, gp.X.Axis->Range.Min, gp.X.Axis->Range.Max);
         dragging = true;
     }
     return dragging;
