@@ -2486,11 +2486,11 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
 bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thickness) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "HorizontalGuide() needs to be called between BeginPlot() and EndPlot()!");
-    const float grab_size = ImMax(6.0f, thickness);
+    const float grab_size = ImMax(5.0f, thickness);
     float xl = gp.BB_Plot.Min.x;
     float xr = gp.BB_Plot.Max.x;
     float y  = IM_ROUND(PlotToPixels(0, *value).y);
-    const bool outside = (y < gp.BB_Plot.Min.y - grab_size / 2 || y > gp.BB_Plot.Max.y + grab_size / 2);
+    const bool outside = y < (gp.BB_Plot.Min.y - grab_size / 2) || y > (gp.BB_Plot.Max.y + grab_size / 2);
     if (outside)
         return false;
 
@@ -2546,11 +2546,11 @@ bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thi
 bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thickness) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "VerticalGuide() needs to be called between BeginPlot() and EndPlot()!");
-    const float grab_size = ImMax(6.0f, thickness);
+    const float grab_size = ImMax(5.0f, thickness);
     float yt = gp.BB_Plot.Min.y;
     float yb = gp.BB_Plot.Max.y;
     float x  = IM_ROUND(PlotToPixels(*value,0).x);
-    const bool outside = (x < gp.BB_Plot.Min.x - grab_size / 2 || x > gp.BB_Plot.Max.x + grab_size / 2);
+    const bool outside = x < (gp.BB_Plot.Min.x - grab_size / 2) || x > (gp.BB_Plot.Max.x + grab_size / 2);
     if (outside)
         return false;
 
@@ -2591,6 +2591,55 @@ bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thick
     if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos().x;
         *value = ImClamp(*value, gp.X.Axis->Range.Min, gp.X.Axis->Range.Max);
+        dragging = true;
+    }
+    return dragging;
+}
+
+bool AnchorPoint(const char* id, double* x, double* y, const ImVec4& col, float radius) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "AnchorPoint() needs to be called between BeginPlot() and EndPlot()!");
+    const float grab_size = ImMax(5.0f, 2*radius);
+    const bool outside = !GetPlotLimits().Contains(*x,*y);
+    if (outside)
+        return false;
+
+    ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
+    ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
+    ImDrawList& DrawList = *GetPlotDrawList();
+
+    ImVec2 pos = PlotToPixels(*x,*y);
+
+    PushPlotClipRect();
+    DrawList.AddCircleFilled(pos, radius, col32);
+    PopPlotClipRect();
+
+    int yax = GetCurrentYAxis();
+    ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
+    ImVec2 new_cursor_pos = ImVec2(pos - ImVec2(grab_size,grab_size)*0.5f);
+    ImGui::SetItemAllowOverlap();
+    ImGui::SetCursorScreenPos(new_cursor_pos);
+    ImGui::InvisibleButton(id, ImVec2(grab_size, grab_size));
+    ImGui::SetCursorScreenPos(old_cursor_pos);
+    if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+        // double range_x = gp.XTicks.Size > 1 ? (gp.XTicks.Ticks[1].PlotPos - gp.XTicks.Ticks[0].PlotPos) : gp.CurrentPlot->XAxis.Range.Size();
+        // char buf[32];
+        // snprintf(buf, 32, "%s = %.*f", id, Precision(range_x), *value);
+        // ImVec2 size = ImGui::CalcTextSize(buf);
+        // const int pad = 2;
+        // PushPlotClipRect();
+        // DrawList.AddRectFilled(ImVec2(x - size.x/2 - pad, yb - size.y - 2*pad), ImVec2(x + pad + size.x/2, yb), col32);
+        // DrawList.AddText(ImVec2(x - size.x/2, yb - size.y - pad), CalcTextColor(color), buf);
+        // PopPlotClipRect();
+    }
+
+    bool dragging = false;
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+        *x = ImPlot::GetPlotMousePos().x;
+        *y = ImPlot::GetPlotMousePos().y;
+        *x = ImClamp(*x, gp.X.Axis->Range.Min, gp.X.Axis->Range.Max);
+        *y = ImClamp(*y, gp.Y[yax].Axis->Range.Min, gp.Y[yax].Axis->Range.Max);
         dragging = true;
     }
     return dragging;

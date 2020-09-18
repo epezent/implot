@@ -453,11 +453,6 @@ IMPLOT_API ImPlotPoint GetPlotMousePos(int y_axis = IMPLOT_AUTO);
 // Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
 IMPLOT_API ImPlotLimits GetPlotLimits(int y_axis = IMPLOT_AUTO);
 
-// Returns true if the current plot is being queried.
-IMPLOT_API bool IsPlotQueried();
-// Returns the current plot query bounds.
-IMPLOT_API ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
-
 //-----------------------------------------------------------------------------
 // Plot Tools
 //-----------------------------------------------------------------------------
@@ -466,6 +461,13 @@ IMPLOT_API ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
 IMPLOT_API bool HorizontalGuide(const char* id, double* y_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
 // Shows a draggable vertical guide line. #col defaults to ImGuiCol_Text.
 IMPLOT_API bool VerticalGuide(const char* id, double* x_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
+// Shows a draggable anchor point. #col defaults to ImGuiCol_Text.
+IMPLOT_API bool AnchorPoint(const char* id, double* x, double* y, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 5);
+
+// Returns true if the current plot is being queried. Query must be enabled with ImPlotFlags_Query.
+IMPLOT_API bool IsPlotQueried();
+// Returns the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
+IMPLOT_API ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
 
 //-----------------------------------------------------------------------------
 // Legend Utils and Tools

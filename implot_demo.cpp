@@ -805,7 +805,7 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Guide Lines")) {
+    if (ImGui::CollapsingHeader("Guides and Anchors")) {
         ImGui::BulletText("Click and drag the horizontal and vertical guide lines.");
         static double x1 = 0.2;
         static double x2 = 0.8;
@@ -827,6 +827,36 @@ void ShowDemoWindow(bool* p_open) {
                 ys[i] = (y1+y2)/2+abs(y2-y1)/2*sin(f*i/10);
             }
             ImPlot::PlotLine("Why Not?", xs, ys, 1000);
+            ImPlot::EndPlot();
+        }
+        ImGui::BulletText("Click and drag the anchor points.");
+        ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
+        ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
+        if (ImPlot::BeginPlot("##Bezier",0,0,ImVec2(-1,0),ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild,flags,flags)) {
+            static ImPlotPoint P[] = {ImPlotPoint(0,0), ImPlotPoint(0.2,0.4),  ImPlotPoint(0.8,0.6),  ImPlotPoint(1,1)};
+            static ImPlotPoint B[100];
+            for (int i = 0; i < 100; ++i) {
+                double t  = i / 99.0;
+                double u  = 1 - t;
+                double w1 = u*u*u;
+                double w2 = 3*u*u*t;
+                double w3 = 3*u*t*t;
+                double w4 = t*t*t;
+                B[i] = ImPlotPoint(w1*P[0].x + w2*P[1].x + w3*P[2].x + w4*P[3].x, w1*P[0].y + w2*P[1].y + w3*P[2].y + w4*P[3].y);
+            }
+            static ImVec4 gray = ImVec4(0.5f,0.5f,0.5f,1.0f);
+            ImPlot::SetNextFillStyle(ImVec4(0,1,0,0.25f));
+            ImPlot::PlotShaded("##bez",&B[0].x, &B[0].y, 100, 0, 0, sizeof(ImPlotPoint));
+            ImPlot::SetNextLineStyle(ImVec4(0,1,0,1), 2);
+            ImPlot::PlotLine("##bez",&B[0].x, &B[0].y, 100, 0, sizeof(ImPlotPoint));
+            ImPlot::SetNextLineStyle(gray, 2);
+            ImPlot::PlotLine("##h1",&P[0].x, &P[0].y, 2, 0, sizeof(ImPlotPoint));
+            ImPlot::SetNextLineStyle(gray, 2);
+            ImPlot::PlotLine("##h2",&P[2].x, &P[2].y, 2, 0, sizeof(ImPlotPoint));
+            ImPlot::AnchorPoint("P0",&P[0].x,&P[0].y,gray);
+            ImPlot::AnchorPoint("P1",&P[1].x,&P[1].y,gray);        
+            ImPlot::AnchorPoint("P2",&P[2].x,&P[2].y,gray);
+            ImPlot::AnchorPoint("P3",&P[3].x,&P[3].y,gray);       
             ImPlot::EndPlot();
         }
     }
