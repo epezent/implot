@@ -188,6 +188,7 @@ struct ImPlotPoint {
     double x, y;
     ImPlotPoint()                         { x = y = 0.0; }
     ImPlotPoint(double _x, double _y)     { x = _x; y = _y; }
+    ImPlotPoint(const ImVec2& p)          { x = p.x; y = p.y; }
     double  operator[] (size_t idx) const { return (&x)[idx]; }
     double& operator[] (size_t idx)       { return (&x)[idx]; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
@@ -393,13 +394,11 @@ template <typename T> IMPLOT_API void PlotHeatmap(const char* label_id, const T*
 template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
                       IMPLOT_API void PlotDigitalG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset=0);
 
-// Plots an image.
+// Plots an axis-aligned image. #bounds_min/bounds_max are in plot coordinatse (y-up) and #uv0/uv1 are in texture coordinates (y-down).
 IMPLOT_API void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1));
 
 // Plots a centered text label at point x,y with optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
 IMPLOT_API void PlotText(const char* text, double x, double y, bool vertical=false, const ImVec2& pixel_offset=ImVec2(0,0));
-
-
 
 //-----------------------------------------------------------------------------
 // Plot Utils

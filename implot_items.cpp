@@ -1721,7 +1721,7 @@ void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPo
         ImVec2 p2 = PlotToPixels(bmax.x, bmin.y);
         PushPlotClipRect();
         DrawList.AddImage(user_texture_id, p1, p2, uv0, uv1, ImGui::ColorConvertFloat4ToU32(tint_col));
-        PopPlotClipRect();;
+        PopPlotClipRect();
         EndItem();
     }
 }

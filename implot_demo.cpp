@@ -508,6 +508,26 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::PopColormap();
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Images")) {
+        ImGui::BulletText("Below we are displaying the font texture, which is the only texture we have\naccess to in this demo.");
+        ImGui::BulletText("Use the 'ImTextureID' type as storage to pass pointers or identifiers to your\nown texture data.");
+        ImGui::BulletText("See ImGui Wiki page 'Image Loading and Displaying Examples'.");
+        static ImVec2 bmin(0,0);
+        static ImVec2 bmax(1,1);
+        static ImVec2 uv0(0,0);
+        static ImVec2 uv1(1,1);
+        static ImVec4 tint(1,1,1,1);
+        ImGui::SliderFloat2("Min", &bmin.x, -2, 2, "%.1f");
+        ImGui::SliderFloat2("Max", &bmax.x, -2, 2, "%.1f");
+        ImGui::SliderFloat2("UV0", &uv0.x, -2, 2, "%.1f");
+        ImGui::SliderFloat2("UV1", &uv1.x, -2, 2, "%.1f");
+        ImGui::ColorEdit4("Tint",&tint.x);
+        if (ImPlot::BeginPlot("##image")) {
+            ImPlot::PlotImage("my image",ImGui::GetIO().Fonts->TexID, bmin, bmax, uv0, uv1, tint);
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Realtime Plots")) {
         ImGui::BulletText("Move your mouse to change the data!");
         ImGui::BulletText("This example assumes 60 FPS. Higher FPS requires larger buffer size.");
