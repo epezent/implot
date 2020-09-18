@@ -395,7 +395,7 @@ template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T*
                       IMPLOT_API void PlotDigitalG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset=0);
 
 // Plots an axis-aligned image. #bounds_min/bounds_max are in plot coordinatse (y-up) and #uv0/uv1 are in texture coordinates (y-down).
-IMPLOT_API void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1,1), const ImVec4& tint_col = ImVec4(1,1,1,1));
+IMPLOT_API void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, const ImVec2& uv0=ImVec2(0,0), const ImVec2& uv1=ImVec2(1,1), const ImVec4& tint_col=ImVec4(1,1,1,1));
 
 // Plots a centered text label at point x,y with optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
 IMPLOT_API void PlotText(const char* text, double x, double y, bool vertical=false, const ImVec2& pixel_offset=ImVec2(0,0));
@@ -594,7 +594,7 @@ IMPLOT_API void ShowStyleEditor(ImPlotStyle* ref = NULL);
 IMPLOT_API void ShowUserGuide();
 
 // Sets the current _ImGui_ context. This is ONLY necessary if you are compiling
-// ImPlot as a DLL (not recommended) separate from your ImGui  compilation. It
+// ImPlot as a DLL (not recommended) separate from your ImGui compilation. It
 // sets the global variable GImGui, which is not shared across DLL boundaries.
 // See GImGui documentation in imgui.cpp for more details.
 IMPLOT_API void SetImGuiContext(ImGuiContext* ctx);
