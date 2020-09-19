@@ -2483,68 +2483,9 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
     return result;
 }
 
-bool GrabLineH(const char* id, double* value, const ImVec4& col, float thickness) {
+bool DragLineX(const char* id, double* value, bool show_label, const ImVec4& col, float thickness) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GrabLineH() needs to be called between BeginPlot() and EndPlot()!");
-    const float grab_size = ImMax(5.0f, thickness);
-    float xl = gp.BB_Plot.Min.x;
-    float xr = gp.BB_Plot.Max.x;
-    float y  = IM_ROUND(PlotToPixels(0, *value).y);
-    const bool outside = y < (gp.BB_Plot.Min.y - grab_size / 2) || y > (gp.BB_Plot.Max.y + grab_size / 2);
-    if (outside)
-        return false;
-    float len = gp.Style.MajorTickLen.y;
-    ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
-    ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
-    ImDrawList& DrawList = *GetPlotDrawList();
-
-    PushPlotClipRect();
-    DrawList.AddLine(ImVec2(xl,y), ImVec2(xr,y),     col32, thickness);
-    DrawList.AddLine(ImVec2(xl,y), ImVec2(xl+len,y), col32, 3*thickness);
-    DrawList.AddLine(ImVec2(xr,y), ImVec2(xr-len,y), col32, 3*thickness);
-    PopPlotClipRect();
-
-    if (gp.CurrentPlot->Selecting || gp.CurrentPlot->Querying)
-        return false;
-
-    ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
-    ImVec2 new_cursor_pos = ImVec2(xl, y - grab_size / 2.0f);
-    ImGui::SetItemAllowOverlap();
-    ImGui::GetCurrentWindow()->DC.CursorPos = new_cursor_pos;
-    ImGui::InvisibleButton(id, ImVec2(xr - xl, grab_size));
-    ImGui::GetCurrentWindow()->DC.CursorPos = old_cursor_pos;
-    int yax = GetCurrentYAxis();
-    if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-        double range_y = gp.YTicks[yax].Size > 1 ? (gp.YTicks[yax].Ticks[1].PlotPos - gp.YTicks[yax].Ticks[0].PlotPos) : gp.CurrentPlot->YAxis[yax].Range.Size();
-        char buf[32];
-        snprintf(buf, 32, "%s = %.*f", id, Precision(range_y), *value);
-        ImVec2 size = ImGui::CalcTextSize(buf);
-        const int pad = 2;
-        PushPlotClipRect();
-        if (yax == 0) {
-            DrawList.AddRectFilled(ImVec2(xl,y-pad-size.y/2), ImVec2(xl + size.x + 2 * pad, y+pad+size.y/2), col32);
-            DrawList.AddText(ImVec2(xl+pad,y-size.y/2),CalcTextColor(color),buf);
-        }
-        else {
-            DrawList.AddRectFilled(ImVec2(xr-size.x-2*pad,y-pad-size.y/2), ImVec2(xr, y+pad+size.y/2), col32);
-            DrawList.AddText(ImVec2(xr-size.x-pad,y-size.y/2),CalcTextColor(color),buf);
-        }
-        PopPlotClipRect();
-    }
-
-    bool dragging = false;
-    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
-        *value = ImPlot::GetPlotMousePos().y;
-        *value = ImClamp(*value, gp.Y[yax].Axis->Range.Min, gp.Y[yax].Axis->Range.Max);
-        dragging = true;
-    }
-    return dragging;
-}
-
-bool GrabLineV(const char* id, double* value, const ImVec4& col, float thickness) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GrabLineV() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "DragLineX() needs to be called between BeginPlot() and EndPlot()!");
     const float grab_size = ImMax(5.0f, thickness);
     float yt = gp.BB_Plot.Min.y;
     float yb = gp.BB_Plot.Max.y;
@@ -2556,34 +2497,36 @@ bool GrabLineV(const char* id, double* value, const ImVec4& col, float thickness
     ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
     ImDrawList& DrawList = *GetPlotDrawList();
-
     PushPlotClipRect();
     DrawList.AddLine(ImVec2(x,yt), ImVec2(x,yb),     col32, thickness);
     DrawList.AddLine(ImVec2(x,yt), ImVec2(x,yt+len), col32, 3*thickness);
     DrawList.AddLine(ImVec2(x,yb), ImVec2(x,yb-len), col32, 3*thickness);
     PopPlotClipRect();
-
     if (gp.CurrentPlot->Selecting || gp.CurrentPlot->Querying)
         return false;
-
     ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
     ImVec2 new_cursor_pos = ImVec2(x - grab_size / 2.0f, yt);
     ImGui::GetCurrentWindow()->DC.CursorPos = new_cursor_pos;
-    ImGui::InvisibleButton(id, ImVec2(grab_size, yb-yt), ImGuiButtonFlags_DontClosePopups);
+    ImGui::InvisibleButton(id, ImVec2(grab_size, yb-yt));
     ImGui::GetCurrentWindow()->DC.CursorPos = old_cursor_pos;
-    if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+    if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {        
+        gp.Hov_Plot = false;
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-        double range_x = gp.XTicks.Size > 1 ? (gp.XTicks.Ticks[1].PlotPos - gp.XTicks.Ticks[0].PlotPos) : gp.CurrentPlot->XAxis.Range.Size();
-        char buf[32];
-        snprintf(buf, 32, "%s = %.*f", id, Precision(range_x), *value);
-        ImVec2 size = ImGui::CalcTextSize(buf);
-        const int pad = 2;
-        PushPlotClipRect();
-        DrawList.AddRectFilled(ImVec2(x - size.x/2 - pad, yb - size.y - 2*pad), ImVec2(x + pad + size.x/2, yb), col32);
-        DrawList.AddText(ImVec2(x - size.x/2, yb - size.y - pad), CalcTextColor(color), buf);
-        PopPlotClipRect();
+        if (show_label) {
+            PushPlotClipRect();
+            double range_x = gp.XTicks.Size > 1 ? (gp.XTicks.Ticks[1].PlotPos - gp.XTicks.Ticks[0].PlotPos) : gp.CurrentPlot->XAxis.Range.Size();
+            char buf[32];
+            snprintf(buf, 32, "%s = %.*f", id, Precision(range_x), *value);
+            ImVec2 size = ImGui::CalcTextSize(buf);
+            const int pad = 2;
+            ImVec2 label_pos  = ImVec2(x - size.x/2 - pad, yb - size.y - 2*pad);
+            ImVec2 label_size = size + ImVec2(pad*2,pad*2);
+            label_pos = ClampLabelPos(label_pos, label_size, gp.BB_Plot.Min, gp.BB_Plot.Max);
+            DrawList.AddRectFilled(label_pos, label_pos + label_size, col32);
+            DrawList.AddText(label_pos + ImVec2(pad,pad),CalcTextColor(color),buf);
+            PopPlotClipRect();
+        }
     }
-
     bool dragging = false;
     if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos().x;
@@ -2593,9 +2536,73 @@ bool GrabLineV(const char* id, double* value, const ImVec4& col, float thickness
     return dragging;
 }
 
-bool GrabPoint(const char* id, double* x, double* y, const ImVec4& col, float radius) {
+bool DragLineY(const char* id, double* value, bool show_label, const ImVec4& col, float thickness) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GrabPoint() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "DragLineY() needs to be called between BeginPlot() and EndPlot()!");
+    const float grab_size = ImMax(5.0f, thickness);
+    float xl = gp.BB_Plot.Min.x;
+    float xr = gp.BB_Plot.Max.x;
+    float y  = IM_ROUND(PlotToPixels(0, *value).y);
+    const bool outside = y < (gp.BB_Plot.Min.y - grab_size / 2) || y > (gp.BB_Plot.Max.y + grab_size / 2);
+    if (outside)
+        return false;
+    float len = gp.Style.MajorTickLen.y;
+    ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
+    ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
+    ImDrawList& DrawList = *GetPlotDrawList();
+    PushPlotClipRect();
+    DrawList.AddLine(ImVec2(xl,y), ImVec2(xr,y),     col32, thickness);
+    DrawList.AddLine(ImVec2(xl,y), ImVec2(xl+len,y), col32, 3*thickness);
+    DrawList.AddLine(ImVec2(xr,y), ImVec2(xr-len,y), col32, 3*thickness);
+    PopPlotClipRect();
+    if (gp.CurrentPlot->Selecting || gp.CurrentPlot->Querying)
+        return false;
+    ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
+    ImVec2 new_cursor_pos = ImVec2(xl, y - grab_size / 2.0f);
+    ImGui::SetItemAllowOverlap();
+    ImGui::GetCurrentWindow()->DC.CursorPos = new_cursor_pos;
+    ImGui::InvisibleButton(id, ImVec2(xr - xl, grab_size));
+    ImGui::GetCurrentWindow()->DC.CursorPos = old_cursor_pos;
+    int yax = GetCurrentYAxis();
+    if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+        gp.Hov_Plot = false;
+        ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+        if (show_label) {
+            PushPlotClipRect();
+            double range_y = gp.YTicks[yax].Size > 1 ? (gp.YTicks[yax].Ticks[1].PlotPos - gp.YTicks[yax].Ticks[0].PlotPos) : gp.CurrentPlot->YAxis[yax].Range.Size();
+            char buf[32];
+            snprintf(buf, 32, "%s = %.*f", id, Precision(range_y), *value);
+            ImVec2 size = ImGui::CalcTextSize(buf);
+            const int pad = 2;
+            if (yax == 0) {
+                ImVec2 label_pos  = ImVec2(xl,y-pad-size.y/2);
+                ImVec2 label_size = size + ImVec2(pad*2,pad*2);
+                label_pos = ClampLabelPos(label_pos, label_size, gp.BB_Plot.Min, gp.BB_Plot.Max);
+                DrawList.AddRectFilled(label_pos, label_pos + label_size, col32);
+                DrawList.AddText(label_pos + ImVec2(pad,pad),CalcTextColor(color),buf);
+            }
+            else {
+                ImVec2 label_pos  = ImVec2(xr-size.x-2*pad,y-pad-size.y/2);
+                ImVec2 label_size = size + ImVec2(pad*2,pad*2);
+                label_pos = ClampLabelPos(label_pos, label_size, gp.BB_Plot.Min, gp.BB_Plot.Max);
+                DrawList.AddRectFilled(label_pos, label_pos + label_size, col32);
+                DrawList.AddText(label_pos + ImVec2(pad,pad),CalcTextColor(color),buf);
+            }
+            PopPlotClipRect();
+        }
+    }
+    bool dragging = false;
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
+        *value = ImPlot::GetPlotMousePos().y;
+        *value = ImClamp(*value, gp.Y[yax].Axis->Range.Min, gp.Y[yax].Axis->Range.Max);
+        dragging = true;
+    }
+    return dragging;
+}
+
+bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVec4& col, float radius) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "DragPoint() needs to be called between BeginPlot() and EndPlot()!");
     const float grab_size = ImMax(5.0f, 2*radius);
     const bool outside = !GetPlotLimits().Contains(*x,*y);
     if (outside)
@@ -2603,13 +2610,10 @@ bool GrabPoint(const char* id, double* x, double* y, const ImVec4& col, float ra
     ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
     ImDrawList& DrawList = *GetPlotDrawList();
-
     ImVec2 pos = PlotToPixels(*x,*y);
-
     PushPlotClipRect();
     DrawList.AddCircleFilled(pos, radius, col32);
     PopPlotClipRect();
-
     int yax = GetCurrentYAxis();
     ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
     ImVec2 new_cursor_pos = ImVec2(pos - ImVec2(grab_size,grab_size)*0.5f);
@@ -2617,18 +2621,23 @@ bool GrabPoint(const char* id, double* x, double* y, const ImVec4& col, float ra
     ImGui::InvisibleButton(id, ImVec2(grab_size, grab_size));
     ImGui::GetCurrentWindow()->DC.CursorPos = old_cursor_pos;
     if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+        gp.Hov_Plot = false;
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-        // double range_x = gp.XTicks.Size > 1 ? (gp.XTicks.Ticks[1].PlotPos - gp.XTicks.Ticks[0].PlotPos) : gp.CurrentPlot->XAxis.Range.Size();
-        // char buf[32];
-        // snprintf(buf, 32, "%s = %.*f", id, Precision(range_x), *value);
-        // ImVec2 size = ImGui::CalcTextSize(buf);
-        // const int pad = 2;
-        // PushPlotClipRect();
-        // DrawList.AddRectFilled(ImVec2(x - size.x/2 - pad, yb - size.y - 2*pad), ImVec2(x + pad + size.x/2, yb), col32);
-        // DrawList.AddText(ImVec2(x - size.x/2, yb - size.y - pad), CalcTextColor(color), buf);
-        // PopPlotClipRect();
+        if (show_label) {
+            PushPlotClipRect();
+            double range_x = gp.XTicks.Size > 1 ? (gp.XTicks.Ticks[1].PlotPos - gp.XTicks.Ticks[0].PlotPos) : gp.CurrentPlot->XAxis.Range.Size();
+            double range_y = gp.YTicks[yax].Size > 1 ? (gp.YTicks[yax].Ticks[1].PlotPos - gp.YTicks[yax].Ticks[0].PlotPos) : gp.CurrentPlot->YAxis[yax].Range.Size();
+            char buf[64];
+            const float yb = gp.BB_Plot.Max.y;
+            snprintf(buf, 64, "%s = %.*f,%.*f", id, Precision(range_x), *x, Precision(range_y), *y);
+            ImVec2 label_pos = pos + ImVec2(16 * GImGui->Style.MouseCursorScale, 8 * GImGui->Style.MouseCursorScale);
+            ImVec2 label_size = ImGui::CalcTextSize(buf) + ImVec2(4,4);
+            label_pos = ClampLabelPos(label_pos, label_size, gp.BB_Plot.Min, gp.BB_Plot.Max);
+            DrawList.AddRectFilled(label_pos, label_pos + label_size, col32);
+            DrawList.AddText(label_pos + ImVec2(2,2), CalcTextColor(color), buf);
+            PopPlotClipRect();
+        }
     }
-
     bool dragging = false;
     if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0)) {
         *x = ImPlot::GetPlotMousePos().x;

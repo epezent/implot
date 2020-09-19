@@ -457,12 +457,12 @@ IMPLOT_API ImPlotLimits GetPlotLimits(int y_axis = IMPLOT_AUTO);
 // Plot Tools
 //-----------------------------------------------------------------------------
 
-// Shows a draggable horizontal guide line. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool GrabLineH(const char* id, double* y_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
-// Shows a draggable vertical guide line. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool GrabLineV(const char* id, double* x_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
-// Shows a draggable anchor point. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool GrabPoint(const char* id, double* x, double* y, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 5);
+// Shows a draggable vertical guide line at an x-value. #col defaults to ImGuiCol_Text.
+IMPLOT_API bool DragLineX(const char* id, double* x_value, bool show_label = true, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
+// Shows a draggable horizontal guide line at a y-value. #col defaults to ImGuiCol_Text.
+IMPLOT_API bool DragLineY(const char* id, double* y_value, bool show_label = true, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
+// Shows a draggable point at x,y. #col defaults to ImGuiCol_Text.
+IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label = true, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 4);
 
 // Returns true if the current plot is being queried. Query must be enabled with ImPlotFlags_Query.
 IMPLOT_API bool IsPlotQueried();

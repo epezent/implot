@@ -805,36 +805,35 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Grab Lines and Points")) {
-        ImGui::BulletText("Click and drag the horizontal and vertical guide lines.");
+    if (ImGui::CollapsingHeader("Drag Lines and Points")) {
+        ImGui::BulletText("Click and drag the horizontal and vertical lines.");
         static double x1 = 0.2;
         static double x2 = 0.8;
         static double y1 = 0.25;
         static double y2 = 0.75;
         static double f = 0.1;
+        static bool show_labels = true;
+        ImGui::Checkbox("Show Labels##1",&show_labels);
         if (ImPlot::BeginPlot("##guides",0,0,ImVec2(-1,0),ImPlotFlags_YAxis2)) {
-            ImPlot::GrabLineV("x1",&x1);
-            ImPlot::GrabLineV("x2",&x2);
-            ImPlot::GrabLineH("y1",&y1);
-            ImPlot::GrabLineH("y2",&y2);
-            ImPlot::SetPlotYAxis(1);
-            ImPlot::GrabLineH("f",&f, ImVec4(1,0.5f,1,1));
-
-            ImPlot::SetPlotYAxis(0);
+            ImPlot::DragLineX("x1",&x1,show_labels);
+            ImPlot::DragLineX("x2",&x2,show_labels);
+            ImPlot::DragLineY("y1",&y1,show_labels);
+            ImPlot::DragLineY("y2",&y2,show_labels);
             double xs[1000], ys[1000];
             for (int i = 0; i < 1000; ++i) {
                 xs[i] = (x2+x1)/2+abs(x2-x1)*(i/1000.0f - 0.5f);
                 ys[i] = (y1+y2)/2+abs(y2-y1)/2*sin(f*i/10);
             }
-            ImPlot::PlotLine("Why Not?", xs, ys, 1000);
+            ImPlot::PlotLine("Interactive Data", xs, ys, 1000);
+            ImPlot::SetPlotYAxis(1);
+            ImPlot::DragLineY("f",&f,show_labels,ImVec4(1,0.5f,1,1));
             ImPlot::EndPlot();
         }
-
-        ImGui::BulletText("Click and drag the anchor points.");
+        ImGui::BulletText("Click and drag any point.");
+        ImGui::Checkbox("Show Labels##2",&show_labels);
         ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
-        // ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Bezier",0,0,ImVec2(-1,0),ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild,flags,flags)) {
-            static ImPlotPoint P[] = {ImPlotPoint(0,0), ImPlotPoint(0.2,0.4),  ImPlotPoint(0.8,0.6),  ImPlotPoint(1,1)};
+        if (ImPlot::BeginPlot("##Bezier",0,0,ImVec2(-1,0),ImPlotFlags_CanvasOnly,flags,flags)) {
+            static ImPlotPoint P[] = {ImPlotPoint(.05f,.05f), ImPlotPoint(0.2,0.4),  ImPlotPoint(0.8,0.6),  ImPlotPoint(.95f,.95f)};
             static ImPlotPoint B[100];
             for (int i = 0; i < 100; ++i) {
                 double t  = i / 99.0;
@@ -845,19 +844,16 @@ void ShowDemoWindow(bool* p_open) {
                 double w4 = t*t*t;
                 B[i] = ImPlotPoint(w1*P[0].x + w2*P[1].x + w3*P[2].x + w4*P[3].x, w1*P[0].y + w2*P[1].y + w3*P[2].y + w4*P[3].y);
             }
-            static ImVec4 gray = ImVec4(0.5f,0.5f,0.5f,1.0f);
-            ImPlot::SetNextFillStyle(ImVec4(0,1,0,0.25f));
-            ImPlot::PlotShaded("##bez",&B[0].x, &B[0].y, 100, 0, 0, sizeof(ImPlotPoint));
-            ImPlot::SetNextLineStyle(ImVec4(0,1,0,1), 2);
+            ImPlot::SetNextLineStyle(ImVec4(0,0.9f,0,1), 2);
             ImPlot::PlotLine("##bez",&B[0].x, &B[0].y, 100, 0, sizeof(ImPlotPoint));
-            ImPlot::SetNextLineStyle(gray, 2);
+            ImPlot::SetNextLineStyle(ImVec4(1,0.5f,1,1));
             ImPlot::PlotLine("##h1",&P[0].x, &P[0].y, 2, 0, sizeof(ImPlotPoint));
-            ImPlot::SetNextLineStyle(gray, 2);
+            ImPlot::SetNextLineStyle(ImVec4(0,0.5f,1,1));
             ImPlot::PlotLine("##h2",&P[2].x, &P[2].y, 2, 0, sizeof(ImPlotPoint));
-            ImPlot::GrabPoint("P0",&P[0].x,&P[0].y,gray);
-            ImPlot::GrabPoint("P1",&P[1].x,&P[1].y,gray);
-            ImPlot::GrabPoint("P2",&P[2].x,&P[2].y,gray);
-            ImPlot::GrabPoint("P3",&P[3].x,&P[3].y,gray);
+            ImPlot::DragPoint("P0",&P[0].x,&P[0].y, show_labels, ImVec4(0,0.9f,0,1));
+            ImPlot::DragPoint("P1",&P[1].x,&P[1].y, show_labels, ImVec4(1,0.5f,1,1));
+            ImPlot::DragPoint("P2",&P[2].x,&P[2].y, show_labels, ImVec4(0,0.5f,1,1));
+            ImPlot::DragPoint("P3",&P[3].x,&P[3].y, show_labels, ImVec4(0,0.9f,0,1));
             ImPlot::EndPlot();
         }
     }

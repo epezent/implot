@@ -768,6 +768,15 @@ inline ImVec2 CalcTextSizeVertical(const char *text) { ImVec2 sz = ImGui::CalcTe
 // Returns white or black text given background color
 inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.729 ? IM_COL32_BLACK : IM_COL32_WHITE; }
 
+// Clamps a label position so that it fits a rect defined by Min/Max
+inline ImVec2 ClampLabelPos(ImVec2 pos, const ImVec2& size, const ImVec2& Min, const ImVec2& Max) {
+    if (pos.x < Min.x)              pos.x = Min.x;
+    if (pos.y < Min.y)              pos.y = Min.y;
+    if ((pos.x + size.x) > Max.x)   pos.x = Max.x - size.x;
+    if ((pos.y + size.y) > Max.y)   pos.y = Max.y - size.y;
+    return pos;
+}
+
 //-----------------------------------------------------------------------------
 // [SECTION] Math and Misc Utils
 //-----------------------------------------------------------------------------
