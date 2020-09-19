@@ -1273,6 +1273,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.Hov_Frame = ImGui::ItemHoverable(gp.BB_Frame, ID);
     if (G.HoveredIdPreviousFrame != 0 && G.HoveredIdPreviousFrame != ID)
         gp.Hov_Frame = false;
+    ImGui::SetItemAllowOverlap();
     ImGui::RenderFrame(gp.BB_Frame.Min, gp.BB_Frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, Style.FrameRounding);
 
     // canvas bb
@@ -1722,7 +1723,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     ImGui::PopClipRect();
-
     // push plot ID into stack
     ImGui::PushID(ID);
     return true;
@@ -2483,9 +2483,9 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
     return result;
 }
 
-bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thickness) {
+bool GrabLineH(const char* id, double* value, const ImVec4& col, float thickness) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "HorizontalGuide() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GrabLineH() needs to be called between BeginPlot() and EndPlot()!");
     const float grab_size = ImMax(5.0f, thickness);
     float xl = gp.BB_Plot.Min.x;
     float xr = gp.BB_Plot.Max.x;
@@ -2493,7 +2493,6 @@ bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thi
     const bool outside = y < (gp.BB_Plot.Min.y - grab_size / 2) || y > (gp.BB_Plot.Max.y + grab_size / 2);
     if (outside)
         return false;
-
     float len = gp.Style.MajorTickLen.y;
     ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
@@ -2511,9 +2510,9 @@ bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thi
     ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
     ImVec2 new_cursor_pos = ImVec2(xl, y - grab_size / 2.0f);
     ImGui::SetItemAllowOverlap();
-    ImGui::SetCursorScreenPos(new_cursor_pos);
+    ImGui::GetCurrentWindow()->DC.CursorPos = new_cursor_pos;
     ImGui::InvisibleButton(id, ImVec2(xr - xl, grab_size));
-    ImGui::SetCursorScreenPos(old_cursor_pos);
+    ImGui::GetCurrentWindow()->DC.CursorPos = old_cursor_pos;
     int yax = GetCurrentYAxis();
     if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
@@ -2543,9 +2542,9 @@ bool HorizontalGuide(const char* id, double* value, const ImVec4& col, float thi
     return dragging;
 }
 
-bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thickness) {
+bool GrabLineV(const char* id, double* value, const ImVec4& col, float thickness) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "VerticalGuide() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GrabLineV() needs to be called between BeginPlot() and EndPlot()!");
     const float grab_size = ImMax(5.0f, thickness);
     float yt = gp.BB_Plot.Min.y;
     float yb = gp.BB_Plot.Max.y;
@@ -2553,7 +2552,6 @@ bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thick
     const bool outside = x < (gp.BB_Plot.Min.x - grab_size / 2) || x > (gp.BB_Plot.Max.x + grab_size / 2);
     if (outside)
         return false;
-
     float len = gp.Style.MajorTickLen.x;
     ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
@@ -2570,10 +2568,9 @@ bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thick
 
     ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
     ImVec2 new_cursor_pos = ImVec2(x - grab_size / 2.0f, yt);
-    ImGui::SetItemAllowOverlap();
-    ImGui::SetCursorScreenPos(new_cursor_pos);
-    ImGui::InvisibleButton(id, ImVec2(grab_size, yb-yt));
-    ImGui::SetCursorScreenPos(old_cursor_pos);
+    ImGui::GetCurrentWindow()->DC.CursorPos = new_cursor_pos;
+    ImGui::InvisibleButton(id, ImVec2(grab_size, yb-yt), ImGuiButtonFlags_DontClosePopups);
+    ImGui::GetCurrentWindow()->DC.CursorPos = old_cursor_pos;
     if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
         double range_x = gp.XTicks.Size > 1 ? (gp.XTicks.Ticks[1].PlotPos - gp.XTicks.Ticks[0].PlotPos) : gp.CurrentPlot->XAxis.Range.Size();
@@ -2596,14 +2593,13 @@ bool VerticalGuide(const char* id, double* value, const ImVec4& col, float thick
     return dragging;
 }
 
-bool AnchorPoint(const char* id, double* x, double* y, const ImVec4& col, float radius) {
+bool GrabPoint(const char* id, double* x, double* y, const ImVec4& col, float radius) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "AnchorPoint() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GrabPoint() needs to be called between BeginPlot() and EndPlot()!");
     const float grab_size = ImMax(5.0f, 2*radius);
     const bool outside = !GetPlotLimits().Contains(*x,*y);
     if (outside)
         return false;
-
     ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
     ImDrawList& DrawList = *GetPlotDrawList();
@@ -2617,10 +2613,9 @@ bool AnchorPoint(const char* id, double* x, double* y, const ImVec4& col, float 
     int yax = GetCurrentYAxis();
     ImVec2 old_cursor_pos = ImGui::GetCursorScreenPos();
     ImVec2 new_cursor_pos = ImVec2(pos - ImVec2(grab_size,grab_size)*0.5f);
-    ImGui::SetItemAllowOverlap();
-    ImGui::SetCursorScreenPos(new_cursor_pos);
+    ImGui::GetCurrentWindow()->DC.CursorPos = new_cursor_pos;
     ImGui::InvisibleButton(id, ImVec2(grab_size, grab_size));
-    ImGui::SetCursorScreenPos(old_cursor_pos);
+    ImGui::GetCurrentWindow()->DC.CursorPos = old_cursor_pos;
     if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
         // double range_x = gp.XTicks.Size > 1 ? (gp.XTicks.Ticks[1].PlotPos - gp.XTicks.Ticks[0].PlotPos) : gp.CurrentPlot->XAxis.Range.Size();

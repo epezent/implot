@@ -458,11 +458,11 @@ IMPLOT_API ImPlotLimits GetPlotLimits(int y_axis = IMPLOT_AUTO);
 //-----------------------------------------------------------------------------
 
 // Shows a draggable horizontal guide line. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool HorizontalGuide(const char* id, double* y_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
+IMPLOT_API bool GrabLineH(const char* id, double* y_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
 // Shows a draggable vertical guide line. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool VerticalGuide(const char* id, double* x_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
+IMPLOT_API bool GrabLineV(const char* id, double* x_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
 // Shows a draggable anchor point. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool AnchorPoint(const char* id, double* x, double* y, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 5);
+IMPLOT_API bool GrabPoint(const char* id, double* x, double* y, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 5);
 
 // Returns true if the current plot is being queried. Query must be enabled with ImPlotFlags_Query.
 IMPLOT_API bool IsPlotQueried();

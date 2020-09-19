@@ -805,7 +805,7 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Guides and Anchors")) {
+    if (ImGui::CollapsingHeader("Grab Lines and Points")) {
         ImGui::BulletText("Click and drag the horizontal and vertical guide lines.");
         static double x1 = 0.2;
         static double x2 = 0.8;
@@ -813,12 +813,12 @@ void ShowDemoWindow(bool* p_open) {
         static double y2 = 0.75;
         static double f = 0.1;
         if (ImPlot::BeginPlot("##guides",0,0,ImVec2(-1,0),ImPlotFlags_YAxis2)) {
-            ImPlot::VerticalGuide("x1",&x1);
-            ImPlot::VerticalGuide("x2",&x2);
-            ImPlot::HorizontalGuide("y1",&y1);
-            ImPlot::HorizontalGuide("y2",&y2);
+            ImPlot::GrabLineV("x1",&x1);
+            ImPlot::GrabLineV("x2",&x2);
+            ImPlot::GrabLineH("y1",&y1);
+            ImPlot::GrabLineH("y2",&y2);
             ImPlot::SetPlotYAxis(1);
-            ImPlot::HorizontalGuide("f",&f, ImVec4(1,0.5f,1,1));
+            ImPlot::GrabLineH("f",&f, ImVec4(1,0.5f,1,1));
 
             ImPlot::SetPlotYAxis(0);
             double xs[1000], ys[1000];
@@ -829,9 +829,10 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotLine("Why Not?", xs, ys, 1000);
             ImPlot::EndPlot();
         }
+
         ImGui::BulletText("Click and drag the anchor points.");
         ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
-        ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
+        // ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Bezier",0,0,ImVec2(-1,0),ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild,flags,flags)) {
             static ImPlotPoint P[] = {ImPlotPoint(0,0), ImPlotPoint(0.2,0.4),  ImPlotPoint(0.8,0.6),  ImPlotPoint(1,1)};
             static ImPlotPoint B[100];
@@ -853,10 +854,10 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotLine("##h1",&P[0].x, &P[0].y, 2, 0, sizeof(ImPlotPoint));
             ImPlot::SetNextLineStyle(gray, 2);
             ImPlot::PlotLine("##h2",&P[2].x, &P[2].y, 2, 0, sizeof(ImPlotPoint));
-            ImPlot::AnchorPoint("P0",&P[0].x,&P[0].y,gray);
-            ImPlot::AnchorPoint("P1",&P[1].x,&P[1].y,gray);        
-            ImPlot::AnchorPoint("P2",&P[2].x,&P[2].y,gray);
-            ImPlot::AnchorPoint("P3",&P[3].x,&P[3].y,gray);       
+            ImPlot::GrabPoint("P0",&P[0].x,&P[0].y,gray);
+            ImPlot::GrabPoint("P1",&P[1].x,&P[1].y,gray);
+            ImPlot::GrabPoint("P2",&P[2].x,&P[2].y,gray);
+            ImPlot::GrabPoint("P3",&P[3].x,&P[3].y,gray);
             ImPlot::EndPlot();
         }
     }
