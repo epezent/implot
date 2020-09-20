@@ -573,7 +573,7 @@ void ShowDemoWindow(bool* p_open) {
             ImS8 ys[2] = {10,11};
 
             // filled markers
-            for (int m = 1; m < ImPlotMarker_COUNT; ++m) {
+            for (int m = 0; m < ImPlotMarker_COUNT; ++m) {
                 ImGui::PushID(m);
                 ImPlot::SetNextMarkerStyle(m, mk_size, IMPLOT_AUTO_COL, mk_weight);
                 ImPlot::PlotLine("##Filled", xs, ys, 2);
@@ -582,7 +582,7 @@ void ShowDemoWindow(bool* p_open) {
             }
             xs[0] = 6; xs[1] = 9; ys[0] = 10; ys[1] = 11;
             // open markers
-            for (int m = 1; m < ImPlotMarker_COUNT; ++m) {
+            for (int m = 0; m < ImPlotMarker_COUNT; ++m) {
                 ImGui::PushID(m);
                 ImPlot::SetNextMarkerStyle(m, mk_size, ImVec4(0,0,0,0), mk_weight);
                 ImPlot::PlotLine("##Open", xs, ys, 2);
