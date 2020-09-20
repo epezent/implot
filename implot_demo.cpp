@@ -875,7 +875,7 @@ void ShowDemoWindow(bool* p_open) {
 
             float bx[] = {1.2f,1.5f,1.8f};
             float by[] = {0.25f, 0.5f, 0.75f};
-            ImPlot::PlotBars("##Bars",bx,by,4,0.2);
+            ImPlot::PlotBars("##Bars",bx,by,3,0.2);
             for (int i = 0; i < 3; ++i) 
                 ImPlot::Annotate(bx[i],by[i],ImVec2(0,-5),"B[%d]=%.2f",i,by[i]);            
             ImPlot::EndPlot();
