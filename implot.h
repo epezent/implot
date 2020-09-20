@@ -148,7 +148,6 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_LegendPadding,     // ImVec2, legend padding from top-left of plot
     ImPlotStyleVar_InfoPadding,       // ImVec2, padding between plot edge and interior info text
     ImPlotStyleVar_AnnotationPadding, // ImVec2, text padding around annotation labels
-    ImPlotStyleVar_AnnotationOffset,  // ImVec2, annotation label offset in pixels (0,0 will center the label)
     ImPlotStyleVar_PlotMinSize,       // ImVec2, minimum size plot frame can be when shrunk
     ImPlotStyleVar_COUNT
 };
@@ -241,7 +240,6 @@ struct ImPlotStyle {
     ImVec2  LegendPadding;           // = 10,10   legend padding from top-left of plot
     ImVec2  InfoPadding;             // = 10,10   padding between plot edge and interior info text
     ImVec2  AnnotationPadding;       // = 2,2     text padding around annotation labels
-    ImVec2  AnnotationOffset;        // = 10,10   annotation label offset in pixels (0,0 will center the label)
     ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
     // colors
     ImVec4  Colors[ImPlotCol_COUNT]; //           array of plot specific colors
@@ -466,12 +464,12 @@ IMPLOT_API ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
 // Plot Tools
 //-----------------------------------------------------------------------------
 
-// Shows an annotation callout at a chosen point. Annotations can be offset or centered with ImPlotStyleVar_AnnotationOffset.
-IMPLOT_API void Annotate(double x, double y, const char* fmt, ...)                             IM_FMTARGS(3);
-IMPLOT_API void Annotate(double x, double y, const ImVec4& color, const char* fmt, ...)        IM_FMTARGS(4);
+// Shows an annotation callout at a chosen point. 
+IMPLOT_API void Annotate(double x, double y, const ImVec2& pix_offset, const char* fmt, ...)                             IM_FMTARGS(4);
+IMPLOT_API void Annotate(double x, double y, const ImVec2& pix_offset, const ImVec4& color, const char* fmt, ...)        IM_FMTARGS(5);
 // Same as above, but the annotation will always be clamped to stay inside the plot area.
-IMPLOT_API void AnnotateClamped(double x, double y, const char* fmt, ...)                      IM_FMTARGS(3);
-IMPLOT_API void AnnotateClamped(double x, double y, const ImVec4& color, const char* fmt, ...) IM_FMTARGS(4);
+IMPLOT_API void AnnotateClamped(double x, double y, const ImVec2& pix_offset, const char* fmt, ...)                      IM_FMTARGS(4);
+IMPLOT_API void AnnotateClamped(double x, double y, const ImVec2& pix_offset, const ImVec4& color, const char* fmt, ...) IM_FMTARGS(5);
 
 // Shows a draggable vertical guide line at an x-value. #col defaults to ImGuiCol_Text.
 IMPLOT_API bool DragLineX(const char* id, double* x_value, bool show_label = true, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);

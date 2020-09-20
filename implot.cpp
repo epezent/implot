@@ -118,7 +118,6 @@ ImPlotStyle::ImPlotStyle() {
     LegendPadding     = ImVec2(10,10);
     InfoPadding       = ImVec2(10,10);
     AnnotationPadding = ImVec2(2,2);
-    AnnotationOffset  = ImVec2(10,10);
     PlotMinSize       = ImVec2(300,225);
 
     ImPlot::StyleColorsAuto(this);
@@ -240,7 +239,6 @@ static const ImPlotStyleVarInfo GPlotStyleVarInfo[] =
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, LegendPadding)     }, // ImPlotStyleVar_LegendPadding
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, InfoPadding)       }, // ImPlotStyleVar_InfoPadding
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, AnnotationPadding) }, // ImPlotStyleVar_AnnotationPadding
-    { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, AnnotationOffset)  }, // ImPlotStyleVar_AnnotationOffset
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, PlotMinSize)       }  // ImPlotStyleVar_PlotMinSize
 };
 
@@ -2540,31 +2538,31 @@ void AnnotateEx(double x, double y, bool clamp, const ImVec4& col, const ImVec2&
     gp.Annotations.AppendV(pos, off, bg, fg, clamp, fmt, args);
 }
 
-void Annotate(double x, double y, const char* fmt, ...) {
+void Annotate(double x, double y, const ImVec2& offset, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    AnnotateEx(x,y,false,ImVec4(0,0,0,0),GImPlot->Style.AnnotationOffset,fmt,args);
+    AnnotateEx(x,y,false,ImVec4(0,0,0,0),offset,fmt,args);
     va_end(args);
 }
 
-void Annotate(double x, double y, const ImVec4& col, const char* fmt, ...) {
+void Annotate(double x, double y, const ImVec2& offset, const ImVec4& col, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    AnnotateEx(x,y,false,col,GImPlot->Style.AnnotationOffset,fmt,args);
+    AnnotateEx(x,y,false,col,offset,fmt,args);
     va_end(args);
 }
 
-void AnnotateClamped(double x, double y, const char* fmt, ...) {
+void AnnotateClamped(double x, double y, const ImVec2& offset, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    AnnotateEx(x,y,true,ImVec4(0,0,0,0),GImPlot->Style.AnnotationOffset,fmt,args);
+    AnnotateEx(x,y,true,ImVec4(0,0,0,0),offset,fmt,args);
     va_end(args);
 }
 
-void AnnotateClamped(double x, double y, const ImVec4& col, const char* fmt, ...) {
+void AnnotateClamped(double x, double y, const ImVec2& offset, const ImVec4& col, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    AnnotateEx(x,y,true,col,GImPlot->Style.AnnotationOffset,fmt,args);
+    AnnotateEx(x,y,true,col,offset,fmt,args);
     va_end(args);
 }
 
@@ -3276,7 +3274,6 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SliderFloat2("LegendPadding", (float*)&style.LegendPadding, 0.0f, 20.0f, "%.0f");
             ImGui::SliderFloat2("InfoPadding", (float*)&style.InfoPadding, 0.0f, 20.0f, "%.0f");
             ImGui::SliderFloat2("AnnotationPadding", (float*)&style.AnnotationPadding, 0.0f, 5.0f, "%.0f");
-            ImGui::SliderFloat2("AnnotationOffset", (float*)&style.AnnotationOffset, -20.0f, 20.0f, "%.0f");
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Colors")) {

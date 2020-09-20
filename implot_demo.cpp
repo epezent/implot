@@ -659,7 +659,7 @@ void ShowDemoWindow(bool* p_open) {
             double t_now = (double)time(0);
             double y_now = HugeTimeData::GetY(t_now);
             ImPlot::PlotScatter("Now",&t_now,&y_now,1);
-            ImPlot::Annotate(t_now,y_now,ImPlot::GetLastItemColor(),"Now");
+            ImPlot::Annotate(t_now,y_now,ImVec2(10,10),ImPlot::GetLastItemColor(),"Now");
             ImPlot::EndPlot();
         }
     }
@@ -867,27 +867,17 @@ void ShowDemoWindow(bool* p_open) {
             static float p[] = {0.25f, 0.25f, 0.75f, 0.75f, 0.25f};
             ImPlot::PlotScatter("##Points",&p[0],&p[1],4);
             ImVec4 col = GetLastItemColor();
-            ImPlot::PushStyleVar(ImPlotStyleVar_AnnotationOffset, ImVec2(-15,15));
-            clamp ? ImPlot::AnnotateClamped(0.25,0.25,col,"BL") : ImPlot::Annotate(0.25,0.25,col,"BL");
-            ImPlot::PushStyleVar(ImPlotStyleVar_AnnotationOffset, ImVec2(15,15));
-            clamp ? ImPlot::AnnotateClamped(0.75,0.25,col,"BR") : ImPlot::Annotate(0.75,0.25,col,"BR");
-            ImPlot::PushStyleVar(ImPlotStyleVar_AnnotationOffset, ImVec2(15,-15));
-            clamp ? ImPlot::AnnotateClamped(0.75,0.75,col,"TR") : ImPlot::Annotate(0.75,0.75,col,"TR");
-            ImPlot::PushStyleVar(ImPlotStyleVar_AnnotationOffset, ImVec2(-15,-15));
-            clamp ? ImPlot::AnnotateClamped(0.25,0.75,col,"TL") : ImPlot::Annotate(0.25,0.75,col,"TL");
-            ImPlot::PushStyleVar(ImPlotStyleVar_AnnotationOffset, ImVec2(0,0));
-            clamp ? ImPlot::AnnotateClamped(0.5,0.5,col,"Center") : ImPlot::Annotate(0.5,0.5,col,"Center");
-            ImPlot::PopStyleVar(5);
+            clamp ? ImPlot::AnnotateClamped(0.25,0.25,ImVec2(-15,15),col,"BL") : ImPlot::Annotate(0.25,0.25,ImVec2(-15,15),col,"BL");
+            clamp ? ImPlot::AnnotateClamped(0.75,0.25,ImVec2(15,15),col,"BR") : ImPlot::Annotate(0.75,0.25,ImVec2(15,15),col,"BR");
+            clamp ? ImPlot::AnnotateClamped(0.75,0.75,ImVec2(15,-15),col,"TR") : ImPlot::Annotate(0.75,0.75,ImVec2(15,-15),col,"TR");
+            clamp ? ImPlot::AnnotateClamped(0.25,0.75,ImVec2(-15,-15),col,"TL") : ImPlot::Annotate(0.25,0.75,ImVec2(-15,-15),col,"TL");
+            clamp ? ImPlot::AnnotateClamped(0.5,0.5,ImVec2(0,0),col,"Center") : ImPlot::Annotate(0.5,0.5,ImVec2(0,0),col,"Center");
 
             float bx[] = {1.2f,1.5f,1.8f};
             float by[] = {0.25f, 0.5f, 0.75f};
             ImPlot::PlotBars("##Bars",bx,by,4,0.2);
-            ImPlot::PushStyleVar(ImPlotStyleVar_AnnotationOffset, ImVec2(0,-5));
-            for (int i = 0; i < 3; ++i) {
-                ImPlot::Annotate(bx[i],by[i],"B[%d]=%.2f",i,by[i]);
-            }
-            ImPlot::PopStyleVar();
-
+            for (int i = 0; i < 3; ++i) 
+                ImPlot::Annotate(bx[i],by[i],ImVec2(0,-5),"B[%d]=%.2f",i,by[i]);            
             ImPlot::EndPlot();
         }
     }
