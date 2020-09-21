@@ -51,7 +51,7 @@ struct ImPlotAxis;
 struct ImPlotAxisState;
 struct ImPlotAxisColor;
 struct ImPlotItem;
-struct ImPlotState;
+struct ImPlotPlot;
 struct ImPlotNextPlotData;
 
 //-----------------------------------------------------------------------------
@@ -158,9 +158,16 @@ struct ImPlotPointArray {
 // [SECTION] ImPlot Enums
 //-----------------------------------------------------------------------------
 
+typedef int ImPlotDirection; // -> enum ImPlotDirection_
 typedef int ImPlotScale;     // -> enum ImPlotScale_
 typedef int ImPlotTimeUnit;  // -> enum ImPlotTimeUnit_
 typedef int ImPlotTimeFmt;   // -> enum ImPlotTimeFmt_
+
+// Axis direction
+enum ImPlotDirection_ {
+    ImPlotDirection_Horizontal, // left/right
+    ImPlotDirection_Vertical    // up/down
+};
 
 // XY axes scaling combinations
 enum ImPlotScale_ {
@@ -370,6 +377,7 @@ struct ImPlotAxis
     ImPlotAxisFlags Flags;
     ImPlotAxisFlags PreviousFlags;
     ImPlotRange     Range;
+    ImPlotDirection Direction;
     bool            Dragging;
     bool            HoveredExt;
     bool            HoveredTot;
@@ -502,7 +510,7 @@ struct ImPlotItem
 };
 
 // Holds Plot state information that must persist after EndPlot
-struct ImPlotState
+struct ImPlotPlot
 {
     ImPlotFlags        Flags;
     ImPlotFlags        PreviousFlags;
@@ -520,11 +528,14 @@ struct ImPlotState
     int                ColormapIdx;
     int                CurrentYAxis;
 
-    ImPlotState() {
-        Flags        = PreviousFlags = ImPlotFlags_None;
-        SelectStart  = QueryStart = ImVec2(0,0);
-        Selecting    = Querying = Queried = DraggingQuery = false;
-        ColormapIdx  = CurrentYAxis = 0;
+    ImPlotPlot() {
+        Flags           = PreviousFlags = ImPlotFlags_None;
+        XAxis.Direction = ImPlotDirection_Horizontal;
+        for (int i = 0; i < IMPLOT_Y_AXES; ++i)
+            YAxis[i].Direction = ImPlotDirection_Vertical;
+        SelectStart     = QueryStart = ImVec2(0,0);
+        Selecting       = Querying = Queried = DraggingQuery = false;
+        ColormapIdx     = CurrentYAxis = 0;
     }
 };
 
@@ -591,8 +602,8 @@ struct ImPlotNextItemData {
 // Holds state information that must persist between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
     // Plot States
-    ImPool<ImPlotState> Plots;
-    ImPlotState*        CurrentPlot;
+    ImPool<ImPlotPlot> Plots;
+    ImPlotPlot*        CurrentPlot;
     ImPlotItem*         CurrentItem;
     ImPlotItem*         PreviousItem;
 
@@ -699,14 +710,14 @@ IMPLOT_API void Reset(ImPlotContext* ctx);
 //-----------------------------------------------------------------------------
 
 // Gets a plot from the current ImPlotContext
-IMPLOT_API ImPlotState* GetPlot(const char* title);
+IMPLOT_API ImPlotPlot* GetPlot(const char* title);
 // Gets the current plot from the current ImPlotContext
-IMPLOT_API ImPlotState* GetCurrentPlot();
+IMPLOT_API ImPlotPlot* GetCurrentPlot();
 // Busts the cache for every plot in the current context
 IMPLOT_API void BustPlotCache();
 
 // Shows a plot's context menu.
-IMPLOT_API void ShowPlotContextMenu(ImPlotState& plot);
+IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Item Utils
@@ -789,6 +800,9 @@ IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlot
 IMPLOT_API void AddTicksTime(const ImPlotRange& range, int nMajor, bool hour24, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
 IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks);
+
+// Create a a string label for a an axis value
+IMPLOT_API int LabelAxisValue(const ImPlotAxis& axis, const ImPlotTickCollection& ticks, double value, char* buff, int size);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Styling Utils

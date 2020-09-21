@@ -391,13 +391,13 @@ void Reset(ImPlotContext* ctx) {
 // Plot Utils
 //-----------------------------------------------------------------------------
 
-ImPlotState* GetPlot(const char* title) {
+ImPlotPlot* GetPlot(const char* title) {
     ImGuiWindow*   Window = GImGui->CurrentWindow;
     const ImGuiID  ID     = Window->GetID(title);
     return GImPlot->Plots.GetByKey(ID);
 }
 
-ImPlotState* GetCurrentPlot() {
+ImPlotPlot* GetCurrentPlot() {
     return GImPlot->CurrentPlot;
 }
 
@@ -1122,6 +1122,24 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, bool hour24, ImPlo
 // Axis Utils
 //-----------------------------------------------------------------------------
 
+int LabelAxisValue(const ImPlotAxis& axis, const ImPlotTickCollection& ticks, double value, char* buff, int size) {
+    ImPlotContext& gp = *GImPlot;
+    if (ImHasFlag(axis.Flags, ImPlotAxisFlags_LogScale)) {
+        return snprintf(buff, size, "%.3E", value);
+    }
+    else if (ImHasFlag(axis.Flags, ImPlotAxisFlags_Time)) {
+        ImPlotTimeUnit unit = (axis.Direction == ImPlotDirection_Horizontal)
+                            ? GetUnitForRange(axis.Range.Size() / (gp.BB_Plot.GetWidth() / 100))
+                            : GetUnitForRange(axis.Range.Size() / (gp.BB_Plot.GetHeight() / 100));
+        return gp.Style.Use24HourClock ? FormatTime24(ImPlotTime::FromDouble(value), buff, size, TimeFormatMouseCursor[unit])
+                                       : FormatTime12(ImPlotTime::FromDouble(value), buff, size, TimeFormatMouseCursor[unit]);
+    }
+    else {
+        double range = ticks.Size > 1 ? (ticks.Ticks[1].PlotPos - ticks.Ticks[0].PlotPos) : axis.Range.Size();
+        return snprintf(buff, size, "%.*f", Precision(range), value);
+    }
+}
+
 void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col) {
     const ImVec4 col_label = GetStyleColorVec4(axis_flag);
     const ImVec4 col_grid  = GetStyleColorVec4(axis_flag + 1);
@@ -1130,7 +1148,6 @@ void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col) {
     col->MajTxt = ImGui::GetColorU32(col_label);
     col->MinTxt = ImGui::GetColorU32(col_label);
 }
-
 
 //-----------------------------------------------------------------------------
 // BeginPlot()
@@ -1160,7 +1177,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     bool just_created = gp.Plots.GetByKey(ID) == NULL;
     gp.CurrentPlot    = gp.Plots.GetOrAddByKey(ID);
-    ImPlotState &plot = *gp.CurrentPlot;
+    ImPlotPlot &plot = *gp.CurrentPlot;
 
     plot.CurrentYAxis = 0;
 
@@ -1878,7 +1895,7 @@ void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
 
 }
 
-void ShowPlotContextMenu(ImPlotState& plot) {
+void ShowPlotContextMenu(ImPlotPlot& plot) {
     ImPlotContext& gp = *GImPlot;
     if (ImGui::BeginMenu("X-Axis")) {
         ImGui::PushID("X");
@@ -1956,7 +1973,7 @@ void EndPlot() {
     ImPlotContext& gp     = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Mismatched BeginPlot()/EndPlot()!");
     ImGuiContext &G       = *GImGui;
-    ImPlotState &plot     = *gp.CurrentPlot;
+    ImPlotPlot &plot     = *gp.CurrentPlot;
     ImGuiWindow * Window  = G.CurrentWindow;
     ImDrawList & DrawList = *Window->DrawList;
     const ImGuiIO &   IO  = ImGui::GetIO();
@@ -2202,7 +2219,7 @@ void EndPlot() {
         DrawList.AddLine(v3, v4, col);
     }
 
-    // render mouse pos
+    // render mouse pos (TODO: use LabelAxisValue)
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos) && gp.Hov_Plot) {
         char buffer[128] = {};
         ImBufferWriter writer(buffer, sizeof(buffer));
@@ -2497,7 +2514,7 @@ ImPlotLimits GetPlotLimits(int y_axis_in) {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotLimits() needs to be called between BeginPlot() and EndPlot()!");
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
 
-    ImPlotState& plot = *gp.CurrentPlot;
+    ImPlotPlot& plot = *gp.CurrentPlot;
     ImPlotLimits limits;
     limits.X = plot.XAxis.Range;
     limits.Y = plot.YAxis[y_axis].Range;
@@ -2514,7 +2531,7 @@ ImPlotLimits GetPlotQuery(int y_axis_in) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
-    ImPlotState& plot = *gp.CurrentPlot;
+    ImPlotPlot& plot = *gp.CurrentPlot;
     const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
 
     UpdateTransformCache();
@@ -2596,8 +2613,9 @@ bool DragLineX(const char* id, double* value, bool show_label, const ImVec4& col
         gp.Hov_Plot = false;
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
         if (show_label) {
-            double range_x = gp.XTicks.Size > 1 ? (gp.XTicks.Ticks[1].PlotPos - gp.XTicks.Ticks[0].PlotPos) : gp.CurrentPlot->XAxis.Range.Size();
-            gp.Annotations.Append(ImVec2(x,yb),ImVec2(0,0),col32,CalcTextColor(color),true,"%s = %.*f", id, Precision(range_x), *value);
+            char buff[32];
+            LabelAxisValue(gp.CurrentPlot->XAxis, gp.XTicks, *value, buff, 32);
+            gp.Annotations.Append(ImVec2(x,yb),ImVec2(0,0),col32,CalcTextColor(color),true,"%s = %s", id, buff);
         }
     }
     bool dragging = false;
@@ -2641,8 +2659,9 @@ bool DragLineY(const char* id, double* value, bool show_label, const ImVec4& col
         gp.Hov_Plot = false;
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
         if (show_label) {
-            double range_y = gp.YTicks[yax].Size > 1 ? (gp.YTicks[yax].Ticks[1].PlotPos - gp.YTicks[yax].Ticks[0].PlotPos) : gp.CurrentPlot->YAxis[yax].Range.Size();
-            gp.Annotations.Append(ImVec2(yax == 0 ? xl : xr,y), ImVec2(0,0), col32, CalcTextColor(color), true,  "%s = %.*f", id, Precision(range_y), *value);
+            char buff[32];
+            LabelAxisValue(gp.CurrentPlot->YAxis[yax], gp.YTicks[yax], *value, buff, 32);
+            gp.Annotations.Append(ImVec2(yax == 0 ? xl : xr,y), ImVec2(0,0), col32, CalcTextColor(color), true,  "%s = %s", id, buff);
         }
     }
     bool dragging = false;
@@ -2678,10 +2697,12 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
         gp.Hov_Plot = false;
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
         if (show_label) {
-            double range_x = gp.XTicks.Size > 1 ? (gp.XTicks.Ticks[1].PlotPos - gp.XTicks.Ticks[0].PlotPos) : gp.CurrentPlot->XAxis.Range.Size();
-            double range_y = gp.YTicks[yax].Size > 1 ? (gp.YTicks[yax].Ticks[1].PlotPos - gp.YTicks[yax].Ticks[0].PlotPos) : gp.CurrentPlot->YAxis[yax].Range.Size();
             ImVec2 label_pos = pos + ImVec2(16 * GImGui->Style.MouseCursorScale, 8 * GImGui->Style.MouseCursorScale);
-            gp.Annotations.Append(label_pos, ImVec2(0.0001f,0.00001f), col32, CalcTextColor(color), true, "%s = %.*f,%.*f", id, Precision(range_x), *x, Precision(range_y), *y);
+            char buff1[32];
+            char buff2[32];
+            LabelAxisValue(gp.CurrentPlot->XAxis, gp.XTicks, *x, buff1, 32);
+            LabelAxisValue(gp.CurrentPlot->YAxis[yax], gp.YTicks[yax], *y, buff2, 32);
+            gp.Annotations.Append(label_pos, ImVec2(0.0001f,0.00001f), col32, CalcTextColor(color), true, "%s = %s,%s", id, buff1, buff2);
         }
     }
     bool dragging = false;

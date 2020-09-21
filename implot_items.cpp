@@ -84,7 +84,7 @@ ImPlotItem* GetItem(const char* label_id) {
 }
 
 ImPlotItem* GetItem(const char* plot_title, const char* item_label_id) {
-    ImPlotState* plot = GetPlot(plot_title);
+    ImPlotPlot* plot = GetPlot(plot_title);
     if (plot) {
         ImGuiID id = ImGui::GetID(item_label_id);
         return plot->Items.GetByKey(id);
@@ -142,7 +142,7 @@ void HideNextItem(bool hidden, ImGuiCond cond) {
 void BustItemCache() {
     ImPlotContext& gp = *GImPlot;
     for (int p = 0; p < gp.Plots.GetSize(); ++p) {
-        ImPlotState& plot = *gp.Plots.GetByIndex(p);
+        ImPlotPlot& plot = *gp.Plots.GetByIndex(p);
         plot.ColormapIdx = 0;
         plot.Items.Clear();
     }
