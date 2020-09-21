@@ -333,6 +333,20 @@ struct GetterFuncPtr {
     const int Offset;
 };
 
+struct GetterFuncPtrFast {
+    GetterFuncPtrFast(ImPlotPoint (*getter)(void* data, int idx), void* data, int count) :
+        Getter(getter),
+        Data(data),
+        Count(count)
+    { }
+    inline ImPlotPoint operator()(int idx) const {
+        return Getter(Data, idx);
+    }
+    ImPlotPoint (* const Getter)(void* data, int idx);
+    void* const Data;
+    const int Count;
+};
+
 template <typename T>
 struct GetterBarV {
     const T* Ys; double XShift; int Count; int Offset; int Stride;
@@ -893,7 +907,11 @@ template IMPLOT_API void PlotLine<double>(const char* label_id, const double* xs
 
 // custom
 void PlotLineG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtr getter(getter_func,data, count, offset);
+    GetterFuncPtr getter(getter_func, data, count, offset);
+    return PlotLineEx(label_id, getter);
+}
+void PlotLineG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count) {
+    GetterFuncPtrFast getter(getter_func, data, count);
     return PlotLineEx(label_id, getter);
 }
 
@@ -964,7 +982,11 @@ template IMPLOT_API void PlotScatter<double>(const char* label_id, const double*
 
 // custom
 void PlotScatterG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtr getter(getter_func,data, count, offset);
+    GetterFuncPtr getter(getter_func, data, count, offset);
+    return PlotScatterEx(label_id, getter);
+}
+void PlotScatterG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count) {
+    GetterFuncPtrFast getter(getter_func, data, count);
     return PlotScatterEx(label_id, getter);
 }
 
@@ -1137,6 +1159,10 @@ void PlotBarsG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int 
     GetterFuncPtr getter(getter_func, data, count, offset);
     PlotBarsEx(label_id, getter, width);
 }
+void PlotBarsG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double width) {
+    GetterFuncPtrFast getter(getter_func, data, count);
+    PlotBarsEx(label_id, getter, width);
+}
 
 //-----------------------------------------------------------------------------
 // PLOT BAR H
@@ -1214,6 +1240,10 @@ template IMPLOT_API void PlotBarsH<double>(const char* label_id, const double* x
 // custom
 void PlotBarsHG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double height,  int offset) {
     GetterFuncPtr getter(getter_func, data, count, offset);
+    PlotBarsHEx(label_id, getter, height);
+}
+void PlotBarsHG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, double height) {
+    GetterFuncPtrFast getter(getter_func, data, count);
     PlotBarsHEx(label_id, getter, height);
 }
 
@@ -1664,7 +1694,11 @@ template IMPLOT_API void PlotDigital<double>(const char* label_id, const double*
 
 // custom
 void PlotDigitalG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtr getter(getter_func,data,count,offset);
+    GetterFuncPtr getter(getter_func, data, count, offset);
+    return PlotDigitalEx(label_id, getter);
+}
+void PlotDigitalG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count) {
+    GetterFuncPtrFast getter(getter_func, data, count);
     return PlotDigitalEx(label_id, getter);
 }
 
@@ -1709,7 +1743,11 @@ void PlotRects(const char* label_id, const double* xs, const double* ys, int cou
 
 // custom
 void PlotRects(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtr getter(getter_func,data,count,offset);
+    GetterFuncPtr getter(getter_func, data, count, offset);
+    return PlotRectsEx(label_id, getter);
+}
+void PlotRects(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count) {
+    GetterFuncPtrFast getter(getter_func, data, count);
     return PlotRectsEx(label_id, getter);
 }
 
