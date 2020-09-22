@@ -1502,7 +1502,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));
         float tx = ImRemap(IO.MousePos.x, gp.BB_Plot.Min.x, gp.BB_Plot.Max.x, 0.0f, 1.0f);
         float ty = ImRemap(IO.MousePos.y, gp.BB_Plot.Min.y, gp.BB_Plot.Max.y, 0.0f, 1.0f);
-        if (plot.XAxis.HoveredTot && !gp.X.Lock) {
+        if (plot.XAxis.HoveredTot && !gp.X.Lock && !gp.NextPlotData.FitX) {
             ImPlotAxisScale axis_scale(0, tx, ty, zoom_rate);
             const ImPlotPoint& plot_tl = axis_scale.Min;
             const ImPlotPoint& plot_br = axis_scale.Max;
@@ -1512,7 +1512,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 plot.XAxis.SetMax(gp.X.Invert ? plot_tl.x : plot_br.x);
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-            if (plot.YAxis[i].HoveredTot && !gp.Y[i].Lock) {
+            if (plot.YAxis[i].HoveredTot && !gp.Y[i].Lock && !gp.NextPlotData.FitY[i]) {
                 ImPlotAxisScale axis_scale(i, tx, ty, zoom_rate);
                 const ImPlotPoint& plot_tl = axis_scale.Min;
                 const ImPlotPoint& plot_br = axis_scale.Max;
@@ -1520,6 +1520,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                     plot.YAxis[i].SetMin(gp.Y[i].Invert ? plot_tl.y : plot_br.y);
                 if (!gp.Y[i].LockMax)
                     plot.YAxis[i].SetMax(gp.Y[i].Invert ? plot_br.y : plot_tl.y);
+                if ((plot.YAxis[i].Range.Max - plot.YAxis[i].Range.Min) <= (2.0 * FLT_EPSILON))  {
+                    plot.YAxis[i].Range.Max += FLT_EPSILON;
+                    plot.YAxis[i].Range.Min -= FLT_EPSILON;
+                }
             }
         }
     }
