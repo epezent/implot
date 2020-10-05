@@ -133,6 +133,81 @@ struct HugeTimeData {
     static const int Size = 60*60*24*366;
 };
 
+
+struct DownSampleData {
+    int Size;
+	ImPlotPoint *data;
+    DownSampleData(int size) {
+        Size = size;
+        data = new ImPlotPoint[Size];
+    }
+
+    ~DownSampleData() {
+        if (data) {
+            delete[] data;
+            data = NULL;
+        }
+    }
+
+    //Largest Triangle Three Buckets (LTTB) Downsampling Algorithm
+    // This is a straightforward C++ port of the reference implementation of the Largest Triangle Three Buckets (LTTB)
+    // downsampling algorithm described in the paper "Downsampling time series for visual representation" by Sveinn Steinarsson.
+    // https://skemman.is/bitstream/1946/15343/3/SS_MSthesis.pdf
+    // https://github.com/sveinn-steinarsson/flot-downsample
+    // https://github.com/parkertomatoes/lttb-cpp
+    void LTTB(HugeTimeData* hgdata) {
+        double every = ((double)(HugeTimeData::Size - 2)) / ((double)(Size - 2));
+        int aIndex = 0;
+        //fill first2 and last 2 samples
+        data[0] = ImPlotPoint(hgdata->Ts[0], hgdata->Ys[0]);
+        data[1] = ImPlotPoint(hgdata->Ts[1], hgdata->Ys[1]);
+        data[Size - 2] = ImPlotPoint(hgdata->Ts[HugeTimeData::Size - 2], hgdata->Ys[HugeTimeData::Size - 2]);
+        data[Size - 1] = ImPlotPoint(hgdata->Ts[HugeTimeData::Size - 1], hgdata->Ys[HugeTimeData::Size - 1]);
+        for (int i = 0; i < Size - 2; ++i) {
+            int avgRangeStart = (int)((i + 1) * every) + 1;
+            int avgRangeEnd = (int)((i + 2) * every) + 1;
+            if (avgRangeEnd > HugeTimeData::Size) {
+                avgRangeEnd = HugeTimeData::Size;
+            }
+
+            double avgRangeLength = avgRangeEnd - avgRangeStart;
+            double avgX = 0.0;
+            double avgY = 0.0;
+            for (; avgRangeStart < avgRangeEnd; ++avgRangeStart) {
+                ImPlotPoint sample = ImPlotPoint(hgdata->Ts[avgRangeStart], hgdata->Ys[avgRangeStart]);
+                avgX += sample.x;
+                avgY += sample.y;
+            }
+            avgX /= avgRangeLength;
+            avgY /= avgRangeLength;
+
+            int rangeOffs = (int)(i * every) + 1;
+            int rangeTo = (int)((i + 1) * every) + 1;
+            ImPlotPoint sample = ImPlotPoint(hgdata->Ts[aIndex], hgdata->Ys[aIndex]);
+            double pointAX = sample.x;
+            double pointAY = sample.y;
+
+            double maxArea = -1.0;
+            int nextAIndex = 0;
+            for (; rangeOffs < rangeTo; ++rangeOffs) {
+                ImPlotPoint sample = ImPlotPoint(hgdata->Ts[rangeOffs], hgdata->Ys[rangeOffs]);
+                double area = fabs((pointAX - avgX) * (sample.y - pointAY) - (pointAX - sample.x) * (avgY - pointAY)) / 2.0;
+                if (area > maxArea) {
+                    maxArea = area;
+                    nextAIndex = rangeOffs;
+                }
+            }
+            data[i] = ImPlotPoint(hgdata->Ts[nextAIndex], hgdata->Ys[nextAIndex]);
+            aIndex = nextAIndex;
+        }
+    }
+
+    static ImPlotPoint cbGetPlotDownSamples(void *data, int idx) {
+        DownSampleData *dataDownSamples = (DownSampleData*)data;
+        return dataDownSamples->data[idx];
+    }
+};
+
 void ShowDemoWindow(bool* p_open) {
     double DEMO_TIME = ImGui::GetTime();
     static bool show_imgui_metrics       = false;
@@ -634,11 +709,22 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Checkbox("Use 24 Hour Clock",&ImPlot::GetStyle().Use24HourClock);
 
         static HugeTimeData* data = NULL;
+        static DownSampleData *dataDownSample = NULL;
         if (data == NULL) {
             ImGui::SameLine();
             if (ImGui::Button("Generate Huge Data (~500MB!)")) {
                 static HugeTimeData sdata(t_min);
                 data = &sdata;
+            }
+        }
+        if (data != NULL) {
+            if (dataDownSample == NULL) {
+                ImGui::SameLine();
+                if (ImGui::Button("Downsample Data")) {
+                    static DownSampleData dsdata(8192);
+                    dataDownSample = &dsdata;
+                    dataDownSample->LTTB(data);
+                }
             }
         }
 
@@ -654,6 +740,9 @@ void ShowDemoWindow(bool* p_open) {
                 int size = (end - start)/downsample;
                 // plot it
                 ImPlot::PlotLine("Time Series", &data->Ts[start], &data->Ys[start], size, 0, sizeof(double)*downsample);
+                if (dataDownSample != NULL) {
+                    ImPlot::PlotLineG("Time Series downsample", DownSampleData::cbGetPlotDownSamples, dataDownSample, dataDownSample->Size);
+                }
             }
             // plot time now
             double t_now = (double)time(0);
@@ -876,8 +965,8 @@ void ShowDemoWindow(bool* p_open) {
             float bx[] = {1.2f,1.5f,1.8f};
             float by[] = {0.25f, 0.5f, 0.75f};
             ImPlot::PlotBars("##Bars",bx,by,3,0.2);
-            for (int i = 0; i < 3; ++i) 
-                ImPlot::Annotate(bx[i],by[i],ImVec2(0,-5),"B[%d]=%.2f",i,by[i]);            
+            for (int i = 0; i < 3; ++i)
+                ImPlot::Annotate(bx[i],by[i],ImVec2(0,-5),"B[%d]=%.2f",i,by[i]);
             ImPlot::EndPlot();
         }
     }
