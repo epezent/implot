@@ -65,12 +65,7 @@ An online version of the demo is hosted [here](https://traineq.org/implot_demo/s
 ## Integration
 
 0) Set up an [ImGui](https://github.com/ocornut/imgui) environment if you don't already have one. 
-1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources. Alternatively, you can get ImPlot using [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/implot). If you are using CMake, you can integrate ImPlot to your project by adding the following to a `CMakeLists.txt` file in your project:
-
-```cpp
-include_directories(path/to/implot/)
-add_subdirectory(path/to/implot/)
-```
+1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources. Alternatively, you can get ImPlot using [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/implot).
 
 2) Create and destroy an `ImPlotContext` wherever you do so for your `ImGuiContext`:
 
@@ -85,6 +80,39 @@ ImGui::DestroyContext();
 You should be good to go!  
 
 If you want to test ImPlot quickly, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
+
+### CMake Integration
+
+If you are using CMake, you can integrate ImPlot to your project by adding the following to a `CMakeLists.txt` file in your project:
+
+```cmake
+include_directories(path/to/implot/)
+add_subdirectory(path/to/implot/)
+```
+
+You can then link ImPlot to a target executable by doing
+
+```cmake
+target_link_libraries(<target executable>
+    implot
+    <other libraries>)
+```
+
+if you want to link the static version of ImPlot, or
+
+```cmake
+target_link_libraries(<target executable>
+    implot_shared
+    <other libraries>)
+```
+
+if you want to link the shared version.
+
+The following are the available build options which you can toggle on or off by setting their value to either `ON` or `OFF`, respectively:
+
+* `BUILD_IMPLOT_SHARED` - builds a shared library version of ImPlot; turned on by default
+* `BUILD_IMPLOT_STATIC` - builds a static library version of ImPlot; turned on by default
+* `BUILD_IMPLOT_DEMO` - includes the demo in the library; turned off by default
 
 ## Special Notes
 
