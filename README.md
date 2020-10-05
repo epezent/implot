@@ -65,7 +65,13 @@ An online version of the demo is hosted [here](https://traineq.org/implot_demo/s
 ## Integration
 
 0) Set up an [ImGui](https://github.com/ocornut/imgui) environment if you don't already have one. 
-1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources. Alternatively, you can get ImPlot using [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/implot). 
+1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources. Alternatively, you can get ImPlot using [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/implot). If you are using CMake, you can integrate ImPlot to your project by adding the following to a `CMakeLists.txt` file in your project:
+
+```cpp
+include_directories(path/to/implot/)
+add_subdirectory(path/to/implot/)
+```
+
 2) Create and destroy an `ImPlotContext` wherever you do so for your `ImGuiContext`:
 
 ```cpp
