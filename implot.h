@@ -464,7 +464,7 @@ IMPLOT_API ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
 // Plot Tools
 //-----------------------------------------------------------------------------
 
-// Shows an annotation callout at a chosen point. 
+// Shows an annotation callout at a chosen point.
 IMPLOT_API void Annotate(double x, double y, const ImVec2& pix_offset, const char* fmt, ...)                             IM_FMTARGS(4);
 IMPLOT_API void Annotate(double x, double y, const ImVec2& pix_offset, const ImVec4& color, const char* fmt, ...)        IM_FMTARGS(5);
 // Same as above, but the annotation will always be clamped to stay inside the plot area.
@@ -606,6 +606,8 @@ IMPLOT_API void PopPlotClipRect();
 
 // Shows ImPlot style selector dropdown menu.
 IMPLOT_API bool ShowStyleSelector(const char* label);
+// Shows ImPlot colormap selector dropdown menu.
+IMPLOT_API bool ShowColormapSelector(const char* label);
 // Shows ImPlot style editor block (not a window).
 IMPLOT_API void ShowStyleEditor(ImPlotStyle* ref = NULL);
 // Add basic help/info block (not a window): how to manipulate ImPlot as an end-user.

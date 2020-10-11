@@ -216,18 +216,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::ShowFontSelector("Font");
         ImGui::ShowStyleSelector("ImGui Style");
         ImPlot::ShowStyleSelector("ImPlot Style");
-
-        static const char* map = ImPlot::GetColormapName(ImPlotColormap_Default);
-        if (ImGui::BeginCombo("ImPlot Colormap", map)) {
-            for (int i = 0; i < ImPlotColormap_COUNT; ++i) {
-                const char* name = GetColormapName(i);
-                if (ImGui::Selectable(name, map == name)) {
-                    map = name;
-                    ImPlot::SetColormap(i);
-                }
-            }
-            ImGui::EndCombo();
-        }
+        ImPlot::ShowColormapSelector("ImPlot Colormap");
         float indent = ImGui::CalcItemWidth() - ImGui::GetFrameHeight();
         ImGui::Indent(ImGui::CalcItemWidth() - ImGui::GetFrameHeight());
         ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines);
