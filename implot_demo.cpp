@@ -1414,7 +1414,7 @@ void StyleSeaborn() {
 // into the public API and expose the necessary building blocks to fully support
 // custom plotters. For now, proceed at your own risk!
 
-#include <implot_internal.h>
+#include "implot_internal.h"
 
 namespace MyImPlot {
 
