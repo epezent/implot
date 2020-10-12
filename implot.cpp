@@ -2555,31 +2555,47 @@ void AnnotateEx(double x, double y, bool clamp, const ImVec4& col, const ImVec2&
     gp.Annotations.AppendV(pos, off, bg, fg, clamp, fmt, args);
 }
 
+void AnnotateV(double x, double y, const ImVec2& offset, const char* fmt, va_list args) {
+    AnnotateEx(x,y,false,ImVec4(0,0,0,0),offset,fmt,args);
+}
+
 void Annotate(double x, double y, const ImVec2& offset, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    AnnotateEx(x,y,false,ImVec4(0,0,0,0),offset,fmt,args);
+    AnnotateV(x,y,offset,fmt,args);
     va_end(args);
+}
+
+void AnnotateV(double x, double y, const ImVec2& offset, const ImVec4& col, const char* fmt, va_list args) {
+    AnnotateEx(x,y,false,col,offset,fmt,args);
 }
 
 void Annotate(double x, double y, const ImVec2& offset, const ImVec4& col, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    AnnotateEx(x,y,false,col,offset,fmt,args);
+    AnnotateV(x,y,offset,col,fmt,args);
     va_end(args);
+}
+
+void AnnotateClampedV(double x, double y, const ImVec2& offset, const char* fmt, va_list args) {
+    AnnotateEx(x,y,true,ImVec4(0,0,0,0),offset,fmt,args);
 }
 
 void AnnotateClamped(double x, double y, const ImVec2& offset, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    AnnotateEx(x,y,true,ImVec4(0,0,0,0),offset,fmt,args);
+    AnnotateClampedV(x,y,offset,fmt,args);
     va_end(args);
+}
+
+void AnnotateClampedV(double x, double y, const ImVec2& offset, const ImVec4& col, const char* fmt, va_list args) {
+    AnnotateEx(x,y,true,col,offset,fmt,args);
 }
 
 void AnnotateClamped(double x, double y, const ImVec2& offset, const ImVec4& col, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    AnnotateEx(x,y,true,col,offset,fmt,args);
+    AnnotateClampedV(x,y,offset,col,fmt,args);
     va_end(args);
 }
 
