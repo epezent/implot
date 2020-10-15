@@ -829,7 +829,7 @@ ImPlotTime CombineDateTime(const ImPlotTime& date_part, const ImPlotTime& tod_pa
 
 static const char* MONTH_NAMES[]  = {"January","February","March","April","May","June","July","August","September","October","November","December"};
 static const char* WD_ABRVS[]     = {"Su","Mo","Tu","We","Th","Fr","Sa"};
-static const char* MONTH_ABRVS[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+static const char* MONTH_ABRVS[]  = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 
 int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt, bool use_24_hr_clk) {
     tm& Tm = GImPlot->Tm;
@@ -900,10 +900,10 @@ int FormatDate(const ImPlotTime& t, char* buffer, int size, ImPlotDateFmt fmt, b
 
 int FormatDateTime(const ImPlotTime& t, char* buffer, int size, ImPlotDateTimeFmt fmt) {
     int written = 0;
-    if (fmt.Date != ImPlotDateFmt_None) 
-        written += FormatDate(t, buffer, size, fmt.Date, fmt.UseISO8601);    
+    if (fmt.Date != ImPlotDateFmt_None)
+        written += FormatDate(t, buffer, size, fmt.Date, fmt.UseISO8601);
     if (fmt.Time != ImPlotTimeFmt_None) {
-        if (fmt.Date != ImPlotDateFmt_None) 
+        if (fmt.Date != ImPlotDateFmt_None)
             buffer[written++] = ' ';
         written += FormatTime(t, &buffer[written], size - written, fmt.Time, fmt.Use24HourClock);
     }
@@ -911,7 +911,7 @@ int FormatDateTime(const ImPlotTime& t, char* buffer, int size, ImPlotDateTimeFm
 }
 
 inline float GetDateTimeWidth(ImPlotDateTimeFmt fmt) {
-    static ImPlotTime t_max_width = MakeTime(2888, 12, 22, 12, 58, 58, 888888); // best guess at time that maximizes width
+    static ImPlotTime t_max_width = MakeTime(2888, 12, 22, 12, 58, 58, 888888); // best guess at time that maximizes pixel width
     char buffer[32];
     FormatDateTime(t_max_width, buffer, 32, fmt);
     return ImGui::CalcTextSize(buffer).x;
@@ -973,9 +973,9 @@ static const ImPlotDateTimeFmt TimeFormatMouseCursor[ImPlotTimeUnit_COUNT] = {
     ImPlotDateTimeFmt(ImPlotDateFmt_None,     ImPlotTimeFmt_SMs),
     ImPlotDateTimeFmt(ImPlotDateFmt_None,     ImPlotTimeFmt_HrMinS),
     ImPlotDateTimeFmt(ImPlotDateFmt_None,     ImPlotTimeFmt_HrMin),
-    ImPlotDateTimeFmt(ImPlotTimeFmt_DayMoHr,  ImPlotTimeFmt_None),
-    ImPlotDateTimeFmt(ImPlotTimeFmt_DayMoYr,  ImPlotTimeFmt_None),
-    ImPlotDateTimeFmt(ImPlotTimeFmt_MoYr,     ImPlotTimeFmt_None)
+    ImPlotDateTimeFmt(ImPlotDateFmt_DayMo,    ImPlotTimeFmt_Hr),
+    ImPlotDateTimeFmt(ImPlotDateFmt_DayMoYr,  ImPlotTimeFmt_None),
+    ImPlotDateTimeFmt(ImPlotDateFmt_MoYr,     ImPlotTimeFmt_None)
 };
 
 inline ImPlotDateTimeFmt GetDateTimeFmt(const ImPlotDateTimeFmt* ctx, ImPlotTimeUnit idx) {
@@ -1005,8 +1005,8 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
         // pixels per major (level 1) division
         const float pix_per_major_div = plot_width / (float)(range.Size() / TimeUnitSpans[unit1]);
         // nominal pixels taken up by labels
-        const float fmt0_width = GetDateTimeWidth(fmt0); 
-        const float fmt1_width = GetDateTimeWidth(fmt1); 
+        const float fmt0_width = GetDateTimeWidth(fmt0);
+        const float fmt1_width = GetDateTimeWidth(fmt1);
         const float fmtf_width = GetDateTimeWidth(fmtf);
         // the maximum number of minor (level 0) labels that can fit between major (level 1) divisions
         const int   minor_per_major   = (int)(max_density * pix_per_major_div / fmt0_width);
@@ -1060,7 +1060,7 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
     }
     else {
         const ImPlotDateTimeFmt fmty = GetDateTimeFmt(TimeFormatLevel0, ImPlotTimeUnit_Yr);
-        const float label_width = GetDateTimeWidth(fmty); 
+        const float label_width = GetDateTimeWidth(fmty);
         const int   max_labels  = (int)(max_density * plot_width / label_width);
         const int year_min      = GetYear(t_min);
         const int year_max      = GetYear(CeilTime(t_max, ImPlotTimeUnit_Yr));
