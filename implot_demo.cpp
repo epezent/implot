@@ -618,9 +618,11 @@ void ShowDemoWindow(bool* p_open) {
                           "UNIX timestamps in seconds and axis labels are formated as date/time.");
         ImGui::BulletText("By default, labels are in UTC time but can be set to use local time instead.");
 
-        ImGui::Checkbox("Use Local Time",&ImPlot::GetStyle().UseLocalTime);
+        ImGui::Checkbox("Local Time",&ImPlot::GetStyle().UseLocalTime);
         ImGui::SameLine();
-        ImGui::Checkbox("Use 24 Hour Clock",&ImPlot::GetStyle().Use24HourClock);
+        ImGui::Checkbox("ISO 8601",&ImPlot::GetStyle().UseISO8601);
+        ImGui::SameLine();
+        ImGui::Checkbox("24 Hour Clock",&ImPlot::GetStyle().Use24HourClock);
 
         static HugeTimeData* data = NULL;
         if (data == NULL) {
@@ -865,8 +867,8 @@ void ShowDemoWindow(bool* p_open) {
             float bx[] = {1.2f,1.5f,1.8f};
             float by[] = {0.25f, 0.5f, 0.75f};
             ImPlot::PlotBars("##Bars",bx,by,3,0.2);
-            for (int i = 0; i < 3; ++i) 
-                ImPlot::Annotate(bx[i],by[i],ImVec2(0,-5),"B[%d]=%.2f",i,by[i]);            
+            for (int i = 0; i < 3; ++i)
+                ImPlot::Annotate(bx[i],by[i],ImVec2(0,-5),"B[%d]=%.2f",i,by[i]);
             ImPlot::EndPlot();
         }
     }
@@ -1455,7 +1457,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
         if (idx != -1) {
             ImGui::BeginTooltip();
             char buff[32];
-            ImPlot::FormatTime12(ImPlotTime::FromDouble(xs[idx]),buff,32,ImPlotTimeFmt_DayMoYr);
+            ImPlot::FormatDate(ImPlotTime::FromDouble(xs[idx]),buff,32,ImPlotDateFmt_DayMoYr,ImPlot::GetStyle().UseISO8601);
             ImGui::Text("Day:   %s",  buff);
             ImGui::Text("Open:  $%.2f", opens[idx]);
             ImGui::Text("Close: $%.2f", closes[idx]);
