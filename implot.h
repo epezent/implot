@@ -246,6 +246,7 @@ struct ImPlotStyle {
     // settings/flags
     bool    AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
     bool    UseLocalTime;            // = false,  axis labels will be formatted for your timezone when ImPlotAxisFlag_Time is enabled
+    bool    UseISO8601;              // = false,  dates will be formatted according to ISO 8601 where applicable (e.g., YYYY-MM-DD, --MM-DD)
     bool    Use24HourClock;          // = false,  hours will be formatted for 24 hour clock
     IMPLOT_API ImPlotStyle();
 };

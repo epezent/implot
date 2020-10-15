@@ -620,11 +620,12 @@ void ShowDemoWindow(bool* p_open) {
 
         ImGui::Checkbox("Use Local Time",&ImPlot::GetStyle().UseLocalTime);
         ImGui::SameLine();
+        ImGui::Checkbox("Use ISO 8601",&ImPlot::GetStyle().UseISO8601);
+        ImGui::SameLine();
         ImGui::Checkbox("Use 24 Hour Clock",&ImPlot::GetStyle().Use24HourClock);
 
         static HugeTimeData* data = NULL;
         if (data == NULL) {
-            ImGui::SameLine();
             if (ImGui::Button("Generate Huge Data (~500MB!)")) {
                 static HugeTimeData sdata(t_min);
                 data = &sdata;
@@ -1455,7 +1456,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
         if (idx != -1) {
             ImGui::BeginTooltip();
             char buff[32];
-            ImPlot::FormatTime12(ImPlotTime::FromDouble(xs[idx]),buff,32,ImPlotTimeFmt_DayMoYr);
+            ImPlot::FormatDate(ImPlotTime::FromDouble(xs[idx]),buff,32,ImPlotTimeFmt_DayMoYr,ImPlot::GetStyle().UseISO8601);
             ImGui::Text("Day:   %s",  buff);
             ImGui::Text("Open:  $%.2f", opens[idx]);
             ImGui::Text("Close: $%.2f", closes[idx]);
