@@ -186,7 +186,7 @@ enum ImPlotColormap_ {
     ImPlotColormap_COUNT
 };
 
-// Location, combineable with bitwise OR, e.g. ImPlotLocation_North | ImPlotLocation_West
+// Location, use individually or combined with bitwise OR, e.g. ImPlotLocation_North | ImPlotLocation_West
 enum ImPlotLocation_ {
     ImPlotLocation_North = 1 << 0, // top
     ImPlotLocation_South = 1 << 1, // bottom

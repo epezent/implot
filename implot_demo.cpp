@@ -810,7 +810,6 @@ void ShowDemoWindow(bool* p_open) {
         loc = s ? loc | ImPlotLocation_South : loc;
         loc = w ? loc | ImPlotLocation_West : loc;
         loc = e ? loc | ImPlotLocation_East : loc;
-        
         ImPlot::PushStyleVar(ImPlotStyleVar_LegendPadding, padding);
         if (ImPlot::BeginPlot("Legend Locations")) {
             ImPlot::SetLegendLocation(loc);
