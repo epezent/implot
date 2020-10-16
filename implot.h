@@ -59,7 +59,7 @@ typedef int ImPlotStyleVar;    // -> enum ImPlotStyleVar_
 typedef int ImPlotMarker;      // -> enum ImPlotMarker_
 typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 typedef int ImPlotLocation;    // -> enum ImPlotLocation_
-
+typedef int ImPlotOrientation; // -> enum ImPlotOrientation_
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -67,7 +67,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoLegend      = 1 << 0,  // the top-left legend will not be displayed
     ImPlotFlags_NoMenus       = 1 << 1,  // the user will not be able to open context menus with double-right click
     ImPlotFlags_NoBoxSelect   = 1 << 2,  // the user will not be able to box-select with right-mouse
-    ImPlotFlags_NoMousePos    = 1 << 3,  // the mouse position, in plot coordinates, will not be displayed in the bottom-right
+    ImPlotFlags_NoMousePos    = 1 << 3,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
     ImPlotFlags_NoHighlight   = 1 << 4,  // plot items will not be highlighted when their legend entry is hovered
     ImPlotFlags_NoChild       = 1 << 5,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
     ImPlotFlags_YAxis2        = 1 << 6,  // enable a 2nd y-axis on the right side
@@ -127,30 +127,31 @@ enum ImPlotCol_ {
 // Plot styling variables.
 enum ImPlotStyleVar_ {
     // item styling variables
-    ImPlotStyleVar_LineWeight,        // float,  plot item line weight in pixels
-    ImPlotStyleVar_Marker,            // int,    marker specification
-    ImPlotStyleVar_MarkerSize,        // float,  marker size in pixels (roughly the marker's "radius")
-    ImPlotStyleVar_MarkerWeight,      // float,  plot outline weight of markers in pixels
-    ImPlotStyleVar_FillAlpha,         // float,  alpha modifier applied to all plot item fills
-    ImPlotStyleVar_ErrorBarSize,      // float,  error bar whisker width in pixels
-    ImPlotStyleVar_ErrorBarWeight,    // float,  error bar whisker weight in pixels
-    ImPlotStyleVar_DigitalBitHeight,  // float,  digital channels bit height (at 1) in pixels
-    ImPlotStyleVar_DigitalBitGap,     // float,  digital channels bit padding gap in pixels
+    ImPlotStyleVar_LineWeight,         // float,  plot item line weight in pixels
+    ImPlotStyleVar_Marker,             // int,    marker specification
+    ImPlotStyleVar_MarkerSize,         // float,  marker size in pixels (roughly the marker's "radius")
+    ImPlotStyleVar_MarkerWeight,       // float,  plot outline weight of markers in pixels
+    ImPlotStyleVar_FillAlpha,          // float,  alpha modifier applied to all plot item fills
+    ImPlotStyleVar_ErrorBarSize,       // float,  error bar whisker width in pixels
+    ImPlotStyleVar_ErrorBarWeight,     // float,  error bar whisker weight in pixels
+    ImPlotStyleVar_DigitalBitHeight,   // float,  digital channels bit height (at 1) in pixels
+    ImPlotStyleVar_DigitalBitGap,      // float,  digital channels bit padding gap in pixels
     // plot styling variables
-    ImPlotStyleVar_PlotBorderSize,    // float,  thickness of border around plot area
-    ImPlotStyleVar_MinorAlpha,        // float,  alpha multiplier applied to minor axis grid lines
-    ImPlotStyleVar_MajorTickLen,      // ImVec2, major tick lengths for X and Y axes
-    ImPlotStyleVar_MinorTickLen,      // ImVec2, minor tick lengths for X and Y axes
-    ImPlotStyleVar_MajorTickSize,     // ImVec2, line thickness of major ticks
-    ImPlotStyleVar_MinorTickSize,     // ImVec2, line thickness of minor ticks
-    ImPlotStyleVar_MajorGridSize,     // ImVec2, line thickness of major grid lines
-    ImPlotStyleVar_MinorGridSize,     // ImVec2, line thickness of minor grid lines
-    ImPlotStyleVar_PlotPadding,       // ImVec2, padding between widget frame and plot area and/or labels
-    ImPlotStyleVar_LabelPadding,      // ImVec2, padding between axes labels, tick labels, and plot edge
-    ImPlotStyleVar_LegendPadding,     // ImVec2, legend padding from top-left of plot
-    ImPlotStyleVar_InfoPadding,       // ImVec2, padding between plot edge and interior info text
-    ImPlotStyleVar_AnnotationPadding, // ImVec2, text padding around annotation labels
-    ImPlotStyleVar_PlotMinSize,       // ImVec2, minimum size plot frame can be when shrunk
+    ImPlotStyleVar_PlotBorderSize,     // float,  thickness of border around plot area
+    ImPlotStyleVar_MinorAlpha,         // float,  alpha multiplier applied to minor axis grid lines
+    ImPlotStyleVar_MajorTickLen,       // ImVec2, major tick lengths for X and Y axes
+    ImPlotStyleVar_MinorTickLen,       // ImVec2, minor tick lengths for X and Y axes
+    ImPlotStyleVar_MajorTickSize,      // ImVec2, line thickness of major ticks
+    ImPlotStyleVar_MinorTickSize,      // ImVec2, line thickness of minor ticks
+    ImPlotStyleVar_MajorGridSize,      // ImVec2, line thickness of major grid lines
+    ImPlotStyleVar_MinorGridSize,      // ImVec2, line thickness of minor grid lines
+    ImPlotStyleVar_PlotPadding,        // ImVec2, padding between widget frame and plot area and/or labels
+    ImPlotStyleVar_LabelPadding,       // ImVec2, padding between axes labels, tick labels, and plot edge
+    ImPlotStyleVar_LegendPadding,      // ImVec2, legend padding from plot edges
+    ImPlotStyleVar_LegendInnerPadding, // ImVec2, legend inner padding from legend edges
+    ImPlotStyleVar_MousePosPadding,    // ImVec2, padding between plot edge and interior info text
+    ImPlotStyleVar_AnnotationPadding,  // ImVec2, text padding around annotation labels
+    ImPlotStyleVar_PlotMinSize,        // ImVec2, minimum size plot frame can be when shrunk
     ImPlotStyleVar_COUNT
 };
 
@@ -192,6 +193,12 @@ enum ImPlotLocation_ {
     ImPlotLocation_South = 1 << 1, // bottom
     ImPlotLocation_West  = 1 << 2, // left
     ImPlotLocation_East  = 1 << 3  // right
+};
+
+// Orientation
+enum ImPlotOrientation_ {
+    ImPlotOrientation_Horizontal, // left/right
+    ImPlotOrientation_Vertical    // up/down
 };
 
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
@@ -247,8 +254,9 @@ struct ImPlotStyle {
     ImVec2  MinorGridSize;           // = 1,1     line thickness of minor grid lines
     ImVec2  PlotPadding;             // = 8,8     padding between widget frame and plot area and/or labels
     ImVec2  LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
-    ImVec2  LegendPadding;           // = 10,10   legend padding from top-left of plot
-    ImVec2  InfoPadding;             // = 10,10   padding between plot edge and interior info text
+    ImVec2  LegendPadding;           // = 10,10   legend padding from plot edges
+    ImVec2  LegendInnerPadding;      // = 5,5     legend inner padding from legend edges
+    ImVec2  MousePosPadding;         // = 10,10   padding between plot edge and interior mouse location text
     ImVec2  AnnotationPadding;       // = 2,2     text padding around annotation labels
     ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
     // colors
@@ -501,10 +509,10 @@ IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label 
 // Legend Utils and Tools
 //-----------------------------------------------------------------------------
 
-// Set the location of the current plot's legend.
-IMPLOT_API void SetLegendLocation(ImPlotLocation location);
-// Get the location of the current plot's legend.
-IMPLOT_API ImPlotLocation GetLegendLocation();
+// Set the location of the current plot's legend (default = North|West, Vertical).
+IMPLOT_API void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation = ImPlotOrientation_Vertical);
+// Set the locaton of the current plot's mouse position text (default = South|East).
+IMPLOT_API void SetMousePosLocation(ImPlotLocation location);
 // Returns true if a plot item legend entry is hovered.
 IMPLOT_API bool IsLegendEntryHovered(const char* label_id);
 // Begin a drag and drop source from a legend entry. The only supported flag is SourceNoPreviewTooltip

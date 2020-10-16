@@ -350,11 +350,13 @@ void ShowDemoWindow(bool* p_open) {
                               ImVec2(-1,0), 0, 0, horz ? ImPlotAxisFlags_Invert : 0))
         {
             if (horz) {
+                ImPlot::SetLegendLocation(ImPlotLocation_West, ImPlotOrientation_Vertical);
                 ImPlot::PlotBarsH("Midterm Exam", midtm, 10, 0.2, -0.2);
                 ImPlot::PlotBarsH("Final Exam",   final, 10, 0.2,    0);
                 ImPlot::PlotBarsH("Course Grade", grade, 10, 0.2,  0.2);
             }
             else {
+                ImPlot::SetLegendLocation(ImPlotLocation_South, ImPlotOrientation_Horizontal);
                 ImPlot::PlotBars("Midterm Exam", midtm, 10, 0.2, -0.2);
                 ImPlot::PlotBars("Final Exam",   final, 10, 0.2,    0);
                 ImPlot::PlotBars("Course Grade", grade, 10, 0.2,  0.2);
@@ -798,27 +800,32 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Legend")) {
-        static bool n = true; static bool s = false; static bool w = true; static bool e = false;
-        static ImVec2 padding = GetStyle().LegendPadding;
+        static bool n = true; static bool s = false; static bool w = true; static bool e = false; static bool h = false;
+        static ImVec2 padding      = GetStyle().LegendPadding;
+        static ImVec2 innerPadding = GetStyle().LegendInnerPadding;
         ImGui::Checkbox("North", &n); ImGui::SameLine();
         ImGui::Checkbox("South", &s); ImGui::SameLine();
         ImGui::Checkbox("West",  &w); ImGui::SameLine();
-        ImGui::Checkbox("East",  &e);
-        ImGui::SliderFloat2("Legend Padding", (float*)&padding, 0.0f, 20.0f, "%.0f");
+        ImGui::Checkbox("East",  &e); ImGui::SameLine();
+        ImGui::Checkbox("Horizontal", &h);
+        ImGui::SliderFloat2("LegendPadding", (float*)&padding, 0.0f, 20.0f, "%.0f");
+        ImGui::SliderFloat2("LegendInnerPadding", (float*)&innerPadding, 0.0f, 10.0f, "%.0f");
         ImPlotLocation loc = 0;
         loc = n ? loc | ImPlotLocation_North : loc;
         loc = s ? loc | ImPlotLocation_South : loc;
         loc = w ? loc | ImPlotLocation_West : loc;
         loc = e ? loc | ImPlotLocation_East : loc;
         ImPlot::PushStyleVar(ImPlotStyleVar_LegendPadding, padding);
+        ImPlot::PushStyleVar(ImPlotStyleVar_LegendInnerPadding, innerPadding);
         if (ImPlot::BeginPlot("Legend Locations")) {
-            ImPlot::SetLegendLocation(loc);
+            ImPlot::SetLegendLocation(loc, h ? ImPlotOrientation_Horizontal : ImPlotOrientation_Vertical);
             ImPlot::PlotDummy("Item 1");
-            ImPlot::PlotDummy("Item 2");
+            ImPlot::PlotDummy("Item 2##IdentifierText");
+            ImPlot::PlotDummy("##NotDisplayed");
             ImPlot::PlotDummy("Item 3");
             ImPlot::EndPlot();
         }
-        ImPlot::PopStyleVar();
+        ImPlot::PopStyleVar(2);
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag Lines and Points")) {
@@ -1426,7 +1433,7 @@ void StyleSeaborn() {
     style.PlotPadding      = ImVec2(12,12);
     style.LabelPadding     = ImVec2(5,5);
     style.LegendPadding    = ImVec2(5,5);
-    style.InfoPadding      = ImVec2(5,5);
+    style.MousePosPadding      = ImVec2(5,5);
     style.PlotMinSize      = ImVec2(300,225);
 }
 

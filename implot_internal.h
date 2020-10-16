@@ -158,17 +158,10 @@ struct ImPlotPointArray {
 // [SECTION] ImPlot Enums
 //-----------------------------------------------------------------------------
 
-typedef int ImPlotOrientation; // -> enum ImPlotOrientation_
 typedef int ImPlotScale;       // -> enum ImPlotScale_
 typedef int ImPlotTimeUnit;    // -> enum ImPlotTimeUnit_
 typedef int ImPlotDateFmt;     // -> enum ImPlotDateFmt_
 typedef int ImPlotTimeFmt;     // -> enum ImPlotTimeFmt_
-
-// Orientation
-enum ImPlotOrientation_ {
-    ImPlotOrientation_Horizontal, // left/right
-    ImPlotOrientation_Vertical    // up/down
-};
 
 // XY axes scaling combinations
 enum ImPlotScale_ {
@@ -543,16 +536,20 @@ struct ImPlotPlot
     int                ColormapIdx;
     int                CurrentYAxis;
     ImPlotLocation     LegendLocation;
+    ImPlotOrientation  LegendOrientation;
+    ImPlotLocation     MousePosLocation;
 
     ImPlotPlot() {
         Flags           = PreviousFlags = ImPlotFlags_None;
         XAxis.Direction = ImPlotOrientation_Horizontal;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
             YAxis[i].Direction = ImPlotOrientation_Vertical;
-        SelectStart     = QueryStart = ImVec2(0,0);
-        Selecting       = Querying = Queried = DraggingQuery = false;
-        ColormapIdx     = CurrentYAxis = 0;
-        LegendLocation  = ImPlotLocation_North | ImPlotLocation_West;
+        SelectStart       = QueryStart = ImVec2(0,0);
+        Selecting         = Querying = Queried = DraggingQuery = false;
+        ColormapIdx       = CurrentYAxis = 0;
+        LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
+        LegendOrientation = ImPlotOrientation_Vertical;
+        MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
     }
 };
 
