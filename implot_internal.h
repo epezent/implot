@@ -158,16 +158,25 @@ struct ImPlotPointArray {
 // [SECTION] ImPlot Enums
 //-----------------------------------------------------------------------------
 
-typedef int ImPlotDirection; // -> enum ImPlotDirection_
-typedef int ImPlotScale;     // -> enum ImPlotScale_
-typedef int ImPlotTimeUnit;  // -> enum ImPlotTimeUnit_
-typedef int ImPlotDateFmt;   // -> enum ImPlotDateFmt_
-typedef int ImPlotTimeFmt;   // -> enum ImPlotTimeFmt_
+typedef int ImPlotOrientation; // -> enum ImPlotOrientation_
+typedef int ImPlotLocation;    // -> enum ImPlotLocation_
+typedef int ImPlotScale;       // -> enum ImPlotScale_
+typedef int ImPlotTimeUnit;    // -> enum ImPlotTimeUnit_
+typedef int ImPlotDateFmt;     // -> enum ImPlotDateFmt_
+typedef int ImPlotTimeFmt;     // -> enum ImPlotTimeFmt_
 
-// Axis direction
-enum ImPlotDirection_ {
-    ImPlotDirection_Horizontal, // left/right
-    ImPlotDirection_Vertical    // up/down
+// Orientation
+enum ImPlotOrientation_ {
+    ImPlotOrientation_Horizontal, // left/right
+    ImPlotOrientation_Vertical    // up/down
+};
+
+// Location, combineable with bitwise OR, e.g. ImPlotLocation_North | ImPlotLocation_West
+enum ImPlotLocation_ {
+    ImPlotLocation_North = 1 << 0, // top
+    ImPlotLocation_South = 1 << 1, // bottom
+    ImPlotLocation_West  = 1 << 2, // left
+    ImPlotLocation_East  = 1 << 3  // right
 };
 
 // XY axes scaling combinations
@@ -195,7 +204,7 @@ enum ImPlotDateFmt_ {              // default        [ ISO 8601     ]
     ImPlotDateFmt_DayMo,           // 10/3           [ --10-03      ]
     ImPlotDateFmt_DayMoYr,         // 10/3/91        [ 1991-10-03   ]
     ImPlotDateFmt_MoYr,            // Oct 1991       [ 1991-10      ]
-    ImPlotDateFmt_Mo,              // Oct            [ --10-01      ]
+    ImPlotDateFmt_Mo,              // Oct            [ --10         ]
     ImPlotDateFmt_Yr               // 1991           [ 1991         ]
 };
 
@@ -392,7 +401,7 @@ struct ImPlotAxis
     ImPlotAxisFlags Flags;
     ImPlotAxisFlags PreviousFlags;
     ImPlotRange     Range;
-    ImPlotDirection Direction;
+    ImPlotOrientation Direction;
     bool            Dragging;
     bool            HoveredExt;
     bool            HoveredTot;
@@ -542,15 +551,17 @@ struct ImPlotPlot
     bool               DraggingQuery;
     int                ColormapIdx;
     int                CurrentYAxis;
+    ImPlotLocation     LegendLocation;
 
     ImPlotPlot() {
         Flags           = PreviousFlags = ImPlotFlags_None;
-        XAxis.Direction = ImPlotDirection_Horizontal;
+        XAxis.Direction = ImPlotOrientation_Horizontal;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
-            YAxis[i].Direction = ImPlotDirection_Vertical;
+            YAxis[i].Direction = ImPlotOrientation_Vertical;
         SelectStart     = QueryStart = ImVec2(0,0);
         Selecting       = Querying = Queried = DraggingQuery = false;
         ColormapIdx     = CurrentYAxis = 0;
+        LegendLocation  = ImPlotLocation_North | ImPlotLocation_South;
     }
 };
 

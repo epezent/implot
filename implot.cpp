@@ -881,7 +881,7 @@ int FormatDate(const ImPlotTime& t, char* buffer, int size, ImPlotDateFmt fmt, b
             case ImPlotDateFmt_DayMo:   return snprintf(buffer, size, "--%02d-%02d", mon, day);
             case ImPlotDateFmt_DayMoYr: return snprintf(buffer, size, "%d-%02d-%02d", year, mon, day);
             case ImPlotDateFmt_MoYr:    return snprintf(buffer, size, "%d-%02d", year, mon);
-            case ImPlotDateFmt_Mo:      return snprintf(buffer, size, "--%02d-01", mon);
+            case ImPlotDateFmt_Mo:      return snprintf(buffer, size, "--%02d", mon);
             case ImPlotDateFmt_Yr:      return snprintf(buffer, size, "%d", year);
             default:                    return 0;
         }
@@ -1092,7 +1092,7 @@ int LabelAxisValue(const ImPlotAxis& axis, const ImPlotTickCollection& ticks, do
         return snprintf(buff, size, "%.3E", value);
     }
     else if (ImHasFlag(axis.Flags, ImPlotAxisFlags_Time)) {
-        ImPlotTimeUnit unit = (axis.Direction == ImPlotDirection_Horizontal)
+        ImPlotTimeUnit unit = (axis.Direction == ImPlotOrientation_Horizontal)
                             ? GetUnitForRange(axis.Range.Size() / (gp.BB_Plot.GetWidth() / 100))
                             : GetUnitForRange(axis.Range.Size() / (gp.BB_Plot.GetHeight() / 100));
         return FormatDateTime(ImPlotTime::FromDouble(value), buff, size, GetDateTimeFmt(TimeFormatMouseCursor, unit));
@@ -2098,22 +2098,38 @@ void EndPlot() {
 
     // render legend
     const float txt_ht = ImGui::GetTextLineHeight();
-    const ImVec2 legend_offset = gp.Style.LegendPadding;
-    const ImVec2 legend_spacing(5, 5);
+    const ImVec2 legend_ext_pad = gp.Style.LegendPadding;
+    const ImVec2 legend_int_pad(5, 5);
     const float  legend_icon_size = txt_ht;
-    ImRect legend_content_bb;
     int nItems = GetLegendCount();
     bool hov_legend = false;
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && nItems > 0) {
-        // get max width
+        // get label max width
         float max_label_width = 0;
         for (int i = 0; i < nItems; ++i) {
             const char* label = GetLegendLabel(i);
             ImVec2 labelWidth = ImGui::CalcTextSize(label, NULL, true);
             max_label_width   = labelWidth.x > max_label_width ? labelWidth.x : max_label_width;
         }
-        legend_content_bb = ImRect(gp.BB_Plot.Min + legend_offset, gp.BB_Plot.Min + legend_offset + ImVec2(max_label_width, nItems * txt_ht));
-        plot.BB_Legend    = ImRect(legend_content_bb.Min, legend_content_bb.Max + legend_spacing * 2 + ImVec2(legend_icon_size, 0));
+        // calc legend size
+        const ImVec2 legend_size(legend_int_pad.x * 2 + legend_icon_size + max_label_width, legend_int_pad.y * 2 + nItems * txt_ht);
+        // legend reference point
+        ImVec2 legend_ref;
+        if (ImHasFlag(plot.LegendLocation, ImPlotLocation_West) && !ImHasFlag(plot.LegendLocation, ImPlotLocation_East))
+            legend_ref.x = gp.BB_Plot.Min.x + legend_ext_pad.x;
+        else if (!ImHasFlag(plot.LegendLocation, ImPlotLocation_West) && ImHasFlag(plot.LegendLocation, ImPlotLocation_East))
+            legend_ref.x = gp.BB_Plot.Max.x - legend_ext_pad.x - legend_size.x;
+        else
+            legend_ref.x = gp.BB_Plot.GetCenter().x - legend_size.x * 0.5f;
+        if (ImHasFlag(plot.LegendLocation, ImPlotLocation_North) && !ImHasFlag(plot.LegendLocation, ImPlotLocation_South))
+            legend_ref.y = gp.BB_Plot.Min.y + legend_ext_pad.y;
+        else if (!ImHasFlag(plot.LegendLocation, ImPlotLocation_North) && ImHasFlag(plot.LegendLocation, ImPlotLocation_South))
+            legend_ref.y = gp.BB_Plot.Max.y - legend_ext_pad.y - legend_size.y;
+        else
+            legend_ref.y = gp.BB_Plot.GetCenter().y - legend_size.y * 0.5f; 
+        // legend bounding box
+        plot.BB_Legend   = ImRect(legend_ref, legend_ref + legend_size);    
+        // test hover
         hov_legend = !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;
         // render legend box
         ImU32  col_bg = GetStyleColorU32(ImPlotCol_LegendBg);
@@ -2126,11 +2142,11 @@ void EndPlot() {
         for (int i = 0; i < nItems; ++i) {
             ImPlotItem* item = GetItem(i);
             ImRect icon_bb;
-            icon_bb.Min = legend_content_bb.Min + legend_spacing + ImVec2(0, i * txt_ht) + ImVec2(2, 2);
-            icon_bb.Max = legend_content_bb.Min + legend_spacing + ImVec2(0, i * txt_ht) + ImVec2(legend_icon_size - 2, legend_icon_size - 2);
+            icon_bb.Min = plot.BB_Legend.Min + legend_int_pad + ImVec2(0, i * txt_ht) + ImVec2(2, 2);
+            icon_bb.Max = plot.BB_Legend.Min + legend_int_pad + ImVec2(0, i * txt_ht) + ImVec2(legend_icon_size - 2, legend_icon_size - 2);
             ImRect label_bb;
-            label_bb.Min = legend_content_bb.Min + legend_spacing + ImVec2(0, i * txt_ht) + ImVec2(2, 2);
-            label_bb.Max = legend_content_bb.Min + legend_spacing + ImVec2(0, i * txt_ht) + ImVec2(legend_content_bb.Max.x, legend_icon_size - 2);
+            label_bb.Min = plot.BB_Legend.Min + legend_int_pad + ImVec2(0, i * txt_ht) + ImVec2(2, 2);
+            label_bb.Max = plot.BB_Legend.Min + legend_int_pad + ImVec2(0, i * txt_ht) + ImVec2(max_label_width + legend_icon_size, legend_icon_size - 2);
             ImU32 col_hl_txt;
             if (hov_legend && (icon_bb.Contains(IO.MousePos) || label_bb.Contains(IO.MousePos))) {
                 item->LegendHovered = true;
@@ -2158,7 +2174,7 @@ void EndPlot() {
             const char* label = GetLegendLabel(i);
             const char* text_display_end = ImGui::FindRenderedTextEnd(label, NULL);
             if (label != text_display_end)
-                DrawList.AddText(legend_content_bb.Min + legend_spacing + ImVec2(legend_icon_size, i * txt_ht), item->Show ? col_hl_txt  : col_txt_dis, label, text_display_end);
+                DrawList.AddText(plot.BB_Legend.Min + legend_int_pad + ImVec2(legend_icon_size, i * txt_ht), item->Show ? col_hl_txt  : col_txt_dis, label, text_display_end);
         }
     }
 
