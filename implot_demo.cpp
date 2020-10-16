@@ -797,6 +797,31 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Legend")) {
+        static bool n = true; static bool s = false; static bool w = true; static bool e = false;
+        static ImVec2 padding = GetStyle().LegendPadding;
+        ImGui::Checkbox("North", &n); ImGui::SameLine();
+        ImGui::Checkbox("South", &s); ImGui::SameLine();
+        ImGui::Checkbox("West",  &w); ImGui::SameLine();
+        ImGui::Checkbox("East",  &e);
+        ImGui::SliderFloat2("Legend Padding", (float*)&padding, 0.0f, 20.0f, "%.0f");
+        ImPlotLocation loc = 0;
+        loc = n ? loc | ImPlotLocation_North : loc;
+        loc = s ? loc | ImPlotLocation_South : loc;
+        loc = w ? loc | ImPlotLocation_West : loc;
+        loc = e ? loc | ImPlotLocation_East : loc;
+        
+        ImPlot::PushStyleVar(ImPlotStyleVar_LegendPadding, padding);
+        if (ImPlot::BeginPlot("Legend Locations")) {
+            ImPlot::SetLegendLocation(loc);
+            ImPlot::PlotDummy("Item 1");
+            ImPlot::PlotDummy("Item 2");
+            ImPlot::PlotDummy("Item 3");
+            ImPlot::EndPlot();
+        }
+        ImPlot::PopStyleVar();
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag Lines and Points")) {
         ImGui::BulletText("Click and drag the horizontal and vertical lines.");
         static double x1 = 0.2;

@@ -159,7 +159,6 @@ struct ImPlotPointArray {
 //-----------------------------------------------------------------------------
 
 typedef int ImPlotOrientation; // -> enum ImPlotOrientation_
-typedef int ImPlotLocation;    // -> enum ImPlotLocation_
 typedef int ImPlotScale;       // -> enum ImPlotScale_
 typedef int ImPlotTimeUnit;    // -> enum ImPlotTimeUnit_
 typedef int ImPlotDateFmt;     // -> enum ImPlotDateFmt_
@@ -169,14 +168,6 @@ typedef int ImPlotTimeFmt;     // -> enum ImPlotTimeFmt_
 enum ImPlotOrientation_ {
     ImPlotOrientation_Horizontal, // left/right
     ImPlotOrientation_Vertical    // up/down
-};
-
-// Location, combineable with bitwise OR, e.g. ImPlotLocation_North | ImPlotLocation_West
-enum ImPlotLocation_ {
-    ImPlotLocation_North = 1 << 0, // top
-    ImPlotLocation_South = 1 << 1, // bottom
-    ImPlotLocation_West  = 1 << 2, // left
-    ImPlotLocation_East  = 1 << 3  // right
 };
 
 // XY axes scaling combinations
@@ -561,7 +552,7 @@ struct ImPlotPlot
         SelectStart     = QueryStart = ImVec2(0,0);
         Selecting       = Querying = Queried = DraggingQuery = false;
         ColormapIdx     = CurrentYAxis = 0;
-        LegendLocation  = ImPlotLocation_North | ImPlotLocation_South;
+        LegendLocation  = ImPlotLocation_North | ImPlotLocation_West;
     }
 };
 

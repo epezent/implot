@@ -2126,9 +2126,9 @@ void EndPlot() {
         else if (!ImHasFlag(plot.LegendLocation, ImPlotLocation_North) && ImHasFlag(plot.LegendLocation, ImPlotLocation_South))
             legend_ref.y = gp.BB_Plot.Max.y - legend_ext_pad.y - legend_size.y;
         else
-            legend_ref.y = gp.BB_Plot.GetCenter().y - legend_size.y * 0.5f; 
+            legend_ref.y = gp.BB_Plot.GetCenter().y - legend_size.y * 0.5f;
         // legend bounding box
-        plot.BB_Legend   = ImRect(legend_ref, legend_ref + legend_size);    
+        plot.BB_Legend   = ImRect(legend_ref, legend_ref + legend_size);
         // test hover
         hov_legend = !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) ? gp.Hov_Frame && plot.BB_Legend.Contains(IO.MousePos) : false;
         // render legend box
@@ -2708,6 +2708,18 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
         dragging = true;
     }
     return dragging;
+}
+
+void SetLegendLocation(ImPlotLocation location) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetLegendLocation() needs to be called between BeginPlot() and EndPlot()!");
+    gp.CurrentPlot->LegendLocation = location;
+}
+
+ImPlotLocation GetLegendLocation() {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetLegendLocation() needs to be called between BeginPlot() and EndPlot()!");
+    return gp.CurrentPlot->LegendLocation;
 }
 
 bool IsLegendEntryHovered(const char* label_id) {

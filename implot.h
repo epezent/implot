@@ -58,6 +58,8 @@ typedef int ImPlotCol;         // -> enum ImPlotCol_
 typedef int ImPlotStyleVar;    // -> enum ImPlotStyleVar_
 typedef int ImPlotMarker;      // -> enum ImPlotMarker_
 typedef int ImPlotColormap;    // -> enum ImPlotColormap_
+typedef int ImPlotLocation;    // -> enum ImPlotLocation_
+
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -182,6 +184,14 @@ enum ImPlotColormap_ {
     ImPlotColormap_Pink     = 9,  // a.k.a. matplotlib/MATLAB "pink" (n=11)
     ImPlotColormap_Jet      = 10, // a.k.a. MATLAB "jet"             (n=11)
     ImPlotColormap_COUNT
+};
+
+// Location, combineable with bitwise OR, e.g. ImPlotLocation_North | ImPlotLocation_West
+enum ImPlotLocation_ {
+    ImPlotLocation_North = 1 << 0, // top
+    ImPlotLocation_South = 1 << 1, // bottom
+    ImPlotLocation_West  = 1 << 2, // left
+    ImPlotLocation_East  = 1 << 3  // right
 };
 
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
@@ -403,6 +413,9 @@ IMPLOT_API void PlotImage(const char* label_id, ImTextureID user_texture_id, con
 // Plots a centered text label at point x,y with optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
 IMPLOT_API void PlotText(const char* text, double x, double y, bool vertical=false, const ImVec2& pix_offset=ImVec2(0,0));
 
+// Plots an dummy item (i.e. adds a legend entry colored by ImPlotCol_Line)
+IMPLOT_API void PlotDummy(const char* label_id);
+
 //-----------------------------------------------------------------------------
 // Plot Utils
 //-----------------------------------------------------------------------------
@@ -488,6 +501,10 @@ IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label 
 // Legend Utils and Tools
 //-----------------------------------------------------------------------------
 
+// Set the location of the current plot's legend.
+IMPLOT_API void SetLegendLocation(ImPlotLocation location);
+// Get the location of the current plot's legend.
+IMPLOT_API ImPlotLocation GetLegendLocation();
 // Returns true if a plot item legend entry is hovered.
 IMPLOT_API bool IsLegendEntryHovered(const char* label_id);
 // Begin a drag and drop source from a legend entry. The only supported flag is SourceNoPreviewTooltip

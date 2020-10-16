@@ -1756,4 +1756,13 @@ void PlotText(const char* text, double x, double y, bool vertical, const ImVec2&
     PopPlotClipRect();
 }
 
+//-----------------------------------------------------------------------------
+// PLOT DUMMY
+//-----------------------------------------------------------------------------
+
+void PlotDummy(const char* label_id) {
+    if (BeginItem(label_id, ImPlotCol_Line))
+        EndItem();
+}
+
 } // namespace ImPlot
