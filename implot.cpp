@@ -137,12 +137,12 @@ ImPlotItem* ImPlotLegend::GetItem(int i) {
 
 const char* ImPlotLegend::GetLabel(int i) {
     ImPlotItem* item = GetItem(i);
-    IM_ASSERT(item->NameOffset != -1 && item->NameOffset < gp.LegendLabels.Buf.Size);
+    IM_ASSERT(item->NameOffset != -1 && item->NameOffset < Labels.Buf.Size);
     return Labels.Buf.Data + item->NameOffset;
 }
 
 //-----------------------------------------------------------------------------
-// Style 
+// Style
 //-----------------------------------------------------------------------------
 
 namespace ImPlot {
@@ -381,8 +381,8 @@ void Reset(ImPlotContext* ctx) {
     ctx->VisibleItemCount = 0;
     // reset ticks/labels
     ctx->XTicks.Reset();
-    for (int i = 0; i < 3; ++i) 
-        ctx->YTicks[i].Reset();    
+    for (int i = 0; i < 3; ++i)
+        ctx->YTicks[i].Reset();
     // reset labels
     ctx->Annotations.Reset();
     // reset extents/fit
@@ -557,7 +557,7 @@ ImVec2 CalcLegendSize(ImPlotLegend& legend, const ImVec2& pad, const ImVec2& spa
     const ImVec2 legend_size = orn == ImPlotOrientation_Vertical ?
                                ImVec2(pad.x * 2 + icon_size + max_label_width, pad.y * 2 + nItems * txt_ht + (nItems - 1) * spacing.y) :
                                ImVec2(pad.x * 2 + icon_size * nItems + sum_label_width + (nItems - 1) * spacing.x, pad.y * 2 + txt_ht);
-    return legend_size; 
+    return legend_size;
 }
 
 void ShowLegendEntries(ImPlotLegend& legend, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orn, ImDrawList& DrawList) {
@@ -590,7 +590,7 @@ void ShowLegendEntries(ImPlotLegend& legend, const ImRect& legend_bb, bool inter
             col_hl_txt = ImGui::GetColorU32(ImLerp(col_txt, item->Color, 0.25f));
         }
         else {
-            item->LegendHovered = false;
+            // item->LegendHovered = false;
             col_hl_txt = ImGui::GetColorU32(col_txt);
         }
         ImU32 iconColor;
@@ -1803,7 +1803,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     ImGui::PopClipRect();
-    // clear legend 
+    // clear legend
     plot.Legend.Reset();
     // push plot ID into stack
     ImGui::PushID(ID);
@@ -2193,8 +2193,11 @@ void EndPlot() {
         }
     }
 
-    // render legend
+    // reset legend hovers
     plot.LegendHovered = false;
+    for (int i = 0; i < plot.Items.GetSize(); ++i)
+        plot.Items.GetByIndex(i)->LegendHovered = false;
+    // render legend
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Legend.Count() > 0) {
         const ImVec2 legend_size = CalcLegendSize(plot.Legend, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation);
         const ImVec2 legend_pos  = GetLocationPos(gp.BB_Plot, legend_size, plot.LegendLocation, gp.Style.LegendPadding);
@@ -2860,8 +2863,8 @@ void ShowAltLegend(const char* title_id, ImPlotOrientation orientation, const Im
     ImDrawList &DrawList = *Window->DrawList;
     ImPlotPlot* plot = GetPlot(title_id);
     ImVec2 legend_size;
-    ImVec2 default_size(IMPLOT_DEFAULT_W, IMPLOT_DEFAULT_H);
-    if (plot != NULL) {  
+    ImVec2 default_size = gp.Style.LegendPadding * 2;
+    if (plot != NULL) {
         legend_size  = CalcLegendSize(plot->Legend, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, orientation);
         default_size = legend_size + gp.Style.LegendPadding * 2;
     }
@@ -2871,7 +2874,7 @@ void ShowAltLegend(const char* title_id, ImPlotOrientation orientation, const Im
     if (!ImGui::ItemAdd(bb_frame, 0, &bb_frame))
         return;
     ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, G.Style.FrameRounding);
-    DrawList.PushClipRect(bb_frame.Min, bb_frame.Max);
+    DrawList.PushClipRect(bb_frame.Min, bb_frame.Max, true);
     if (plot != NULL) {
         const ImVec2 legend_pos  = GetLocationPos(bb_frame, legend_size, 0, gp.Style.LegendPadding);
         const ImRect legend_bb(legend_pos, legend_pos + legend_size);

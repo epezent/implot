@@ -567,6 +567,7 @@ struct ImPlotPlot
         LegendOrientation = ImPlotOrientation_Vertical;
         MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
     }
+
 };
 
 // Temporary data storage for upcoming plot

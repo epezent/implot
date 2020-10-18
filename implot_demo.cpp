@@ -1334,7 +1334,6 @@ void ShowDemoWindow(bool* p_open) {
             }
             ImPlot::EndPlot();
         }
-        ImPlot::ShowAltLegend("Right Click the Legend");
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Plotters and Tooltips")) {
