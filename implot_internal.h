@@ -51,6 +51,7 @@ struct ImPlotAxis;
 struct ImPlotAxisState;
 struct ImPlotAxisColor;
 struct ImPlotItem;
+struct ImPlotLegend;
 struct ImPlotPlot;
 struct ImPlotNextPlotData;
 
@@ -517,6 +518,20 @@ struct ImPlotItem
     ~ImPlotItem() { ID = 0; }
 };
 
+// Holds Legend state labels and item references
+struct ImPlotLegend
+{
+    ImPlotPlot*     Plot;
+    ImVector<int>   Indices;
+    ImGuiTextBuffer Labels;
+
+    ImPlotLegend(ImPlotPlot* plot) { Plot = plot; }
+    void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
+    int  Count() const { return Indices.size(); }
+    ImPlotItem* GetItem(int i);
+    const char* GetLabel(int i);
+};
+
 // Holds Plot state information that must persist after EndPlot
 struct ImPlotPlot
 {
@@ -524,22 +539,23 @@ struct ImPlotPlot
     ImPlotFlags        PreviousFlags;
     ImPlotAxis         XAxis;
     ImPlotAxis         YAxis[IMPLOT_Y_AXES];
+    ImPlotLegend       Legend;
     ImPool<ImPlotItem> Items;
     ImVec2             SelectStart;
     ImVec2             QueryStart;
     ImRect             QueryRect;
-    ImRect             BB_Legend;
     bool               Selecting;
     bool               Querying;
     bool               Queried;
     bool               DraggingQuery;
+    bool               LegendHovered;
     int                ColormapIdx;
     int                CurrentYAxis;
+    ImPlotLocation     MousePosLocation;
     ImPlotLocation     LegendLocation;
     ImPlotOrientation  LegendOrientation;
-    ImPlotLocation     MousePosLocation;
 
-    ImPlotPlot() {
+    ImPlotPlot() : Legend(this) {
         Flags           = PreviousFlags = ImPlotFlags_None;
         XAxis.Direction = ImPlotOrientation_Horizontal;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
@@ -618,12 +634,8 @@ struct ImPlotContext {
     // Plot States
     ImPool<ImPlotPlot> Plots;
     ImPlotPlot*        CurrentPlot;
-    ImPlotItem*         CurrentItem;
-    ImPlotItem*         PreviousItem;
-
-    // Legend
-    ImVector<int>   LegendIndices;
-    ImGuiTextBuffer LegendLabels;
+    ImPlotItem*        CurrentItem;
+    ImPlotItem*        PreviousItem;
 
     // Bounding Boxes
     ImRect BB_Frame;
@@ -742,15 +754,11 @@ IMPLOT_API bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
 // Ends an item (call only if BeginItem returns true). Pops PlotClipRect.
 IMPLOT_API void EndItem();
 
-// Register or get an existing item from the current plot
+// Register or get an existing item from the current plot.
 IMPLOT_API ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created = NULL);
-// Get the ith plot item from the current plot
-IMPLOT_API ImPlotItem* GetItem(int i);
-// Get a plot item from the current plot
+// Get a plot item from the current plot.
 IMPLOT_API ImPlotItem* GetItem(const char* label_id);
-// Gets a plot item from a specific plot
-IMPLOT_API ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
-// Gets the current item
+// Gets the current item.
 IMPLOT_API ImPlotItem* GetCurrentItem();
 // Busts the cache for every item for every plot in the current context.
 IMPLOT_API void BustItemCache();
@@ -790,10 +798,12 @@ IMPLOT_API void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed = 
 // [SECTION] Legend Utils
 //-----------------------------------------------------------------------------
 
-// Returns the number of entries in the current legend
-IMPLOT_API int GetLegendCount();
-// Gets the ith entry string for the current legend
-IMPLOT_API const char* GetLegendLabel(int i);
+// Gets the position of an inner rect that is located inside of an outer rect according to an ImPlotLocation and padding amount.
+IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlotLocation location, const ImVec2& pad = ImVec2(0,0));
+// Calculates the bounding box size of a legend
+IMPLOT_API ImVec2 CalcLegendSize(ImPlotLegend& legend, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
+// Renders legend entries into a bounding box
+IMPLOT_API void ShowLegendEntries(ImPlotLegend& legend, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Tick Utils

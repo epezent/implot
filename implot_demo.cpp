@@ -800,32 +800,53 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Legend")) {
+
+        static int pos = 0;
+        if (ImGui::RadioButton("Inside", pos == 0)) pos = 0; ImGui::SameLine();
+        if (ImGui::RadioButton("Left",   pos == 1)) pos = 1; ImGui::SameLine();
+        if (ImGui::RadioButton("Right",  pos == 2)) pos = 2; ImGui::SameLine();
+        if (ImGui::RadioButton("Top",    pos == 3)) pos = 3; ImGui::SameLine();
+        if (ImGui::RadioButton("Bottom", pos == 4)) pos = 4;
+
         static bool n = true; static bool s = false; static bool w = true; static bool e = false; static bool h = false;
-        static ImVec2 padding      = GetStyle().LegendPadding;
-        static ImVec2 innerPadding = GetStyle().LegendInnerPadding;
-        ImGui::Checkbox("North", &n); ImGui::SameLine();
-        ImGui::Checkbox("South", &s); ImGui::SameLine();
-        ImGui::Checkbox("West",  &w); ImGui::SameLine();
-        ImGui::Checkbox("East",  &e); ImGui::SameLine();
-        ImGui::Checkbox("Horizontal", &h);
-        ImGui::SliderFloat2("LegendPadding", (float*)&padding, 0.0f, 20.0f, "%.0f");
-        ImGui::SliderFloat2("LegendInnerPadding", (float*)&innerPadding, 0.0f, 10.0f, "%.0f");
+        static ImVec2 spacing = ImVec2(0,0);
         ImPlotLocation loc = 0;
-        loc = n ? loc | ImPlotLocation_North : loc;
-        loc = s ? loc | ImPlotLocation_South : loc;
-        loc = w ? loc | ImPlotLocation_West : loc;
-        loc = e ? loc | ImPlotLocation_East : loc;
-        ImPlot::PushStyleVar(ImPlotStyleVar_LegendPadding, padding);
-        ImPlot::PushStyleVar(ImPlotStyleVar_LegendInnerPadding, innerPadding);
-        if (ImPlot::BeginPlot("Legend Locations")) {
-            ImPlot::SetLegendLocation(loc, h ? ImPlotOrientation_Horizontal : ImPlotOrientation_Vertical);
+
+        if (pos == 0) {
+            ImGui::Checkbox("North", &n); ImGui::SameLine();
+            ImGui::Checkbox("South", &s); ImGui::SameLine();
+            ImGui::Checkbox("West",  &w); ImGui::SameLine();
+            ImGui::Checkbox("East",  &e); ImGui::SameLine();
+            ImGui::Checkbox("Horizontal", &h);
+            loc = n ? loc | ImPlotLocation_North : loc;
+            loc = s ? loc | ImPlotLocation_South : loc;
+            loc = w ? loc | ImPlotLocation_West  : loc;
+            loc = e ? loc | ImPlotLocation_East  : loc;
+        }
+        else {
+            ImGui::SliderFloat2("ItemSpacing", (float*)&spacing, 0.0f, 10.0f, "%.0f");
+        }
+        ImGui::SliderFloat2("LegendPadding", (float*)&GetStyle().LegendPadding, 0.0f, 20.0f, "%.0f");
+        ImGui::SliderFloat2("LegendInnerPadding", (float*)&GetStyle().LegendInnerPadding, 0.0f, 10.0f, "%.0f");
+        ImGui::SliderFloat2("LegendSpacing", (float*)&GetStyle().LegendSpacing, 0.0f, 5.0f, "%.0f");
+
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, spacing);
+        if (pos == 1) { ImPlot::ShowAltLegend("##Legend",ImPlotOrientation_Vertical,ImVec2(0,300));  ImGui::SameLine(); }
+        if (pos == 3) { ImPlot::ShowAltLegend("##Legend",ImPlotOrientation_Horizontal,ImVec2(500,0));                   }
+        if (ImPlot::BeginPlot("##Legend","x","y",ImVec2(500,300),pos==0?ImPlotFlags_None:ImPlotFlags_NoLegend)) {
+            if (pos == 0)
+                ImPlot::SetLegendLocation(loc, h ? ImPlotOrientation_Horizontal : ImPlotOrientation_Vertical);
             ImPlot::PlotDummy("Item 1");
-            ImPlot::PlotDummy("Item 2##IdentifierText");
+            ImPlot::PlotDummy("Item 2##IDText");
             ImPlot::PlotDummy("##NotDisplayed");
             ImPlot::PlotDummy("Item 3");
+            ImPlot::PlotDummy("Item 3"); // won't be repeated
             ImPlot::EndPlot();
         }
-        ImPlot::PopStyleVar(2);
+        if (pos == 2) { ImGui::SameLine(); ImPlot::ShowAltLegend("##Legend",ImPlotOrientation_Vertical,ImVec2(0,300)); }
+        if (pos == 4) { ImPlot::ShowAltLegend("##Legend",ImPlotOrientation_Horizontal,ImVec2(500,0));                  }
+        ImGui::PopStyleVar();
+        ImGui::Dummy(ImVec2(0,0)); // so ImGuiStyleVar_ItemSpacing doesn't carry over to next header
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag Lines and Points")) {

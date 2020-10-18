@@ -149,6 +149,7 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_LabelPadding,       // ImVec2, padding between axes labels, tick labels, and plot edge
     ImPlotStyleVar_LegendPadding,      // ImVec2, legend padding from plot edges
     ImPlotStyleVar_LegendInnerPadding, // ImVec2, legend inner padding from legend edges
+    ImPlotStyleVar_LegendSpacing,      // ImVec2, spacing between legend entries
     ImPlotStyleVar_MousePosPadding,    // ImVec2, padding between plot edge and interior info text
     ImPlotStyleVar_AnnotationPadding,  // ImVec2, text padding around annotation labels
     ImPlotStyleVar_PlotMinSize,        // ImVec2, minimum size plot frame can be when shrunk
@@ -256,6 +257,7 @@ struct ImPlotStyle {
     ImVec2  LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
     ImVec2  LegendPadding;           // = 10,10   legend padding from plot edges
     ImVec2  LegendInnerPadding;      // = 5,5     legend inner padding from legend edges
+    ImVec2  LegendSpacing;           // = 0,0     spacing between legend entries
     ImVec2  MousePosPadding;         // = 10,10   padding between plot edge and interior mouse location text
     ImVec2  AnnotationPadding;       // = 2,2     text padding around annotation labels
     ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
@@ -509,7 +511,7 @@ IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label 
 // Legend Utils and Tools
 //-----------------------------------------------------------------------------
 
-// Set the location of the current plot's legend (default = North|West, Vertical).
+// Set the location of the current plot's interior legend (does not affect ShowAltLegend).
 IMPLOT_API void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation = ImPlotOrientation_Vertical);
 // Set the locaton of the current plot's mouse position text (default = South|East).
 IMPLOT_API void SetMousePosLocation(ImPlotLocation location);
@@ -523,6 +525,8 @@ IMPLOT_API void EndLegendDragDropSource();
 IMPLOT_API bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button = 1);
 // End a popup for a legend entry.
 IMPLOT_API void EndLegendPopup();
+// Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
+IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
 
 //-----------------------------------------------------------------------------
 // Plot and Item Styling
