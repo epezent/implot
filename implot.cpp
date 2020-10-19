@@ -114,13 +114,14 @@ ImPlotStyle::ImPlotStyle() {
     MinorTickSize      = ImVec2(1,1);
     MajorGridSize      = ImVec2(1,1);
     MinorGridSize      = ImVec2(1,1);
-    PlotPadding        = ImVec2(8,8);
+    PlotPadding        = ImVec2(10,10);
     LabelPadding       = ImVec2(5,5);
     LegendPadding      = ImVec2(10,10);
     LegendInnerPadding = ImVec2(5,5);
     LegendSpacing      = ImVec2(0,0);
     MousePosPadding    = ImVec2(10,10);
     AnnotationPadding  = ImVec2(2,2);
+    PlotDefaultSize    = ImVec2(400,300);
     PlotMinSize        = ImVec2(300,225);
 
     ImPlot::StyleColorsAuto(this);
@@ -260,6 +261,7 @@ static const ImPlotStyleVarInfo GPlotStyleVarInfo[] =
 
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, MousePosPadding)    }, // ImPlotStyleVar_MousePosPadding
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, AnnotationPadding)  }, // ImPlotStyleVar_AnnotationPadding
+    { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, PlotDefaultSize)    }, // ImPlotStyleVar_PlotDefaultSize
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, PlotMinSize)        }  // ImPlotStyleVar_PlotMinSize
 };
 
@@ -424,7 +426,7 @@ void BustPlotCache() {
 
 void FitPoint(const ImPlotPoint& p) {
     ImPlotContext& gp = *GImPlot;
-    const int y_axis  = gp.CurrentPlot->CurrentYAxis;
+    const ImPlotYAxis y_axis  = gp.CurrentPlot->CurrentYAxis;
     ImPlotRange& ex_x = gp.ExtentsX;
     ImPlotRange& ex_y = gp.ExtentsY[y_axis];
     const bool log_x  = ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale);
@@ -469,10 +471,10 @@ void UpdateTransformCache() {
     gp.Mx = (gp.PixelRange[0].Max.x - gp.PixelRange[0].Min.x) / gp.CurrentPlot->XAxis.Range.Size();
 }
 
-ImPlotPoint PixelsToPlot(float x, float y, int y_axis_in) {
+ImPlotPoint PixelsToPlot(float x, float y, ImPlotYAxis y_axis_in) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() needs to be called between BeginPlot() and EndPlot()!");
-    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+    const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImPlotPoint plt;
     plt.x = (x - gp.PixelRange[y_axis].Min.x) / gp.Mx + gp.CurrentPlot->XAxis.Range.Min;
     plt.y = (y - gp.PixelRange[y_axis].Min.y) / gp.My[y_axis] + gp.CurrentPlot->YAxis[y_axis].Range.Min;
@@ -487,15 +489,15 @@ ImPlotPoint PixelsToPlot(float x, float y, int y_axis_in) {
     return plt;
 }
 
-ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis) {
+ImPlotPoint PixelsToPlot(const ImVec2& pix, ImPlotYAxis y_axis) {
     return PixelsToPlot(pix.x, pix.y, y_axis);
 }
 
 // This function is convenient but should not be used to process a high volume of points. Use the Transformer structs below instead.
-ImVec2 PlotToPixels(double x, double y, int y_axis_in) {
+ImVec2 PlotToPixels(double x, double y, ImPlotYAxis y_axis_in) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() needs to be called between BeginPlot() and EndPlot()!");
-    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+    const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 pix;
     if (ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale)) {
         double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
@@ -511,7 +513,7 @@ ImVec2 PlotToPixels(double x, double y, int y_axis_in) {
 }
 
 // This function is convenient but should not be used to process a high volume of points. Use the Transformer structs below instead.
-ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis) {
+ImVec2 PlotToPixels(const ImPlotPoint& plt, ImPlotYAxis y_axis) {
     return PlotToPixels(plt.x, plt.y, y_axis);
 }
 
@@ -1272,7 +1274,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // capture scroll with a child region
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoChild)) {
-        ImGui::BeginChild(title, ImVec2(size.x == 0 ? IMPLOT_DEFAULT_W : size.x, size.y == 0 ? IMPLOT_DEFAULT_H : size.y), false, ImGuiWindowFlags_NoScrollbar);
+        ImGui::BeginChild(title, ImVec2(size.x == 0 ? gp.Style.PlotDefaultSize.x : size.x, size.y == 0 ? gp.Style.PlotDefaultSize.y : size.y), false, ImGuiWindowFlags_NoScrollbar);
         Window = ImGui::GetCurrentWindow();
         Window->ScrollMax.y = 1.0f;
         gp.ChildWindowMade = true;
@@ -1342,7 +1344,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // BB, PADDING, HOVER -----------------------------------------------------------
 
     // frame
-    ImVec2 frame_size = ImGui::CalcItemSize(size, IMPLOT_DEFAULT_W, IMPLOT_DEFAULT_H);
+    ImVec2 frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
     if (frame_size.x < gp.Style.PlotMinSize.x && size.x < 0.0f)
         frame_size.x = gp.Style.PlotMinSize.x;
     if (frame_size.y < gp.Style.PlotMinSize.y && size.y < 0.0f)
@@ -1359,8 +1361,35 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     ImGui::SetItemAllowOverlap();
     ImGui::RenderFrame(gp.BB_Frame.Min, gp.BB_Frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, Style.FrameRounding);
 
-    // canvas bb
+    // canvas/axes bb
     gp.BB_Canvas = ImRect(gp.BB_Frame.Min + gp.Style.PlotPadding, gp.BB_Frame.Max - gp.Style.PlotPadding);
+    gp.BB_Axes   = gp.BB_Frame;
+
+    // outside legend adjustments
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Legend.Count() > 0 && plot.LegendOutside) {
+        const ImVec2 legend_size = CalcLegendSize(plot.Legend, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation);
+        const bool west = ImHasFlag(plot.LegendLocation, ImPlotLocation_West) && !ImHasFlag(plot.LegendLocation, ImPlotLocation_East);
+        const bool east = ImHasFlag(plot.LegendLocation, ImPlotLocation_East) && !ImHasFlag(plot.LegendLocation, ImPlotLocation_West);
+        const bool north = ImHasFlag(plot.LegendLocation, ImPlotLocation_North) && !ImHasFlag(plot.LegendLocation, ImPlotLocation_South);
+        const bool south = ImHasFlag(plot.LegendLocation, ImPlotLocation_South) && !ImHasFlag(plot.LegendLocation, ImPlotLocation_North);
+        const bool horz = plot.LegendOrientation == ImPlotOrientation_Horizontal;
+        if ((west && !horz) || (west && horz && !north && !south)) {
+            gp.BB_Canvas.Min.x += (legend_size.x + gp.Style.LegendPadding.x);
+            gp.BB_Axes.Min.x   += (legend_size.x + gp.Style.PlotPadding.x);
+        }
+        if ((east && !horz) || (east && horz && !north && !south)) {
+            gp.BB_Canvas.Max.x -= (legend_size.x + gp.Style.LegendPadding.x);
+            gp.BB_Axes.Max.x   -= (legend_size.x + gp.Style.PlotPadding.x);
+        }
+        if ((north && horz) || (north && !horz && !west && !east)) {
+            gp.BB_Canvas.Min.y += (legend_size.y + gp.Style.LegendPadding.y);
+            gp.BB_Axes.Min.y   += (legend_size.y + gp.Style.PlotPadding.y);
+        }
+        if ((south && horz) || (south && !horz && !west && !east)) {
+            gp.BB_Canvas.Max.y -= (legend_size.y + gp.Style.LegendPadding.y);
+            gp.BB_Axes.Max.y   -= (legend_size.y + gp.Style.PlotPadding.y);
+        }
+    }
 
     gp.RenderX = (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoGridLines) ||
                   !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickMarks) ||
@@ -1418,8 +1447,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.Hov_Plot = gp.BB_Plot.Contains(IO.MousePos) && gp.Hov_Frame;
 
     // x axis region bb and hover
-    const ImRect xAxisRegion_bb(gp.BB_Plot.GetBL(), ImVec2(gp.BB_Plot.Max.x, gp.BB_Frame.Max.y));
-    plot.XAxis.HoveredExt = xAxisRegion_bb.Contains(IO.MousePos);
+    gp.BB_X = ImRect(gp.BB_Plot.GetBL(), ImVec2(gp.BB_Plot.Max.x, gp.BB_Axes.Max.y));
+    plot.XAxis.HoveredExt = gp.BB_X.Contains(IO.MousePos);
     plot.XAxis.HoveredTot = plot.XAxis.HoveredExt || gp.Hov_Plot;
 
     // axis label reference
@@ -1428,28 +1457,17 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.YAxisReference[2] = !gp.Y[1].Present ? gp.BB_Plot.Max.x : (gp.YAxisReference[1] + (gp.Y[1].HasLabels ? gp.Style.LabelPadding.x + gp.YTicks[1].MaxWidth : 0) + gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y);
 
     // y axis regions bb and hover
-    ImRect yAxisRegion_bb[IMPLOT_Y_AXES];
-    yAxisRegion_bb[0] = ImRect(ImVec2(gp.BB_Frame.Min.x, gp.BB_Plot.Min.y), ImVec2(gp.BB_Plot.Min.x, gp.BB_Plot.Max.y));
-    yAxisRegion_bb[1] = gp.Y[2].Present
+    gp.BB_Y[0] = ImRect(ImVec2(gp.BB_Axes.Min.x, gp.BB_Plot.Min.y), ImVec2(gp.BB_Plot.Min.x, gp.BB_Plot.Max.y));
+    gp.BB_Y[1] = gp.Y[2].Present
                       ? ImRect(gp.BB_Plot.GetTR(), ImVec2(gp.YAxisReference[2], gp.BB_Plot.Max.y))
-                      : ImRect(gp.BB_Plot.GetTR(), ImVec2(gp.BB_Frame.Max.x, gp.BB_Plot.Max.y));
+                      : ImRect(gp.BB_Plot.GetTR(), ImVec2(gp.BB_Axes.Max.x, gp.BB_Plot.Max.y));
 
-    yAxisRegion_bb[2] = ImRect(ImVec2(gp.YAxisReference[2], gp.BB_Plot.Min.y), ImVec2(gp.BB_Frame.Max.x, gp.BB_Plot.Max.y));
+    gp.BB_Y[2] = ImRect(ImVec2(gp.YAxisReference[2], gp.BB_Plot.Min.y), ImVec2(gp.BB_Axes.Max.x, gp.BB_Plot.Max.y));
 
     for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
-        plot.YAxis[i].HoveredExt = gp.Y[i].Present && yAxisRegion_bb[i].Contains(IO.MousePos);
+        plot.YAxis[i].HoveredExt = gp.Y[i].Present && gp.BB_Y[i].Contains(IO.MousePos);
         plot.YAxis[i].HoveredTot = plot.YAxis[i].HoveredExt || gp.Hov_Plot;
     }
-
-#if 0
-    ImGui::GetForegroundDrawList()->AddRect(gp.BB_Canvas.Min, gp.BB_Canvas.Max, IM_COL32_WHITE);
-    ImGui::GetForegroundDrawList()->AddRectFilled(xAxisRegion_bb.Min, xAxisRegion_bb.Max, IM_COL32(255,0,0,plot.XAxis.HoveredTot ? 128 : 64));
-    ImGui::GetForegroundDrawList()->AddRectFilled(yAxisRegion_bb[0].Min, yAxisRegion_bb[0].Max, IM_COL32(255,255,0,plot.YAxis[0].HoveredTot ? 128 : 64));
-    if (gp.Y[1].Present)
-        ImGui::GetForegroundDrawList()->AddRectFilled(yAxisRegion_bb[1].Min, yAxisRegion_bb[1].Max, IM_COL32(0,255,0,plot.YAxis[1].HoveredTot ? 128 : 64));
-    if (gp.Y[2].Present)
-        ImGui::GetForegroundDrawList()->AddRectFilled(yAxisRegion_bb[2].Min, yAxisRegion_bb[2].Max, IM_COL32(0,0,255,plot.YAxis[2].HoveredTot ? 128 : 64));
-#endif
 
     const bool any_hov_y_axis_region = plot.YAxis[0].HoveredTot || plot.YAxis[1].HoveredTot || plot.YAxis[2].HoveredTot;
 
@@ -2012,11 +2030,15 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
         ImGui::LabelText("Plots", "%d", gp.Plots.GetSize());
         ImGui::LabelText("Color Mods", "%d", gp.ColorModifiers.size());
         ImGui::LabelText("Style Mods", "%d", gp.StyleModifiers.size());
-        ImGui::TextUnformatted(gp.XTicks.TextBuffer.Buf.Data, gp.XTicks.TextBuffer.Buf.Data + gp.XTicks.TextBuffer.size());
-        ImGui::TextUnformatted(gp.YTicks[0].TextBuffer.Buf.Data, gp.YTicks[0].TextBuffer.Buf.Data + gp.YTicks[0].TextBuffer.size());
-        // ImGui::TextUnformatted(gp.YTicks[1].Labels.Buf.Data, gp.YTicks[1].Labels.Buf.Data + gp.YTicks[1].Labels.size());
-        // ImGui::TextUnformatted(gp.YTicks[2].Labels.Buf.Data, gp.YTicks[2].Labels.Buf.Data + gp.YTicks[2].Labels.size());
-
+        bool f = false;
+        ImGui::Selectable("BB_Frame",&f);  if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(gp.BB_Frame.Min, gp.BB_Frame.Max, IM_COL32(255,255,0,255));
+        ImGui::Selectable("BB_Canvas",&f); if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(gp.BB_Canvas.Min, gp.BB_Canvas.Max, IM_COL32(255,255,0,255));
+        ImGui::Selectable("BB_Plot",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(gp.BB_Plot.Min, gp.BB_Plot.Max, IM_COL32(255,255,0,255));
+        ImGui::Selectable("BB_Axes",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(gp.BB_Axes.Min, gp.BB_Axes.Max, IM_COL32(255,255,0,255));
+        ImGui::Selectable("BB_X",&f);      if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(gp.BB_X.Min, gp.BB_X.Max, IM_COL32(255,255,0,255));
+        ImGui::Selectable("BB_Y[0]",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(gp.BB_Y[0].Min, gp.BB_Y[0].Max, IM_COL32(255,255,0,255));
+        ImGui::Selectable("BB_Y[1]",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(gp.BB_Y[1].Min, gp.BB_Y[1].Max, IM_COL32(255,255,0,255));
+        ImGui::Selectable("BB_Y[2]",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(gp.BB_Y[2].Min, gp.BB_Y[2].Max, IM_COL32(255,255,0,255));
         ImGui::PopItemWidth();
         ImGui::EndMenu();
     }
@@ -2193,26 +2215,6 @@ void EndPlot() {
         }
     }
 
-    // reset legend hovers
-    plot.LegendHovered = false;
-    for (int i = 0; i < plot.Items.GetSize(); ++i)
-        plot.Items.GetByIndex(i)->LegendHovered = false;
-    // render legend
-    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Legend.Count() > 0) {
-        const ImVec2 legend_size = CalcLegendSize(plot.Legend, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation);
-        const ImVec2 legend_pos  = GetLocationPos(gp.BB_Plot, legend_size, plot.LegendLocation, gp.Style.LegendPadding);
-        const ImRect legend_bb(legend_pos, legend_pos + legend_size);
-        // test hover
-        plot.LegendHovered = gp.Hov_Frame && legend_bb.Contains(IO.MousePos);
-        // render legend box
-        ImU32  col_bg      = GetStyleColorU32(ImPlotCol_LegendBg);
-        ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
-        DrawList.AddRectFilled(legend_bb.Min, legend_bb.Max, col_bg);
-        DrawList.AddRect(legend_bb.Min, legend_bb.Max, col_bd);
-        // render entries
-        ShowLegendEntries(plot.Legend, legend_bb, plot.LegendHovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation, DrawList);
-    }
-
     // render crosshairs
     if (ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs) && gp.Hov_Plot && gp.Hov_Frame &&
         !(plot.XAxis.Dragging || any_y_dragging) && !plot.Selecting && !plot.Querying && !plot.LegendHovered) {
@@ -2284,8 +2286,38 @@ void EndPlot() {
         const ImVec2 pos = GetLocationPos(gp.BB_Plot, size, plot.MousePosLocation, gp.Style.MousePosPadding);
         DrawList.AddText(pos, GetStyleColorU32(ImPlotCol_InlayText), buffer);
     }
-
     PopPlotClipRect();
+
+    // reset legend hovers
+    plot.LegendHovered = false;
+    for (int i = 0; i < plot.Items.GetSize(); ++i)
+        plot.Items.GetByIndex(i)->LegendHovered = false;
+    // render legend
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Legend.Count() > 0) {
+        const ImVec2 legend_size = CalcLegendSize(plot.Legend, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation);
+        const ImVec2 legend_pos  = GetLocationPos(plot.LegendOutside ? gp.BB_Frame : gp.BB_Plot,
+                                                  legend_size,
+                                                  plot.LegendLocation,
+                                                  plot.LegendOutside ? gp.Style.PlotPadding : gp.Style.LegendPadding);
+        const ImRect legend_bb(legend_pos, legend_pos + legend_size);
+        // test hover
+        plot.LegendHovered = gp.Hov_Frame && legend_bb.Contains(IO.MousePos);
+
+        if (plot.LegendOutside)
+            ImGui::PushClipRect(gp.BB_Frame.Min, gp.BB_Frame.Max, true);
+        else
+            PushPlotClipRect();
+        ImU32  col_bg      = GetStyleColorU32(ImPlotCol_LegendBg);
+        ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
+        DrawList.AddRectFilled(legend_bb.Min, legend_bb.Max, col_bg);
+        DrawList.AddRect(legend_bb.Min, legend_bb.Max, col_bd);
+        ShowLegendEntries(plot.Legend, legend_bb, plot.LegendHovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation, DrawList);
+        ImGui::PopClipRect();
+    }
+    if (plot.LegendFlipSide)  {
+        plot.LegendOutside  = !plot.LegendOutside;
+        plot.LegendFlipSide = false;
+    }
 
     // render border
     if (gp.Style.PlotBorderSize > 0)
@@ -2398,7 +2430,7 @@ void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond) {
     gp.NextPlotData.X.Max = x_max;
 }
 
-void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond, int y_axis) {
+void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond, ImPlotYAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotLimitsY() needs to be called before BeginPlot()!");
     IM_ASSERT_USER_ERROR(y_axis >= 0 && y_axis < IMPLOT_Y_AXES, "y_axis needs to be between 0 and IMPLOT_Y_AXES");
@@ -2444,7 +2476,7 @@ void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* cons
     SetNextPlotTicksX(&buffer[0], n_ticks, labels, show_default);
 }
 
-void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[], bool show_default, int y_axis) {
+void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[], bool show_default, ImPlotYAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksY() needs to be called before BeginPlot()!");
     IM_ASSERT_USER_ERROR(y_axis >= 0 && y_axis < IMPLOT_Y_AXES, "y_axis needs to be between 0 and IMPLOT_Y_AXES");
@@ -2452,14 +2484,14 @@ void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labe
     AddTicksCustom(values, labels, n_ticks, gp.YTicks[y_axis]);
 }
 
-void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[], bool show_default, int y_axis) {
+void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[], bool show_default, ImPlotYAxis y_axis) {
     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
     static ImVector<double> buffer;
     FillRange(buffer, n_ticks, y_min, y_max);
     SetNextPlotTicksY(&buffer[0], n_ticks, labels, show_default,y_axis);
 }
 
-void SetPlotYAxis(int y_axis) {
+void SetPlotYAxis(ImPlotYAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetPlotYAxis() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(y_axis >= 0 && y_axis < IMPLOT_Y_AXES, "y_axis needs to be between 0 and IMPLOT_Y_AXES");
@@ -2504,28 +2536,28 @@ bool IsPlotXAxisHovered() {
     return gp.CurrentPlot->XAxis.HoveredExt;
 }
 
-bool IsPlotYAxisHovered(int y_axis_in) {
+bool IsPlotYAxisHovered(ImPlotYAxis y_axis_in) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotYAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
-    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+    const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     return gp.CurrentPlot->YAxis[y_axis].HoveredExt;
 }
 
-ImPlotPoint GetPlotMousePos(int y_axis_in) {
+ImPlotPoint GetPlotMousePos(ImPlotYAxis y_axis_in) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotMousePos() needs to be called between BeginPlot() and EndPlot()!");
-    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+    const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     return gp.MousePos[y_axis];
 }
 
 
-ImPlotLimits GetPlotLimits(int y_axis_in) {
+ImPlotLimits GetPlotLimits(ImPlotYAxis y_axis_in) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotLimits() needs to be called between BeginPlot() and EndPlot()!");
-    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+    const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
 
     ImPlotPlot& plot = *gp.CurrentPlot;
     ImPlotLimits limits;
@@ -2540,12 +2572,12 @@ bool IsPlotQueried() {
     return gp.CurrentPlot->Queried;
 }
 
-ImPlotLimits GetPlotQuery(int y_axis_in) {
+ImPlotLimits GetPlotQuery(ImPlotYAxis y_axis_in) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
     ImPlotPlot& plot = *gp.CurrentPlot;
-    const int y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+    const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
 
     UpdateTransformCache();
     ImPlotPoint p1 = PixelsToPlot(plot.QueryRect.Min + gp.BB_Plot.Min, y_axis);
@@ -2745,11 +2777,13 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
     return dragging;
 }
 
-void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation) {
+void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, bool outside) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetLegendLocation() needs to be called between BeginPlot() and EndPlot()!");
-    gp.CurrentPlot->LegendLocation    = location;
-    gp.CurrentPlot->LegendOrientation = orientation;
+    gp.CurrentPlot->LegendLocation         = location;
+    gp.CurrentPlot->LegendOrientation      = orientation;
+    if (gp.CurrentPlot->LegendOutside != outside)
+        gp.CurrentPlot->LegendFlipSide = true;
 }
 
 void SetMousePosLocation(ImPlotLocation location) {
@@ -3380,6 +3414,7 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SliderFloat2("MinorTickSize", (float*)&style.MinorTickSize, 0.0f, 2.0f, "%.1f");
             ImGui::SliderFloat2("MajorGridSize", (float*)&style.MajorGridSize, 0.0f, 2.0f, "%.1f");
             ImGui::SliderFloat2("MinorGridSize", (float*)&style.MinorGridSize, 0.0f, 2.0f, "%.1f");
+            ImGui::SliderFloat2("PlotDefaultSize", (float*)&style.PlotDefaultSize, 0.0f, 1000, "%.0f");
             ImGui::SliderFloat2("PlotMinSize", (float*)&style.PlotMinSize, 0.0f, 300, "%.0f");
             ImGui::Text("Plot Padding");
             ImGui::SliderFloat2("PlotPadding", (float*)&style.PlotPadding, 0.0f, 20.0f, "%.0f");

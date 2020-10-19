@@ -68,20 +68,16 @@ extern IMPLOT_API ImPlotContext* GImPlot; // Current implicit context pointer
 // Constants can be changed unless stated otherwise. We may move some of these
 // to ImPlotStyleVar_ over time.
 
-// Default plot frame width when requested width is auto (i.e. 0). This is not the plot area width!
-#define IMPLOT_DEFAULT_W  400
-// Default plot frame height when requested height is auto (i.e. 0). This is not the plot area height!
-#define IMPLOT_DEFAULT_H  300
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
-#define IMPLOT_Y_AXES     3
+#define IMPLOT_Y_AXES    3
 // The number of times to subdivided grid divisions (best if a multiple of 1, 2, and 5)
-#define IMPLOT_SUB_DIV    10
+#define IMPLOT_SUB_DIV   10
 // Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
-#define IMPLOT_ZOOM_RATE  0.1f
+#define IMPLOT_ZOOM_RATE 0.1f
 // Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
-#define IMPLOT_MIN_TIME 0
+#define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
-#define IMPLOT_MAX_TIME 32503680000
+#define IMPLOT_MAX_TIME  32503680000
 
 //-----------------------------------------------------------------------------
 // [SECTION] Generic Helpers
@@ -549,6 +545,8 @@ struct ImPlotPlot
     bool               Queried;
     bool               DraggingQuery;
     bool               LegendHovered;
+    bool               LegendOutside;
+    bool               LegendFlipSide;
     int                ColormapIdx;
     int                CurrentYAxis;
     ImPlotLocation     MousePosLocation;
@@ -561,7 +559,7 @@ struct ImPlotPlot
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
             YAxis[i].Direction = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
-        Selecting         = Querying = Queried = DraggingQuery = false;
+        Selecting         = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSide = false;
         ColormapIdx       = CurrentYAxis = 0;
         LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
         LegendOrientation = ImPlotOrientation_Vertical;
@@ -642,6 +640,9 @@ struct ImPlotContext {
     ImRect BB_Frame;
     ImRect BB_Canvas;
     ImRect BB_Plot;
+    ImRect BB_Axes;
+    ImRect BB_X;
+    ImRect BB_Y[IMPLOT_Y_AXES];
 
     // Axis States
     ImPlotAxisColor Col_X;
@@ -805,6 +806,8 @@ IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_s
 IMPLOT_API ImVec2 CalcLegendSize(ImPlotLegend& legend, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
 // Renders legend entries into a bounding box
 IMPLOT_API void ShowLegendEntries(ImPlotLegend& legend, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
+// Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
+IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Tick Utils

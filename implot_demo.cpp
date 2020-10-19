@@ -688,11 +688,11 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotLine("f(x) = x", xs, xs, 1001);
             ImPlot::PlotLine("f(x) = sin(x)*3+1", xs, ys1, 1001);
             if (y2_axis) {
-                ImPlot::SetPlotYAxis(1);
+                ImPlot::SetPlotYAxis(ImPlotYAxis_2);
                 ImPlot::PlotLine("f(x) = cos(x)*.2+.5 (Y2)", xs, ys2, 1001);
             }
             if (y3_axis) {
-                ImPlot::SetPlotYAxis(2);
+                ImPlot::SetPlotYAxis(ImPlotYAxis_3);
                 ImPlot::PlotLine("f(x) = sin(x+.5)*100+200 (Y3)", xs2, ys3, 1001);
             }
             ImPlot::EndPlot();
@@ -800,53 +800,38 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Legend")) {
+        static bool n = false; static bool s = false; static bool w = false; static bool e = true;
+        static bool h = false; static bool o = true;
 
-        static int pos = 0;
-        if (ImGui::RadioButton("Inside", pos == 0)) pos = 0; ImGui::SameLine();
-        if (ImGui::RadioButton("Left",   pos == 1)) pos = 1; ImGui::SameLine();
-        if (ImGui::RadioButton("Right",  pos == 2)) pos = 2; ImGui::SameLine();
-        if (ImGui::RadioButton("Top",    pos == 3)) pos = 3; ImGui::SameLine();
-        if (ImGui::RadioButton("Bottom", pos == 4)) pos = 4;
+        ImGui::Checkbox("North", &n); ImGui::SameLine();
+        ImGui::Checkbox("South", &s); ImGui::SameLine();
+        ImGui::Checkbox("West",  &w); ImGui::SameLine();
+        ImGui::Checkbox("East",  &e); ImGui::SameLine();
+        ImGui::Checkbox("Horizontal", &h); ImGui::SameLine();
+        ImGui::Checkbox("Outside", &o);
 
-        static bool n = true; static bool s = false; static bool w = true; static bool e = false; static bool h = false;
-        static ImVec2 spacing = ImVec2(0,0);
         ImPlotLocation loc = 0;
+        loc = n ? loc | ImPlotLocation_North : loc;
+        loc = s ? loc | ImPlotLocation_South : loc;
+        loc = w ? loc | ImPlotLocation_West  : loc;
+        loc = e ? loc | ImPlotLocation_East  : loc;
 
-        if (pos == 0) {
-            ImGui::Checkbox("North", &n); ImGui::SameLine();
-            ImGui::Checkbox("South", &s); ImGui::SameLine();
-            ImGui::Checkbox("West",  &w); ImGui::SameLine();
-            ImGui::Checkbox("East",  &e); ImGui::SameLine();
-            ImGui::Checkbox("Horizontal", &h);
-            loc = n ? loc | ImPlotLocation_North : loc;
-            loc = s ? loc | ImPlotLocation_South : loc;
-            loc = w ? loc | ImPlotLocation_West  : loc;
-            loc = e ? loc | ImPlotLocation_East  : loc;
-        }
-        else {
-            ImGui::SliderFloat2("ItemSpacing", (float*)&spacing, 0.0f, 10.0f, "%.0f");
-        }
         ImGui::SliderFloat2("LegendPadding", (float*)&GetStyle().LegendPadding, 0.0f, 20.0f, "%.0f");
         ImGui::SliderFloat2("LegendInnerPadding", (float*)&GetStyle().LegendInnerPadding, 0.0f, 10.0f, "%.0f");
         ImGui::SliderFloat2("LegendSpacing", (float*)&GetStyle().LegendSpacing, 0.0f, 5.0f, "%.0f");
 
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, spacing);
-        if (pos == 1) { ImPlot::ShowAltLegend("##Legend",ImPlotOrientation_Vertical,ImVec2(0,300));  ImGui::SameLine(); }
-        if (pos == 3) { ImPlot::ShowAltLegend("##Legend",ImPlotOrientation_Horizontal,ImVec2(500,0));                   }
-        if (ImPlot::BeginPlot("##Legend","x","y",ImVec2(500,300),pos==0?ImPlotFlags_None:ImPlotFlags_NoLegend)) {
-            if (pos == 0)
-                ImPlot::SetLegendLocation(loc, h ? ImPlotOrientation_Horizontal : ImPlotOrientation_Vertical);
-            ImPlot::PlotDummy("Item 1");
-            ImPlot::PlotDummy("Item 2##IDText");
-            ImPlot::PlotDummy("##NotDisplayed");
-            ImPlot::PlotDummy("Item 3");
-            ImPlot::PlotDummy("Item 3"); // won't be repeated
+        if (ImPlot::BeginPlot("##Legend","x","y",ImVec2(-1,0))) {
+            ImPlot::SetLegendLocation(loc, h ? ImPlotOrientation_Horizontal : ImPlotOrientation_Vertical, o);
+            static MyImPlot::WaveData data1(0.001, 0.2, 2, 0.75);
+            static MyImPlot::WaveData data2(0.001, 0.2, 4, 0.25);
+            static MyImPlot::WaveData data3(0.001, 0.2, 6, 0.5);
+            ImPlot::PlotLineG("Item 1", MyImPlot::SineWave, &data1, 1000);         // "Item 1" added to legend
+            ImPlot::PlotLineG("Item 2##IDText", MyImPlot::SawWave, &data2, 1000);  // "Item 2" added to legend, text after ## used for ID only
+            ImPlot::PlotLineG("##NotDisplayed", MyImPlot::SawWave, &data3, 1000);  // plotted, but not added to legend
+            ImPlot::PlotLineG("Item 3", MyImPlot::SineWave, &data1, 1000);         // "Item 3" added to legend
+            ImPlot::PlotLineG("Item 3", MyImPlot::SawWave,  &data2, 1000);         // combined with previous "Item 3"
             ImPlot::EndPlot();
         }
-        if (pos == 2) { ImGui::SameLine(); ImPlot::ShowAltLegend("##Legend",ImPlotOrientation_Vertical,ImVec2(0,300)); }
-        if (pos == 4) { ImPlot::ShowAltLegend("##Legend",ImPlotOrientation_Horizontal,ImVec2(500,0));                  }
-        ImGui::PopStyleVar();
-        ImGui::Dummy(ImVec2(0,0)); // so ImGuiStyleVar_ItemSpacing doesn't carry over to next header
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag Lines and Points")) {
@@ -869,7 +854,7 @@ void ShowDemoWindow(bool* p_open) {
                 ys[i] = (y1+y2)/2+abs(y2-y1)/2*sin(f*i/10);
             }
             ImPlot::PlotLine("Interactive Data", xs, ys, 1000);
-            ImPlot::SetPlotYAxis(1);
+            ImPlot::SetPlotYAxis(ImPlotYAxis_2);
             ImPlot::DragLineY("f",&f,show_labels,ImVec4(1,0.5f,1,1));
             ImPlot::EndPlot();
         }

@@ -60,6 +60,7 @@ typedef int ImPlotMarker;      // -> enum ImPlotMarker_
 typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 typedef int ImPlotLocation;    // -> enum ImPlotLocation_
 typedef int ImPlotOrientation; // -> enum ImPlotOrientation_
+typedef int ImPlotYAxis;       // -> enum ImPlotYAxis_;
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -145,13 +146,14 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_MinorTickSize,      // ImVec2, line thickness of minor ticks
     ImPlotStyleVar_MajorGridSize,      // ImVec2, line thickness of major grid lines
     ImPlotStyleVar_MinorGridSize,      // ImVec2, line thickness of minor grid lines
-    ImPlotStyleVar_PlotPadding,        // ImVec2, padding between widget frame and plot area and/or labels
+    ImPlotStyleVar_PlotPadding,        // ImVec2, padding between widget frame and plot area, labels, or outside legends (i.e. main padding)
     ImPlotStyleVar_LabelPadding,       // ImVec2, padding between axes labels, tick labels, and plot edge
     ImPlotStyleVar_LegendPadding,      // ImVec2, legend padding from plot edges
     ImPlotStyleVar_LegendInnerPadding, // ImVec2, legend inner padding from legend edges
     ImPlotStyleVar_LegendSpacing,      // ImVec2, spacing between legend entries
     ImPlotStyleVar_MousePosPadding,    // ImVec2, padding between plot edge and interior info text
     ImPlotStyleVar_AnnotationPadding,  // ImVec2, text padding around annotation labels
+    ImPlotStyleVar_PlotDefaultSize,    // ImVec2, default size used when ImVec2(0,0) is passed to BeginPlot
     ImPlotStyleVar_PlotMinSize,        // ImVec2, minimum size plot frame can be when shrunk
     ImPlotStyleVar_COUNT
 };
@@ -188,18 +190,30 @@ enum ImPlotColormap_ {
     ImPlotColormap_COUNT
 };
 
-// Location, use individually or combined with bitwise OR, e.g. ImPlotLocation_North | ImPlotLocation_West
+// Used to position items on a plot (e.g. legends, labels, etc.)
 enum ImPlotLocation_ {
-    ImPlotLocation_North = 1 << 0, // top
-    ImPlotLocation_South = 1 << 1, // bottom
-    ImPlotLocation_West  = 1 << 2, // left
-    ImPlotLocation_East  = 1 << 3  // right
+    ImPlotLocation_Center    = 0,                                          // center-center
+    ImPlotLocation_North     = 1 << 0,                                     // top-center
+    ImPlotLocation_South     = 1 << 1,                                     // bottom-center
+    ImPlotLocation_West      = 1 << 2,                                     // center-left
+    ImPlotLocation_East      = 1 << 3,                                     // center-right
+    ImPlotLocation_NorthWest = ImPlotLocation_North | ImPlotLocation_West, // top-left
+    ImPlotLocation_NorthEast = ImPlotLocation_North | ImPlotLocation_East, // top-right
+    ImPlotLocation_SouthWest = ImPlotLocation_South | ImPlotLocation_West, // bottom-left
+    ImPlotLocation_SouthEast = ImPlotLocation_South | ImPlotLocation_East  // bottom-right
 };
 
-// Orientation
+// Used to orient items on a plot (e.g. legends, labels, etc.)
 enum ImPlotOrientation_ {
     ImPlotOrientation_Horizontal, // left/right
     ImPlotOrientation_Vertical    // up/down
+};
+
+// Enums for different y-axes.
+enum ImPlotYAxis_ {
+    ImPlotYAxis_1 = 0, // left (default)
+    ImPlotYAxis_2 = 1, // first on right side
+    ImPlotYAxis_3 = 2  // second on right side
 };
 
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
@@ -253,13 +267,14 @@ struct ImPlotStyle {
     ImVec2  MinorTickSize;           // = 1,1     line thickness of minor ticks
     ImVec2  MajorGridSize;           // = 1,1     line thickness of major grid lines
     ImVec2  MinorGridSize;           // = 1,1     line thickness of minor grid lines
-    ImVec2  PlotPadding;             // = 8,8     padding between widget frame and plot area and/or labels
+    ImVec2  PlotPadding;             // = 10,10   padding between widget frame and plot area, labels, or outside legends (i.e. main padding)
     ImVec2  LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
     ImVec2  LegendPadding;           // = 10,10   legend padding from plot edges
     ImVec2  LegendInnerPadding;      // = 5,5     legend inner padding from legend edges
     ImVec2  LegendSpacing;           // = 0,0     spacing between legend entries
     ImVec2  MousePosPadding;         // = 10,10   padding between plot edge and interior mouse location text
     ImVec2  AnnotationPadding;       // = 2,2     text padding around annotation labels
+    ImVec2  PlotDefaultSize;         // = 400,300 default size used when ImVec2(0,0) is passed to BeginPlot
     ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
     // colors
     ImVec4  Colors[ImPlotCol_COUNT]; //           array of plot specific colors
@@ -267,7 +282,7 @@ struct ImPlotStyle {
     bool    AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
     bool    UseLocalTime;            // = false,  axis labels will be formatted for your timezone when ImPlotAxisFlag_Time is enabled
     bool    UseISO8601;              // = false,  dates will be formatted according to ISO 8601 where applicable (e.g. YYYY-MM-DD, YYYY-MM, --MM-DD, etc.)
-    bool    Use24HourClock;          // = false,  times will be formatted using 24 hour clock
+    bool    Use24HourClock;          // = false,  times will be formatted using a 24 hour clock
     IMPLOT_API ImPlotStyle();
 };
 
@@ -437,7 +452,7 @@ IMPLOT_API void SetNextPlotLimits(double xmin, double xmax, double ymin, double 
 // Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
 IMPLOT_API void SetNextPlotLimitsX(double xmin, double xmax, ImGuiCond cond = ImGuiCond_Once);
 // Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
-IMPLOT_API void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, int y_axis = 0);
+IMPLOT_API void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, ImPlotYAxis y_axis = 0);
 // Links the next plot limits to external values. Set to NULL for no linkage. The pointer data must remain valid until the matching call EndPlot.
 IMPLOT_API void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2 = NULL, double* ymax2 = NULL, double* ymin3 = NULL, double* ymax3 = NULL);
 // Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
@@ -448,22 +463,22 @@ IMPLOT_API void SetNextPlotTicksX(const double* values, int n_ticks, const char*
 IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool show_default = false);
 
 // Set the Y axis ticks and optionally the labels for the next plot.
-IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool show_default = false, int y_axis = 0);
-IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool show_default = false, int y_axis = 0);
+IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool show_default = false, ImPlotYAxis y_axis = 0);
+IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool show_default = false, ImPlotYAxis y_axis = 0);
 
 // The following functions MUST be called between Begin/EndPlot!
 
-// Select which Y axis will be used for subsequent plot elements. The default is '0', or the first (left) Y axis. Enable 2nd and 3rd axes with ImPlotFlags_YAxisX.
-IMPLOT_API void SetPlotYAxis(int y_axis);
-// Hides or shows the next plot item (i.e. as if it were toggled from the legend). Use ImGuiCond_Always if you need to change this every frame.
+// Select which Y axis will be used for subsequent plot elements. The default is ImPlotYAxis_1, or the first (left) Y axis. Enable 2nd and 3rd axes with ImPlotFlags_YAxisX.
+IMPLOT_API void SetPlotYAxis(ImPlotYAxis y_axis);
+// Hides or shows the next plot item (i.e. as if it were toggled from the legend). Use ImGuiCond_Always if you need to forcefully set this every frame.
 IMPLOT_API void HideNextItem(bool hidden = true, ImGuiCond cond = ImGuiCond_Once);
 
-// Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-IMPLOT_API ImPlotPoint PixelsToPlot(const ImVec2& pix, int y_axis = IMPLOT_AUTO);
-IMPLOT_API ImPlotPoint PixelsToPlot(float x, float y, int y_axis = IMPLOT_AUTO);
-// Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-IMPLOT_API ImVec2 PlotToPixels(const ImPlotPoint& plt, int y_axis = IMPLOT_AUTO);
-IMPLOT_API ImVec2 PlotToPixels(double x, double y, int y_axis = IMPLOT_AUTO);
+// Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
+IMPLOT_API ImPlotPoint PixelsToPlot(const ImVec2& pix, ImPlotYAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotPoint PixelsToPlot(float x, float y, ImPlotYAxis y_axis = IMPLOT_AUTO);
+// Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
+IMPLOT_API ImVec2 PlotToPixels(const ImPlotPoint& plt, ImPlotYAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImPlotYAxis y_axis = IMPLOT_AUTO);
 // Get the current Plot position (top-left) in pixels.
 IMPLOT_API ImVec2 GetPlotPos();
 // Get the curent Plot size in pixels.
@@ -473,20 +488,22 @@ IMPLOT_API bool IsPlotHovered();
 // Returns true if the XAxis plot area in the current plot is hovered.
 IMPLOT_API bool IsPlotXAxisHovered();
 // Returns true if the YAxis[n] plot area in the current plot is hovered.
-IMPLOT_API bool IsPlotYAxisHovered(int y_axis = 0);
-// Returns the mouse position in x,y coordinates of the current plot. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-IMPLOT_API ImPlotPoint GetPlotMousePos(int y_axis = IMPLOT_AUTO);
-// Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (0 initially).
-IMPLOT_API ImPlotLimits GetPlotLimits(int y_axis = IMPLOT_AUTO);
+IMPLOT_API bool IsPlotYAxisHovered(ImPlotYAxis y_axis = 0);
+// Returns the mouse position in x,y coordinates of the current plot. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
+IMPLOT_API ImPlotPoint GetPlotMousePos(ImPlotYAxis y_axis = IMPLOT_AUTO);
+// Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
+IMPLOT_API ImPlotLimits GetPlotLimits(ImPlotYAxis y_axis = IMPLOT_AUTO);
 
 // Returns true if the current plot is being queried. Query must be enabled with ImPlotFlags_Query.
 IMPLOT_API bool IsPlotQueried();
 // Returns the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
-IMPLOT_API ImPlotLimits GetPlotQuery(int y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotLimits GetPlotQuery(ImPlotYAxis y_axis = IMPLOT_AUTO);
 
 //-----------------------------------------------------------------------------
 // Plot Tools
 //-----------------------------------------------------------------------------
+
+// The following functions MUST be called between Begin/EndPlot!
 
 // Shows an annotation callout at a chosen point.
 IMPLOT_API void Annotate(double x, double y, const ImVec2& pix_offset, const char* fmt, ...)                                       IM_FMTARGS(4);
@@ -511,8 +528,10 @@ IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label 
 // Legend Utils and Tools
 //-----------------------------------------------------------------------------
 
-// Set the location of the current plot's interior legend (does not affect ShowAltLegend).
-IMPLOT_API void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation = ImPlotOrientation_Vertical);
+// The following functions MUST be called between Begin/EndPlot!
+
+// Set the location of the current plot's legend.
+IMPLOT_API void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation = ImPlotOrientation_Vertical, bool outside = false);
 // Set the locaton of the current plot's mouse position text (default = South|East).
 IMPLOT_API void SetMousePosLocation(ImPlotLocation location);
 // Returns true if a plot item legend entry is hovered.
@@ -525,8 +544,6 @@ IMPLOT_API void EndLegendDragDropSource();
 IMPLOT_API bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button = 1);
 // End a popup for a legend entry.
 IMPLOT_API void EndLegendPopup();
-// Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
-IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
 
 //-----------------------------------------------------------------------------
 // Plot and Item Styling
