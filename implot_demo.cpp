@@ -326,6 +326,20 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Stairstep Plots")) {
+        static float ys1[101], ys2[101];
+        for (int i = 0; i < 101; ++i) {
+            ys1[i] = 0.5f + 0.4f * sinf(50 * i * 0.01f);
+            ys2[i] = 0.5f + 0.2f * sinf(25 * i * 0.01f);
+        }
+        if (ImPlot::BeginPlot("Stairstep Plot", "x", "f(x)")) {
+            ImPlot::PlotStairs("Signal 1", ys1, 101, 0.01f);
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 2.0f);
+            ImPlot::PlotStairs("Signal 2", ys2, 101, 0.01f);
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Bar Plots")) {
 
         static bool horz                = false;
