@@ -60,9 +60,9 @@ ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created) {
     int idx = gp.CurrentPlot->Items.GetIndex(item);
     item->ID = id;
     if (ImGui::FindRenderedTextEnd(label_id, NULL) != label_id) {
-        gp.LegendIndices.push_back(idx);
-        item->NameOffset = gp.LegendLabels.size();
-        gp.LegendLabels.append(label_id, label_id + strlen(label_id) + 1);
+        gp.CurrentPlot->Legend.Indices.push_back(idx);
+        item->NameOffset = gp.CurrentPlot->Legend.Labels.size();
+        gp.CurrentPlot->Legend.Labels.append(label_id, label_id + strlen(label_id) + 1);
     }
     else {
         item->Show = true;
@@ -72,24 +72,10 @@ ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created) {
     return item;
 }
 
-ImPlotItem* GetItem(int i) {
-    ImPlotContext& gp = *GImPlot;
-    return gp.CurrentPlot->Items.GetByIndex(gp.LegendIndices[i]);
-}
-
 ImPlotItem* GetItem(const char* label_id) {
     ImPlotContext& gp = *GImPlot;
     ImGuiID id = ImGui::GetID(label_id);
     return gp.CurrentPlot->Items.GetByKey(id);
-}
-
-ImPlotItem* GetItem(const char* plot_title, const char* item_label_id) {
-    ImPlotPlot* plot = GetPlot(plot_title);
-    if (plot) {
-        ImGuiID id = ImGui::GetID(item_label_id);
-        return plot->Items.GetByKey(id);
-    }
-    return NULL;
 }
 
 ImPlotItem* GetCurrentItem() {
@@ -1754,6 +1740,15 @@ void PlotText(const char* text, double x, double y, bool vertical, const ImVec2&
         DrawList.AddText(pos, colTxt, text);
     }
     PopPlotClipRect();
+}
+
+//-----------------------------------------------------------------------------
+// PLOT DUMMY
+//-----------------------------------------------------------------------------
+
+void PlotDummy(const char* label_id) {
+    if (BeginItem(label_id, ImPlotCol_Line))
+        EndItem();
 }
 
 } // namespace ImPlot

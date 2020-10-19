@@ -51,6 +51,7 @@ struct ImPlotAxis;
 struct ImPlotAxisState;
 struct ImPlotAxisColor;
 struct ImPlotItem;
+struct ImPlotLegend;
 struct ImPlotPlot;
 struct ImPlotNextPlotData;
 
@@ -67,20 +68,16 @@ extern IMPLOT_API ImPlotContext* GImPlot; // Current implicit context pointer
 // Constants can be changed unless stated otherwise. We may move some of these
 // to ImPlotStyleVar_ over time.
 
-// Default plot frame width when requested width is auto (i.e. 0). This is not the plot area width!
-#define IMPLOT_DEFAULT_W  400
-// Default plot frame height when requested height is auto (i.e. 0). This is not the plot area height!
-#define IMPLOT_DEFAULT_H  300
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
-#define IMPLOT_Y_AXES     3
+#define IMPLOT_Y_AXES    3
 // The number of times to subdivided grid divisions (best if a multiple of 1, 2, and 5)
-#define IMPLOT_SUB_DIV    10
+#define IMPLOT_SUB_DIV   10
 // Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
-#define IMPLOT_ZOOM_RATE  0.1f
+#define IMPLOT_ZOOM_RATE 0.1f
 // Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
-#define IMPLOT_MIN_TIME 0
+#define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
-#define IMPLOT_MAX_TIME 32503680000
+#define IMPLOT_MAX_TIME  32503680000
 
 //-----------------------------------------------------------------------------
 // [SECTION] Generic Helpers
@@ -158,17 +155,10 @@ struct ImPlotPointArray {
 // [SECTION] ImPlot Enums
 //-----------------------------------------------------------------------------
 
-typedef int ImPlotDirection; // -> enum ImPlotDirection_
-typedef int ImPlotScale;     // -> enum ImPlotScale_
-typedef int ImPlotTimeUnit;  // -> enum ImPlotTimeUnit_
-typedef int ImPlotDateFmt;   // -> enum ImPlotDateFmt_
-typedef int ImPlotTimeFmt;   // -> enum ImPlotTimeFmt_
-
-// Axis direction
-enum ImPlotDirection_ {
-    ImPlotDirection_Horizontal, // left/right
-    ImPlotDirection_Vertical    // up/down
-};
+typedef int ImPlotScale;       // -> enum ImPlotScale_
+typedef int ImPlotTimeUnit;    // -> enum ImPlotTimeUnit_
+typedef int ImPlotDateFmt;     // -> enum ImPlotDateFmt_
+typedef int ImPlotTimeFmt;     // -> enum ImPlotTimeFmt_
 
 // XY axes scaling combinations
 enum ImPlotScale_ {
@@ -195,7 +185,7 @@ enum ImPlotDateFmt_ {              // default        [ ISO 8601     ]
     ImPlotDateFmt_DayMo,           // 10/3           [ --10-03      ]
     ImPlotDateFmt_DayMoYr,         // 10/3/91        [ 1991-10-03   ]
     ImPlotDateFmt_MoYr,            // Oct 1991       [ 1991-10      ]
-    ImPlotDateFmt_Mo,              // Oct            [ --10-01      ]
+    ImPlotDateFmt_Mo,              // Oct            [ --10         ]
     ImPlotDateFmt_Yr               // 1991           [ 1991         ]
 };
 
@@ -392,7 +382,7 @@ struct ImPlotAxis
     ImPlotAxisFlags Flags;
     ImPlotAxisFlags PreviousFlags;
     ImPlotRange     Range;
-    ImPlotDirection Direction;
+    ImPlotOrientation Direction;
     bool            Dragging;
     bool            HoveredExt;
     bool            HoveredTot;
@@ -524,6 +514,20 @@ struct ImPlotItem
     ~ImPlotItem() { ID = 0; }
 };
 
+// Holds Legend state labels and item references
+struct ImPlotLegend
+{
+    ImPlotPlot*     Plot;
+    ImVector<int>   Indices;
+    ImGuiTextBuffer Labels;
+
+    ImPlotLegend(ImPlotPlot* plot) { Plot = plot; }
+    void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
+    int  Count() const { return Indices.size(); }
+    ImPlotItem* GetItem(int i);
+    const char* GetLabel(int i);
+};
+
 // Holds Plot state information that must persist after EndPlot
 struct ImPlotPlot
 {
@@ -531,27 +535,37 @@ struct ImPlotPlot
     ImPlotFlags        PreviousFlags;
     ImPlotAxis         XAxis;
     ImPlotAxis         YAxis[IMPLOT_Y_AXES];
+    ImPlotLegend       Legend;
     ImPool<ImPlotItem> Items;
     ImVec2             SelectStart;
     ImVec2             QueryStart;
     ImRect             QueryRect;
-    ImRect             BB_Legend;
     bool               Selecting;
     bool               Querying;
     bool               Queried;
     bool               DraggingQuery;
+    bool               LegendHovered;
+    bool               LegendOutside;
+    bool               LegendFlipSide;
     int                ColormapIdx;
     int                CurrentYAxis;
+    ImPlotLocation     MousePosLocation;
+    ImPlotLocation     LegendLocation;
+    ImPlotOrientation  LegendOrientation;
 
-    ImPlotPlot() {
+    ImPlotPlot() : Legend(this) {
         Flags           = PreviousFlags = ImPlotFlags_None;
-        XAxis.Direction = ImPlotDirection_Horizontal;
+        XAxis.Direction = ImPlotOrientation_Horizontal;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
-            YAxis[i].Direction = ImPlotDirection_Vertical;
-        SelectStart     = QueryStart = ImVec2(0,0);
-        Selecting       = Querying = Queried = DraggingQuery = false;
-        ColormapIdx     = CurrentYAxis = 0;
+            YAxis[i].Direction = ImPlotOrientation_Vertical;
+        SelectStart       = QueryStart = ImVec2(0,0);
+        Selecting         = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSide = false;
+        ColormapIdx       = CurrentYAxis = 0;
+        LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
+        LegendOrientation = ImPlotOrientation_Vertical;
+        MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
     }
+
 };
 
 // Temporary data storage for upcoming plot
@@ -619,17 +633,16 @@ struct ImPlotContext {
     // Plot States
     ImPool<ImPlotPlot> Plots;
     ImPlotPlot*        CurrentPlot;
-    ImPlotItem*         CurrentItem;
-    ImPlotItem*         PreviousItem;
-
-    // Legend
-    ImVector<int>   LegendIndices;
-    ImGuiTextBuffer LegendLabels;
+    ImPlotItem*        CurrentItem;
+    ImPlotItem*        PreviousItem;
 
     // Bounding Boxes
     ImRect BB_Frame;
     ImRect BB_Canvas;
     ImRect BB_Plot;
+    ImRect BB_Axes;
+    ImRect BB_X;
+    ImRect BB_Y[IMPLOT_Y_AXES];
 
     // Axis States
     ImPlotAxisColor Col_X;
@@ -743,15 +756,11 @@ IMPLOT_API bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
 // Ends an item (call only if BeginItem returns true). Pops PlotClipRect.
 IMPLOT_API void EndItem();
 
-// Register or get an existing item from the current plot
+// Register or get an existing item from the current plot.
 IMPLOT_API ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created = NULL);
-// Get the ith plot item from the current plot
-IMPLOT_API ImPlotItem* GetItem(int i);
-// Get a plot item from the current plot
+// Get a plot item from the current plot.
 IMPLOT_API ImPlotItem* GetItem(const char* label_id);
-// Gets a plot item from a specific plot
-IMPLOT_API ImPlotItem* GetItem(const char* plot_title, const char* item_label_id);
-// Gets the current item
+// Gets the current item.
 IMPLOT_API ImPlotItem* GetCurrentItem();
 // Busts the cache for every item for every plot in the current context.
 IMPLOT_API void BustItemCache();
@@ -791,10 +800,14 @@ IMPLOT_API void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed = 
 // [SECTION] Legend Utils
 //-----------------------------------------------------------------------------
 
-// Returns the number of entries in the current legend
-IMPLOT_API int GetLegendCount();
-// Gets the ith entry string for the current legend
-IMPLOT_API const char* GetLegendLabel(int i);
+// Gets the position of an inner rect that is located inside of an outer rect according to an ImPlotLocation and padding amount.
+IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlotLocation location, const ImVec2& pad = ImVec2(0,0));
+// Calculates the bounding box size of a legend
+IMPLOT_API ImVec2 CalcLegendSize(ImPlotLegend& legend, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
+// Renders legend entries into a bounding box
+IMPLOT_API void ShowLegendEntries(ImPlotLegend& legend, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
+// Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
+IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Tick Utils
