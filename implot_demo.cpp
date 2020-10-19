@@ -814,21 +814,14 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Legend")) {
-        static bool n = false; static bool s = false; static bool w = false; static bool e = true;
+        static ImPlotLocation loc = ImPlotLocation_East;
         static bool h = false; static bool o = true;
-
-        ImGui::Checkbox("North", &n); ImGui::SameLine();
-        ImGui::Checkbox("South", &s); ImGui::SameLine();
-        ImGui::Checkbox("West",  &w); ImGui::SameLine();
-        ImGui::Checkbox("East",  &e); ImGui::SameLine();
+        ImGui::CheckboxFlags("North", (unsigned int*)&loc, ImPlotLocation_North); ImGui::SameLine();
+        ImGui::CheckboxFlags("South", (unsigned int*)&loc, ImPlotLocation_South); ImGui::SameLine();
+        ImGui::CheckboxFlags("West",  (unsigned int*)&loc, ImPlotLocation_West);  ImGui::SameLine();
+        ImGui::CheckboxFlags("East",  (unsigned int*)&loc, ImPlotLocation_East);  ImGui::SameLine();
         ImGui::Checkbox("Horizontal", &h); ImGui::SameLine();
         ImGui::Checkbox("Outside", &o);
-
-        ImPlotLocation loc = 0;
-        loc = n ? loc | ImPlotLocation_North : loc;
-        loc = s ? loc | ImPlotLocation_South : loc;
-        loc = w ? loc | ImPlotLocation_West  : loc;
-        loc = e ? loc | ImPlotLocation_East  : loc;
 
         ImGui::SliderFloat2("LegendPadding", (float*)&GetStyle().LegendPadding, 0.0f, 20.0f, "%.0f");
         ImGui::SliderFloat2("LegendInnerPadding", (float*)&GetStyle().LegendInnerPadding, 0.0f, 10.0f, "%.0f");
