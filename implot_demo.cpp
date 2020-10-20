@@ -834,7 +834,7 @@ void ShowDemoWindow(bool* p_open) {
             static MyImPlot::WaveData data3(0.001, 0.2, 6, 0.5);
             ImPlot::PlotLineG("Item 1", MyImPlot::SineWave, &data1, 1000);         // "Item 1" added to legend
             ImPlot::PlotLineG("Item 2##IDText", MyImPlot::SawWave, &data2, 1000);  // "Item 2" added to legend, text after ## used for ID only
-            ImPlot::PlotLineG("##NotDisplayed", MyImPlot::SawWave, &data3, 1000);  // plotted, but not added to legend
+            ImPlot::PlotLineG("##NotListed", MyImPlot::SawWave, &data3, 1000);     // plotted, but not added to legend
             ImPlot::PlotLineG("Item 3", MyImPlot::SineWave, &data1, 1000);         // "Item 3" added to legend
             ImPlot::PlotLineG("Item 3", MyImPlot::SawWave,  &data2, 1000);         // combined with previous "Item 3"
             ImPlot::EndPlot();

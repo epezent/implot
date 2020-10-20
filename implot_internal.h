@@ -379,17 +379,18 @@ struct ImPlotTickCollection {
 // Axis state information that must persist after EndPlot
 struct ImPlotAxis
 {
-    ImPlotAxisFlags Flags;
-    ImPlotAxisFlags PreviousFlags;
-    ImPlotRange     Range;
-    ImPlotOrientation Direction;
-    bool            Dragging;
-    bool            HoveredExt;
-    bool            HoveredTot;
-    double*         LinkedMin;
-    double*         LinkedMax;
-    ImPlotTime      PickerTimeMin, PickerTimeMax;
-    int             PickerLevel;
+    ImPlotAxisFlags   Flags;
+    ImPlotAxisFlags   PreviousFlags;
+    ImPlotRange       Range;
+    float             Pixels;
+    ImPlotOrientation Orientation;
+    bool              Dragging;
+    bool              HoveredExt;
+    bool              HoveredTot;
+    double*           LinkedMin;
+    double*           LinkedMax;
+    ImPlotTime        PickerTimeMin, PickerTimeMax;
+    int               PickerLevel;
 
     ImPlotAxis() {
         Flags      = PreviousFlags = ImPlotAxisFlags_None;
@@ -438,6 +439,12 @@ struct ImPlotAxis
 
     void SetRange(const ImPlotRange& range) {
         SetRange(range.Min, range.Max);
+    }
+
+    void SetAspect(double unit_per_pix) {
+        double new_size = unit_per_pix * Pixels;
+        double delta    = (new_size - Range.Size()) * 0.5f;
+        SetRange(Range.Min - delta, Range.Max  +delta);
     }
 
     void Constrain() {
@@ -554,10 +561,10 @@ struct ImPlotPlot
     ImPlotOrientation  LegendOrientation;
 
     ImPlotPlot() : Legend(this) {
-        Flags           = PreviousFlags = ImPlotFlags_None;
-        XAxis.Direction = ImPlotOrientation_Horizontal;
+        Flags             = PreviousFlags = ImPlotFlags_None;
+        XAxis.Orientation = ImPlotOrientation_Horizontal;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
-            YAxis[i].Direction = ImPlotOrientation_Vertical;
+            YAxis[i].Orientation = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
         Selecting         = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSide = false;
         ColormapIdx       = CurrentYAxis = 0;

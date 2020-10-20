@@ -1192,7 +1192,7 @@ int LabelAxisValue(const ImPlotAxis& axis, const ImPlotTickCollection& ticks, do
         return snprintf(buff, size, "%.3E", value);
     }
     else if (ImHasFlag(axis.Flags, ImPlotAxisFlags_Time)) {
-        ImPlotTimeUnit unit = (axis.Direction == ImPlotOrientation_Horizontal)
+        ImPlotTimeUnit unit = (axis.Orientation == ImPlotOrientation_Horizontal)
                             ? GetUnitForRange(axis.Range.Size() / (gp.BB_Plot.GetWidth() / 100))
                             : GetUnitForRange(axis.Range.Size() / (gp.BB_Plot.GetHeight() / 100));
         return FormatDateTime(ImPlotTime::FromDouble(value), buff, size, GetDateTimeFmt(TimeFormatMouseCursor, unit));
@@ -1480,6 +1480,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
         hov_query = bb_query.Contains(IO.MousePos);
     }
+    
+    // AXIS ASPECT RATIOS
+    plot.XAxis.Pixels = gp.BB_Plot.GetWidth();
+    for (int i = 0; i < IMPLOT_Y_AXES; ++i)
+        plot.YAxis[i].Pixels = gp.BB_Plot.GetHeight();
 
     // QUERY DRAG -------------------------------------------------------------
     if (plot.DraggingQuery && (IO.MouseReleased[gp.InputMap.PanButton] || !IO.MouseDown[gp.InputMap.PanButton])) {
@@ -1586,6 +1591,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 plot.XAxis.SetMin(gp.X.Invert ? plot_br.x : plot_tl.x);
             if (!gp.X.LockMax)
                 plot.XAxis.SetMax(gp.X.Invert ? plot_tl.x : plot_br.x);
+            plot.YAxis[0].SetAspect(plot.XAxis.Range.Size() / plot.XAxis.Pixels);
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
             if (plot.YAxis[i].HoveredTot && !gp.Y[i].Lock) {
@@ -1596,6 +1602,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                     plot.YAxis[i].SetMin(gp.Y[i].Invert ? plot_tl.y : plot_br.y);
                 if (!gp.Y[i].LockMax)
                     plot.YAxis[i].SetMax(gp.Y[i].Invert ? plot_br.y : plot_tl.y);
+                plot.XAxis.SetAspect(plot.YAxis[i].Range.Size() / plot.YAxis[i].Pixels);
             }
         }
     }
@@ -1970,6 +1977,12 @@ void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
     if (ImGui::Checkbox("Labels", &labels))
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
+#ifdef IMPLOT_DEBUG
+    if (ImGui::BeginMenu("Debug")) {
+        ImGui::Value("Pixels", axis.Pixels);
+        ImGui::EndMenu();
+    }
+#endif
 
 }
 

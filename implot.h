@@ -71,11 +71,12 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoMousePos    = 1 << 3,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
     ImPlotFlags_NoHighlight   = 1 << 4,  // plot items will not be highlighted when their legend entry is hovered
     ImPlotFlags_NoChild       = 1 << 5,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2        = 1 << 6,  // enable a 2nd y-axis on the right side
-    ImPlotFlags_YAxis3        = 1 << 7,  // enable a 3rd y-axis on the right side
-    ImPlotFlags_Query         = 1 << 8,  // the user will be able to draw query rects with middle-mouse
-    ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased   = 1 << 10, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
+    ImPlotFlags_Equal         = 1 << 6,  // x and y axes will be constrained to have the same units/pixel
+    ImPlotFlags_YAxis2        = 1 << 7,  // enable a 2nd y-axis on the right side
+    ImPlotFlags_YAxis3        = 1 << 8,  // enable a 3rd y-axis on the right side
+    ImPlotFlags_Query         = 1 << 9,  // the user will be able to draw query rects with middle-mouse
+    ImPlotFlags_Crosshairs    = 1 << 10, // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_AntiAliased   = 1 << 11, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
 };
 
