@@ -669,6 +669,8 @@ IMPLOT_API bool ShowColormapSelector(const char* label);
 IMPLOT_API void ShowStyleEditor(ImPlotStyle* ref = NULL);
 // Add basic help/info block (not a window): how to manipulate ImPlot as an end-user.
 IMPLOT_API void ShowUserGuide();
+// Shows ImPlot metrics/debug information.
+IMPLOT_API void ShowMetricsWindow(bool* p_popen = NULL);
 
 // Sets the current _ImGui_ context. This is ONLY necessary if you are compiling
 // ImPlot as a DLL (not recommended) separate from your ImGui compilation. It

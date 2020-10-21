@@ -132,14 +132,16 @@ ImPlotStyle::ImPlotStyle() {
     UseISO8601       = false;
 }
 
-ImPlotItem* ImPlotLegend::GetItem(int i) {
-    return Plot->Items.GetByIndex(Indices[i]);
+ImPlotItem* ImPlotPlot::GetLegendItem(int i) {
+    IM_ASSERT(Items.GetSize() > 0);
+    return Items.GetByIndex(LegendData.Indices[i]);
 }
 
-const char* ImPlotLegend::GetLabel(int i) {
-    ImPlotItem* item = GetItem(i);
-    IM_ASSERT(item->NameOffset != -1 && item->NameOffset < Labels.Buf.Size);
-    return Labels.Buf.Data + item->NameOffset;
+const char* ImPlotPlot::GetLegendLabel(int i) {
+    ImPlotItem* item = GetLegendItem(i);
+    IM_ASSERT(item != NULL);
+    IM_ASSERT(item->NameOffset != -1 && item->NameOffset < LegendData.Labels.Buf.Size);
+    return LegendData.Labels.Buf.Data + item->NameOffset;
 }
 
 //-----------------------------------------------------------------------------
@@ -541,16 +543,16 @@ ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlot
     return pos;
 }
 
-ImVec2 CalcLegendSize(ImPlotLegend& legend, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orn) {
+ImVec2 CalcLegendSize(ImPlotPlot& plot, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orn) {
     // vars
-    const int   nItems      = legend.Count();
+    const int   nItems      = plot.GetLegendCount();
     const float txt_ht      = ImGui::GetTextLineHeight();
     const float icon_size   = txt_ht;
     // get label max width
     float max_label_width = 0;
     float sum_label_width = 0;
     for (int i = 0; i < nItems; ++i) {
-        const char* label       = legend.GetLabel(i);
+        const char* label       = plot.GetLegendLabel(i);
         const float label_width = ImGui::CalcTextSize(label, NULL, true).x;
         max_label_width         = label_width > max_label_width ? label_width : max_label_width;
         sum_label_width        += label_width;
@@ -562,7 +564,7 @@ ImVec2 CalcLegendSize(ImPlotLegend& legend, const ImVec2& pad, const ImVec2& spa
     return legend_size;
 }
 
-void ShowLegendEntries(ImPlotLegend& legend, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orn, ImDrawList& DrawList) {
+void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orn, ImDrawList& DrawList) {
     ImGuiIO& IO = ImGui::GetIO();
     // vars
     const float txt_ht      = ImGui::GetTextLineHeight();
@@ -572,9 +574,9 @@ void ShowLegendEntries(ImPlotLegend& legend, const ImRect& legend_bb, bool inter
     ImU32  col_txt_dis      = ImGui::GetColorU32(col_txt * ImVec4(1,1,1,0.25f));
     // render each legend item
     float sum_label_width = 0;
-    for (int i = 0; i < legend.Count(); ++i) {
-        ImPlotItem* item        = legend.GetItem(i);
-        const char* label       = legend.GetLabel(i);
+    for (int i = 0; i < plot.GetLegendCount(); ++i) {
+        ImPlotItem* item        = plot.GetLegendItem(i);
+        const char* label       = plot.GetLegendLabel(i);
         const float label_width = ImGui::CalcTextSize(label, NULL, true).x;
         const ImVec2 top_left   = orn == ImPlotOrientation_Vertical ?
                                          legend_bb.Min + pad + ImVec2(0, i * (txt_ht + spacing.y)) :
@@ -1238,9 +1240,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const ImGuiStyle &Style    = G.Style;
     const ImGuiIO &   IO       = ImGui::GetIO();
 
-    bool just_created = gp.Plots.GetByKey(ID) == NULL;
-    gp.CurrentPlot    = gp.Plots.GetOrAddByKey(ID);
-    ImPlotPlot &plot = *gp.CurrentPlot;
+    bool just_created  = gp.Plots.GetByKey(ID) == NULL;
+    gp.CurrentPlot     = gp.Plots.GetOrAddByKey(ID);
+    gp.CurrentPlot->ID = ID;
+    ImPlotPlot &plot   = *gp.CurrentPlot;
 
     plot.CurrentYAxis = 0;
 
@@ -1366,8 +1369,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     gp.BB_Axes   = gp.BB_Frame;
 
     // outside legend adjustments
-    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Legend.Count() > 0 && plot.LegendOutside) {
-        const ImVec2 legend_size = CalcLegendSize(plot.Legend, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation);
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.GetLegendCount() > 0 && plot.LegendOutside) {
+        const ImVec2 legend_size = CalcLegendSize(plot, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation);
         const bool west = ImHasFlag(plot.LegendLocation, ImPlotLocation_West) && !ImHasFlag(plot.LegendLocation, ImPlotLocation_East);
         const bool east = ImHasFlag(plot.LegendLocation, ImPlotLocation_East) && !ImHasFlag(plot.LegendLocation, ImPlotLocation_West);
         const bool north = ImHasFlag(plot.LegendLocation, ImPlotLocation_North) && !ImHasFlag(plot.LegendLocation, ImPlotLocation_South);
@@ -1822,7 +1825,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
     ImGui::PopClipRect();
     // clear legend
-    plot.Legend.Reset();
+    plot.LegendData.Reset();
     // push plot ID into stack
     ImGui::PushID(ID);
     return true;
@@ -2293,8 +2296,8 @@ void EndPlot() {
     for (int i = 0; i < plot.Items.GetSize(); ++i)
         plot.Items.GetByIndex(i)->LegendHovered = false;
     // render legend
-    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Legend.Count() > 0) {
-        const ImVec2 legend_size = CalcLegendSize(plot.Legend, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation);
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.GetLegendCount() > 0) {
+        const ImVec2 legend_size = CalcLegendSize(plot, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation);
         const ImVec2 legend_pos  = GetLocationPos(plot.LegendOutside ? gp.BB_Frame : gp.BB_Plot,
                                                   legend_size,
                                                   plot.LegendLocation,
@@ -2311,7 +2314,7 @@ void EndPlot() {
         ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
         DrawList.AddRectFilled(legend_bb.Min, legend_bb.Max, col_bg);
         DrawList.AddRect(legend_bb.Min, legend_bb.Max, col_bd);
-        ShowLegendEntries(plot.Legend, legend_bb, plot.LegendHovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation, DrawList);
+        ShowLegendEntries(plot, legend_bb, plot.LegendHovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation, DrawList);
         ImGui::PopClipRect();
     }
     if (plot.LegendFlipSide)  {
@@ -2899,7 +2902,7 @@ void ShowAltLegend(const char* title_id, ImPlotOrientation orientation, const Im
     ImVec2 legend_size;
     ImVec2 default_size = gp.Style.LegendPadding * 2;
     if (plot != NULL) {
-        legend_size  = CalcLegendSize(plot->Legend, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, orientation);
+        legend_size  = CalcLegendSize(*plot, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, orientation);
         default_size = legend_size + gp.Style.LegendPadding * 2;
     }
     ImVec2 frame_size = ImGui::CalcItemSize(size, default_size.x, default_size.y);
@@ -2919,7 +2922,7 @@ void ShowAltLegend(const char* title_id, ImPlotOrientation orientation, const Im
         DrawList.AddRectFilled(legend_bb.Min, legend_bb.Max, col_bg);
         DrawList.AddRect(legend_bb.Min, legend_bb.Max, col_bd);
         // render entries
-        ShowLegendEntries(plot->Legend, legend_bb, interactable, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, orientation, DrawList);
+        ShowLegendEntries(*plot, legend_bb, interactable, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, orientation, DrawList);
     }
     DrawList.PopClipRect();
 }
@@ -3628,6 +3631,47 @@ void ShowUserGuide() {
         ImGui::BulletText("Double right click on an axis to open the axis context menu.");
     ImGui::Unindent();
     ImGui::BulletText("Click legend label icons to show/hide plot items.");
+}
+
+void ShowMetricsWindow(bool* p_popen) {
+    ImPlotContext& gp = *GImPlot;
+    // ImGuiContext& g = *GImGui;
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::Begin("ImPlot Metrics", p_popen);
+    ImGui::Text("ImPlot " IMPLOT_VERSION);
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+    ImGui::Text("%d vertices, %d indices (%d triangles)", io.MetricsRenderVertices, io.MetricsRenderIndices, io.MetricsRenderIndices / 3);
+    ImGui::Separator();
+    int n_plots = gp.Plots.GetSize();
+    if (ImGui::TreeNode("Plots","Plots (%d)", n_plots)) {
+        for (int p = 0; p < n_plots; ++p) {
+            ImPlotPlot* plot = gp.Plots.GetByIndex(p);
+            ImGui::PushID(p);
+            if (ImGui::TreeNode("Plot", "Plot [ID=%u]", plot->ID)) {
+                int n_items = plot->Items.GetSize();
+                if (ImGui::TreeNode("Items", "Items (%d)", n_items)) {
+                    for (int i = 0; i < n_items; ++i) {
+                        ImPlotItem* item = plot->Items.GetByIndex(i);
+                        ImGui::PushID(i);
+                        if (ImGui::TreeNode("Item", "Item [ID=%u]", item->ID)) {
+                            ImGui::Bullet(); ImGui::Checkbox("Show", &item->Show);
+                            ImGui::Bullet(); ImGui::ColorEdit4("Color",&item->Color.x, ImGuiColorEditFlags_NoInputs);
+                            ImGui::Bullet(); ImGui::Value("NameOffset",item->NameOffset);
+                            ImGui::Bullet(); ImGui::Text("Name: %s", item->NameOffset != -1 ? plot->LegendData.Labels.Buf.Data + item->NameOffset : "N/A");
+                            ImGui::Bullet(); ImGui::Value("Hovered",item->LegendHovered);
+                            ImGui::TreePop();
+                        }
+                        ImGui::PopID();
+                    }
+                    ImGui::TreePop();
+                }
+                ImGui::TreePop();
+            }
+            ImGui::PopID();
+        }
+        ImGui::TreePop();
+    }
+    ImGui::End();
 }
 
 bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime* t1, const ImPlotTime* t2) {

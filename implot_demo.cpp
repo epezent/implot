@@ -136,11 +136,15 @@ struct HugeTimeData {
 void ShowDemoWindow(bool* p_open) {
     double DEMO_TIME = ImGui::GetTime();
     static bool show_imgui_metrics       = false;
+    static bool show_implot_metrics      = false;
     static bool show_imgui_style_editor  = false;
     static bool show_implot_style_editor = false;
     static bool show_implot_benchmark    = false;
     if (show_imgui_metrics) {
         ImGui::ShowMetricsWindow(&show_imgui_metrics);
+    }
+    if (show_implot_metrics) {
+        ImPlot::ShowMetricsWindow(&show_implot_metrics);
     }
     if (show_imgui_style_editor) {
         ImGui::Begin("Style Editor (ImGui)", &show_imgui_style_editor);
@@ -166,6 +170,7 @@ void ShowDemoWindow(bool* p_open) {
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Tools")) {
             ImGui::MenuItem("Metrics (ImGui)",       NULL, &show_imgui_metrics);
+            ImGui::MenuItem("Metrics (ImPlot)",      NULL, &show_implot_metrics);
             ImGui::MenuItem("Style Editor (ImGui)",  NULL, &show_imgui_style_editor);
             ImGui::MenuItem("Style Editor (ImPlot)", NULL, &show_implot_style_editor);
             ImGui::MenuItem("Benchmark",             NULL, &show_implot_benchmark);

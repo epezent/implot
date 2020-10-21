@@ -51,7 +51,7 @@ struct ImPlotAxis;
 struct ImPlotAxisState;
 struct ImPlotAxisColor;
 struct ImPlotItem;
-struct ImPlotLegend;
+struct ImPlotLegendData;
 struct ImPlotPlot;
 struct ImPlotNextPlotData;
 
@@ -515,27 +515,22 @@ struct ImPlotItem
 };
 
 // Holds Legend state labels and item references
-struct ImPlotLegend
+struct ImPlotLegendData
 {
-    ImPlotPlot*     Plot;
     ImVector<int>   Indices;
     ImGuiTextBuffer Labels;
-
-    ImPlotLegend(ImPlotPlot* plot) { Plot = plot; }
     void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
-    int  Count() const { return Indices.size(); }
-    ImPlotItem* GetItem(int i);
-    const char* GetLabel(int i);
 };
 
 // Holds Plot state information that must persist after EndPlot
 struct ImPlotPlot
 {
+    ImGuiID            ID;
     ImPlotFlags        Flags;
     ImPlotFlags        PreviousFlags;
     ImPlotAxis         XAxis;
     ImPlotAxis         YAxis[IMPLOT_Y_AXES];
-    ImPlotLegend       Legend;
+    ImPlotLegendData   LegendData;
     ImPool<ImPlotItem> Items;
     ImVec2             SelectStart;
     ImVec2             QueryStart;
@@ -553,7 +548,7 @@ struct ImPlotPlot
     ImPlotLocation     LegendLocation;
     ImPlotOrientation  LegendOrientation;
 
-    ImPlotPlot() : Legend(this) {
+    ImPlotPlot() {
         Flags           = PreviousFlags = ImPlotFlags_None;
         XAxis.Direction = ImPlotOrientation_Horizontal;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
@@ -566,6 +561,9 @@ struct ImPlotPlot
         MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
     }
 
+    int         GetLegendCount() const   { return LegendData.Indices.size(); }
+    ImPlotItem* GetLegendItem(int i);
+    const char* GetLegendLabel(int i);
 };
 
 // Temporary data storage for upcoming plot
@@ -803,9 +801,9 @@ IMPLOT_API void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed = 
 // Gets the position of an inner rect that is located inside of an outer rect according to an ImPlotLocation and padding amount.
 IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlotLocation location, const ImVec2& pad = ImVec2(0,0));
 // Calculates the bounding box size of a legend
-IMPLOT_API ImVec2 CalcLegendSize(ImPlotLegend& legend, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
+IMPLOT_API ImVec2 CalcLegendSize(ImPlotPlot& plot, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
 // Renders legend entries into a bounding box
-IMPLOT_API void ShowLegendEntries(ImPlotLegend& legend, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
+IMPLOT_API void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
 // Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
 IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
 

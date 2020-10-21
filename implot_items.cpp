@@ -60,9 +60,9 @@ ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created) {
     int idx = gp.CurrentPlot->Items.GetIndex(item);
     item->ID = id;
     if (ImGui::FindRenderedTextEnd(label_id, NULL) != label_id) {
-        gp.CurrentPlot->Legend.Indices.push_back(idx);
-        item->NameOffset = gp.CurrentPlot->Legend.Labels.size();
-        gp.CurrentPlot->Legend.Labels.append(label_id, label_id + strlen(label_id) + 1);
+        gp.CurrentPlot->LegendData.Indices.push_back(idx);
+        item->NameOffset = gp.CurrentPlot->LegendData.Labels.size();
+        gp.CurrentPlot->LegendData.Labels.append(label_id, label_id + strlen(label_id) + 1);
     }
     else {
         item->Show = true;
@@ -131,6 +131,7 @@ void BustItemCache() {
         ImPlotPlot& plot = *gp.Plots.GetByIndex(p);
         plot.ColormapIdx = 0;
         plot.Items.Clear();
+        plot.LegendData.Reset();
     }
 }
 
