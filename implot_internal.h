@@ -107,6 +107,8 @@ inline double ImConstrainInf(double val) { return val == HUGE_VAL ?  DBL_MAX : v
 inline double ImConstrainLog(double val) { return val <= 0 ? 0.001f : val; }
 // Turns numbers less than 0 to zero
 inline double ImConstrainTime(double val) { return val < IMPLOT_MIN_TIME ? IMPLOT_MIN_TIME : (val > IMPLOT_MAX_TIME ? IMPLOT_MAX_TIME : val); }
+// True if two numbers are approximately equal using units in the last place.
+inline bool ImAlmostEqual(double v1, double v2, int ulp = 2) { return ImAbs(v1-v2) < DBL_EPSILON * ImAbs(v1+v2) * ulp || ImAbs(v1-v2) < DBL_MIN; }
 
 // Offset calculator helper
 template <int Count>
@@ -445,6 +447,10 @@ struct ImPlotAxis
         double new_size = unit_per_pix * Pixels;
         double delta    = (new_size - Range.Size()) * 0.5f;
         SetRange(Range.Min - delta, Range.Max  +delta);
+    }
+
+    double GetAspect() const {
+        return Range.Size() / Pixels;
     }
 
     void Constrain() {

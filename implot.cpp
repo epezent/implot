@@ -1332,7 +1332,17 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     plot.XAxis.Constrain();
     for (int i = 0; i < IMPLOT_Y_AXES; ++i)
         plot.YAxis[i].Constrain();
-
+    // constain equal axes
+    if (ImHasFlag(plot.Flags, ImPlotFlags_Equal)) {
+        double xar = plot.XAxis.GetAspect();
+        for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+            double yar = plot.YAxis[i].GetAspect();
+            if (!ImAlmostEqual(xar,yar)) {
+                plot.YAxis[i].SetAspect(plot.XAxis.GetAspect());
+                printf("%f != %f\n",xar,yar);
+            }
+        }
+    }
 
     // AXIS COLORS -----------------------------------------------------------------
 
@@ -1591,7 +1601,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 plot.XAxis.SetMin(gp.X.Invert ? plot_br.x : plot_tl.x);
             if (!gp.X.LockMax)
                 plot.XAxis.SetMax(gp.X.Invert ? plot_tl.x : plot_br.x);
-            plot.YAxis[0].SetAspect(plot.XAxis.Range.Size() / plot.XAxis.Pixels);
+            // plot.YAxis[0].SetAspect(plot.XAxis.GetAspect());
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
             if (plot.YAxis[i].HoveredTot && !gp.Y[i].Lock) {
@@ -1602,7 +1612,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                     plot.YAxis[i].SetMin(gp.Y[i].Invert ? plot_tl.y : plot_br.y);
                 if (!gp.Y[i].LockMax)
                     plot.YAxis[i].SetMax(gp.Y[i].Invert ? plot_br.y : plot_tl.y);
-                plot.XAxis.SetAspect(plot.YAxis[i].Range.Size() / plot.YAxis[i].Pixels);
+                // plot.XAxis.SetAspect(plot.YAxis[0].GetAspect());
             }
         }
     }
