@@ -48,9 +48,9 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
 The API is used just like any other ImGui `BeginX`/`EndX` pair. First, start a new plot with `ImPlot::BeginPlot()`. Next, plot as many items as you want with the provided `PlotX` functions (e.g. `PlotLine()`, `PlotBars()`, `PlotErrorBars()`, etc). Finally, wrap things up with a call to `ImPlot::EndPlot()`. That's it!
 
 ```cpp
-int   bar_data[11];
-float x_data[1000];
-float y_data[1000];
+int   bar_data[11] = ...;
+float x_data[1000] = ...;
+float y_data[1000] = ...;
 
 ImGui::Begin("My Window");
 if (ImPlot::BeginPlot("My Plot")) {
