@@ -51,7 +51,7 @@ struct ImPlotAxis;
 struct ImPlotAxisState;
 struct ImPlotAxisColor;
 struct ImPlotItem;
-struct ImPlotLegend;
+struct ImPlotLegendData;
 struct ImPlotPlot;
 struct ImPlotNextPlotData;
 
@@ -393,16 +393,22 @@ struct ImPlotAxis
     double*           LinkedMax;
     ImPlotTime        PickerTimeMin, PickerTimeMax;
     int               PickerLevel;
+    ImU32             ColorMaj, ColorMin, ColorMajTxt, ColorMinTxt;
+    bool              Present;
+    bool              HasRange;
+    ImGuiCond         RangeCond;
+    ImRect            HoverRect;
 
     ImPlotAxis() {
-        Flags      = PreviousFlags = ImPlotAxisFlags_None;
-        Range.Min  = 0;
-        Range.Max  = 1;
-        Dragging   = false;
-        HoveredExt = false;
-        HoveredTot = false;
-        LinkedMin  = LinkedMax = NULL;
+        Flags       = PreviousFlags = ImPlotAxisFlags_None;
+        Range.Min   = 0;
+        Range.Max   = 1;
+        Dragging    = false;
+        HoveredExt  = false;
+        HoveredTot  = false;
+        LinkedMin   = LinkedMax = NULL;
         PickerLevel = 0;
+        ColorMaj    = ColorMin = ColorMajTxt = ColorMinTxt = 0;
     }
 
     bool SetMin(double _min) {
@@ -467,42 +473,14 @@ struct ImPlotAxis
         if (Range.Max <= Range.Min)
             Range.Max = Range.Min + DBL_EPSILON;
     }
-};
 
-// Axis state information only needed between BeginPlot/EndPlot
-struct ImPlotAxisState
-{
-    ImPlotAxis* Axis;
-    ImGuiCond   RangeCond;
-    bool        HasRange;
-    bool        Present;
-    bool        HasLabels;
-    bool        Invert;
-    bool        LockMin;
-    bool        LockMax;
-    bool        Lock;
-    bool        IsTime;
-
-    ImPlotAxisState(ImPlotAxis* axis, bool has_range, ImGuiCond range_cond, bool present) {
-        Axis         = axis;
-        HasRange     = has_range;
-        RangeCond    = range_cond;
-        Present      = present;
-        HasLabels    = !ImHasFlag(Axis->Flags, ImPlotAxisFlags_NoTickLabels);
-        Invert       = ImHasFlag(Axis->Flags, ImPlotAxisFlags_Invert);
-        LockMin      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always);
-        LockMax      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always);
-        Lock         = !Present || ((LockMin && LockMax) || (HasRange && RangeCond == ImGuiCond_Always));
-        IsTime       = ImHasFlag(Axis->Flags, ImPlotAxisFlags_Time);
-    }
-
-    ImPlotAxisState() { }
-};
-
-struct ImPlotAxisColor
-{
-    ImU32 Major, Minor, MajTxt, MinTxt;
-    ImPlotAxisColor() { Major = Minor = MajTxt = MinTxt = 0; }
+    inline bool IsLabeled()    const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                                               }
+    inline bool IsInverted()   const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                                      }
+    inline bool IsLockedMin()  const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always);      }
+    inline bool IsLockedMax()  const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always);      }
+    inline bool IsLocked()     const { return !Present || ((IsLockedMin() && IsLockedMax()) || (HasRange && RangeCond == ImGuiCond_Always)); }
+    inline bool IsTime()       const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                                                        }
+    inline bool IsLog()        const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                                                    }
 };
 
 // State information for Plot items
@@ -528,27 +506,22 @@ struct ImPlotItem
 };
 
 // Holds Legend state labels and item references
-struct ImPlotLegend
+struct ImPlotLegendData
 {
-    ImPlotPlot*     Plot;
     ImVector<int>   Indices;
     ImGuiTextBuffer Labels;
-
-    ImPlotLegend(ImPlotPlot* plot) { Plot = plot; }
     void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
-    int  Count() const { return Indices.size(); }
-    ImPlotItem* GetItem(int i);
-    const char* GetLabel(int i);
 };
 
 // Holds Plot state information that must persist after EndPlot
 struct ImPlotPlot
 {
+    ImGuiID            ID;
     ImPlotFlags        Flags;
     ImPlotFlags        PreviousFlags;
     ImPlotAxis         XAxis;
     ImPlotAxis         YAxis[IMPLOT_Y_AXES];
-    ImPlotLegend       Legend;
+    ImPlotLegendData   LegendData;
     ImPool<ImPlotItem> Items;
     ImVec2             SelectStart;
     ImVec2             QueryStart;
@@ -560,13 +533,19 @@ struct ImPlotPlot
     bool               LegendHovered;
     bool               LegendOutside;
     bool               LegendFlipSide;
+    bool               FrameHovered;
+    bool               PlotHovered;
     int                ColormapIdx;
     int                CurrentYAxis;
     ImPlotLocation     MousePosLocation;
     ImPlotLocation     LegendLocation;
     ImPlotOrientation  LegendOrientation;
+    ImRect             FrameRect;
+    ImRect             CanvasRect;
+    ImRect             PlotRect;
+    ImRect             AxesRect;
 
-    ImPlotPlot() : Legend(this) {
+    ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
         XAxis.Orientation = ImPlotOrientation_Horizontal;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
@@ -579,6 +558,11 @@ struct ImPlotPlot
         MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
     }
 
+    int         GetLegendCount() const   { return LegendData.Indices.size(); }
+    ImPlotItem* GetLegendItem(int i);
+    const char* GetLegendLabel(int i);
+
+    inline bool IsLocked() const { return XAxis.IsLocked() && YAxis[0].IsLocked() && YAxis[1].IsLocked() && YAxis[2].IsLocked(); }
 };
 
 // Temporary data storage for upcoming plot
@@ -649,20 +633,6 @@ struct ImPlotContext {
     ImPlotItem*        CurrentItem;
     ImPlotItem*        PreviousItem;
 
-    // Bounding Boxes
-    ImRect BB_Frame;
-    ImRect BB_Canvas;
-    ImRect BB_Plot;
-    ImRect BB_Axes;
-    ImRect BB_X;
-    ImRect BB_Y[IMPLOT_Y_AXES];
-
-    // Axis States
-    ImPlotAxisColor Col_X;
-    ImPlotAxisColor Col_Y[IMPLOT_Y_AXES];
-    ImPlotAxisState X;
-    ImPlotAxisState Y[IMPLOT_Y_AXES];
-
     // Tick Marks and Labels
     ImPlotTickCollection XTicks;
     ImPlotTickCollection YTicks[IMPLOT_Y_AXES];
@@ -686,16 +656,11 @@ struct ImPlotContext {
     bool FitX;
     bool FitY[IMPLOT_Y_AXES];
 
-    // Hover states
-    bool Hov_Frame;
-    bool Hov_Plot;
-
     // Axis Rendering Flags
     bool RenderX;
     bool RenderY[IMPLOT_Y_AXES];
 
     // Axis Locking Flags
-    bool LockPlot;
     bool ChildWindowMade;
 
     // Style and Colormaps
@@ -717,17 +682,6 @@ struct ImPlotContext {
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
-};
-
-struct ImPlotAxisScale
-{
-    ImPlotPoint Min, Max;
-
-    ImPlotAxisScale(int y_axis, float tx, float ty, float zoom_rate) {
-        ImPlotContext& gp = *GImPlot;
-        Min = ImPlot::PixelsToPlot(gp.BB_Plot.Min - gp.BB_Plot.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), y_axis);
-        Max = ImPlot::PixelsToPlot(gp.BB_Plot.Max + gp.BB_Plot.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), y_axis);
-    }
 };
 
 //-----------------------------------------------------------------------------
@@ -816,9 +770,9 @@ IMPLOT_API void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed = 
 // Gets the position of an inner rect that is located inside of an outer rect according to an ImPlotLocation and padding amount.
 IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlotLocation location, const ImVec2& pad = ImVec2(0,0));
 // Calculates the bounding box size of a legend
-IMPLOT_API ImVec2 CalcLegendSize(ImPlotLegend& legend, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
+IMPLOT_API ImVec2 CalcLegendSize(ImPlotPlot& plot, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
 // Renders legend entries into a bounding box
-IMPLOT_API void ShowLegendEntries(ImPlotLegend& legend, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
+IMPLOT_API void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
 // Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
 IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
 
