@@ -389,13 +389,13 @@ struct ImPlotAxis
     bool              Dragging;
     bool              HoveredExt;
     bool              HoveredTot;
+    bool              Present;
+    bool              HasRange;
     double*           LinkedMin;
     double*           LinkedMax;
     ImPlotTime        PickerTimeMin, PickerTimeMax;
     int               PickerLevel;
-    ImU32             ColorMaj, ColorMin, ColorMajTxt, ColorMinTxt;
-    bool              Present;
-    bool              HasRange;
+    ImU32             ColorMaj, ColorMin, ColorTxt;
     ImGuiCond         RangeCond;
     ImRect            HoverRect;
 
@@ -408,7 +408,7 @@ struct ImPlotAxis
         HoveredTot  = false;
         LinkedMin   = LinkedMax = NULL;
         PickerLevel = 0;
-        ColorMaj    = ColorMin = ColorMajTxt = ColorMinTxt = 0;
+        ColorMaj    = ColorMin = ColorTxt = 0;
     }
 
     bool SetMin(double _min) {
@@ -455,9 +455,7 @@ struct ImPlotAxis
         SetRange(Range.Min - delta, Range.Max  +delta);
     }
 
-    double GetAspect() const {
-        return Range.Size() / Pixels;
-    }
+    double GetAspect() const { return Range.Size() / Pixels; }
 
     void Constrain() {
         Range.Min = ImConstrainNan(ImConstrainInf(Range.Min));
@@ -532,7 +530,7 @@ struct ImPlotPlot
     bool               DraggingQuery;
     bool               LegendHovered;
     bool               LegendOutside;
-    bool               LegendFlipSide;
+    bool               LegendFlipSideNextFrame;
     bool               FrameHovered;
     bool               PlotHovered;
     int                ColormapIdx;
@@ -551,7 +549,7 @@ struct ImPlotPlot
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
             YAxis[i].Orientation = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
-        Selecting         = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSide = false;
+        Selecting         = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
         ColormapIdx       = CurrentYAxis = 0;
         LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
         LegendOrientation = ImPlotOrientation_Vertical;
@@ -583,7 +581,9 @@ struct ImPlotNextPlotData
     double*     LinkedYmin[IMPLOT_Y_AXES];
     double*     LinkedYmax[IMPLOT_Y_AXES];
 
-    ImPlotNextPlotData() {
+    ImPlotNextPlotData() { Reset(); } 
+
+    void Reset() {
         HasXRange         = false;
         ShowDefaultTicksX = true;
         FitX              = false;
@@ -593,8 +593,9 @@ struct ImPlotNextPlotData
             ShowDefaultTicksY[i] = true;
             FitY[i]              = false;
             LinkedYmin[i] = LinkedYmax[i] = NULL;
-        }
+        }        
     }
+
 };
 
 // Temporary data storage for upcoming item
@@ -616,12 +617,13 @@ struct ImPlotNextItemData {
     bool         HasHidden;
     bool         Hidden;
     ImGuiCond    HiddenCond;
-    ImPlotNextItemData() {
+    ImPlotNextItemData() { Reset(); }
+    void Reset() {
         for (int i = 0; i < 5; ++i)
             Colors[i] = IMPLOT_AUTO_COL;
         LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker        = IMPLOT_AUTO;
-        HasHidden     = Hidden = false;
+        HasHidden     = Hidden = false;   
     }
 };
 

@@ -379,8 +379,8 @@ void Reset(ImPlotContext* ctx) {
         ImGui::EndChild();
     ctx->ChildWindowMade = false;
     // reset the next plot/item data
-    ctx->NextPlotData = ImPlotNextPlotData();
-    ctx->NextItemData = ImPlotNextItemData();
+    ctx->NextPlotData.Reset();
+    ctx->NextItemData.Reset();
     // reset items count
     ctx->VisibleItemCount = 0;
     // reset ticks/labels
@@ -1210,8 +1210,7 @@ void UpdateAxisColors(int axis_flag, ImPlotAxis* axis) {
     const ImVec4 col_grid  = GetStyleColorVec4(axis_flag + 1);
     axis->ColorMaj  = ImGui::GetColorU32(col_grid);
     axis->ColorMin  = ImGui::GetColorU32(col_grid*ImVec4(1,1,1,GImPlot->Style.MinorAlpha));
-    axis->ColorMajTxt = ImGui::GetColorU32(col_label);
-    axis->ColorMinTxt = ImGui::GetColorU32(col_label);
+    axis->ColorTxt = ImGui::GetColorU32(col_label);
 }
 
 //-----------------------------------------------------------------------------
@@ -1804,12 +1803,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     if (x_label) {
         const ImVec2 xLabel_size = ImGui::CalcTextSize(x_label);
         const ImVec2 xLabel_pos(plot.PlotRect.GetCenter().x - xLabel_size.x * 0.5f, plot.CanvasRect.Max.y - txt_height);
-        DrawList.AddText(xLabel_pos, plot.XAxis.ColorMajTxt, x_label);
+        DrawList.AddText(xLabel_pos, plot.XAxis.ColorTxt, x_label);
     }
     if (y_label) {
         const ImVec2 yLabel_size = CalcTextSizeVertical(y_label);
         const ImVec2 yLabel_pos(plot.CanvasRect.Min.x, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
-        AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[0].ColorMajTxt, y_label);
+        AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[0].ColorTxt, y_label);
    }
 
     // render tick labels
@@ -1819,7 +1818,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             ImPlotTick *xt = &gp.XTicks.Ticks[t];
             if (xt->ShowLabel && xt->PixelPos >= plot.PlotRect.Min.x - 1 && xt->PixelPos <= plot.PlotRect.Max.x + 1)
                 DrawList.AddText(ImVec2(xt->PixelPos - xt->LabelSize.x * 0.5f, plot.PlotRect.Max.y + gp.Style.LabelPadding.y + xt->Level * (txt_height + gp.Style.LabelPadding.y)),
-                xt->Major ? plot.XAxis.ColorMajTxt : plot.XAxis.ColorMinTxt, gp.XTicks.GetText(t));
+                xt->Major ? plot.XAxis.ColorTxt : plot.XAxis.ColorTxt, gp.XTicks.GetText(t));
         }
     }
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
@@ -1829,7 +1828,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 ImPlotTick *yt = &gp.YTicks[i].Ticks[t];
                 if (yt->ShowLabel && yt->PixelPos >= plot.PlotRect.Min.y - 1 && yt->PixelPos <= plot.PlotRect.Max.y + 1) {
                     ImVec2 start(x_start, yt->PixelPos - 0.5f * yt->LabelSize.y);
-                    DrawList.AddText(start, yt->Major ? plot.YAxis[i].ColorMajTxt : plot.YAxis[i].ColorMinTxt, gp.YTicks[i].GetText(t));
+                    DrawList.AddText(start, yt->Major ? plot.YAxis[i].ColorTxt : plot.YAxis[i].ColorTxt, gp.YTicks[i].GetText(t));
                 }
             }
         }
@@ -1975,17 +1974,9 @@ void ShowAxisContextMenu(ImPlotAxis& axis, bool time_allowed) {
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
     if (ImGui::Checkbox("Labels", &labels))
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
-#ifdef IMPLOT_DEBUG
-    if (ImGui::BeginMenu("Debug")) {
-        ImGui::Value("Pixels", axis.Pixels);
-        ImGui::EndMenu();
-    }
-#endif
-
 }
 
 void ShowPlotContextMenu(ImPlotPlot& plot) {
-    ImPlotContext& gp = *GImPlot;
     if (ImGui::BeginMenu("X-Axis")) {
         ImGui::PushID("X");
         ShowAxisContextMenu(plot.XAxis, true);
@@ -2035,26 +2026,6 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
     if (ImGui::MenuItem("Legend",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend))) {
         ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
     }
-#ifdef IMPLOT_DEBUG
-    if (ImGui::BeginMenu("Debug")) {
-        ImGui::PushItemWidth(50);
-        ImGui::LabelText("Plots", "%d", gp.Plots.GetSize());
-        ImGui::LabelText("Color Mods", "%d", gp.ColorModifiers.size());
-        ImGui::LabelText("Style Mods", "%d", gp.StyleModifiers.size());
-        bool f = false;
-        ImGui::Selectable("BB_Frame",&f);  if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(plot.FrameRect.Min, plot.FrameRect.Max, IM_COL32(255,255,0,255));
-        ImGui::Selectable("BB_Canvas",&f); if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(plot.CanvasRect.Min, plot.CanvasRect.Max, IM_COL32(255,255,0,255));
-        ImGui::Selectable("BB_Plot",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(plot.PlotRect.Min, plot.PlotRect.Max, IM_COL32(255,255,0,255));
-        ImGui::Selectable("BB_Axes",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(plot.AxesRect.Min, plot.AxesRect.Max, IM_COL32(255,255,0,255));
-        ImGui::Selectable("BB_X",&f);      if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(plot.XAxis.HoverRect.Min, plot.XAxis.HoverRect.Max, IM_COL32(255,255,0,255));
-        ImGui::Selectable("BB_Y[0]",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(plot.YAxis[0].HoverRect.Min, plot.YAxis[0].HoverRect.Max, IM_COL32(255,255,0,255));
-        ImGui::Selectable("BB_Y[1]",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(plot.YAxis[1].HoverRect.Min, plot.YAxis[1].HoverRect.Max, IM_COL32(255,255,0,255));
-        ImGui::Selectable("BB_Y[2]",&f);   if (ImGui::IsItemHovered()) ImGui::GetForegroundDrawList()->AddRect(plot.YAxis[2].HoverRect.Min, plot.YAxis[2].HoverRect.Max, IM_COL32(255,255,0,255));
-        ImGui::PopItemWidth();
-        ImGui::EndMenu();
-    }
-#endif
-
 }
 
 //-----------------------------------------------------------------------------
@@ -2325,9 +2296,9 @@ void EndPlot() {
         ShowLegendEntries(plot, legend_bb, plot.LegendHovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation, DrawList);
         ImGui::PopClipRect();
     }
-    if (plot.LegendFlipSide)  {
+    if (plot.LegendFlipSideNextFrame)  {
         plot.LegendOutside  = !plot.LegendOutside;
-        plot.LegendFlipSide = false;
+        plot.LegendFlipSideNextFrame = false;
     }
 
     // render border
@@ -2794,7 +2765,7 @@ void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, b
     gp.CurrentPlot->LegendLocation         = location;
     gp.CurrentPlot->LegendOrientation      = orientation;
     if (gp.CurrentPlot->LegendOutside != outside)
-        gp.CurrentPlot->LegendFlipSide = true;
+        gp.CurrentPlot->LegendFlipSideNextFrame = true;
 }
 
 void SetMousePosLocation(ImPlotLocation location) {
@@ -3642,17 +3613,28 @@ void ShowUserGuide() {
 }
 
 void ShowMetricsWindow(bool* p_popen) {
+
+    static bool show_plot_rects = false;
+    static bool show_axes_rects = false;
+
+    ImDrawList& fg = *ImGui::GetForegroundDrawList();
+
     ImPlotContext& gp = *GImPlot;
     // ImGuiContext& g = *GImGui;
     ImGuiIO& io = ImGui::GetIO();
     ImGui::Begin("ImPlot Metrics", p_popen);
     ImGui::Text("ImPlot " IMPLOT_VERSION);
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-    ImGui::Text("%d vertices, %d indices (%d triangles)", io.MetricsRenderVertices, io.MetricsRenderIndices, io.MetricsRenderIndices / 3);
     ImGui::Separator();
     int n_plots = gp.Plots.GetSize();
+    if (ImGui::TreeNode("Tools")) {
+        ImGui::Checkbox("Show Plot Rects", &show_plot_rects);
+        ImGui::Checkbox("Show Axes Rects", &show_axes_rects);
+        ImGui::TreePop();
+    }
     if (ImGui::TreeNode("Plots","Plots (%d)", n_plots)) {
         for (int p = 0; p < n_plots; ++p) {
+            // plot
             ImPlotPlot* plot = gp.Plots.GetByIndex(p);
             ImGui::PushID(p);
             if (ImGui::TreeNode("Plot", "Plot [ID=%u]", plot->ID)) {
@@ -3673,7 +3655,21 @@ void ShowMetricsWindow(bool* p_popen) {
                     }
                     ImGui::TreePop();
                 }
+                if (ImGui::TreeNode("X-Axis")) {
+                    ImGui::TreePop();
+                }
+                if (ImGui::TreeNode("Y-Axis")) {
+                    ImGui::TreePop();
+                }
+                if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis2) && ImGui::TreeNode("Y-Axis 2")) {
+                    ImGui::TreePop();
+                }
+                if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis3) && ImGui::TreeNode("Y-Axis 3")) {
+                    ImGui::TreePop();
+                }
                 ImGui::TreePop();
+                if (show_plot_rects) 
+                    fg.AddRect(plot->PlotRect.Min, plot->PlotRect.Max, IM_COL32(255,255,0,255));
             }
             ImGui::PopID();
         }

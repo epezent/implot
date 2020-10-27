@@ -162,7 +162,7 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
     }
     if (!item->Show) {
         // reset next item data
-        gp.NextItemData = ImPlotNextItemData();
+        gp.NextItemData.Reset();
         gp.PreviousItem = item;
         gp.CurrentItem  = NULL;
         return false;
@@ -210,7 +210,7 @@ void EndItem() {
     // pop rendering clip rect
     PopPlotClipRect();
     // reset next item data
-    gp.NextItemData = ImPlotNextItemData();
+    gp.NextItemData.Reset();
     // set current item
     gp.PreviousItem = gp.CurrentItem;
     gp.CurrentItem  = NULL;
