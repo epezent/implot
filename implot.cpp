@@ -1407,8 +1407,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // plot bb
 
     // (1) calc top/bot padding and plot height
-    const ImVec2 title_size = ImGui::CalcTextSize(title, NULL, true);
-    const float txt_height  = ImGui::GetTextLineHeight();
+    ImVec2 title_size = ImVec2(0.0f, 0.0f);
+    const float txt_height = ImGui::GetTextLineHeight();
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)){
+         title_size = ImGui::CalcTextSize(title, NULL, true);
+    }
 
     const float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
     const float pad_bot = (gp.X.HasLabels ? txt_height + gp.Style.LabelPadding.y + (gp.X.IsTime ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
@@ -1783,7 +1786,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     PopPlotClipRect();
 
     // render title
-    if (title_size.x > 0.0f) {
+    if (title_size.x > 0.0f && !ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)) {
         ImU32 col = GetStyleColorU32(ImPlotCol_TitleText);
         const char* title_end = ImGui::FindRenderedTextEnd(title, NULL);
         DrawList.AddText(ImVec2(gp.BB_Canvas.GetCenter().x - title_size.x * 0.5f, gp.BB_Canvas.Min.y),col,title,title_end);
