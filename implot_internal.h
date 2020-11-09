@@ -702,6 +702,13 @@ struct ImPlotContext {
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
+
+    //SubPLots
+    bool SubPlotsEnab;
+    float SubPlots_pad_left;
+    float SubPlots_pad_right;
+    float SubPlots_pad_left_max;
+    float SubPlots_pad_right_max;
 };
 
 struct ImPlotAxisScale
