@@ -32,7 +32,7 @@
 #define SQRT_1_2 0.70710678118f
 #define SQRT_3_2 0.86602540378f
 
-#define IM_NORMALIZE2F_OVER_ZERO(VX, VY)                                                           \
+#define IMPLOT_NORMALIZE2F_OVER_ZERO(VX, VY)                                                           \
     {                                                                                              \
         float d2 = VX * VX + VY * VY;                                                              \
         if (d2 > 0.0f) {                                                                           \
@@ -426,7 +426,7 @@ struct TransformerLogLog {
 inline void AddLine(const ImVec2& P1, const ImVec2& P2, float weight, ImU32 col, ImDrawList& DrawList, ImVec2 uv) {
     float dx = P2.x - P1.x;
     float dy = P2.y - P1.y;
-    IM_NORMALIZE2F_OVER_ZERO(dx, dy);
+    IMPLOT_NORMALIZE2F_OVER_ZERO(dx, dy);
     dx *= (weight * 0.5f);
     dy *= (weight * 0.5f);
     DrawList._VtxWritePtr[0].pos.x = P1.x + dy;
