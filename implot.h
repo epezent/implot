@@ -76,6 +76,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_Query         = 1 << 8,  // the user will be able to draw query rects with middle-mouse
     ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
     ImPlotFlags_AntiAliased   = 1 << 10, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
+    ImPlotFlags_NoTitle       = 1 << 11, // Removes the title from the plot
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
 };
 
