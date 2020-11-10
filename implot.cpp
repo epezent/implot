@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.8 WIP
+// ImPlot v0.9 WIP
 
 /*
 
@@ -2010,21 +2010,39 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
 
     ImGui::Separator();
     if ((ImGui::BeginMenu("Settings"))) {
-        if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect))) {
-            ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
+        if (ImGui::MenuItem("Title",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)))
+                ImFlipFlag(plot.Flags, ImPlotFlags_NoTitle);
+        if ((ImGui::BeginMenu("Legend"))) {
+            const float s = ImGui::GetFrameHeight();
+            if (ImGui::RadioButton("H", plot.LegendOrientation == ImPlotOrientation_Horizontal))
+                plot.LegendOrientation = ImPlotOrientation_Horizontal;
+            ImGui::SameLine();
+            if (ImGui::RadioButton("V", plot.LegendOrientation == ImPlotOrientation_Vertical))
+                plot.LegendOrientation = ImPlotOrientation_Vertical;
+            ImGui::Checkbox("Outside", &plot.LegendOutside);
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(1,1));
+            if (ImGui::Button("##NW",ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_NorthWest; ImGui::SameLine();
+            if (ImGui::Button("##N", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_North;     ImGui::SameLine();
+            if (ImGui::Button("##NE",ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_NorthEast;
+            if (ImGui::Button("##W", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_West;      ImGui::SameLine();
+            if (ImGui::Button("##C", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_Center;    ImGui::SameLine();
+            if (ImGui::Button("##E", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_East;
+            if (ImGui::Button("##SW",ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_SouthWest; ImGui::SameLine();
+            if (ImGui::Button("##S", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_South;      ImGui::SameLine();
+            if (ImGui::Button("##SE",ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_SouthEast;
+            ImGui::PopStyleVar();
+            ImGui::EndMenu();
         }
-        if (ImGui::MenuItem("Query",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Query))) {
-            ImFlipFlag(plot.Flags, ImPlotFlags_Query);
-        }
-        if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs))) {
-            ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
-        }
-        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos))) {
+        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos)))
             ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
-        }
-        if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased))) {
+        if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
+        if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
+        if (ImGui::MenuItem("Query",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Query)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Query);
+        if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
             ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
-        }
         ImGui::EndMenu();
     }
     if (ImGui::MenuItem("Legend",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend))) {

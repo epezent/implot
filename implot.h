@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.8 WIP
+// ImPlot v0.9 WIP
 
 #pragma once
 #include "imgui.h"
@@ -38,7 +38,7 @@
 #endif
 
 // ImPlot version string
-#define IMPLOT_VERSION "0.8 WIP"
+#define IMPLOT_VERSION "0.9 WIP"
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
@@ -65,19 +65,19 @@ typedef int ImPlotYAxis;       // -> enum ImPlotYAxis_;
 // Options for plots.
 enum ImPlotFlags_ {
     ImPlotFlags_None          = 0,       // default
-    ImPlotFlags_NoLegend      = 1 << 0,  // the top-left legend will not be displayed
-    ImPlotFlags_NoMenus       = 1 << 1,  // the user will not be able to open context menus with double-right click
-    ImPlotFlags_NoBoxSelect   = 1 << 2,  // the user will not be able to box-select with right-mouse
-    ImPlotFlags_NoMousePos    = 1 << 3,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
-    ImPlotFlags_NoHighlight   = 1 << 4,  // plot items will not be highlighted when their legend entry is hovered
-    ImPlotFlags_NoChild       = 1 << 5,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2        = 1 << 6,  // enable a 2nd y-axis on the right side
-    ImPlotFlags_YAxis3        = 1 << 7,  // enable a 3rd y-axis on the right side
-    ImPlotFlags_Query         = 1 << 8,  // the user will be able to draw query rects with middle-mouse
-    ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased   = 1 << 10, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
-    ImPlotFlags_NoTitle       = 1 << 11, // Removes the title from the plot
-    ImPlotFlags_CanvasOnly    = ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
+    ImPlotFlags_NoTitle       = 1 << 0,  // the plot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MyPlot")
+    ImPlotFlags_NoLegend      = 1 << 1,  // the legend will not be displayed
+    ImPlotFlags_NoMenus       = 1 << 2,  // the user will not be able to open context menus with double-right click
+    ImPlotFlags_NoBoxSelect   = 1 << 3,  // the user will not be able to box-select with right-mouse
+    ImPlotFlags_NoMousePos    = 1 << 4,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
+    ImPlotFlags_NoHighlight   = 1 << 5,  // plot items will not be highlighted when their legend entry is hovered
+    ImPlotFlags_NoChild       = 1 << 6,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_YAxis2        = 1 << 7,  // enable a 2nd y-axis on the right side
+    ImPlotFlags_YAxis3        = 1 << 8,  // enable a 3rd y-axis on the right side
+    ImPlotFlags_Query         = 1 << 9,  // the user will be able to draw query rects with middle-mouse
+    ImPlotFlags_Crosshairs    = 1 << 10, // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_AntiAliased   = 1 << 11, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
+    ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
 };
 
 // Options for plot axes (X and Y).
