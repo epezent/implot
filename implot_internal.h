@@ -628,12 +628,26 @@ struct ImPlotNextItemData {
 
 // Align plots group data
 struct ImAlignPlotGroupData {
+    ImPlotOrientation orientation;
+
+    float pad_top;
+    float pad_bot;
+    float pad_top_max;
+    float pad_bot_max;
+
     float pad_left;
     float pad_right;
     float pad_left_max;
     float pad_right_max;
 
     ImAlignPlotGroupData() {
+        orientation = ImPlotOrientation_Vertical;
+
+        pad_top = 0;
+        pad_bot = 0;
+        pad_top_max = 0;
+        pad_bot_max = 0;
+
         pad_left = 0;
         pad_right = 0;
         pad_left_max = 0;

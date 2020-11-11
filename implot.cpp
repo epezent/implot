@@ -1218,7 +1218,7 @@ void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col) {
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
-bool BeginAlignedPlots(const char* group_id) {
+bool BeginAlignedPlots(const char* group_id, ImPlotOrientation orientation) {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
 
     ImPlotContext& gp = *GImPlot;
@@ -1230,7 +1230,10 @@ bool BeginAlignedPlots(const char* group_id) {
     const ImGuiID     ID = Window->GetID(group_id);
     gp.CurrentAlignPlotGroup = gp.AlignPlotGroup.GetOrAddByKey(ID);
     ImAlignPlotGroupData &alignedPlotGroup = *gp.CurrentAlignPlotGroup;
-
+    
+    alignedPlotGroup.orientation = orientation;
+    alignedPlotGroup.pad_top_max = 0.0f;
+    alignedPlotGroup.pad_bot_max = 0.0f;
     alignedPlotGroup.pad_left_max = 0.0f;
     alignedPlotGroup.pad_right_max = 0.0f;
     return true;
@@ -1428,9 +1431,20 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     const ImVec2 title_size = ImGui::CalcTextSize(title, NULL, true);
     const float txt_height  = ImGui::GetTextLineHeight();
 
-    const float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
-    const float pad_bot = (gp.X.HasLabels ? txt_height + gp.Style.LabelPadding.y + (gp.X.IsTime ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
+    float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
+    float pad_bot = (gp.X.HasLabels ? txt_height + gp.Style.LabelPadding.y + (gp.X.IsTime ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
                         + (x_label ? txt_height + gp.Style.LabelPadding.y : 0);
+
+    // (1*) align plots group
+    if (gp.CurrentAlignPlotGroup) {
+        ImAlignPlotGroupData &alignedPlotGroup = *gp.CurrentAlignPlotGroup;
+        if (alignedPlotGroup.orientation == ImPlotOrientation_Horizontal) {
+            if (alignedPlotGroup.pad_top_max < pad_top) alignedPlotGroup.pad_top_max = pad_top;
+            if (pad_top < alignedPlotGroup.pad_top) pad_top = alignedPlotGroup.pad_top;
+            if (alignedPlotGroup.pad_bot_max < pad_bot) alignedPlotGroup.pad_bot_max = pad_bot;
+            if (pad_bot < alignedPlotGroup.pad_bot) pad_bot = alignedPlotGroup.pad_bot;
+        }
+    }
 
     const float plot_height = gp.BB_Canvas.GetHeight() - pad_top - pad_bot;
 
@@ -1454,10 +1468,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // (3*) align plots group
     if (gp.CurrentAlignPlotGroup) {
         ImAlignPlotGroupData &alignedPlotGroup = *gp.CurrentAlignPlotGroup;
-        if (alignedPlotGroup.pad_left_max < pad_left) alignedPlotGroup.pad_left_max = pad_left;
-        if (pad_left < alignedPlotGroup.pad_left) pad_left = alignedPlotGroup.pad_left;
-        if (alignedPlotGroup.pad_right_max < pad_right) alignedPlotGroup.pad_right_max = pad_right;
-        if (pad_right < alignedPlotGroup.pad_right) pad_right = alignedPlotGroup.pad_right;
+        if (alignedPlotGroup.orientation == ImPlotOrientation_Vertical) {
+            if (alignedPlotGroup.pad_left_max < pad_left) alignedPlotGroup.pad_left_max = pad_left;
+            if (pad_left < alignedPlotGroup.pad_left) pad_left = alignedPlotGroup.pad_left;
+            if (alignedPlotGroup.pad_right_max < pad_right) alignedPlotGroup.pad_right_max = pad_right;
+            if (pad_right < alignedPlotGroup.pad_right) pad_right = alignedPlotGroup.pad_right;
+        }
     }
 
     const float plot_width = gp.BB_Canvas.GetWidth() - pad_left - pad_right;
@@ -2441,6 +2457,8 @@ void EndAlignedPlots() {
     ImPlotContext& gp = *GImPlot;
     if (gp.CurrentAlignPlotGroup) {
         ImAlignPlotGroupData &alignedPlotGroup = *gp.CurrentAlignPlotGroup;
+        alignedPlotGroup.pad_top = alignedPlotGroup.pad_top_max;
+        alignedPlotGroup.pad_bot = alignedPlotGroup.pad_bot_max;
         alignedPlotGroup.pad_left = alignedPlotGroup.pad_left_max;
         alignedPlotGroup.pad_right = alignedPlotGroup.pad_right_max;
     }
