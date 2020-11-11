@@ -345,8 +345,8 @@ IMPLOT_API bool BeginPlot(const char* title_id,
 // of an if statement conditioned on BeginPlot().
 IMPLOT_API void EndPlot();
 
-IMPLOT_API bool BeginSubPlots();
-IMPLOT_API void EndSubPlots();
+IMPLOT_API bool BeginAlignedPlots(const char* group_id);
+IMPLOT_API void EndAlignedPlots();
 
 //-----------------------------------------------------------------------------
 // Plot Items

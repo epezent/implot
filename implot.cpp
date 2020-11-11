@@ -371,7 +371,6 @@ void SetCurrentContext(ImPlotContext* ctx) {
 void Initialize(ImPlotContext* ctx) {
     Reset(ctx);
     ctx->Colormap = GetColormap(ImPlotColormap_Default, &ctx->ColormapSize);
-    ctx->SubPlotsEnab = false;
 }
 
 void Reset(ImPlotContext* ctx) {
@@ -1219,12 +1218,21 @@ void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col) {
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
-bool BeginSubPlots() {
+bool BeginAlignedPlots(const char* group_id) {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
+
     ImPlotContext& gp = *GImPlot;
-    gp.SubPlotsEnab = true;
-    gp.SubPlots_pad_left_max = 0.0f;
-    gp.SubPlots_pad_right_max = 0.0f;
+    ImGuiContext &G = *GImGui;
+    ImGuiWindow * Window = G.CurrentWindow;
+    if (Window->SkipItems)
+        return false;
+
+    const ImGuiID     ID = Window->GetID(group_id);
+    gp.CurrentAlignPlotGroup = gp.AlignPlotGroup.GetOrAddByKey(ID);
+    ImAlignPlotGroupData &alignedPlotGroup = *gp.CurrentAlignPlotGroup;
+
+    alignedPlotGroup.pad_left_max = 0.0f;
+    alignedPlotGroup.pad_right_max = 0.0f;
     return true;
 }
 
@@ -1443,12 +1451,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                             + ((gp.Y[1].Present && gp.Y[2].Present)   ? gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y : 0)
                             + ((gp.Y[2].Present && gp.Y[2].HasLabels) ? gp.YTicks[2].MaxWidth + gp.Style.LabelPadding.x : 0);
 
-    // (3*) sub-plotting handling
-    if (gp.SubPlotsEnab) {
-        if (gp.SubPlots_pad_left_max < pad_left) gp.SubPlots_pad_left_max = pad_left;
-        if (pad_left < gp.SubPlots_pad_left) pad_left = gp.SubPlots_pad_left;
-        if (gp.SubPlots_pad_right_max < pad_right) gp.SubPlots_pad_right_max = pad_right;
-        if (pad_right < gp.SubPlots_pad_right) pad_right = gp.SubPlots_pad_right;
+    // (3*) align plots group
+    if (gp.CurrentAlignPlotGroup) {
+        ImAlignPlotGroupData &alignedPlotGroup = *gp.CurrentAlignPlotGroup;
+        if (alignedPlotGroup.pad_left_max < pad_left) alignedPlotGroup.pad_left_max = pad_left;
+        if (pad_left < alignedPlotGroup.pad_left) pad_left = alignedPlotGroup.pad_left;
+        if (alignedPlotGroup.pad_right_max < pad_right) alignedPlotGroup.pad_right_max = pad_right;
+        if (pad_right < alignedPlotGroup.pad_right) pad_right = alignedPlotGroup.pad_right;
     }
 
     const float plot_width = gp.BB_Canvas.GetWidth() - pad_left - pad_right;
@@ -2427,14 +2436,16 @@ void EndPlot() {
     Reset(GImPlot);
 }
 
-void EndSubPlots() {
+void EndAlignedPlots() {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     ImPlotContext& gp = *GImPlot;
-    if (gp.SubPlotsEnab) {
-        gp.SubPlots_pad_left = gp.SubPlots_pad_left_max;
-        gp.SubPlots_pad_right = gp.SubPlots_pad_right_max;
-        gp.SubPlotsEnab = false;
+    if (gp.CurrentAlignPlotGroup) {
+        ImAlignPlotGroupData &alignedPlotGroup = *gp.CurrentAlignPlotGroup;
+        alignedPlotGroup.pad_left = alignedPlotGroup.pad_left_max;
+        alignedPlotGroup.pad_right = alignedPlotGroup.pad_right_max;
     }
+    // nullify align plot group
+    gp.CurrentAlignPlotGroup = NULL;
 }
 
 //-----------------------------------------------------------------------------

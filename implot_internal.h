@@ -626,6 +626,21 @@ struct ImPlotNextItemData {
     }
 };
 
+// Align plots group data
+struct ImAlignPlotGroupData {
+    float pad_left;
+    float pad_right;
+    float pad_left_max;
+    float pad_right_max;
+
+    ImAlignPlotGroupData() {
+        pad_left = 0;
+        pad_right = 0;
+        pad_left_max = 0;
+        pad_right_max = 0;
+    }
+};
+
 // Holds state information that must persist between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
     // Plot States
@@ -703,12 +718,9 @@ struct ImPlotContext {
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
 
-    //SubPLots
-    bool SubPlotsEnab;
-    float SubPlots_pad_left;
-    float SubPlots_pad_right;
-    float SubPlots_pad_left_max;
-    float SubPlots_pad_right_max;
+    // Align plots
+    ImPool<ImAlignPlotGroupData> AlignPlotGroup;
+    ImAlignPlotGroupData*        CurrentAlignPlotGroup;
 };
 
 struct ImPlotAxisScale
