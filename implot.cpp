@@ -1438,7 +1438,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // (1*) align plots group
     if (gp.CurrentAlignPlotGroup) {
         ImAlignPlotGroupData &alignedPlotGroup = *gp.CurrentAlignPlotGroup;
-        if (alignedPlotGroup.orientation == ImPlotOrientation_Horizontal) {
+        if (ImHasFlag(alignedPlotGroup.orientation, ImPlotOrientation_Horizontal)) {
             if (alignedPlotGroup.pad_top_max < pad_top) alignedPlotGroup.pad_top_max = pad_top;
             if (pad_top < alignedPlotGroup.pad_top) pad_top = alignedPlotGroup.pad_top;
             if (alignedPlotGroup.pad_bot_max < pad_bot) alignedPlotGroup.pad_bot_max = pad_bot;
@@ -1468,7 +1468,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // (3*) align plots group
     if (gp.CurrentAlignPlotGroup) {
         ImAlignPlotGroupData &alignedPlotGroup = *gp.CurrentAlignPlotGroup;
-        if (alignedPlotGroup.orientation == ImPlotOrientation_Vertical) {
+        if (ImHasFlag(alignedPlotGroup.orientation, ImPlotOrientation_Vertical)) {
             if (alignedPlotGroup.pad_left_max < pad_left) alignedPlotGroup.pad_left_max = pad_left;
             if (pad_left < alignedPlotGroup.pad_left) pad_left = alignedPlotGroup.pad_left;
             if (alignedPlotGroup.pad_right_max < pad_right) alignedPlotGroup.pad_right_max = pad_right;

@@ -203,10 +203,11 @@ enum ImPlotLocation_ {
     ImPlotLocation_SouthEast = ImPlotLocation_South | ImPlotLocation_East  // bottom-right
 };
 
-// Used to orient items on a plot (e.g. legends, labels, etc.)
+// Used to orient items on a plot (e.g. legends, labels, etc.) or align plots
 enum ImPlotOrientation_ {
-    ImPlotOrientation_Horizontal, // left/right
-    ImPlotOrientation_Vertical    // up/down
+    ImPlotOrientation_None       = 0,      // 
+    ImPlotOrientation_Horizontal = 1 << 0, // left/right
+    ImPlotOrientation_Vertical   = 1 << 1, // up/down
 };
 
 // Enums for different y-axes.
