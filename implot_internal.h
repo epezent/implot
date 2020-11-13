@@ -968,14 +968,4 @@ IMPLOT_API bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const 
 // #t will be set when a new hour, minute, or sec is selected or am/pm is toggled, and the function will return true.
 IMPLOT_API bool ShowTimePicker(const char* id, ImPlotTime* t);
 
-//-----------------------------------------------------------------------------
-// [SECTION] Internal / Experimental Plotters
-// No guarantee of forward compatibility here!
-//-----------------------------------------------------------------------------
-
-// Plots axis-aligned, filled rectangles. Every two consecutive points defines opposite corners of a single rectangle.
-IMPLOT_API void PlotRects(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-IMPLOT_API void PlotRects(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
-IMPLOT_API void PlotRects(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
-
 } // namespace ImPlot

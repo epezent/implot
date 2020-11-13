@@ -634,51 +634,6 @@ struct ShadedRenderer {
     static const int VtxConsumed = 5;
 };
 
-template <typename TGetter, typename TTransformer>
-struct RectRenderer {
-    inline RectRenderer(const TGetter& getter, const TTransformer& transformer, ImU32 col) :
-        Getter(getter),
-        Transformer(transformer),
-        Prims(Getter.Count / 2),
-        Col(col)
-    {}
-    inline bool operator()(ImDrawList& DrawList, const ImRect& /*cull_rect*/, const ImVec2& uv, int prim) const {
-        // TODO: Culling
-        ImVec2 P1 = Transformer(Getter(2*prim));
-        ImVec2 P2 = Transformer(Getter(2*prim+1));
-        DrawList._VtxWritePtr[0].pos   = P1;
-        DrawList._VtxWritePtr[0].uv    = uv;
-        DrawList._VtxWritePtr[0].col   = Col;
-        DrawList._VtxWritePtr[1].pos.x = P1.x;
-        DrawList._VtxWritePtr[1].pos.y = P2.y;
-        DrawList._VtxWritePtr[1].uv    = uv;
-        DrawList._VtxWritePtr[1].col   = Col;
-        DrawList._VtxWritePtr[2].pos   = P2;
-        DrawList._VtxWritePtr[2].uv    = uv;
-        DrawList._VtxWritePtr[2].col   = Col;
-        DrawList._VtxWritePtr[3].pos.x = P2.x;
-        DrawList._VtxWritePtr[3].pos.y = P1.y;
-        DrawList._VtxWritePtr[3].uv    = uv;
-        DrawList._VtxWritePtr[3].col   = Col;
-        DrawList._VtxWritePtr += 4;
-        DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
-        DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
-        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
-        DrawList._IdxWritePtr   += 6;
-        DrawList._VtxCurrentIdx += 4;
-        return true;
-    }
-    const TGetter& Getter;
-    const TTransformer& Transformer;
-    const int Prims;
-    const ImU32 Col;
-    static const int IdxConsumed = 6;
-    static const int VtxConsumed = 4;
-};
-
 // Stupid way of calculating maximum index size of ImDrawIdx without integer overflow issues
 template <typename T>
 struct MaxIdx { static const unsigned int Value; };
@@ -1656,30 +1611,127 @@ template IMPLOT_API void PlotPieChart<double>(const char* const label_ids[], con
 // PLOT HEATMAP
 //-----------------------------------------------------------------------------
 
+struct RectInfo {
+    ImPlotPoint Min, Max;
+    ImU32 Color;
+};
+
+template <typename TGetter, typename TTransformer>
+struct RectRenderer {
+    inline RectRenderer(const TGetter& getter, const TTransformer& transformer) :
+        Getter(getter),
+        Transformer(transformer),
+        Prims(Getter.Count)
+    {}
+    inline bool operator()(ImDrawList& DrawList, const ImRect& /*cull_rect*/, const ImVec2& uv, int prim) const {
+        // TODO: Culling
+        RectInfo rect = Getter(prim);
+        ImVec2 P1 = Transformer(rect.Min);
+        ImVec2 P2 = Transformer(rect.Max);
+        DrawList._VtxWritePtr[0].pos   = P1;
+        DrawList._VtxWritePtr[0].uv    = uv;
+        DrawList._VtxWritePtr[0].col   = rect.Color;
+        DrawList._VtxWritePtr[1].pos.x = P1.x;
+        DrawList._VtxWritePtr[1].pos.y = P2.y;
+        DrawList._VtxWritePtr[1].uv    = uv;
+        DrawList._VtxWritePtr[1].col   = rect.Color;
+        DrawList._VtxWritePtr[2].pos   = P2;
+        DrawList._VtxWritePtr[2].uv    = uv;
+        DrawList._VtxWritePtr[2].col   = rect.Color;
+        DrawList._VtxWritePtr[3].pos.x = P2.x;
+        DrawList._VtxWritePtr[3].pos.y = P1.y;
+        DrawList._VtxWritePtr[3].uv    = uv;
+        DrawList._VtxWritePtr[3].col   = rect.Color;
+        DrawList._VtxWritePtr += 4;
+        DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
+        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+        DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
+        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+        DrawList._IdxWritePtr   += 6;
+        DrawList._VtxCurrentIdx += 4;
+        return true;
+    }
+    const TGetter& Getter;
+    const TTransformer& Transformer;
+    const int Prims;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 4;
+};
+
+template <typename T>
+struct GetterHeatmap {
+    GetterHeatmap(const T* values, int rows, int cols, double scale_min, double scale_max, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) :
+        Values(values),
+        Count(rows*cols),
+        Rows(rows),
+        Cols(cols),
+        ScaleMin(scale_min),
+        ScaleMax(scale_max),
+        BoundsMin(bounds_min),
+        BoundsMax(bounds_max),
+        Width((bounds_max.x - bounds_min.x) / cols),
+        Height((bounds_max.y - bounds_min.y) / rows),
+        HalfSize(Width*0.5, Height*0.5)
+    { }
+
+    inline RectInfo operator()(int idx) const {
+        const int r = (idx / Cols);
+        const int c = idx % Cols;
+        const ImPlotPoint p(BoundsMin.x + 0.5*Width + c*Width, BoundsMax.y - (0.5*Height + r*Height));
+        const double t = ImRemap((double)Values[idx], ScaleMin, ScaleMax, 0.0, 1.0);
+        ImVec4 color = LerpColormap((float)t);
+        color.w *= GImPlot->Style.FillAlpha;
+        RectInfo rect;
+        rect.Min = ImPlotPoint(p.x - HalfSize.x, p.y - HalfSize.y);
+        rect.Max = ImPlotPoint(p.x + HalfSize.x, p.y + HalfSize.y);
+        rect.Color = ImGui::GetColorU32(color);
+        return rect;
+    }
+
+    const T* const Values;
+    const int Count, Rows, Cols;
+    const double ScaleMin, ScaleMax, Width, Height;
+    const ImPlotPoint BoundsMin, BoundsMax, HalfSize;
+};
+
 template <typename T, typename Transformer>
 void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
-    ImPlotContext& gp = *GImPlot;
-    const double w = (bounds_max.x - bounds_min.x) / cols;
-    const double h = (bounds_max.y - bounds_min.y) / rows;
-    const ImPlotPoint half_size(w*0.5,h*0.5);
-    int i = 0;
-    for (int r = 0; r < rows; ++r) {
-        for (int c = 0; c < cols; ++c) {
-            ImPlotPoint p;
-            p.x = bounds_min.x + 0.5*w + c*w;
-            p.y = bounds_max.y - (0.5*h + r*h);
-            ImVec2 a  = transformer(ImPlotPoint(p.x - half_size.x, p.y - half_size.y));
-            ImVec2 b  = transformer(ImPlotPoint(p.x + half_size.x, p.y + half_size.y));
-            double t = ImRemap((double)values[i], scale_min, scale_max, 0.0, 1.0);
-            ImVec4 color = LerpColormap((float)t);
-            color.w *= gp.Style.FillAlpha;
-            ImU32 col = ImGui::GetColorU32(color);
-            DrawList.AddRectFilled(a, b, col);
-            i++;
-        }
+    // ImPlotContext& gp = *GImPlot;
+    GetterHeatmap<T> getter(values, rows, cols, scale_min, scale_max, bounds_min, bounds_max);
+
+    switch (GetCurrentScale()) {
+        case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLin>(getter, TransformerLinLin()), DrawList, GImPlot->BB_Plot); break;
+        case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLin>(getter, TransformerLogLin()), DrawList, GImPlot->BB_Plot); break;;
+        case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLog>(getter, TransformerLinLog()), DrawList, GImPlot->BB_Plot); break;;
+        case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLog>(getter, TransformerLogLog()), DrawList, GImPlot->BB_Plot); break;;
     }
+
+    // const double w = (bounds_max.x - bounds_min.x) / cols;
+    // const double h = (bounds_max.y - bounds_min.y) / rows;
+    // const ImPlotPoint half_size(w*0.5,h*0.5);
+    // int i = 0;
+    // for (int r = 0; r < rows; ++r) {
+    //     for (int c = 0; c < cols; ++c) {
+    //         ImPlotPoint p;
+    //         p.x = bounds_min.x + 0.5*w + c*w;
+    //         p.y = bounds_max.y - (0.5*h + r*h);
+    //         ImVec2 a  = transformer(ImPlotPoint(p.x - half_size.x, p.y - half_size.y));
+    //         ImVec2 b  = transformer(ImPlotPoint(p.x + half_size.x, p.y + half_size.y));
+    //         double t = ImRemap((double)values[i], scale_min, scale_max, 0.0, 1.0);
+    //         ImVec4 color = LerpColormap((float)t);
+    //         color.w *= gp.Style.FillAlpha;
+    //         ImU32 col = ImGui::GetColorU32(color);
+    //         DrawList.AddRectFilled(a, b, col);
+    //         i++;
+    //     }
+    // }
     if (fmt != NULL) {
-        i = 0;
+        const double w = (bounds_max.x - bounds_min.x) / cols;
+        const double h = (bounds_max.y - bounds_min.y) / rows;
+        const ImPlotPoint half_size(w*0.5,h*0.5);
+        int i = 0;
         for (int r = 0; r < rows; ++r) {
             for (int c = 0; c < cols; ++c) {
                 ImPlotPoint p;
@@ -1813,51 +1865,6 @@ template IMPLOT_API void PlotDigital<double>(const char* label_id, const double*
 void PlotDigitalG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
     GetterFuncPtr getter(getter_func,data,count,offset);
     return PlotDigitalEx(label_id, getter);
-}
-
-//-----------------------------------------------------------------------------
-// PLOT RECTS
-//-----------------------------------------------------------------------------
-template <typename Getter>
-void PlotRectsEx(const char* label_id, const Getter& getter) {
-    if (BeginItem(label_id, ImPlotCol_Fill)) {
-        if (FitThisFrame()) {
-            for (int i = 0; i < getter.Count; ++i) {
-                ImPlotPoint p = getter(i);
-                FitPoint(p);
-            }
-        }
-        const ImPlotNextItemData& s = GetItemData();
-        if (s.RenderFill) {
-            ImDrawList& DrawList = *GetPlotDrawList();
-            ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
-            switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(), col), DrawList, GImPlot->BB_Plot); break;
-                case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(), col), DrawList, GImPlot->BB_Plot); break;
-                case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(), col), DrawList, GImPlot->BB_Plot); break;
-                case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(), col), DrawList, GImPlot->BB_Plot); break;
-            }
-        }
-        EndItem();
-    }
-}
-
-// float
-void PlotRects(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride) {
-    GetterXsYs<float> getter(xs,ys,count,offset,stride);
-    PlotRectsEx(label_id, getter);
-}
-
-// double
-void PlotRects(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride) {
-    GetterXsYs<double> getter(xs,ys,count,offset,stride);
-    PlotRectsEx(label_id, getter);
-}
-
-// custom
-void PlotRects(const char* label_id, ImPlotPoint (*getter_func)(void* data, int idx), void* data, int count, int offset) {
-    GetterFuncPtr getter(getter_func,data,count,offset);
-    return PlotRectsEx(label_id, getter);
 }
 
 //-----------------------------------------------------------------------------
