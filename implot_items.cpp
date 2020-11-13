@@ -1365,6 +1365,48 @@ void PlotBarsHG(const char* label_id, ImPlotPoint (*getter_func)(void* data, int
 }
 
 //-----------------------------------------------------------------------------
+// PLOT HISTOGRAM
+//-----------------------------------------------------------------------------
+
+template <typename T> 
+void PlotHistogram(const char* label_id, const T* values, int count, int bins, bool pdf, double bar_scale) {
+    const T min_val = ImMinArray(values, count);
+    const T max_val = ImMaxArray(values, count);
+    const double width = (double)(max_val - min_val) / bins;
+    static ImVector<double> bin_centers;
+    static ImVector<double> bin_counts;
+    bin_centers.resize(bins);
+    bin_counts.resize(bins);
+    for (int b = 0; b < bins; ++b) {
+        bin_centers[b] = (double)min_val + b * width + width * 0.5;
+        bin_counts[b] = 0;
+    }
+    for (int i = 0; i < count; ++i) {
+        int b = (int)((double)(values[i] - min_val) / width);
+        b = ImClamp(b, 0, bins - 1);
+        bin_counts[b] += 1.0;
+    }
+    if (pdf) {
+        for (int b = 0; b < bins; ++b) 
+            bin_counts[b] = bin_counts[b] / (count * width);
+        
+    }
+    PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width);
+}
+
+template IMPLOT_API void PlotHistogram<ImS8>(const char* label_id, const ImS8* values, int count, int bins, bool pdf, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImU8>(const char* label_id, const ImU8* values, int count, int bins, bool pdf, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImS16>(const char* label_id, const ImS16* values, int count, int bins, bool pdf, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImU16>(const char* label_id, const ImU16* values, int count, int bins, bool pdf, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImS32>(const char* label_id, const ImS32* values, int count, int bins, bool pdf, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImU32>(const char* label_id, const ImU32* values, int count, int bins, bool pdf, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImS64>(const char* label_id, const ImS64* values, int count, int bins, bool pdf, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImU64>(const char* label_id, const ImU64* values, int count, int bins, bool pdf, double bar_scale);
+template IMPLOT_API void PlotHistogram<float>(const char* label_id, const float* values, int count, int bins, bool pdf, double bar_scale);
+template IMPLOT_API void PlotHistogram<double>(const char* label_id, const double* values, int count, int bins, bool pdf, double bar_scale);
+
+
+//-----------------------------------------------------------------------------
 // PLOT ERROR BARS
 //-----------------------------------------------------------------------------
 

@@ -27,7 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <iostream>
 
 #ifdef _MSC_VER
 #define sprintf sprintf_s
@@ -71,6 +70,36 @@ inline T RandomRange(T min, T max) {
     T scale = rand() / (T) RAND_MAX;
     return min + scale * ( max - min );
 }
+
+double RandomGauss() {
+	static double V1, V2, S;
+	static int phase = 0;
+	double X;
+	if(phase == 0) {
+		do {
+			double U1 = (double)rand() / RAND_MAX;
+			double U2 = (double)rand() / RAND_MAX;
+
+			V1 = 2 * U1 - 1;
+			V2 = 2 * U2 - 1;
+			S = V1 * V1 + V2 * V2;
+			} while(S >= 1 || S == 0);
+
+		X = V1 * sqrt(-2 * log(S) / S);
+	} else
+		X = V2 * sqrt(-2 * log(S) / S);
+	phase = 1 - phase;
+	return X;
+}
+
+template <int N>
+struct NormalDistribution {
+    NormalDistribution(double mean, double sd) {
+        for (int i = 0; i < N; ++i) 
+            Data[i] = RandomGauss()*sd + mean;        
+    }
+    double Data[N];
+};
 
 // utility structure for realtime plot
 struct ScrollingBuffer {
@@ -380,6 +409,33 @@ void ShowDemoWindow(bool* p_open) {
                 ImPlot::PlotBars("Final Exam",   final, 10, 0.2,    0);
                 ImPlot::PlotBars("Course Grade", grade, 10, 0.2,  0.2);
             }
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Histograms")) {
+        static double mu1 = 3;
+        static double sigma1 = 2;
+        static double mu2 = 7;
+        static double sigma2 = 2.5;
+        static NormalDistribution<5000> dist1(mu1, sigma1);
+        static NormalDistribution<5000> dist2(mu2, sigma2);
+        static double pdfx[500];
+        static double pdfy1[500];
+        static double pdfy2[500];
+        for (int i = 0; i < 500; ++i) {
+            pdfx[i] = -6 + 22 * (double)i/499.0;
+            pdfy1[i] = exp( - (pdfx[i]-mu1)*(pdfx[i]-mu1) / (2*sigma1*sigma1)) / (sigma1 * sqrt(2*3.141592653589793238));
+            pdfy2[i] = exp( - (pdfx[i]-mu2)*(pdfx[i]-mu2) / (2*sigma2*sigma2)) / (sigma2 * sqrt(2*3.141592653589793238));
+        }
+        ImPlot::SetNextPlotLimits(-6, 16, 0, 0.25);
+        if (ImPlot::BeginPlot("##Histograms")) {
+            ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
+            ImPlot::PlotHistogram("PDF1", dist1.Data, 1000, IMPLOT_AUTO, true);
+            ImPlot::PlotLine("PDF1",pdfx,pdfy1,500);
+            ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
+            ImPlot::PlotHistogram("PDF2", dist2.Data, 1000, IMPLOT_AUTO, true);
+            ImPlot::PlotLine("PDF2",pdfx,pdfy2,500);
             ImPlot::EndPlot();
         }
     }
@@ -862,8 +918,8 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::DragLineY("y2",&y2,show_labels);
             double xs[1000], ys[1000];
             for (int i = 0; i < 1000; ++i) {
-                xs[i] = (x2+x1)/2+abs(x2-x1)*(i/1000.0f - 0.5f);
-                ys[i] = (y1+y2)/2+abs(y2-y1)/2*sin(f*i/10);
+                xs[i] = (x2+x1)/2+fabs(x2-x1)*(i/1000.0f - 0.5f);
+                ys[i] = (y1+y2)/2+fabs(y2-y1)/2*sin(f*i/10);
             }
             ImPlot::PlotLine("Interactive Data", xs, ys, 1000);
             ImPlot::SetPlotYAxis(ImPlotYAxis_2);
