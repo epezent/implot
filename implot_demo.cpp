@@ -79,7 +79,6 @@ double RandomGauss() {
 		do {
 			double U1 = (double)rand() / RAND_MAX;
 			double U2 = (double)rand() / RAND_MAX;
-
 			V1 = 2 * U1 - 1;
 			V2 = 2 * U2 - 1;
 			S = V1 * V1 + V2 * V2;
@@ -437,26 +436,29 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SetNextItemWidth(100);
         ImGui::SliderInt("Bins", &bins, 0, 100);
         ImGui::SameLine();
-        if (ImGui::Checkbox("Density", &density))
-            ImPlot::FitNextPlotAxes();
+        ImGui::Checkbox("Density", &density);
         ImGui::SameLine();
-        if (ImGui::Checkbox("Cumulative", &cumulative))
-            ImPlot::FitNextPlotAxes();
+        ImGui::Checkbox("Cumulative", &cumulative);
+        static float rmin = 0;
+        static float rmax = 0;
+        ImGui::DragFloat2("Range",&rmin,0.1f,-3,13);
         ImPlot::SetNextPlotLimits(-3, 13, 0, 0.25);
         if (ImPlot::BeginPlot("##Histograms")) {
             ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
-            ImPlot::PlotHistogram("Empirical", dist.Data, 5000, bins, cumulative, density);
+            ImPlot::PlotHistogram("Empirical", dist.Data, 5000, bins, cumulative, density, ImPlotRange(rmin,rmax));
             if (density)
                 ImPlot::PlotLine("Theoretical",x,y,100);
             ImPlot::EndPlot();
         }
 
-        if (ImPlot::BeginPlot("Hist2D")) {
-            ImPlot::PushColormap(ImPlotColormap_Jet);
-            ImPlot::PlotHistogram2D("Hist2D",dist.Data,dist.Data,5000,100,100);
-            ImPlot::PopColormap();
+        static NormalDistribution<10000> dist1(5, 5);
+        static NormalDistribution<10000> dist2(4, 1);
+        ImPlot::PushColormap(ImPlotColormap_Jet);
+        if (ImPlot::BeginPlot("Hist2D",0,0,ImVec2(-1,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
+            ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,10000,100,100);
             ImPlot::EndPlot();
         }
+        ImPlot::PopColormap();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Error Bars")) {

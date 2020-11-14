@@ -1662,6 +1662,13 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     const double w = (bounds_max.x - bounds_min.x) / cols;
     const double h = (bounds_max.y - bounds_min.y) / rows;
     const ImPlotPoint half_size(w*0.5,h*0.5);
+    if (scale_min == scale_max) {
+        ImVec2 a = transformer(bounds_min);
+        ImVec2 b = transformer(bounds_max);
+        ImU32  col = ImGui::GetColorU32(LerpColormap(0));
+        DrawList.AddRectFilled(a, b, col);
+        return;
+    }
     int i = 0;
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {
@@ -1678,8 +1685,8 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
             i++;
         }
     }
+    i = 0;
     if (fmt != NULL) {
-        i = 0;
         for (int r = 0; r < rows; ++r) {
             for (int c = 0; c < cols; ++c) {
                 ImPlotPoint p;
@@ -1701,7 +1708,6 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
 
 template <typename T>
 void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
-    IM_ASSERT_USER_ERROR(scale_min != scale_max, "Scale values must be different!");
     if (BeginItem(label_id)) {
         if (FitThisFrame()) {
             FitPoint(bounds_min);
@@ -1734,24 +1740,28 @@ template IMPLOT_API void PlotHeatmap<double>(const char* label_id, const double*
 //-----------------------------------------------------------------------------
 
 template <typename T>
-void PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative, bool density, double bar_scale) {
+void PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale) {
     if (count <= 0 || bins <= 0)
         return;
-    const T min_val = ImMinArray(values, count);
-    const T max_val = ImMaxArray(values, count);
-    const double width = (double)(max_val - min_val) / bins;
+    if (range.Min == 0 && range.Max == 0) {
+        range.Min = (double)ImMinArray(values, count);
+        range.Max = (double)ImMaxArray(values, count);
+    }
+    const double width = range.Size() / bins;
     static ImVector<double> bin_centers;
     static ImVector<double> bin_counts;
     bin_centers.resize(bins);
     bin_counts.resize(bins);
     for (int b = 0; b < bins; ++b) {
-        bin_centers[b] = (double)min_val + b * width + width * 0.5;
+        bin_centers[b] = range.Min + b * width + width * 0.5;
         bin_counts[b] = 0;
     }
     for (int i = 0; i < count; ++i) {
-        int b = (int)((double)(values[i] - min_val) / width);
-        b = ImClamp(b, 0, bins - 1);
-        bin_counts[b] += 1.0;
+        if (range.Contains((double)values[i])) {
+            int b = (int)((double)(values[i] - range.Min) / width); 
+            b = ImClamp(b, 0, bins - 1);
+            bin_counts[b] += 1.0;
+        }
     }
     if (cumulative && density) {
         for (int b = 1; b < bins; ++b)
@@ -1771,16 +1781,16 @@ void PlotHistogram(const char* label_id, const T* values, int count, int bins, b
     PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width);
 }
 
-template IMPLOT_API void PlotHistogram<ImS8>(const char* label_id, const ImS8* values, int count, int bins, bool cumulative, bool density, double bar_scale);
-template IMPLOT_API void PlotHistogram<ImU8>(const char* label_id, const ImU8* values, int count, int bins, bool cumulative, bool density, double bar_scale);
-template IMPLOT_API void PlotHistogram<ImS16>(const char* label_id, const ImS16* values, int count, int bins, bool cumulative, bool density, double bar_scale);
-template IMPLOT_API void PlotHistogram<ImU16>(const char* label_id, const ImU16* values, int count, int bins, bool cumulative, bool density, double bar_scale);
-template IMPLOT_API void PlotHistogram<ImS32>(const char* label_id, const ImS32* values, int count, int bins, bool cumulative, bool density, double bar_scale);
-template IMPLOT_API void PlotHistogram<ImU32>(const char* label_id, const ImU32* values, int count, int bins, bool cumulative, bool density, double bar_scale);
-template IMPLOT_API void PlotHistogram<ImS64>(const char* label_id, const ImS64* values, int count, int bins, bool cumulative, bool density, double bar_scale);
-template IMPLOT_API void PlotHistogram<ImU64>(const char* label_id, const ImU64* values, int count, int bins, bool cumulative, bool density, double bar_scale);
-template IMPLOT_API void PlotHistogram<float>(const char* label_id, const float* values, int count, int bins, bool cumulative, bool density, double bar_scale);
-template IMPLOT_API void PlotHistogram<double>(const char* label_id, const double* values, int count, int bins, bool cumulative, bool density, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImS8>(const char* label_id, const ImS8* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImU8>(const char* label_id, const ImU8* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImS16>(const char* label_id, const ImS16* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImU16>(const char* label_id, const ImU16* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImS32>(const char* label_id, const ImS32* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImU32>(const char* label_id, const ImU32* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImS64>(const char* label_id, const ImS64* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
+template IMPLOT_API void PlotHistogram<ImU64>(const char* label_id, const ImU64* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
+template IMPLOT_API void PlotHistogram<float>(const char* label_id, const float* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
+template IMPLOT_API void PlotHistogram<double>(const char* label_id, const double* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale);
 
 //-----------------------------------------------------------------------------
 // PLOT HISTOGRAM 2D
@@ -1791,7 +1801,6 @@ template <typename T>
 void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density) {
     if (count <= 0 || x_bins <= 0 || y_bins <= 0)
         return;
-    const int bins = x_bins * y_bins;
     const T min_x  = ImMinArray(xs, count);
     const T max_x  = ImMaxArray(xs, count);
     const T min_y  = ImMinArray(ys, count);
@@ -1800,7 +1809,11 @@ void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, 
     const double height = (double)(max_y - min_y) / y_bins;
 
     static ImVector<double> bin_counts;
+
+    const int bins = x_bins * y_bins;
     bin_counts.resize(bins);
+    for (int b = 0; b < bins; ++b)
+        bin_counts[b] = 0;
 
     for (int i = 0; i < count; ++i) {
         const int xb = ImClamp( (int)((double)(xs[i] - min_x) / width)  , 0, x_bins - 1);

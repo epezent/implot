@@ -483,9 +483,9 @@ struct ImPlotAxisState
         Present      = present;
         HasLabels    = !ImHasFlag(Axis->Flags, ImPlotAxisFlags_NoTickLabels);
         Invert       = ImHasFlag(Axis->Flags, ImPlotAxisFlags_Invert);
-        LockMin      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always);
-        LockMax      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always);
-        Lock         = !Present || ((LockMin && LockMax) || (HasRange && RangeCond == ImGuiCond_Always));
+        LockMin      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always) || ImHasFlag(Axis->Flags, ImPlotAxisFlags_AutoFit);
+        LockMax      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always) || ImHasFlag(Axis->Flags, ImPlotAxisFlags_AutoFit);
+        Lock         = !Present || ((LockMin && LockMax) || (HasRange && RangeCond == ImGuiCond_Always)) || ImHasFlag(Axis->Flags, ImPlotAxisFlags_AutoFit);
         IsTime       = ImHasFlag(Axis->Flags, ImPlotAxisFlags_Time);
     }
 

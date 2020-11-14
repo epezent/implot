@@ -1701,13 +1701,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         for (int i = 0; i < IMPLOT_Y_AXES; i++)
             gp.FitY[i] = plot.YAxis[i].HoveredTot;
     }
-    // fit from FitNextPlotAxes
-    if (gp.NextPlotData.FitX) {
+    // fit from FitNextPlotAxes or auto fit
+    if (gp.NextPlotData.FitX || ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_AutoFit)) {
         gp.FitThisFrame = true;
         gp.FitX         = true;
     }
     for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
-        if (gp.NextPlotData.FitY[i]) {
+        if (gp.NextPlotData.FitY[i] || ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_AutoFit)) {
             gp.FitThisFrame = true;
             gp.FitY[i]      = true;
         }
@@ -1871,7 +1871,7 @@ void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed) {
 
     ImGui::PushItemWidth(75);
     ImPlotAxis& axis = *state.Axis;
-    bool total_lock  = state.HasRange && state.RangeCond == ImGuiCond_Always;
+    bool total_lock   = state.Lock;
     bool logscale     = ImHasFlag(axis.Flags, ImPlotAxisFlags_LogScale);
     bool timescale    = ImHasFlag(axis.Flags, ImPlotAxisFlags_Time);
     bool grid         = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
