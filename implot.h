@@ -416,9 +416,6 @@ template <typename T> IMPLOT_API void PlotBarsH(const char* label_id, const T* v
 template <typename T> IMPLOT_API void PlotBarsH(const char* label_id, const T* xs, const T* ys, int count, double height, int offset=0, int stride=sizeof(T));
                       IMPLOT_API void PlotBarsHG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, double height,  int offset=0);
 
-// Plots a horizontal histogram. If cumulative is true, each bin contains its count plus the counts of all previous bins. If density is true, the PDF is visualized. If both are true, the CDF is visualized.
-template <typename T> IMPLOT_API void PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative=false, bool density=false, double bar_scale=1.0);
-
 // Plots vertical error bar. The label_id should be the same as the label_id of the associated line or bar plot.
 template <typename T> IMPLOT_API void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* err, int count, int offset=0, int stride=sizeof(T));
 template <typename T> IMPLOT_API void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, int offset=0, int stride=sizeof(T));
@@ -436,6 +433,12 @@ template <typename T> IMPLOT_API void PlotPieChart(const char* const label_ids[]
 
 // Plots a 2D heatmap chart. Values are expected to be in row-major order. #label_fmt can be set to NULL for no labels.
 template <typename T> IMPLOT_API void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt="%.1f", const ImPlotPoint& bounds_min=ImPlotPoint(0,0), const ImPlotPoint& bounds_max=ImPlotPoint(1,1));
+
+// Plots a horizontal histogram. If cumulative is true, each bin contains its count plus the counts of all previous bins. If density is true, the PDF is visualized. If both are true, the CDF is visualized.
+template <typename T> IMPLOT_API void PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative=false, bool density=false, double bar_scale=1.0);
+
+// Plots two dimensional, bivariate histogram as a heatmap. If density is true, the PDF is visualized. 
+template <typename T> IMPLOT_API void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density=false);
 
 // Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
 template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
