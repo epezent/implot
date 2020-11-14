@@ -95,8 +95,8 @@ double RandomGauss() {
 template <int N>
 struct NormalDistribution {
     NormalDistribution(double mean, double sd) {
-        for (int i = 0; i < N; ++i) 
-            Data[i] = RandomGauss()*sd + mean;        
+        for (int i = 0; i < N; ++i)
+            Data[i] = RandomGauss()*sd + mean;
     }
     double Data[N];
 };
@@ -414,28 +414,40 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Histograms")) {
-        static double mu1 = 3;
-        static double sigma1 = 2;
-        static double mu2 = 7;
-        static double sigma2 = 2.5;
-        static NormalDistribution<5000> dist1(mu1, sigma1);
-        static NormalDistribution<5000> dist2(mu2, sigma2);
-        static double pdfx[500];
-        static double pdfy1[500];
-        static double pdfy2[500];
-        for (int i = 0; i < 500; ++i) {
-            pdfx[i] = -6 + 22 * (double)i/499.0;
-            pdfy1[i] = exp( - (pdfx[i]-mu1)*(pdfx[i]-mu1) / (2*sigma1*sigma1)) / (sigma1 * sqrt(2*3.141592653589793238));
-            pdfy2[i] = exp( - (pdfx[i]-mu2)*(pdfx[i]-mu2) / (2*sigma2*sigma2)) / (sigma2 * sqrt(2*3.141592653589793238));
+        static int  bins       = 30;
+        static bool cumulative = false;
+        static bool density    = true;
+        static double mu       = 5;
+        static double sigma    = 2;
+        static NormalDistribution<5000> dist(mu, sigma);
+        static double x[100];
+        static double y[100];
+        if (density) {
+            for (int i = 0; i < 100; ++i) {
+                x[i] = -3 + 16 * (double)i/99.0;
+                y[i] = exp( - (x[i]-mu)*(x[i]-mu) / (2*sigma*sigma)) / (sigma * sqrt(2*3.141592653589793238));
+            }
+            if (cumulative) {
+                for (int i = 1; i < 100; ++i)
+                    y[i] += y[i-1];
+                for (int i = 0; i < 100; ++i)
+                    y[i] /= y[99];
+            }
         }
-        ImPlot::SetNextPlotLimits(-6, 16, 0, 0.25);
+        ImGui::SetNextItemWidth(100);
+        ImGui::SliderInt("Bins", &bins, 0, 100);
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Density", &density))
+            ImPlot::FitNextPlotAxes();
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Cumulative", &cumulative))
+            ImPlot::FitNextPlotAxes();
+        ImPlot::SetNextPlotLimits(-3, 13, 0, 0.25);
         if (ImPlot::BeginPlot("##Histograms")) {
             ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
-            ImPlot::PlotHistogram("PDF1", dist1.Data, 1000, IMPLOT_AUTO, true);
-            ImPlot::PlotLine("PDF1",pdfx,pdfy1,500);
-            ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
-            ImPlot::PlotHistogram("PDF2", dist2.Data, 1000, IMPLOT_AUTO, true);
-            ImPlot::PlotLine("PDF2",pdfx,pdfy2,500);
+            ImPlot::PlotHistogram("Empirical", dist.Data, 5000, bins, cumulative, density);
+            if (density)
+                ImPlot::PlotLine("Theoretical",x,y,100);
             ImPlot::EndPlot();
         }
     }
