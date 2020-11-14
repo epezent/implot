@@ -1806,8 +1806,6 @@ void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, 
         const int xb = ImClamp( (int)((double)(xs[i] - min_x) / width)  , 0, x_bins - 1);
         const int yb = ImClamp( (int)((double)(ys[i] - min_y) / height) , 0, y_bins - 1);
         const int b  = yb * x_bins + xb;
-        if (b >= bins)
-            printf("no!\n");
         bin_counts[b] += 1.0;
     }
     if (density) {
