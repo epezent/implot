@@ -455,7 +455,6 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PushColormap(ImPlotColormap_Jet);
             ImPlot::PlotHistogram2D("Hist2D",dist.Data,dist.Data,5000,100,100);
             ImPlot::PopColormap();
-
             ImPlot::EndPlot();
         }
     }
