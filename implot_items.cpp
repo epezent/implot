@@ -1698,40 +1698,40 @@ struct GetterHeatmap {
 
 template <typename T, typename Transformer>
 void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
-    // ImPlotContext& gp = *GImPlot;
-    GetterHeatmap<T> getter(values, rows, cols, scale_min, scale_max, bounds_min, bounds_max);
+    ImPlotContext& gp = *GImPlot;
+    // GetterHeatmap<T> getter(values, rows, cols, scale_min, scale_max, bounds_min, bounds_max);
 
-    switch (GetCurrentScale()) {
-        case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLin>(getter, TransformerLinLin()), DrawList, GImPlot->BB_Plot); break;
-        case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLin>(getter, TransformerLogLin()), DrawList, GImPlot->BB_Plot); break;;
-        case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLog>(getter, TransformerLinLog()), DrawList, GImPlot->BB_Plot); break;;
-        case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLog>(getter, TransformerLogLog()), DrawList, GImPlot->BB_Plot); break;;
-    }
-
-    // const double w = (bounds_max.x - bounds_min.x) / cols;
-    // const double h = (bounds_max.y - bounds_min.y) / rows;
-    // const ImPlotPoint half_size(w*0.5,h*0.5);
-    // int i = 0;
-    // for (int r = 0; r < rows; ++r) {
-    //     for (int c = 0; c < cols; ++c) {
-    //         ImPlotPoint p;
-    //         p.x = bounds_min.x + 0.5*w + c*w;
-    //         p.y = bounds_max.y - (0.5*h + r*h);
-    //         ImVec2 a  = transformer(ImPlotPoint(p.x - half_size.x, p.y - half_size.y));
-    //         ImVec2 b  = transformer(ImPlotPoint(p.x + half_size.x, p.y + half_size.y));
-    //         double t = ImRemap((double)values[i], scale_min, scale_max, 0.0, 1.0);
-    //         ImVec4 color = LerpColormap((float)t);
-    //         color.w *= gp.Style.FillAlpha;
-    //         ImU32 col = ImGui::GetColorU32(color);
-    //         DrawList.AddRectFilled(a, b, col);
-    //         i++;
-    //     }
+    // switch (GetCurrentScale()) {
+    //     case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLin>(getter, TransformerLinLin()), DrawList, GImPlot->BB_Plot); break;
+    //     case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLin>(getter, TransformerLogLin()), DrawList, GImPlot->BB_Plot); break;;
+    //     case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLog>(getter, TransformerLinLog()), DrawList, GImPlot->BB_Plot); break;;
+    //     case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLog>(getter, TransformerLogLog()), DrawList, GImPlot->BB_Plot); break;;
     // }
+
+    const double w = (bounds_max.x - bounds_min.x) / cols;
+    const double h = (bounds_max.y - bounds_min.y) / rows;
+    const ImPlotPoint half_size(w*0.5,h*0.5);
+    int i = 0;
+    for (int r = 0; r < rows; ++r) {
+        for (int c = 0; c < cols; ++c) {
+            ImPlotPoint p;
+            p.x = bounds_min.x + 0.5*w + c*w;
+            p.y = bounds_max.y - (0.5*h + r*h);
+            ImVec2 a  = transformer(ImPlotPoint(p.x - half_size.x, p.y - half_size.y));
+            ImVec2 b  = transformer(ImPlotPoint(p.x + half_size.x, p.y + half_size.y));
+            double t = ImRemap((double)values[i], scale_min, scale_max, 0.0, 1.0);
+            ImVec4 color = LerpColormap((float)t);
+            color.w *= gp.Style.FillAlpha;
+            ImU32 col = ImGui::GetColorU32(color);
+            DrawList.AddRectFilled(a, b, col);
+            i++;
+        }
+    }
     if (fmt != NULL) {
-        const double w = (bounds_max.x - bounds_min.x) / cols;
-        const double h = (bounds_max.y - bounds_min.y) / rows;
-        const ImPlotPoint half_size(w*0.5,h*0.5);
-        int i = 0;
+        // const double w = (bounds_max.x - bounds_min.x) / cols;
+        // const double h = (bounds_max.y - bounds_min.y) / rows;
+        // const ImPlotPoint half_size(w*0.5,h*0.5);
+        i = 0;
         for (int r = 0; r < rows; ++r) {
             for (int c = 0; c < cols; ++c) {
                 ImPlotPoint p;
