@@ -1677,7 +1677,7 @@ struct GetterHeatmap {
     { }
 
     inline RectInfo operator()(int idx) const {
-        const int r = (idx / Cols);
+        const int r = idx / Cols;
         const int c = idx % Cols;
         const ImPlotPoint p(BoundsMin.x + 0.5*Width + c*Width, BoundsMax.y - (0.5*Height + r*Height));
         const double t = ImRemap((double)Values[idx], ScaleMin, ScaleMax, 0.0, 1.0);
