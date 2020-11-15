@@ -1539,6 +1539,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 plot.XAxis.SetMin(plot.XAxis.IsInverted() ? plot_br.x : plot_tl.x);
             if (!plot.XAxis.IsLockedMax())
                 plot.XAxis.SetMax(plot.XAxis.IsInverted() ? plot_tl.x : plot_br.x);
+            if (axis_equal) 
+                plot.YAxis[0].SetAspect(plot.XAxis.GetAspect());  
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
             if (!plot.YAxis[i].IsLocked() && plot.YAxis[i].Dragging) {
@@ -1548,6 +1550,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                     plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
                 if (!plot.YAxis[i].IsLockedMax())
                     plot.YAxis[i].SetMax(plot.YAxis[i].IsInverted() ? plot_br.y : plot_tl.y);
+                if (i == 0 && axis_equal)
+                    plot.XAxis.SetAspect(plot.YAxis[0].GetAspect()); 
             }
         }
         // Set the mouse cursor based on which axes are moving.
