@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.8 WIP
+// ImPlot v0.9 WIP
 
 /*
 
@@ -1414,8 +1414,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // plot bb
 
     // (1) calc top/bot padding and plot height
-    const ImVec2 title_size = ImGui::CalcTextSize(title, NULL, true);
-    const float txt_height  = ImGui::GetTextLineHeight();
+    ImVec2 title_size = ImVec2(0.0f, 0.0f);
+    const float txt_height = ImGui::GetTextLineHeight();
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)){
+         title_size = ImGui::CalcTextSize(title, NULL, true);
+    }
 
     const float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
     const float pad_bot = (plot.XAxis.IsLabeled() ? txt_height + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
@@ -1793,7 +1796,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     PopPlotClipRect();
 
     // render title
-    if (title_size.x > 0.0f) {
+    if (title_size.x > 0.0f && !ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)) {
         ImU32 col = GetStyleColorU32(ImPlotCol_TitleText);
         const char* title_end = ImGui::FindRenderedTextEnd(title, NULL);
         DrawList.AddText(ImVec2(plot.CanvasRect.GetCenter().x - title_size.x * 0.5f, plot.CanvasRect.Min.y),col,title,title_end);
@@ -2006,21 +2009,39 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
 
     ImGui::Separator();
     if ((ImGui::BeginMenu("Settings"))) {
-        if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect))) {
-            ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
+        if (ImGui::MenuItem("Title",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)))
+                ImFlipFlag(plot.Flags, ImPlotFlags_NoTitle);
+        if ((ImGui::BeginMenu("Legend"))) {
+            const float s = ImGui::GetFrameHeight();
+            if (ImGui::RadioButton("H", plot.LegendOrientation == ImPlotOrientation_Horizontal))
+                plot.LegendOrientation = ImPlotOrientation_Horizontal;
+            ImGui::SameLine();
+            if (ImGui::RadioButton("V", plot.LegendOrientation == ImPlotOrientation_Vertical))
+                plot.LegendOrientation = ImPlotOrientation_Vertical;
+            ImGui::Checkbox("Outside", &plot.LegendOutside);
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(1,1));
+            if (ImGui::Button("##NW",ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_NorthWest; ImGui::SameLine();
+            if (ImGui::Button("##N", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_North;     ImGui::SameLine();
+            if (ImGui::Button("##NE",ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_NorthEast;
+            if (ImGui::Button("##W", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_West;      ImGui::SameLine();
+            if (ImGui::Button("##C", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_Center;    ImGui::SameLine();
+            if (ImGui::Button("##E", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_East;
+            if (ImGui::Button("##SW",ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_SouthWest; ImGui::SameLine();
+            if (ImGui::Button("##S", ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_South;      ImGui::SameLine();
+            if (ImGui::Button("##SE",ImVec2(1.5f*s,s))) plot.LegendLocation = ImPlotLocation_SouthEast;
+            ImGui::PopStyleVar();
+            ImGui::EndMenu();
         }
-        if (ImGui::MenuItem("Query",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Query))) {
-            ImFlipFlag(plot.Flags, ImPlotFlags_Query);
-        }
-        if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs))) {
-            ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
-        }
-        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos))) {
+        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos)))
             ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
-        }
-        if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased))) {
+        if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
+        if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
+        if (ImGui::MenuItem("Query",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Query)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Query);
+        if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
             ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
-        }
         ImGui::EndMenu();
     }
     if (ImGui::MenuItem("Legend",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend))) {

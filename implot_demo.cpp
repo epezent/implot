@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.8 WIP
+// ImPlot v0.9 WIP
 
 #include "implot.h"
 #include <math.h>
@@ -1150,7 +1150,7 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::TableSetupColumn("Electrode", ImGuiTableColumnFlags_WidthFixed, 75.0f);
             ImGui::TableSetupColumn("Voltage", ImGuiTableColumnFlags_WidthFixed, 75.0f);
             ImGui::TableSetupColumn("EMG Signal");
-            ImGui::TableAutoHeaders();
+            ImGui::TableHeadersRow();
             ImPlot::PushColormap(ImPlotColormap_Cool);
             for (int row = 0; row < 10; row++) {
                 ImGui::TableNextRow();
