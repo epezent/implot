@@ -1514,6 +1514,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // DRAG INPUT -------------------------------------------------------------
 
+    const bool axis_equal  = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
+
     // end drags
     if (plot.XAxis.Dragging && (IO.MouseReleased[gp.InputMap.PanButton] || !IO.MouseDown[gp.InputMap.PanButton])) {
         plot.XAxis.Dragging             = false;
@@ -1592,10 +1594,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));
         float tx = ImRemap(IO.MousePos.x, plot.PlotRect.Min.x, plot.PlotRect.Max.x, 0.0f, 1.0f);
         float ty = ImRemap(IO.MousePos.y, plot.PlotRect.Min.y, plot.PlotRect.Max.y, 0.0f, 1.0f);
-        const bool equal  = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
         bool equal_zoomed = false;
         // special case for axis equal and both x and y0 hovered
-        if (equal && plot.XAxis.AllHovered && !plot.XAxis.IsLocked() && plot.YAxis[0].AllHovered && !plot.YAxis[0].IsLocked()) {
+        if (axis_equal && plot.XAxis.AllHovered && !plot.XAxis.IsLocked() && plot.YAxis[0].AllHovered && !plot.YAxis[0].IsLocked()) {
             const ImPlotPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), 0);
             const ImPlotPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), 0);
             if (!plot.XAxis.IsLockedMin())
@@ -1619,7 +1620,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                 plot.XAxis.SetMin(plot.XAxis.IsInverted() ? plot_br.x : plot_tl.x);
             if (!plot.XAxis.IsLockedMax())
                 plot.XAxis.SetMax(plot.XAxis.IsInverted() ? plot_tl.x : plot_br.x);
-            if (equal) 
+            if (axis_equal) 
                 plot.YAxis[0].SetAspect(plot.XAxis.GetAspect());            
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
@@ -1630,7 +1631,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
                     plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
                 if (!plot.YAxis[i].IsLockedMax())
                     plot.YAxis[i].SetMax(plot.YAxis[i].IsInverted() ? plot_br.y : plot_tl.y);
-                if (i == 0 && equal)
+                if (i == 0 && axis_equal)
                     plot.XAxis.SetAspect(plot.YAxis[0].GetAspect());                
             }
         }
@@ -2036,8 +2037,20 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
 
     ImGui::Separator();
     if ((ImGui::BeginMenu("Settings"))) {
+        if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
+        if (ImGui::MenuItem("Equal", NULL, ImHasFlag(plot.Flags, ImPlotFlags_Equal)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Equal);
+        if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
+        if (ImGui::MenuItem("Query",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Query)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Query);
         if (ImGui::MenuItem("Title",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)))
-                ImFlipFlag(plot.Flags, ImPlotFlags_NoTitle);
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoTitle);
+        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
+        if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
         if ((ImGui::BeginMenu("Legend"))) {
             const float s = ImGui::GetFrameHeight();
             if (ImGui::RadioButton("H", plot.LegendOrientation == ImPlotOrientation_Horizontal))
@@ -2059,16 +2072,6 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
             ImGui::PopStyleVar();
             ImGui::EndMenu();
         }
-        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
-        if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
-        if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
-        if (ImGui::MenuItem("Query",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Query)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_Query);
-        if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
         ImGui::EndMenu();
     }
     if (ImGui::MenuItem("Legend",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend))) {
@@ -2354,31 +2357,40 @@ void EndPlot() {
         DrawList.AddRect(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBorder), 0, ImDrawCornerFlags_All, gp.Style.PlotBorderSize);
 
     // FIT DATA --------------------------------------------------------------
-
+    const bool axis_equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
     if (gp.FitThisFrame && (gp.VisibleItemCount > 0 || plot.Queried)) {
-        if (gp.FitX && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMin) && !ImNanOrInf(gp.ExtentsX.Min)) {
-            plot.XAxis.Range.Min = (gp.ExtentsX.Min);
+        if (gp.FitX) {
+            if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMin) && !ImNanOrInf(gp.ExtentsX.Min)) 
+                plot.XAxis.Range.Min = (gp.ExtentsX.Min);        
+            if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMax) && !ImNanOrInf(gp.ExtentsX.Max)) 
+                plot.XAxis.Range.Max = (gp.ExtentsX.Max);        
+            if (ImAlmostEqual(plot.XAxis.Range.Max, plot.XAxis.Range.Min))  {
+                plot.XAxis.Range.Max += plot.XAxis.Range.Max * 1.01;
+                plot.XAxis.Range.Min -= plot.XAxis.Range.Max * 1.01;
+            }
+            plot.XAxis.Constrain();
+            if (axis_equal && !gp.FitY[0]) 
+                plot.YAxis[0].SetAspect(plot.XAxis.GetAspect());                 
         }
-        if (gp.FitX && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMax) && !ImNanOrInf(gp.ExtentsX.Max)) {
-            plot.XAxis.Range.Max = (gp.ExtentsX.Max);
-        }
-        if ((plot.XAxis.Range.Max - plot.XAxis.Range.Min) <= (2.0 * FLT_EPSILON))  {
-            plot.XAxis.Range.Max += FLT_EPSILON;
-            plot.XAxis.Range.Min -= FLT_EPSILON;
-        }
-        plot.XAxis.Constrain();
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-            if (gp.FitY[i] && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMin) && !ImNanOrInf(gp.ExtentsY[i].Min)) {
-                plot.YAxis[i].Range.Min = (gp.ExtentsY[i].Min);
+            if (gp.FitY[i]) {
+                if (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMin) && !ImNanOrInf(gp.ExtentsY[i].Min)) 
+                    plot.YAxis[i].Range.Min = (gp.ExtentsY[i].Min);            
+                if (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMax) && !ImNanOrInf(gp.ExtentsY[i].Max)) 
+                    plot.YAxis[i].Range.Max = (gp.ExtentsY[i].Max);            
+                if (ImAlmostEqual(plot.YAxis[i].Range.Max, plot.YAxis[i].Range.Min)) {
+                    plot.YAxis[i].Range.Max += plot.YAxis[i].Range.Max * 1.01;
+                    plot.YAxis[i].Range.Min -= plot.YAxis[i].Range.Max * 1.01;
+                }
+                plot.YAxis[i].Constrain();
+                if (i == 0 && axis_equal && !gp.FitX) 
+                    plot.XAxis.SetAspect(plot.YAxis[0].GetAspect());                
             }
-            if (gp.FitY[i] && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMax) && !ImNanOrInf(gp.ExtentsY[i].Max)) {
-                plot.YAxis[i].Range.Max = (gp.ExtentsY[i].Max);
-            }
-            if ((plot.YAxis[i].Range.Max - plot.YAxis[i].Range.Min) <= (2.0 * FLT_EPSILON))  {
-                plot.YAxis[i].Range.Max += FLT_EPSILON;
-                plot.YAxis[i].Range.Min -= FLT_EPSILON;
-            }
-            plot.YAxis[i].Constrain();
+        }
+        if (axis_equal && gp.FitX && gp.FitY[0]) {
+            double aspect = ImMax(plot.XAxis.GetAspect(), plot.YAxis[0].GetAspect());
+            plot.XAxis.SetAspect(aspect);    
+            plot.YAxis[0].SetAspect(aspect);      
         }
     }
 
@@ -3664,6 +3676,7 @@ void ShowAxisMetrics(ImPlotAxis* axis, bool show_axis_rects) {
     ImGui::Bullet(); ImGui::Text("Flags:      %d", axis->Flags);
     ImGui::Bullet(); ImGui::Text("Range:      [%f,%f]",axis->Range.Min, axis->Range.Max);
     ImGui::Bullet(); ImGui::Text("Pixels:     %f", axis->Pixels);
+    ImGui::Bullet(); ImGui::Text("Aspect:     %f", axis->GetAspect());
     ImGui::Bullet(); ImGui::Text("Dragging:   %s", axis->Dragging ? "true" : "false");
     ImGui::Bullet(); ImGui::Text("ExtHovered: %s", axis->ExtHovered ? "true" : "false");
     ImGui::Bullet(); ImGui::Text("AllHovered: %s", axis->AllHovered ? "true" : "false");
