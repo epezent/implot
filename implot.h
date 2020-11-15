@@ -72,7 +72,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoMousePos    = 1 << 4,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
     ImPlotFlags_NoHighlight   = 1 << 5,  // plot items will not be highlighted when their legend entry is hovered
     ImPlotFlags_NoChild       = 1 << 6,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_Equal         = 1 << 7,  // x and y axes will be constrained to have the same units/pixel    
+    ImPlotFlags_Equal         = 1 << 7,  // primary x and y axes will be constrained to have the same units/pixel (does not apply to auxiliary y axes)
     ImPlotFlags_YAxis2        = 1 << 8,  // enable a 2nd y-axis on the right side
     ImPlotFlags_YAxis3        = 1 << 9,  // enable a 3rd y-axis on the right side
     ImPlotFlags_Query         = 1 << 10, // the user will be able to draw query rects with middle-mouse

@@ -742,14 +742,12 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Equal Axes")) {
-
         static double xs[1000], ys[1000];
         for (int i = 0; i < 1000; ++i) {
             double angle = i * 2 * PI / 999.0;
             xs[i] = cos(angle); ys[i] = sin(angle);
         }
-
-        static ImPlotFlags flags = ImPlotFlags_None;
+        static ImPlotFlags flags = ImPlotFlags_Equal;
         ImGui::CheckboxFlags("Equal",(unsigned int*)&flags,ImPlotFlags_Equal);
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
         if (ImPlot::BeginPlot("",0,0,ImVec2(-1,0),flags,ImPlotAxisFlags_NoTickLabels,ImPlotAxisFlags_NoTickLabels)) {

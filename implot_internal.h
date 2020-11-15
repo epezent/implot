@@ -387,8 +387,8 @@ struct ImPlotAxis
     float             Pixels;
     ImPlotOrientation Orientation;
     bool              Dragging;
-    bool              HoveredExt;
-    bool              HoveredTot;
+    bool              ExtHovered;
+    bool              AllHovered;
     bool              Present;
     bool              HasRange;
     double*           LinkedMin;
@@ -404,8 +404,8 @@ struct ImPlotAxis
         Range.Min   = 0;
         Range.Max   = 1;
         Dragging    = false;
-        HoveredExt  = false;
-        HoveredTot  = false;
+        ExtHovered  = false;
+        AllHovered  = false;
         LinkedMin   = LinkedMax = NULL;
         PickerLevel = 0;
         ColorMaj    = ColorMin = ColorTxt = 0;
@@ -452,7 +452,14 @@ struct ImPlotAxis
     void SetAspect(double unit_per_pix) {
         double new_size = unit_per_pix * Pixels;
         double delta    = (new_size - Range.Size()) * 0.5f;
-        SetRange(Range.Min - delta, Range.Max  +delta);
+        if (IsLocked())
+            return;
+        else if (IsLockedMin() && !IsLockedMax())
+            SetRange(Range.Min, Range.Max  + 2*delta);
+        else if (!IsLockedMin() && IsLockedMax())
+            SetRange(Range.Min - 2*delta, Range.Max);
+        else
+            SetRange(Range.Min - delta, Range.Max + delta);
     }
 
     double GetAspect() const { return Range.Size() / Pixels; }
@@ -472,13 +479,14 @@ struct ImPlotAxis
             Range.Max = Range.Min + DBL_EPSILON;
     }
 
-    inline bool IsLabeled()    const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                                               }
-    inline bool IsInverted()   const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                                      }
-    inline bool IsLockedMin()  const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always);      }
-    inline bool IsLockedMax()  const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always);      }
-    inline bool IsLocked()     const { return !Present || ((IsLockedMin() && IsLockedMax()) || (HasRange && RangeCond == ImGuiCond_Always)); }
-    inline bool IsTime()       const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                                                        }
-    inline bool IsLog()        const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                                                    }
+    inline bool IsLabeled()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                    }
+    inline bool IsInverted()     const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                           }
+    inline bool IsAlwaysLocked() const { return HasRange && RangeCond == ImGuiCond_Always;                          }
+    inline bool IsLockedMin()    const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMin) || IsAlwaysLocked();      }
+    inline bool IsLockedMax()    const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMax) || IsAlwaysLocked();      }
+    inline bool IsLocked()       const { return !Present || ((IsLockedMin() && IsLockedMax()) || IsAlwaysLocked()); }
+    inline bool IsTime()         const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                             }
+    inline bool IsLog()          const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                         }
 };
 
 // State information for Plot items
