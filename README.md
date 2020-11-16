@@ -143,7 +143,7 @@ A: Not exactly, but it does give you the ability to query plot sub-ranges, with 
 
 A: Not currently. Use your OS's screen capturing mechanisms if you need to capture a plot. ImPlot is not suitable for rendering publication quality plots; it is only intended to be used as a visualization tool. Post-process your data with MATLAB or matplotlib for these purposes.
 
-**Q: What date types can I plot?**
+**Q: What data types can I plot?**
 
 A: ImPlot plotting functions accept most scalar types: 
 `float`, `double`, `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`.
