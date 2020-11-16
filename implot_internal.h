@@ -121,7 +121,7 @@ struct ImOffsetCalculator {
     int Offsets[Count];
 };
 
-// Character buffer writer helper
+// Character buffer writer helper (FIXME: Can't we replace this with ImGuiTextBuffer?)
 struct ImBufferWriter
 {
     char*  Buffer;
@@ -207,7 +207,7 @@ enum ImPlotTimeFmt_ {              // default        [ 24 Hour Clock ]
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
 
-// Combined data/time format spec
+// Combined date/time format spec
 struct ImPlotDateTimeFmt {
     ImPlotDateTimeFmt(ImPlotDateFmt date_fmt, ImPlotTimeFmt time_fmt, bool use_24_hr_clk = false, bool use_iso_8601 = false) {
         Date           = date_fmt;
@@ -589,7 +589,7 @@ struct ImPlotNextPlotData
     double*     LinkedYmin[IMPLOT_Y_AXES];
     double*     LinkedYmax[IMPLOT_Y_AXES];
 
-    ImPlotNextPlotData() { Reset(); } 
+    ImPlotNextPlotData() { Reset(); }
 
     void Reset() {
         HasXRange         = false;
@@ -601,7 +601,7 @@ struct ImPlotNextPlotData
             ShowDefaultTicksY[i] = true;
             FitY[i]              = false;
             LinkedYmin[i] = LinkedYmax[i] = NULL;
-        }        
+        }
     }
 
 };
@@ -631,7 +631,7 @@ struct ImPlotNextItemData {
             Colors[i] = IMPLOT_AUTO_COL;
         LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker        = IMPLOT_AUTO;
-        HasHidden     = Hidden = false;   
+        HasHidden     = Hidden = false;
     }
 };
 

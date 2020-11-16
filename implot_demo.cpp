@@ -451,7 +451,7 @@ void ShowDemoWindow(bool* p_open) {
         }
 
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
+        if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, normalize, "%.2f");
             ImPlot::EndPlot();
         }
@@ -463,7 +463,7 @@ void ShowDemoWindow(bool* p_open) {
 
         ImPlot::PushColormap(ImPlotColormap_Pastel);
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
+        if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.4, true, "%.0f", 180);
             ImPlot::EndPlot();
         }
@@ -747,10 +747,8 @@ void ShowDemoWindow(bool* p_open) {
             double angle = i * 2 * PI / 999.0;
             xs[i] = cos(angle); ys[i] = sin(angle);
         }
-        static ImPlotFlags flags = ImPlotFlags_Equal;
-        ImGui::CheckboxFlags("Equal",(unsigned int*)&flags,ImPlotFlags_Equal);
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
-        if (ImPlot::BeginPlot("",0,0,ImVec2(-1,0),flags,ImPlotAxisFlags_NoTickLabels,ImPlotAxisFlags_NoTickLabels)) {
+        if (ImPlot::BeginPlot("",0,0,ImVec2(-1,0),ImPlotFlags_Equal)) {
             ImPlot::PlotLine("Circle",xs,ys,1000);
             ImPlot::EndPlot();
         }
@@ -1193,7 +1191,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("The offset value indicates which circle point index is considered the first.");
         ImGui::BulletText("Offsets can be negative and/or larger than the actual data count.");
         ImGui::SliderInt("Offset", &offset, -2*k_points_per, 2*k_points_per);
-        if (ImPlot::BeginPlot("##strideoffset")) {
+        if (ImPlot::BeginPlot("##strideoffset",0,0,ImVec2(-1,0), ImPlotFlags_Equal)) {
             ImPlot::PushColormap(ImPlotColormap_Jet);
             char buff[16];
             for (int c = 0; c < k_circles; ++c) {
