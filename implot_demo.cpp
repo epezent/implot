@@ -417,7 +417,7 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Histograms")) {
-        static int  bins       = 50;
+        static int  bins       = ImPlotBinMethod_Sturges;
         static bool cumulative = false;
         static bool density    = true;
         static double mu       = 5;
@@ -437,8 +437,8 @@ void ShowDemoWindow(bool* p_open) {
                     y[i] /= y[99];
             }
         }
-        ImGui::SetNextItemWidth(100);
-        ImGui::SliderInt("Bins", &bins, 0, 100);
+        ImGui::SetNextItemWidth(200);
+        ImGui::SliderInt("Bins", &bins, -4, 100);
         ImGui::SameLine();
         ImGui::Checkbox("Density", &density);
         ImGui::SameLine();

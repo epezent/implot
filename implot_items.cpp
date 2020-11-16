@@ -1740,14 +1740,45 @@ template IMPLOT_API void PlotHeatmap<double>(const char* label_id, const double*
 //-----------------------------------------------------------------------------
 
 template <typename T>
+void BinValues(const T* values, int count, ImPlotBinMethod meth, const ImPlotRange& range, int& bins, double& width) {
+    switch (meth) {
+        case ImPlotBinMethod_Sqrt: 
+            bins  = (int)ceil(sqrt(count));
+            width = range.Size() / bins;
+            break;
+        case ImPlotBinMethod_Sturges: 
+            bins  = (int)ceil(1.0 + log2(count));
+            width = range.Size() / bins;
+            break;
+        case ImPlotBinMethod_Rice:    
+            bins  = (int)ceil(2 * cbrt(count));
+            width = range.Size() / bins;
+            break;
+        case ImPlotBinMethod_Scott:  
+            width = 3.49 * ImStdDev(values, count) / cbrt(count);
+            bins  = (int)round(range.Size() / width);
+            width = range.Size() / bins; 
+            break;
+    }
+}
+
+template <typename T>
 void PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, double bar_scale) {
-    if (count <= 0 || bins <= 0)
+    
+    if (count <= 0 || bins == 0)
         return;
+
     if (range.Min == 0 && range.Max == 0) {
         range.Min = (double)ImMinArray(values, count);
         range.Max = (double)ImMaxArray(values, count);
     }
-    const double width = range.Size() / bins;
+
+    double width;
+    if (bins < 0) 
+        BinValues(values, count, bins, range, bins, width);
+    else
+        width = range.Size() / bins;
+
     static ImVector<double> bin_centers;
     static ImVector<double> bin_counts;
     bin_centers.resize(bins);
@@ -1800,8 +1831,10 @@ template IMPLOT_API void PlotHistogram<double>(const char* label_id, const doubl
 // Plots two dimensional, bivariate histogram as a heatmap. If density is true, the PDF is visualized. 
 template <typename T> 
 void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density, ImPlotLimits range) {
-    if (count <= 0 || x_bins <= 0 || y_bins <= 0)
+    
+    if (count <= 0 || x_bins == 0 || y_bins == 0)
         return;
+    
     if (range.X.Min == 0 && range.X.Max == 0) {
         range.X.Min = (double)ImMinArray(xs, count);
         range.X.Max = (double)ImMaxArray(xs, count);
@@ -1810,8 +1843,16 @@ void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, 
         range.Y.Min = (double)ImMinArray(ys, count);
         range.Y.Max = (double)ImMaxArray(ys, count);
     }
-    const double width  = range.X.Size() / x_bins;
-    const double height = range.Y.Size() / y_bins;
+
+    double width, height;
+    if (x_bins < 0) 
+        BinValues(xs, count, x_bins, range.X, x_bins, width);
+    else
+        width = range.X.Size() / x_bins;
+    if (y_bins < 0) 
+        BinValues(ys, count, y_bins, range.Y, y_bins, height);
+    else
+        height = range.Y.Size() / y_bins;
 
     static ImVector<double> bin_counts;    
     const int bins = x_bins * y_bins;

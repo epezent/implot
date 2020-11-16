@@ -106,14 +106,33 @@ inline double ImConstrainInf(double val) { return val == HUGE_VAL ?  DBL_MAX : v
 inline double ImConstrainLog(double val) { return val <= 0 ? 0.001f : val; }
 // Turns numbers less than 0 to zero
 inline double ImConstrainTime(double val) { return val < IMPLOT_MIN_TIME ? IMPLOT_MIN_TIME : (val > IMPLOT_MAX_TIME ? IMPLOT_MAX_TIME : val); }
+// True if two numbers are approximately equal using units in the last place.
+inline bool ImAlmostEqual(double v1, double v2, int ulp = 2) { return ImAbs(v1-v2) < DBL_EPSILON * ImAbs(v1+v2) * ulp || ImAbs(v1-v2) < DBL_MIN; }
 // Finds min value in an unsorted array
 template <typename T>
 inline T ImMinArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] < m) { m = values[i]; } } return m; }
 // Finds the max value in an unsorted array
 template <typename T>
 inline T ImMaxArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] > m) { m = values[i]; } } return m; }
-// True if two numbers are approximately equal using units in the last place.
-inline bool ImAlmostEqual(double v1, double v2, int ulp = 2) { return ImAbs(v1-v2) < DBL_EPSILON * ImAbs(v1+v2) * ulp || ImAbs(v1-v2) < DBL_MIN; }
+// Finds the mean of an array
+template <typename T>
+inline double ImMean(const T* values, int count) {
+    double den = 1.0 / count;
+    double mu  = 0;
+    for (int i = 0; i < count; ++i)
+        mu += values[i] * den;
+    return mu;
+}
+// Finds the sample standard deviation of an array
+template <typename T>
+inline double ImStdDev(const T* values, int count) {
+    double den = 1.0 / (count - 1.0);
+    double mu  = ImMean(values, count);
+    double x   = 0;
+    for (int i = 0; i < count; ++i)
+        x += (values[i] - mu) * (values[i] - mu) * den;
+    return sqrt(x);
+}
 
 // Offset calculator helper
 template <int Count>

@@ -61,6 +61,7 @@ typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 typedef int ImPlotLocation;    // -> enum ImPlotLocation_
 typedef int ImPlotOrientation; // -> enum ImPlotOrientation_
 typedef int ImPlotYAxis;       // -> enum ImPlotYAxis_;
+typedef int ImPlotBinMethod;   // -> enum ImPlotBinMethod_
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -217,6 +218,14 @@ enum ImPlotYAxis_ {
     ImPlotYAxis_1 = 0, // left (default)
     ImPlotYAxis_2 = 1, // first on right side
     ImPlotYAxis_3 = 2  // second on right side
+};
+
+// Enums for different automatic histogram binning methods (k = bin count or w = bin width)
+enum ImPlotBinMethod_ {
+    ImPlotBinMethod_Sqrt    = -1, // k = sqrt(n)
+    ImPlotBinMethod_Sturges = -2, // k = 1 + log2(n)
+    ImPlotBinMethod_Rice    = -3, // k = 2 * cbrt(n)
+    ImPlotBinMethod_Scott   = -4, // w = 3.49 * sigma / cbrt(n)
 };
 
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
@@ -440,13 +449,13 @@ template <typename T> IMPLOT_API void PlotPieChart(const char* const label_ids[]
 // Plots a 2D heatmap chart. Values are expected to be in row-major order. #label_fmt can be set to NULL for no labels.
 template <typename T> IMPLOT_API void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt="%.1f", const ImPlotPoint& bounds_min=ImPlotPoint(0,0), const ImPlotPoint& bounds_max=ImPlotPoint(1,1));
 
-// Plots a horizontal histogram. If cumulative is true, each bin contains its count plus the counts of all previous bins. If density is true, the PDF is visualized. If both are true, the CDF is visualized. 
-// If range is left unspecified, the min/max of values will be used as the range. Values outside of range are not binned and are ignored in the total count for density=true histograms.
-template <typename T> IMPLOT_API void PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative=false, bool density=false, ImPlotRange range=ImPlotRange(), double bar_scale=1.0);
+// Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBinMethod. If #cumulative is true, each bin contains its count plus the counts of all previous bins. If #density is true, the PDF is visualized. 
+// If both are true, the CDF is visualized. If #range is left unspecified, the min/max of #values will be used as the range. Values outside of range are not binned and are ignored in the total count for #density=true histograms.
+template <typename T> IMPLOT_API void PlotHistogram(const char* label_id, const T* values, int count, int bins=ImPlotBinMethod_Sturges, bool cumulative=false, bool density=false, ImPlotRange range=ImPlotRange(), double bar_scale=1.0);
 
-// Plots two dimensional, bivariate histogram as a heatmap. If density is true, the PDF is visualized. If range is left unspecified, 
-// the min/max of xs an ys will be used as the ranges. Values outside of range are not binned and are ignored in the total count for density=true histograms.
-template <typename T> IMPLOT_API void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density=false, ImPlotLimits range=ImPlotLimits());
+// Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBinMethod. If #density is true, the PDF is visualized. If #range is left unspecified, 
+// the min/max of #xs an #ys will be used as the ranges. Values outside of range are not binned and are ignored in the total count for #density=true histograms.
+template <typename T> IMPLOT_API void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins=ImPlotBinMethod_Sturges, int y_bins=ImPlotBinMethod_Sturges, bool density=false, ImPlotLimits range=ImPlotLimits());
 
 // Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
 template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
