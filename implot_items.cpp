@@ -162,7 +162,7 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
     }
     if (!item->Show) {
         // reset next item data
-        gp.NextItemData = ImPlotNextItemData();
+        gp.NextItemData.Reset();
         gp.PreviousItem = item;
         gp.CurrentItem  = NULL;
         return false;
@@ -210,7 +210,7 @@ void EndItem() {
     // pop rendering clip rect
     PopPlotClipRect();
     // reset next item data
-    gp.NextItemData = ImPlotNextItemData();
+    gp.NextItemData.Reset();
     // set current item
     gp.PreviousItem = gp.CurrentItem;
     gp.CurrentItem  = NULL;
@@ -730,13 +730,13 @@ inline void RenderLineStrip(const Getter& getter, const Transformer& transformer
         ImVec2 p1 = transformer(getter(0));
         for (int i = 1; i < getter.Count; ++i) {
             ImVec2 p2 = transformer(getter(i));
-            if (gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+            if (gp.CurrentPlot->PlotRect.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
                 DrawList.AddLine(p1, p2, col, line_weight);
             p1 = p2;
         }
     }
     else {
-        RenderPrimitives(LineStripRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, gp.BB_Plot);
+        RenderPrimitives(LineStripRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, gp.CurrentPlot->PlotRect);
     }
 }
 
@@ -748,12 +748,12 @@ inline void RenderLineSegments(const Getter1& getter1, const Getter2& getter2, c
         for (int i = 0; i < I; ++i) {
             ImVec2 p1 = transformer(getter1(i));
             ImVec2 p2 = transformer(getter2(i));
-            if (gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+            if (gp.CurrentPlot->PlotRect.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
                 DrawList.AddLine(p1, p2, col, line_weight);
         }
     }
     else {
-        RenderPrimitives(LineSegmentsRenderer<Getter1,Getter2,Transformer>(getter1, getter2, transformer, col, line_weight), DrawList, gp.BB_Plot);
+        RenderPrimitives(LineSegmentsRenderer<Getter1,Getter2,Transformer>(getter1, getter2, transformer, col, line_weight), DrawList, gp.CurrentPlot->PlotRect);
     }
 }
 
@@ -764,7 +764,7 @@ inline void RenderStairs(const Getter& getter, const Transformer& transformer, I
         ImVec2 p1 = transformer(getter(0));
         for (int i = 1; i < getter.Count; ++i) {
             ImVec2 p2 = transformer(getter(i));
-            if (gp.BB_Plot.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2)))) {
+            if (gp.CurrentPlot->PlotRect.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2)))) {
                 ImVec2 p12(p2.x, p1.y);
                 DrawList.AddLine(p1, p12, col, line_weight);
                 DrawList.AddLine(p12, p2, col, line_weight);
@@ -773,7 +773,7 @@ inline void RenderStairs(const Getter& getter, const Transformer& transformer, I
         }
     }
     else {
-        RenderPrimitives(StairsRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, gp.BB_Plot);
+        RenderPrimitives(StairsRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, gp.CurrentPlot->PlotRect);
     }
 }
 
@@ -881,7 +881,7 @@ inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& Dr
     ImPlotContext& gp = *GImPlot;
     for (int i = 0; i < getter.Count; ++i) {
         ImVec2 c = transformer(getter(i));
-        if (gp.BB_Plot.Contains(c))
+        if (gp.CurrentPlot->PlotRect.Contains(c))
             marker_table[marker](DrawList, c, size, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, weight);
     }
 }
@@ -1135,10 +1135,10 @@ inline void PlotShadedEx(const char* label_id, const Getter1& getter1, const Get
         if (s.RenderFill) {
             ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
             switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(), col), DrawList, GImPlot->BB_Plot); break;
-                case ImPlotScale_LogLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(), col), DrawList, GImPlot->BB_Plot); break;
-                case ImPlotScale_LinLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(), col), DrawList, GImPlot->BB_Plot); break;
-                case ImPlotScale_LogLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(), col), DrawList, GImPlot->BB_Plot); break;
+                case ImPlotScale_LinLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+                case ImPlotScale_LogLin: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+                case ImPlotScale_LinLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+                case ImPlotScale_LogLog: RenderPrimitives(ShadedRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
             }
         }
         EndItem();
@@ -1777,7 +1777,7 @@ inline void PlotDigitalEx(const char* label_id, Getter getter) {
                 if (pMin.x > gp.PixelRange[y_axis].Max.x) pMin.x = gp.PixelRange[y_axis].Max.x;
                 if (pMax.x > gp.PixelRange[y_axis].Max.x) pMax.x = gp.PixelRange[y_axis].Max.x;
                 //plot a rectangle that extends up to x2 with y1 height
-                if ((pMax.x > pMin.x) && (gp.BB_Plot.Contains(pMin) || gp.BB_Plot.Contains(pMax))) {
+                if ((pMax.x > pMin.x) && (gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                     // ImVec4 colAlpha = item->Color;
                     // colAlpha.w = item->Highlight ? 1.0f : 0.9f;
                     DrawList.AddRectFilled(pMin, pMax, ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]));
@@ -1832,10 +1832,10 @@ void PlotRectsEx(const char* label_id, const Getter& getter) {
             ImDrawList& DrawList = *GetPlotDrawList();
             ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
             switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(), col), DrawList, GImPlot->BB_Plot); break;
-                case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(), col), DrawList, GImPlot->BB_Plot); break;
-                case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(), col), DrawList, GImPlot->BB_Plot); break;
-                case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(), col), DrawList, GImPlot->BB_Plot); break;
+                case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<Getter,TransformerLinLin>(getter, TransformerLinLin(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+                case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<Getter,TransformerLogLin>(getter, TransformerLogLin(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+                case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<Getter,TransformerLinLog>(getter, TransformerLinLog(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+                case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<Getter,TransformerLogLog>(getter, TransformerLogLog(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
             }
         }
         EndItem();
