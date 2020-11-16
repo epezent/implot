@@ -72,11 +72,12 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoMousePos    = 1 << 4,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
     ImPlotFlags_NoHighlight   = 1 << 5,  // plot items will not be highlighted when their legend entry is hovered
     ImPlotFlags_NoChild       = 1 << 6,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_YAxis2        = 1 << 7,  // enable a 2nd y-axis on the right side
-    ImPlotFlags_YAxis3        = 1 << 8,  // enable a 3rd y-axis on the right side
-    ImPlotFlags_Query         = 1 << 9,  // the user will be able to draw query rects with middle-mouse
-    ImPlotFlags_Crosshairs    = 1 << 10, // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased   = 1 << 11, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
+    ImPlotFlags_Equal         = 1 << 7,  // primary x and y axes will be constrained to have the same units/pixel (does not apply to auxiliary y axes)
+    ImPlotFlags_YAxis2        = 1 << 8,  // enable a 2nd y-axis on the right side
+    ImPlotFlags_YAxis3        = 1 << 9,  // enable a 3rd y-axis on the right side
+    ImPlotFlags_Query         = 1 << 10, // the user will be able to draw query rects with middle-mouse
+    ImPlotFlags_Crosshairs    = 1 << 11, // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_AntiAliased   = 1 << 12, // plot lines will be software anti-aliased (not recommended for density plots, prefer MSAA)
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
 };
 
@@ -89,7 +90,7 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_LogScale      = 1 << 3, // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
     ImPlotAxisFlags_Time          = 1 << 4, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
     ImPlotAxisFlags_Invert        = 1 << 5, // the axis will be inverted
-    ImPlotAxisFlags_AutoFit       = 1 << 6, // axis will be auto-fitting
+    ImPlotAxisFlags_AutoFit       = 1 << 6, // axis will be auto-fitting to data extents
     ImPlotAxisFlags_LockMin       = 1 << 7, // the axis minimum value will be locked when panning/zooming
     ImPlotAxisFlags_LockMax       = 1 << 8, // the axis maximum value will be locked when panning/zooming
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
@@ -244,8 +245,12 @@ struct ImPlotRange {
 // Combination of two ranges for X and Y axes.
 struct ImPlotLimits {
     ImPlotRange X, Y;
-    bool Contains(const ImPlotPoint& p) const { return Contains(p.x, p.y); }
-    bool Contains(double x, double y) const   { return X.Contains(x) && Y.Contains(y); }
+    ImPlotLimits()                                                        { }
+    ImPlotLimits(double x_min, double x_max, double y_min, double y_max)  { X.Min = x_min; X.Max = x_max; Y.Min = y_min; Y.Max = y_max; }
+    bool Contains(const ImPlotPoint& p) const                             { return Contains(p.x, p.y); }
+    bool Contains(double x, double y) const                               { return X.Contains(x) && Y.Contains(y); }
+    ImPlotPoint Min() const                                               { return ImPlotPoint(X.Min, Y.Min); }
+    ImPlotPoint Max() const                                               { return ImPlotPoint(X.Max, Y.Max); }
 };
 
 // Plot style structure
@@ -435,11 +440,13 @@ template <typename T> IMPLOT_API void PlotPieChart(const char* const label_ids[]
 // Plots a 2D heatmap chart. Values are expected to be in row-major order. #label_fmt can be set to NULL for no labels.
 template <typename T> IMPLOT_API void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt="%.1f", const ImPlotPoint& bounds_min=ImPlotPoint(0,0), const ImPlotPoint& bounds_max=ImPlotPoint(1,1));
 
-// Plots a horizontal histogram. If cumulative is true, each bin contains its count plus the counts of all previous bins. If density is true, the PDF is visualized. If both are true, the CDF is visualized.
+// Plots a horizontal histogram. If cumulative is true, each bin contains its count plus the counts of all previous bins. If density is true, the PDF is visualized. If both are true, the CDF is visualized. 
+// If range is left unspecified, the min/max of values will be used as the range. Values outside of range are not binned and are ignored in the total count for density=true histograms.
 template <typename T> IMPLOT_API void PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative=false, bool density=false, ImPlotRange range=ImPlotRange(), double bar_scale=1.0);
 
-// Plots two dimensional, bivariate histogram as a heatmap. If density is true, the PDF is visualized. 
-template <typename T> IMPLOT_API void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density=false);
+// Plots two dimensional, bivariate histogram as a heatmap. If density is true, the PDF is visualized. If range is left unspecified, 
+// the min/max of xs an ys will be used as the ranges. Values outside of range are not binned and are ignored in the total count for density=true histograms.
+template <typename T> IMPLOT_API void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density=false, ImPlotLimits range=ImPlotLimits());
 
 // Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
 template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));

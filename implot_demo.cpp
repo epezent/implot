@@ -32,6 +32,10 @@
 #define sprintf sprintf_s
 #endif
 
+#ifndef PI
+#define PI 3.14159265358979323846
+#endif
+
 // Encapsulates examples for customizing ImPlot.
 namespace MyImPlot {
 
@@ -413,12 +417,12 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Histograms")) {
-        static int  bins       = 30;
+        static int  bins       = 50;
         static bool cumulative = false;
         static bool density    = true;
         static double mu       = 5;
         static double sigma    = 2;
-        static NormalDistribution<5000> dist(mu, sigma);
+        static NormalDistribution<10000> dist(mu, sigma);
         static double x[100];
         static double y[100];
         if (density) {
@@ -445,17 +449,17 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimits(-3, 13, 0, 0.25);
         if (ImPlot::BeginPlot("##Histograms")) {
             ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
-            ImPlot::PlotHistogram("Empirical", dist.Data, 5000, bins, cumulative, density, ImPlotRange(rmin,rmax));
+            ImPlot::PlotHistogram("Empirical", dist.Data, 10000, bins, cumulative, density, ImPlotRange(rmin,rmax));
             if (density)
                 ImPlot::PlotLine("Theoretical",x,y,100);
             ImPlot::EndPlot();
         }
 
-        static NormalDistribution<10000> dist1(5, 5);
-        static NormalDistribution<10000> dist2(4, 1);
+        static NormalDistribution<10000> dist1(0, 2);
+        static NormalDistribution<10000> dist2(0, 1);
         ImPlot::PushColormap(ImPlotColormap_Jet);
         if (ImPlot::BeginPlot("Hist2D",0,0,ImVec2(-1,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
-            ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,10000,100,100);
+            ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,10000,100,100,false,ImPlotLimits(-6,6,-6,6));
             ImPlot::EndPlot();
         }
         ImPlot::PopColormap();
@@ -524,7 +528,7 @@ void ShowDemoWindow(bool* p_open) {
         }
 
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
+        if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, normalize, "%.2f");
             ImPlot::EndPlot();
         }
@@ -536,7 +540,7 @@ void ShowDemoWindow(bool* p_open) {
 
         ImPlot::PushColormap(ImPlotColormap_Pastel);
         ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
+        if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.4, true, "%.0f", 180);
             ImPlot::EndPlot();
         }
@@ -814,6 +818,19 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Equal Axes")) {
+        static double xs[1000], ys[1000];
+        for (int i = 0; i < 1000; ++i) {
+            double angle = i * 2 * PI / 999.0;
+            xs[i] = cos(angle); ys[i] = sin(angle);
+        }
+        ImPlot::SetNextPlotLimits(-1,1,-1,1);
+        if (ImPlot::BeginPlot("",0,0,ImVec2(-1,0),ImPlotFlags_Equal)) {
+            ImPlot::PlotLine("Circle",xs,ys,1000);
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
         static ImVector<ImPlotPoint> data;
         static ImPlotLimits range, query;
@@ -916,7 +933,7 @@ void ShowDemoWindow(bool* p_open) {
             static MyImPlot::WaveData data3(0.001, 0.2, 6, 0.5);
             ImPlot::PlotLineG("Item 1", MyImPlot::SineWave, &data1, 1000);         // "Item 1" added to legend
             ImPlot::PlotLineG("Item 2##IDText", MyImPlot::SawWave, &data2, 1000);  // "Item 2" added to legend, text after ## used for ID only
-            ImPlot::PlotLineG("##NotDisplayed", MyImPlot::SawWave, &data3, 1000);  // plotted, but not added to legend
+            ImPlot::PlotLineG("##NotListed", MyImPlot::SawWave, &data3, 1000);     // plotted, but not added to legend
             ImPlot::PlotLineG("Item 3", MyImPlot::SineWave, &data1, 1000);         // "Item 3" added to legend
             ImPlot::PlotLineG("Item 3", MyImPlot::SawWave,  &data2, 1000);         // combined with previous "Item 3"
             ImPlot::EndPlot();
@@ -1251,7 +1268,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("The offset value indicates which circle point index is considered the first.");
         ImGui::BulletText("Offsets can be negative and/or larger than the actual data count.");
         ImGui::SliderInt("Offset", &offset, -2*k_points_per, 2*k_points_per);
-        if (ImPlot::BeginPlot("##strideoffset")) {
+        if (ImPlot::BeginPlot("##strideoffset",0,0,ImVec2(-1,0), ImPlotFlags_Equal)) {
             ImPlot::PushColormap(ImPlotColormap_Jet);
             char buff[16];
             for (int c = 0; c < k_circles; ++c) {

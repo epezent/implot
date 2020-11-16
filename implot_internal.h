@@ -48,7 +48,6 @@
 
 struct ImPlotTick;
 struct ImPlotAxis;
-struct ImPlotAxisState;
 struct ImPlotAxisColor;
 struct ImPlotItem;
 struct ImPlotLegendData;
@@ -113,6 +112,8 @@ inline T ImMinArray(const T* values, int count) { T m = values[0]; for (int i = 
 // Finds the max value in an unsorted array
 template <typename T>
 inline T ImMaxArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] > m) { m = values[i]; } } return m; }
+// True if two numbers are approximately equal using units in the last place.
+inline bool ImAlmostEqual(double v1, double v2, int ulp = 2) { return ImAbs(v1-v2) < DBL_EPSILON * ImAbs(v1+v2) * ulp || ImAbs(v1-v2) < DBL_MIN; }
 
 // Offset calculator helper
 template <int Count>
@@ -125,7 +126,7 @@ struct ImOffsetCalculator {
     int Offsets[Count];
 };
 
-// Character buffer writer helper
+// Character buffer writer helper (FIXME: Can't we replace this with ImGuiTextBuffer?)
 struct ImBufferWriter
 {
     char*  Buffer;
@@ -211,7 +212,7 @@ enum ImPlotTimeFmt_ {              // default        [ 24 Hour Clock ]
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
 
-// Combined data/time format spec
+// Combined date/time format spec
 struct ImPlotDateTimeFmt {
     ImPlotDateTimeFmt(ImPlotDateFmt date_fmt, ImPlotTimeFmt time_fmt, bool use_24_hr_clk = false, bool use_iso_8601 = false) {
         Date           = date_fmt;
@@ -385,27 +386,34 @@ struct ImPlotTickCollection {
 // Axis state information that must persist after EndPlot
 struct ImPlotAxis
 {
-    ImPlotAxisFlags Flags;
-    ImPlotAxisFlags PreviousFlags;
-    ImPlotRange     Range;
-    ImPlotOrientation Direction;
-    bool            Dragging;
-    bool            HoveredExt;
-    bool            HoveredTot;
-    double*         LinkedMin;
-    double*         LinkedMax;
-    ImPlotTime      PickerTimeMin, PickerTimeMax;
-    int             PickerLevel;
+    ImPlotAxisFlags   Flags;
+    ImPlotAxisFlags   PreviousFlags;
+    ImPlotRange       Range;
+    float             Pixels;
+    ImPlotOrientation Orientation;
+    bool              Dragging;
+    bool              ExtHovered;
+    bool              AllHovered;
+    bool              Present;
+    bool              HasRange;
+    double*           LinkedMin;
+    double*           LinkedMax;
+    ImPlotTime        PickerTimeMin, PickerTimeMax;
+    int               PickerLevel;
+    ImU32             ColorMaj, ColorMin, ColorTxt;
+    ImGuiCond         RangeCond;
+    ImRect            HoverRect;
 
     ImPlotAxis() {
-        Flags      = PreviousFlags = ImPlotAxisFlags_None;
-        Range.Min  = 0;
-        Range.Max  = 1;
-        Dragging   = false;
-        HoveredExt = false;
-        HoveredTot = false;
-        LinkedMin  = LinkedMax = NULL;
+        Flags       = PreviousFlags = ImPlotAxisFlags_None;
+        Range.Min   = 0;
+        Range.Max   = 1;
+        Dragging    = false;
+        ExtHovered  = false;
+        AllHovered  = false;
+        LinkedMin   = LinkedMax = NULL;
         PickerLevel = 0;
+        ColorMaj    = ColorMin = ColorTxt = 0;
     }
 
     bool SetMin(double _min) {
@@ -446,6 +454,21 @@ struct ImPlotAxis
         SetRange(range.Min, range.Max);
     }
 
+    void SetAspect(double unit_per_pix) {
+        double new_size = unit_per_pix * Pixels;
+        double delta    = (new_size - Range.Size()) * 0.5f;
+        if (IsLocked())
+            return;
+        else if (IsLockedMin() && !IsLockedMax())
+            SetRange(Range.Min, Range.Max  + 2*delta);
+        else if (!IsLockedMin() && IsLockedMax())
+            SetRange(Range.Min - 2*delta, Range.Max);
+        else
+            SetRange(Range.Min - delta, Range.Max + delta);
+    }
+
+    double GetAspect() const { return Range.Size() / Pixels; }
+
     void Constrain() {
         Range.Min = ImConstrainNan(ImConstrainInf(Range.Min));
         Range.Max = ImConstrainNan(ImConstrainInf(Range.Max));
@@ -460,42 +483,17 @@ struct ImPlotAxis
         if (Range.Max <= Range.Min)
             Range.Max = Range.Min + DBL_EPSILON;
     }
-};
 
-// Axis state information only needed between BeginPlot/EndPlot
-struct ImPlotAxisState
-{
-    ImPlotAxis* Axis;
-    ImGuiCond   RangeCond;
-    bool        HasRange;
-    bool        Present;
-    bool        HasLabels;
-    bool        Invert;
-    bool        LockMin;
-    bool        LockMax;
-    bool        Lock;
-    bool        IsTime;
-
-    ImPlotAxisState(ImPlotAxis* axis, bool has_range, ImGuiCond range_cond, bool present) {
-        Axis         = axis;
-        HasRange     = has_range;
-        RangeCond    = range_cond;
-        Present      = present;
-        HasLabels    = !ImHasFlag(Axis->Flags, ImPlotAxisFlags_NoTickLabels);
-        Invert       = ImHasFlag(Axis->Flags, ImPlotAxisFlags_Invert);
-        LockMin      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMin) || (HasRange && RangeCond == ImGuiCond_Always) || ImHasFlag(Axis->Flags, ImPlotAxisFlags_AutoFit);
-        LockMax      = ImHasFlag(Axis->Flags, ImPlotAxisFlags_LockMax) || (HasRange && RangeCond == ImGuiCond_Always) || ImHasFlag(Axis->Flags, ImPlotAxisFlags_AutoFit);
-        Lock         = !Present || ((LockMin && LockMax) || (HasRange && RangeCond == ImGuiCond_Always)) || ImHasFlag(Axis->Flags, ImPlotAxisFlags_AutoFit);
-        IsTime       = ImHasFlag(Axis->Flags, ImPlotAxisFlags_Time);
-    }
-
-    ImPlotAxisState() { }
-};
-
-struct ImPlotAxisColor
-{
-    ImU32 Major, Minor, MajTxt, MinTxt;
-    ImPlotAxisColor() { Major = Minor = MajTxt = MinTxt = 0; }
+    inline bool IsLabeled()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                    }
+    inline bool IsInverted()     const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                           }
+    inline bool IsAutoFitting()  const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                          }
+    inline bool IsRangeLocked()  const { return HasRange && RangeCond == ImGuiCond_Always;                          }
+    inline bool IsLockedMin()    const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMin) || IsRangeLocked();       }
+    inline bool IsLockedMax()    const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMax) || IsRangeLocked();       }
+    inline bool IsLocked()       const { return !Present || ((IsLockedMin() && IsLockedMax()) || IsRangeLocked());  }
+    inline bool IsInputLocked()  const { return IsLocked() || IsAutoFitting();                                      }
+    inline bool IsTime()         const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                             }
+    inline bool IsLog()          const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                         }
 };
 
 // State information for Plot items
@@ -547,20 +545,26 @@ struct ImPlotPlot
     bool               DraggingQuery;
     bool               LegendHovered;
     bool               LegendOutside;
-    bool               LegendFlipSide;
+    bool               LegendFlipSideNextFrame;
+    bool               FrameHovered;
+    bool               PlotHovered;
     int                ColormapIdx;
     int                CurrentYAxis;
     ImPlotLocation     MousePosLocation;
     ImPlotLocation     LegendLocation;
     ImPlotOrientation  LegendOrientation;
+    ImRect             FrameRect;
+    ImRect             CanvasRect;
+    ImRect             PlotRect;
+    ImRect             AxesRect;
 
     ImPlotPlot() {
-        Flags           = PreviousFlags = ImPlotFlags_None;
-        XAxis.Direction = ImPlotOrientation_Horizontal;
+        Flags             = PreviousFlags = ImPlotFlags_None;
+        XAxis.Orientation = ImPlotOrientation_Horizontal;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
-            YAxis[i].Direction = ImPlotOrientation_Vertical;
+            YAxis[i].Orientation = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
-        Selecting         = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSide = false;
+        Selecting         = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
         ColormapIdx       = CurrentYAxis = 0;
         LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
         LegendOrientation = ImPlotOrientation_Vertical;
@@ -570,6 +574,8 @@ struct ImPlotPlot
     int         GetLegendCount() const   { return LegendData.Indices.size(); }
     ImPlotItem* GetLegendItem(int i);
     const char* GetLegendLabel(int i);
+
+    inline bool IsInputLocked() const { return XAxis.IsInputLocked() && YAxis[0].IsInputLocked() && YAxis[1].IsInputLocked() && YAxis[2].IsInputLocked(); }
 };
 
 // Temporary data storage for upcoming plot
@@ -590,7 +596,9 @@ struct ImPlotNextPlotData
     double*     LinkedYmin[IMPLOT_Y_AXES];
     double*     LinkedYmax[IMPLOT_Y_AXES];
 
-    ImPlotNextPlotData() {
+    ImPlotNextPlotData() { Reset(); }
+
+    void Reset() {
         HasXRange         = false;
         ShowDefaultTicksX = true;
         FitX              = false;
@@ -602,6 +610,7 @@ struct ImPlotNextPlotData
             LinkedYmin[i] = LinkedYmax[i] = NULL;
         }
     }
+
 };
 
 // Temporary data storage for upcoming item
@@ -623,7 +632,8 @@ struct ImPlotNextItemData {
     bool         HasHidden;
     bool         Hidden;
     ImGuiCond    HiddenCond;
-    ImPlotNextItemData() {
+    ImPlotNextItemData() { Reset(); }
+    void Reset() {
         for (int i = 0; i < 5; ++i)
             Colors[i] = IMPLOT_AUTO_COL;
         LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
@@ -639,20 +649,6 @@ struct ImPlotContext {
     ImPlotPlot*        CurrentPlot;
     ImPlotItem*        CurrentItem;
     ImPlotItem*        PreviousItem;
-
-    // Bounding Boxes
-    ImRect BB_Frame;
-    ImRect BB_Canvas;
-    ImRect BB_Plot;
-    ImRect BB_Axes;
-    ImRect BB_X;
-    ImRect BB_Y[IMPLOT_Y_AXES];
-
-    // Axis States
-    ImPlotAxisColor Col_X;
-    ImPlotAxisColor Col_Y[IMPLOT_Y_AXES];
-    ImPlotAxisState X;
-    ImPlotAxisState Y[IMPLOT_Y_AXES];
 
     // Tick Marks and Labels
     ImPlotTickCollection XTicks;
@@ -677,16 +673,11 @@ struct ImPlotContext {
     bool FitX;
     bool FitY[IMPLOT_Y_AXES];
 
-    // Hover states
-    bool Hov_Frame;
-    bool Hov_Plot;
-
     // Axis Rendering Flags
     bool RenderX;
     bool RenderY[IMPLOT_Y_AXES];
 
     // Axis Locking Flags
-    bool LockPlot;
     bool ChildWindowMade;
 
     // Style and Colormaps
@@ -708,17 +699,6 @@ struct ImPlotContext {
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
-};
-
-struct ImPlotAxisScale
-{
-    ImPlotPoint Min, Max;
-
-    ImPlotAxisScale(int y_axis, float tx, float ty, float zoom_rate) {
-        ImPlotContext& gp = *GImPlot;
-        Min = ImPlot::PixelsToPlot(gp.BB_Plot.Min - gp.BB_Plot.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), y_axis);
-        Max = ImPlot::PixelsToPlot(gp.BB_Plot.Max + gp.BB_Plot.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), y_axis);
-    }
 };
 
 //-----------------------------------------------------------------------------
@@ -798,7 +778,7 @@ IMPLOT_API void PushLinkedAxis(ImPlotAxis& axis);
 IMPLOT_API void PullLinkedAxis(ImPlotAxis& axis);
 
 // Shows an axis's context menu.
-IMPLOT_API void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed = false);
+IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis = NULL, bool time_allowed = false);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils
