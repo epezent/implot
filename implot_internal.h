@@ -726,7 +726,6 @@ struct ImPlotContext {
     ImPool<ImAlignPlotGroupData> AlignPlotGroup;
     ImAlignPlotGroupData*        CurrentAlignPlotGroup;
 };
-
 //-----------------------------------------------------------------------------
 // [SECTION] Internal API
 // No guarantee of forward compatibility here!

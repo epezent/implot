@@ -1420,7 +1420,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
     float pad_bot = (plot.XAxis.IsLabeled() ? txt_height + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
-                        + (x_label ? txt_height + gp.Style.LabelPadding.y : 0);
+                    + (x_label ? txt_height + gp.Style.LabelPadding.y : 0);
 
     // (1*) align plots group
     if (gp.CurrentAlignPlotGroup) {
@@ -1446,10 +1446,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
 
     // (3) calc left/right pad
     float pad_left    = (y_label ? txt_height + gp.Style.LabelPadding.x : 0)
-                            + (plot.YAxis[0].IsLabeled() ? gp.YTicks[0].MaxWidth + gp.Style.LabelPadding.x : 0);
+                        + (plot.YAxis[0].IsLabeled() ? gp.YTicks[0].MaxWidth + gp.Style.LabelPadding.x : 0);
     float pad_right   = ((plot.YAxis[1].Present && plot.YAxis[1].IsLabeled()) ? gp.YTicks[1].MaxWidth + gp.Style.LabelPadding.x : 0)
-                            + ((plot.YAxis[1].Present && plot.YAxis[2].Present)   ? gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y : 0)
-                            + ((plot.YAxis[2].Present && plot.YAxis[2].IsLabeled()) ? gp.YTicks[2].MaxWidth + gp.Style.LabelPadding.x : 0);
+                        + ((plot.YAxis[1].Present && plot.YAxis[2].Present)   ? gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y : 0)
+                        + ((plot.YAxis[2].Present && plot.YAxis[2].IsLabeled()) ? gp.YTicks[2].MaxWidth + gp.Style.LabelPadding.x : 0);
 
     // (3*) align plots group
     if (gp.CurrentAlignPlotGroup) {
