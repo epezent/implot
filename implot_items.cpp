@@ -1657,7 +1657,7 @@ template IMPLOT_API void PlotPieChart<double>(const char* const label_ids[], con
 //-----------------------------------------------------------------------------
 
 template <typename T, typename Transformer>
-void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, bool reverse_y) {
     ImPlotContext& gp = *GImPlot;
     const double w = (bounds_max.x - bounds_min.x) / cols;
     const double h = (bounds_max.y - bounds_min.y) / rows;
@@ -1670,11 +1670,13 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
         return;
     }
     int i = 0;
+    const double yref = reverse_y ? bounds_max.y : bounds_min.y;
+    const double ydir = reverse_y ? -1 : 1;
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {
             ImPlotPoint p;
             p.x = bounds_min.x + 0.5*w + c*w;
-            p.y = bounds_max.y - (0.5*h + r*h);
+            p.y = yref + ydir * (0.5*h + r*h);
             ImVec2 a  = transformer(ImPlotPoint(p.x - half_size.x, p.y - half_size.y));
             ImVec2 b  = transformer(ImPlotPoint(p.x + half_size.x, p.y + half_size.y));
             double t = ImRemap((double)values[i], scale_min, scale_max, 0.0, 1.0);
@@ -1691,7 +1693,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
             for (int c = 0; c < cols; ++c) {
                 ImPlotPoint p;
                 p.x = bounds_min.x + 0.5*w + c*w;
-                p.y = bounds_max.y - (0.5*h + r*h);
+                p.y = yref + ydir * (0.5*h + r*h);
                 ImVec2 px = transformer(p);
                 char buff[32];
                 sprintf(buff, fmt, values[i]);
@@ -1715,10 +1717,10 @@ void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, doub
         }
         ImDrawList& DrawList = *GetPlotDrawList();
         switch (GetCurrentScale()) {
-            case ImPlotScale_LinLin: RenderHeatmap(TransformerLinLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
-            case ImPlotScale_LogLin: RenderHeatmap(TransformerLogLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
-            case ImPlotScale_LinLog: RenderHeatmap(TransformerLinLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
-            case ImPlotScale_LogLog: RenderHeatmap(TransformerLogLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max); break;
+            case ImPlotScale_LinLin: RenderHeatmap(TransformerLinLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true); break;
+            case ImPlotScale_LogLin: RenderHeatmap(TransformerLogLin(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true); break;
+            case ImPlotScale_LinLog: RenderHeatmap(TransformerLinLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true); break;
+            case ImPlotScale_LogLog: RenderHeatmap(TransformerLogLog(), DrawList, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true); break;
         }
         EndItem();
     }
@@ -1769,8 +1771,10 @@ void PlotHistogram(const char* label_id, const T* values, int count, int bins, b
         return;
 
     if (range.Min == 0 && range.Max == 0) {
-        range.Min = (double)ImMinArray(values, count);
-        range.Max = (double)ImMaxArray(values, count);
+        T Min, Max;
+        ImMinMaxArray(values, count, &Min, &Max);
+        range.Min = (double)Min;
+        range.Max = (double)Max;
     }
 
     double width;
@@ -1836,12 +1840,16 @@ void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, 
         return;
     
     if (range.X.Min == 0 && range.X.Max == 0) {
-        range.X.Min = (double)ImMinArray(xs, count);
-        range.X.Max = (double)ImMaxArray(xs, count);
+        T Min, Max;
+        ImMinMaxArray(xs, count, &Min, &Max);
+        range.X.Min = (double)Min;
+        range.X.Max = (double)Max;
     }
     if (range.Y.Min == 0 && range.Y.Max == 0) {
-        range.Y.Min = (double)ImMinArray(ys, count);
-        range.Y.Max = (double)ImMaxArray(ys, count);
+        T Min, Max;
+        ImMinMaxArray(ys, count, &Min, &Max);
+        range.Y.Min = (double)Min;
+        range.Y.Max = (double)Max;
     }
 
     double width, height;
@@ -1875,7 +1883,22 @@ void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, 
             bin_counts[b] = bin_counts[b] / (counted * width * height);
     }
     const double max_count = ImMaxArray(&bin_counts.Data[0], bins);
-    PlotHeatmap(label_id, &bin_counts.Data[0], x_bins, y_bins, 0, max_count, NULL, range.Min(), range.Max());
+
+    if (BeginItem(label_id)) {
+        if (FitThisFrame()) {
+            FitPoint(range.Min());
+            FitPoint(range.Max());
+        }
+        ImDrawList& DrawList = *GetPlotDrawList();
+        switch (GetCurrentScale()) {
+            case ImPlotScale_LinLin: RenderHeatmap(TransformerLinLin(), DrawList, &bin_counts.Data[0], x_bins, y_bins, 0, max_count, NULL, range.Min(), range.Max(), false); break;
+            case ImPlotScale_LogLin: RenderHeatmap(TransformerLogLin(), DrawList, &bin_counts.Data[0], x_bins, y_bins, 0, max_count, NULL, range.Min(), range.Max(), false); break;
+            case ImPlotScale_LinLog: RenderHeatmap(TransformerLinLog(), DrawList, &bin_counts.Data[0], x_bins, y_bins, 0, max_count, NULL, range.Min(), range.Max(), false); break;
+            case ImPlotScale_LogLog: RenderHeatmap(TransformerLogLog(), DrawList, &bin_counts.Data[0], x_bins, y_bins, 0, max_count, NULL, range.Min(), range.Max(), false); break;
+        }
+        EndItem();
+    }
+    // PlotHeatmap(label_id, &bin_counts.Data[0], x_bins, y_bins, 0, max_count, NULL, range.Min(), range.Max());
 }
 
 template IMPLOT_API void PlotHistogram2D<ImS8>(const char* label_id,   const ImS8*   xs, const ImS8*   ys, int count, int x_bins, int y_bins, bool density, ImPlotLimits range);
@@ -1888,8 +1911,6 @@ template IMPLOT_API void PlotHistogram2D<ImS64>(const char* label_id,  const ImS
 template IMPLOT_API void PlotHistogram2D<ImU64>(const char* label_id,  const ImU64*  xs, const ImU64*  ys, int count, int x_bins, int y_bins, bool density, ImPlotLimits range);
 template IMPLOT_API void PlotHistogram2D<float>(const char* label_id,  const float*  xs, const float*  ys, int count, int x_bins, int y_bins, bool density, ImPlotLimits range);
 template IMPLOT_API void PlotHistogram2D<double>(const char* label_id, const double* xs, const double* ys, int count, int x_bins, int y_bins, bool density, ImPlotLimits range);
-
-
 
 //-----------------------------------------------------------------------------
 // PLOT DIGITAL

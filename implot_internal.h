@@ -114,6 +114,16 @@ inline T ImMinArray(const T* values, int count) { T m = values[0]; for (int i = 
 // Finds the max value in an unsorted array
 template <typename T>
 inline T ImMaxArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] > m) { m = values[i]; } } return m; }
+// Finds the min and max value in an unsorted array
+template <typename T>
+inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_out) {
+    T Min = values[0]; T Max = values[0];
+    for (int i = 1; i < count; ++i) {
+        if (values[i] < Min) { Min = values[i]; }
+        if (values[i] > Max) { Max = values[i]; }
+    }
+    *min_out = Min; *max_out = Max;
+}
 // Finds the mean of an array
 template <typename T>
 inline double ImMean(const T* values, int count) {
@@ -132,6 +142,16 @@ inline double ImStdDev(const T* values, int count) {
     for (int i = 0; i < count; ++i)
         x += (values[i] - mu) * (values[i] - mu) * den;
     return sqrt(x);
+}
+// Mix color a and b by factor t [0 256]
+inline ImU32 ImMixColor32(ImU32 a, ImU32 b, ImU32 t) {
+    ImU32 af = 256 - t;
+    ImU32 bf = t;  
+    ImU64 al = (a & 0x00ff00ff) | (((ImU64)(a & 0xff00ff00)) << 24);
+    ImU64 bl = (b & 0x00ff00ff) | (((ImU64)(b & 0xff00ff00)) << 24); 
+    ImU64 mix = (al * af + bl * bf); 
+    ImU32 result = ((mix >> 32) & 0xff00ff00) | ((mix & 0xff00ff00) >> 8); 
+    return result;
 }
 
 // Offset calculator helper

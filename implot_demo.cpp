@@ -455,8 +455,8 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
 
-        static NormalDistribution<10000> dist1(0, 2);
-        static NormalDistribution<10000> dist2(0, 1);
+        static NormalDistribution<10000> dist1(1, 2);
+        static NormalDistribution<10000> dist2(1, 1);
         ImPlot::PushColormap(ImPlotColormap_Jet);
         if (ImPlot::BeginPlot("Hist2D",0,0,ImVec2(-1,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
             ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,10000,100,100,false,ImPlotLimits(-6,6,-6,6));
