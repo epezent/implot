@@ -1812,7 +1812,6 @@ void PlotHistogram(const char* label_id, const T* values, int count, int bins, b
     else if (density) {
         for (int b = 0; b < bins; ++b)
             bin_counts[b] = bin_counts[b] / (counted * width);
-
     }
     PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width);
 }
@@ -1832,7 +1831,6 @@ template IMPLOT_API void PlotHistogram<double>(const char* label_id, const doubl
 // PLOT HISTOGRAM 2D
 //-----------------------------------------------------------------------------
 
-// Plots two dimensional, bivariate histogram as a heatmap. If density is true, the PDF is visualized. 
 template <typename T> 
 void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density, ImPlotLimits range) {
     
@@ -1898,7 +1896,6 @@ void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, 
         }
         EndItem();
     }
-    // PlotHeatmap(label_id, &bin_counts.Data[0], x_bins, y_bins, 0, max_count, NULL, range.Min(), range.Max());
 }
 
 template IMPLOT_API void PlotHistogram2D<ImS8>(const char* label_id,   const ImS8*   xs, const ImS8*   ys, int count, int x_bins, int y_bins, bool density, ImPlotLimits range);

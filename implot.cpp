@@ -3145,6 +3145,26 @@ void SetColormap(const ImVec4* colors, int size) {
     gp.ColormapSize = size;
 }
 
+const ImU32* GetColormap32(ImPlotColormap colormap, int* size_out) {
+    static const int csizes[ImPlotColormap_COUNT] = {10,10,9,9,12,11,11,11,11,11,11};
+    static const ImOffsetCalculator<ImPlotColormap_COUNT> coffs(csizes);
+    static ImU32 cdata32[] = {
+        4294950656, 4278190335, 4278255487, 4278255615, 4294967040, 4278232575, 4294902015, 4293012362, 4286611584, 4287411410,
+        4289753676, 4283598045, 4285048917, 4283584196, 4289950337, 4284512403, 4291005402, 4287401100, 4285839820, 4291671396,
+        4280031972, 4290281015, 4283084621, 4288892568, 4278222847, 4281597951, 4280833702, 4290740727, 4288256409,
+        4289639675, 4293119411, 4291161036, 4293184478, 4289124862, 4291624959, 4290631909, 4293712637, 4294111986,
+        4293119554, 4290017311, 4287291314, 4281114675, 4288256763, 4280031971, 4285513725, 4278222847, 4292260554, 4288298346, 4288282623, 4280834481,
+        4283695428, 4285867080, 4287054913, 4287455029, 4287526954, 4287402273, 4286883874, 4285579076, 4283552122, 4280737725, 4280674301, 
+        4287039501, 4288480321, 4289200234, 4288941455, 4287638193, 4286072780, 4284638433, 4283139314, 4281771772, 4280667900, 4280416752,
+        4278190144, 4278190208, 4278190271, 4278190335, 4278206719, 4278223103, 4278239231, 4278255615, 4283826175, 4289396735, 4294967295, 
+        4294967040, 4294960666, 4294954035, 4294947661, 4294941030, 4294934656, 4294928025, 4294921651, 4294915020, 4294908646, 4294902015,
+        4278190154, 4282532475, 4284308894, 4285690554, 4286879686, 4287870160, 4288794330, 4289651940, 4291685869, 4293392118, 4294967295,
+        4289331200, 4294901760, 4294923520, 4294945280, 4294967040, 4289396565, 4283826090, 4278255615, 4278233855, 4278212095, 4278190335
+    };
+    *size_out =  csizes[colormap];
+    return &cdata32[coffs.Offsets[colormap]];
+}
+
 const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out) {
     static const int csizes[ImPlotColormap_COUNT] = {10,10,9,9,12,11,11,11,11,11,11};
     static const ImOffsetCalculator<ImPlotColormap_COUNT> coffs(csizes);
@@ -3302,6 +3322,19 @@ ImVec4 GetColormapColor(int index) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(index >= 0, "The Colormap index must be greater than zero!");
     return gp.Colormap[index % gp.ColormapSize];
+}
+
+ImU32 LerpColormap32(const ImU32* colormap, int size, float t) {
+    float tc = ImClamp(t,0.0f,1.0f);
+    int i1 = (int)((size -1 ) * tc);
+    int i2 = i1 + 1;
+    if (i2 == size || size == 1)
+        return colormap[i1];
+    float den = 1.0f / (size - 1);
+    float t1 = i1 * den;
+    float t2 = i2 * den;
+    float tr = ImRemap01(t, t1, t2);
+    return ImMixColor32(colormap[i1], colormap[i2], (ImU32)(tr*256));
 }
 
 ImVec4 LerpColormap(const ImVec4* colormap, int size, float t) {

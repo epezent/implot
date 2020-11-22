@@ -94,6 +94,9 @@ inline void ImFlipFlag(TSet& set, TFlag flag) { ImHasFlag(set, flag) ? set &= ~f
 // Linearly remaps x from [x0 x1] to [y0 y1].
 template <typename T>
 inline T ImRemap(T x, T x0, T x1, T y0, T y1) { return y0 + (x - x0) * (y1 - y0) / (x1 - x0); }
+// Linear rempas x from [x0 x1] to [0 1]
+template <typename T>
+inline T ImRemap01(T x, T x0, T x1) { return (x - x0) / (x1 - x0); }
 // Returns always positive modulo (assumes r != 0)
 inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
 // Returns true if val is NAN or INFINITY
