@@ -3324,19 +3324,6 @@ ImVec4 GetColormapColor(int index) {
     return gp.Colormap[index % gp.ColormapSize];
 }
 
-ImU32 LerpColormap32(const ImU32* colormap, int size, float t) {
-    float tc = ImClamp(t,0.0f,1.0f);
-    int i1 = (int)((size -1 ) * tc);
-    int i2 = i1 + 1;
-    if (i2 == size || size == 1)
-        return colormap[i1];
-    float den = 1.0f / (size - 1);
-    float t1 = i1 * den;
-    float t2 = i2 * den;
-    float tr = ImRemap01(t, t1, t2);
-    return ImMixColor32(colormap[i1], colormap[i2], (ImU32)(tr*256));
-}
-
 ImVec4 LerpColormap(const ImVec4* colormap, int size, float t) {
     float tc = ImClamp(t,0.0f,1.0f);
     int i1 = (int)((size -1 ) * tc);

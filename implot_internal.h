@@ -883,6 +883,21 @@ IMPLOT_API ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
 // Resamples a colormap. #size_out must be greater than 1.
 IMPLOT_API void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
 
+IMPLOT_API const ImU32* GetColormap32(ImPlotColormap colormap, int* size_out);
+
+// Linearly interpolates a color from the current colormap given t between 0 and 1 (t must be clamped!)
+inline ImU32 LerpColormap32(const ImU32* colormap, int size, float t) {
+    int i1 = (int)((size -1 ) * t);
+    int i2 = i1 + 1;
+    if (i2 == size || size == 1)
+        return colormap[i1];
+    float den = 1.0f / (size - 1);
+    float t1 = i1 * den;
+    float t2 = i2 * den;
+    float tr = ImRemap01(t, t1, t2);
+    return ImMixColor32(colormap[i1], colormap[i2], (ImU32)(tr*256));
+}
+
 // Draws vertical text. The position is the bottom left of the text rect.
 IMPLOT_API void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
@@ -995,15 +1010,5 @@ IMPLOT_API bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const 
 // Shows a time picker widget block (hour/min/sec).
 // #t will be set when a new hour, minute, or sec is selected or am/pm is toggled, and the function will return true.
 IMPLOT_API bool ShowTimePicker(const char* id, ImPlotTime* t);
-
-//-----------------------------------------------------------------------------
-// [SECTION] Internal / Experimental Plotters
-// No guarantee of forward compatibility here!
-//-----------------------------------------------------------------------------
-
-// Plots axis-aligned, filled rectangles. Every two consecutive points defines opposite corners of a single rectangle.
-IMPLOT_API void PlotRects(const char* label_id, const float* xs, const float* ys, int count, int offset = 0, int stride = sizeof(float));
-IMPLOT_API void PlotRects(const char* label_id, const double* xs, const double* ys, int count, int offset = 0, int stride = sizeof(double));
-IMPLOT_API void PlotRects(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset = 0);
 
 } // namespace ImPlot

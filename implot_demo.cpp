@@ -583,17 +583,17 @@ void ShowDemoWindow(bool* p_open) {
 
         ImGui::SameLine();
 
-        static double values2[100*100];
+        static double values2[500*500];
         srand((unsigned int)(DEMO_TIME*1000000));
-        for (int i = 0; i < 100*100; ++i)
+        for (int i = 0; i < 500*500; ++i)
             values2[i] = RandomRange(0.0,1.0);
 
         static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
         ImPlot::PushColormap(gray, 2);
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
         if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),0,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations)) {
-            ImPlot::PlotHeatmap("heat1",values2,100,100,0,1,NULL);
-            ImPlot::PlotHeatmap("heat2",values2,100,100,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
+            ImPlot::PlotHeatmap("heat1",values2,500,500,0,1,NULL);
+            ImPlot::PlotHeatmap("heat2",values2,500,500,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
             ImPlot::EndPlot();
         }
         ImPlot::PopColormap();
