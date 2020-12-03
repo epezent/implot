@@ -1684,7 +1684,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
             for (int c = 0; c < cols; ++c) {
                 ImPlotPoint p;
                 p.x = bounds_min.x + 0.5*w + c*w;
-                p.y = bounds_min.y + 1 - (0.5*h + r*h);
+                p.y = bounds_max.y - (0.5*h + r*h);
                 ImVec2 px = transformer(p);
                 char buff[32];
                 sprintf(buff, fmt, values[i]);
