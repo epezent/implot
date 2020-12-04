@@ -1021,7 +1021,7 @@ inline float GetDateTimeWidth(ImPlotDateTimeFmt fmt) {
     return ImGui::CalcTextSize(buffer).x;
 }
 
-inline void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt) {
+void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt) {
     char temp[32];
     if (tick.ShowLabel) {
         tick.TextOffset = buffer.size();
