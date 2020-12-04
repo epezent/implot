@@ -233,10 +233,10 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Line Plots")) {
-        static float xs1[1001], ys1[1001];
+        static double xs1[1001], ys1[1001];
         for (int i = 0; i < 1001; ++i) {
             xs1[i] = i * 0.001f;
-            ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + (float)DEMO_TIME / 10));
+            ys1[i] = 0.5 + 0.5 * sin(50 * (xs1[i] + (double)DEMO_TIME / 10));
         }
         static double xs2[11], ys2[11];
         for (int i = 0; i < 11; ++i) {
@@ -246,8 +246,12 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("Anti-aliasing can be enabled from the plot's context menu (see Help).");
         if (ImPlot::BeginPlot("Line Plot", "x", "f(x)")) {
             ImPlot::PlotLine("sin(x)", xs1, ys1, 1001);
+            if (ImPlot::BeginTooltipX(xs1,ys1,1001)) 
+                ImPlot::EndTooltip();
             ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
             ImPlot::PlotLine("x^2", xs2, ys2, 11);
+            if (ImPlot::BeginTooltipX(xs2,ys2,11)) 
+                ImPlot::EndTooltip();
             ImPlot::EndPlot();
         }
     }
@@ -314,7 +318,7 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Scatter Plots")) {
         srand(0);
-        static float xs1[100], ys1[100];
+        static double xs1[100], ys1[100];
         for (int i = 0; i < 100; ++i) {
             xs1[i] = i * 0.01f;
             ys1[i] = xs1[i] + 0.1f * ((float)rand() / (float)RAND_MAX);
@@ -327,6 +331,8 @@ void ShowDemoWindow(bool* p_open) {
 
         if (ImPlot::BeginPlot("Scatter Plot", NULL, NULL)) {
             ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
+            if (ImPlot::BeginTooltipX(xs1,ys1,100)) 
+                ImPlot::EndTooltip();
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
             ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 6, ImVec4(0,1,0,0.5f), IMPLOT_AUTO, ImVec4(0,1,0,1));
             ImPlot::PlotScatter("Data 2", xs2, ys2, 50);

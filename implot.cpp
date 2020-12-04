@@ -2842,6 +2842,83 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
     return dragging;
 }
 
+//-----------------------------------------------------------------------------
+// TOOLTIPS
+//-----------------------------------------------------------------------------
+
+template <typename T>
+T GetClosest(T val1, T val2, T target) { 
+    if (target - val1 >= val2 - target) 
+        return val2; 
+    else
+        return val1; 
+} 
+
+template <typename T>
+int FindClosestIdx(const T* arr, int n, T target) { 
+    if (target <= arr[0]) 
+        return 0; 
+    if (target >= arr[n - 1]) 
+        return n - 1;   
+    int i = 0, j = n, mid = 0; 
+    while (i < j) { 
+        mid = (i + j) / 2;   
+        if (arr[mid] == target) 
+            return mid;  
+        if (target < arr[mid]) {
+            if (mid > 0 && target > arr[mid - 1]) 
+                return (target - arr[mid - 1] >= arr[mid] - target) ? mid : mid - 1;
+            j = mid; 
+        }   
+        else { 
+            if (mid < n - 1 && target < arr[mid + 1]) 
+                return (target - arr[mid] >= arr[mid+1] - target) ? mid + 1 : mid;
+            i = mid + 1;  
+        } 
+    }   
+    return mid; 
+} 
+
+// bool BeginTooltip(const double* xs_mono, const double* ys, int* idx_out = NULL);
+
+
+bool BeginTooltipX(const double* xs_mono, const double* ys, int count, int* idx_out) {
+    if (ImPlot::IsPlotHovered()) {
+        double mouse_x   = ImPlot::GetPlotMousePos().x;
+        if (mouse_x < (double)xs_mono[0] || mouse_x > (double)xs_mono[count-1])
+            return false;
+        const int idx = FindClosestIdx(xs_mono, count, mouse_x);
+        PushPlotClipRect();
+        ImVec2 pos = PlotToPixels(xs_mono[idx], ys[idx]);
+        ImVec4 col = GetLastItemColor();
+        GetPlotDrawList()->AddCircleFilled(pos, 6, ImGui::ColorConvertFloat4ToU32(col));
+        PopPlotClipRect();
+        if (idx_out == NULL) {
+            ImGui::BeginTooltip();
+            ImGui::PushStyleColor(ImGuiCol_Text, col);
+            ImGui::Text("%.3f,%.3f",xs_mono[idx], ys[idx]);
+            ImGui::PopStyleColor();
+            ImGui::EndTooltip();
+        }
+        else {
+            *idx_out = idx;
+        }
+        return true;
+    }
+    return false;
+}
+
+void EndTooltip() {
+
+}
+
+// bool BeginTooltipY(const double* xs, const double* ys_mono, int* idx_out = NULL);
+
+
+//-----------------------------------------------------------------------------
+// LEGEND UTILS
+//-----------------------------------------------------------------------------
+
 void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, bool outside) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetLegendLocation() needs to be called between BeginPlot() and EndPlot()!");
