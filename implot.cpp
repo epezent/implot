@@ -121,6 +121,7 @@ ImPlotStyle::ImPlotStyle() {
     LegendSpacing      = ImVec2(0,0);
     MousePosPadding    = ImVec2(10,10);
     AnnotationPadding  = ImVec2(2,2);
+    FitPadding         = ImVec2(0,0);
     PlotDefaultSize    = ImVec2(400,300);
     PlotMinSize        = ImVec2(300,225);
 
@@ -263,6 +264,7 @@ static const ImPlotStyleVarInfo GPlotStyleVarInfo[] =
 
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, MousePosPadding)    }, // ImPlotStyleVar_MousePosPadding
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, AnnotationPadding)  }, // ImPlotStyleVar_AnnotationPadding
+    { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, FitPadding)         }, // ImPlotStyleVar_FitPadding
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, PlotDefaultSize)    }, // ImPlotStyleVar_PlotDefaultSize
     { ImGuiDataType_Float, 2, (ImU32)IM_OFFSETOF(ImPlotStyle, PlotMinSize)        }  // ImPlotStyleVar_PlotMinSize
 };
@@ -2383,6 +2385,9 @@ void EndPlot() {
     const bool axis_equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
     if (gp.FitThisFrame && (gp.VisibleItemCount > 0 || plot.Queried)) {
         if (gp.FitX) {
+            const double ext_size = gp.ExtentsX.Size() * 0.5;
+            gp.ExtentsX.Min -= ext_size * gp.Style.FitPadding.x;
+            gp.ExtentsX.Max += ext_size * gp.Style.FitPadding.x;
             if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMin) && !ImNanOrInf(gp.ExtentsX.Min))
                 plot.XAxis.Range.Min = (gp.ExtentsX.Min);
             if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMax) && !ImNanOrInf(gp.ExtentsX.Max))
@@ -2397,6 +2402,9 @@ void EndPlot() {
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
             if (gp.FitY[i]) {
+                const double ext_size = gp.ExtentsY[i].Size() * 0.5;
+                gp.ExtentsY[i].Min -= ext_size * gp.Style.FitPadding.y;
+                gp.ExtentsY[i].Max += ext_size * gp.Style.FitPadding.y;
                 if (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMin) && !ImNanOrInf(gp.ExtentsY[i].Min))
                     plot.YAxis[i].Range.Min = (gp.ExtentsY[i].Min);
                 if (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMax) && !ImNanOrInf(gp.ExtentsY[i].Max))
@@ -3489,6 +3497,8 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SliderFloat2("LegendSpacing", (float*)&style.LegendSpacing, 0.0f, 5.0f, "%.0f");
             ImGui::SliderFloat2("MousePosPadding", (float*)&style.MousePosPadding, 0.0f, 20.0f, "%.0f");
             ImGui::SliderFloat2("AnnotationPadding", (float*)&style.AnnotationPadding, 0.0f, 5.0f, "%.0f");
+            ImGui::SliderFloat2("FitPadding", (float*)&style.FitPadding, 0, 0.2f, "%.2f");
+
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Colors")) {
