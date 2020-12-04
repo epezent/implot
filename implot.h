@@ -385,7 +385,7 @@ IMPLOT_API void EndPlot();
 //    MyData my_data;
 //    ImPlot::PlotScatterG("scatter", MyDataGetter, &my_data, my_data.Size());
 //
-// NB: All types are converted to double before plotting. You may loose information
+// NB: All types are converted to double before plotting. You may lose information
 // if you try plotting extremely large 64-bit integral types. Proceed with caution!
 
 // Plots a standard 2D line plot.
@@ -686,7 +686,7 @@ IMPLOT_API void SetImGuiContext(ImGuiContext* ctx);
 // Demo (add implot_demo.cpp to your sources!)
 //-----------------------------------------------------------------------------
 
-// Shows the ImPlot demo. Pass the current ImGui context if ImPlot is a DLL.
+// Shows the ImPlot demo.
 IMPLOT_API void ShowDemoWindow(bool* p_open = NULL);
 
 }  // namespace ImPlot
