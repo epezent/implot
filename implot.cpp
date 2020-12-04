@@ -2393,8 +2393,8 @@ void EndPlot() {
             if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LockMax) && !ImNanOrInf(gp.ExtentsX.Max))
                 plot.XAxis.Range.Max = (gp.ExtentsX.Max);
             if (ImAlmostEqual(plot.XAxis.Range.Max, plot.XAxis.Range.Min))  {
-                plot.XAxis.Range.Max += plot.XAxis.Range.Max * 1.01;
-                plot.XAxis.Range.Min -= plot.XAxis.Range.Max * 1.01;
+                plot.XAxis.Range.Max += 0.5;
+                plot.XAxis.Range.Min -= 0.5;
             }
             plot.XAxis.Constrain();
             if (axis_equal && !gp.FitY[0])
@@ -2410,8 +2410,8 @@ void EndPlot() {
                 if (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_LockMax) && !ImNanOrInf(gp.ExtentsY[i].Max))
                     plot.YAxis[i].Range.Max = (gp.ExtentsY[i].Max);
                 if (ImAlmostEqual(plot.YAxis[i].Range.Max, plot.YAxis[i].Range.Min)) {
-                    plot.YAxis[i].Range.Max += plot.YAxis[i].Range.Max * 1.01;
-                    plot.YAxis[i].Range.Min -= plot.YAxis[i].Range.Max * 1.01;
+                    plot.YAxis[i].Range.Max += 0.5;
+                    plot.YAxis[i].Range.Min -= 0.5;
                 }
                 plot.YAxis[i].Constrain();
                 if (i == 0 && axis_equal && !gp.FitX)
