@@ -533,16 +533,19 @@ IMPLOT_API bool DragLineY(const char* id, double* y_value, bool show_label = tru
 // Shows a draggable point at x,y. #col defaults to ImGuiCol_Text.
 IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label = true, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 4);
 
+
+template <typename T>  IMPLOT_API int Tooltip(const T* xs_mono, const T* ys, int count, bool clamp = true);
+
 // Facilitates adding hover tooltips to plots. If #idx_out is NULL, a default tooltip will be rendered. Otherwise, the value will be set to the hovered idx, 
 // and it becomes YOUR responsibility to render tooltip information using regular ImGui functions. You MUST make a matching call to EndTooltip if these
 // functions return true!
-IMPLOT_API bool BeginTooltip(const double* xs_mono, const double* ys, int count, int* idx_out = NULL);
+// IMPLOT_API bool BeginTooltip(const double* xs_mono, const double* ys, int count, int* idx_out);
 // This variant is optimized to search along monotonically increasing x values (this is the one you want for time-series plots).
-IMPLOT_API bool BeginTooltipX(const double* xs_mono, const double* ys, int count, int* idx_out = NULL);
+// IMPLOT_API bool BeginTooltipX(const double* xs_mono, const double* ys, int count, int* idx_out);
 // This variant is optimized to search along monotonically increasing y values.
-IMPLOT_API bool BeginTooltipY(const double* xs, const double* ys_mono, int count, int* idx_out = NULL);
+// IMPLOT_API bool BeginTooltipY(const double* xs, const double* ys_mono, int count, int* idx_out);
 // Only call EndTooltip if BeginTooltip returns true! e.g. if (BeginTooltipX(...)) { ... EndTooltip(); } 
-IMPLOT_API void EndTooltip();
+// IMPLOT_API void EndTooltip();
 
 //-----------------------------------------------------------------------------
 // Legend Utils and Tools

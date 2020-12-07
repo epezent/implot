@@ -246,12 +246,9 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("Anti-aliasing can be enabled from the plot's context menu (see Help).");
         if (ImPlot::BeginPlot("Line Plot", "x", "f(x)")) {
             ImPlot::PlotLine("sin(x)", xs1, ys1, 1001);
-            if (ImPlot::BeginTooltipX(xs1,ys1,1001)) 
-                ImPlot::EndTooltip();
             ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
             ImPlot::PlotLine("x^2", xs2, ys2, 11);
-            if (ImPlot::BeginTooltipX(xs2,ys2,11)) 
-                ImPlot::EndTooltip();
+            ImPlot::Tooltip(xs2,ys2,11);
             ImPlot::EndPlot();
         }
     }
@@ -277,8 +274,11 @@ void ShowDemoWindow(bool* p_open) {
             if (show_fills) {
                 ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
                 ImPlot::PlotShaded("Stock 1", xs1, ys1, 101, fill_ref);
+                ImPlot::Tooltip(xs1,ys1,101);
                 ImPlot::PlotShaded("Stock 2", xs1, ys2, 101, fill_ref);
+                ImPlot::Tooltip(xs1,ys2,101);
                 ImPlot::PlotShaded("Stock 3", xs1, ys3, 101, fill_ref);
+                ImPlot::Tooltip(xs1,ys3,101);
                 ImPlot::PopStyleVar();
             }
             if (show_lines) {
@@ -308,6 +308,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
             ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
             ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
+            ImPlot::Tooltip(xs,ys,1001);
             ImPlot::PlotShaded("Overlapping",xs,ys3,ys4,1001);
             ImPlot::PlotLine("Overlapping",xs,ys3,1001);
             ImPlot::PlotLine("Overlapping",xs,ys4,1001);
@@ -331,8 +332,7 @@ void ShowDemoWindow(bool* p_open) {
 
         if (ImPlot::BeginPlot("Scatter Plot", NULL, NULL)) {
             ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
-            if (ImPlot::BeginTooltipX(xs1,ys1,100)) 
-                ImPlot::EndTooltip();
+            ImPlot::Tooltip(xs1,ys1,100); 
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
             ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 6, ImVec4(0,1,0,0.5f), IMPLOT_AUTO, ImVec4(0,1,0,1));
             ImPlot::PlotScatter("Data 2", xs2, ys2, 50);

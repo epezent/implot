@@ -2836,7 +2836,7 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
             char buff2[32];
             LabelAxisValue(gp.CurrentPlot->XAxis, gp.XTicks, *x, buff1, 32);
             LabelAxisValue(gp.CurrentPlot->YAxis[yax], gp.YTicks[yax], *y, buff2, 32);
-            gp.Annotations.Append(label_pos, ImVec2(0.0001f,0.00001f), col32, CalcTextColor(color), true, "%s = %s,%s", id, buff1, buff2);
+            gp.Annotations.Append(label_pos, ImVec2(0.0001f,0.0001f), col32, CalcTextColor(color), true, "%s = %s,%s", id, buff1, buff2);
         }
     }
     bool dragging = false;
@@ -2853,14 +2853,6 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
 //-----------------------------------------------------------------------------
 // TOOLTIPS
 //-----------------------------------------------------------------------------
-
-template <typename T>
-T GetClosest(T val1, T val2, T target) { 
-    if (target - val1 >= val2 - target) 
-        return val2; 
-    else
-        return val1; 
-} 
 
 template <typename T>
 int FindClosestIdx(const T* arr, int n, T target) { 
@@ -2887,41 +2879,43 @@ int FindClosestIdx(const T* arr, int n, T target) {
     return mid; 
 } 
 
-// bool BeginTooltip(const double* xs_mono, const double* ys, int* idx_out = NULL);
-
-
-bool BeginTooltipX(const double* xs_mono, const double* ys, int count, int* idx_out) {
+template <typename T>
+int Tooltip(const T* xs, const T* ys, int count, bool clamp) {
+    ImPlotContext& gp = *GImPlot;
     if (ImPlot::IsPlotHovered()) {
         double mouse_x   = ImPlot::GetPlotMousePos().x;
-        if (mouse_x < (double)xs_mono[0] || mouse_x > (double)xs_mono[count-1])
-            return false;
-        const int idx = FindClosestIdx(xs_mono, count, mouse_x);
+        if (mouse_x < (double)xs[0] || mouse_x > (double)xs[count-1])
+            return -1;
+        const int idx = FindClosestIdx(xs, count, (T)mouse_x);
+        const int yax = GetCurrentYAxis();
+        const ImVec2 pos = PlotToPixels((double)xs[idx], (double)ys[idx], yax);
+        const ImVec4 col = GetLastItemColor();
+        const ImU32 col32 = ImGui::ColorConvertFloat4ToU32(col);
         PushPlotClipRect();
-        ImVec2 pos = PlotToPixels(xs_mono[idx], ys[idx]);
-        ImVec4 col = GetLastItemColor();
-        GetPlotDrawList()->AddCircleFilled(pos, 6, ImGui::ColorConvertFloat4ToU32(col));
+        GetPlotDrawList()->AddCircleFilled(pos, gp.Style.MarkerSize, col32);
         PopPlotClipRect();
-        if (idx_out == NULL) {
-            ImGui::BeginTooltip();
-            ImGui::PushStyleColor(ImGuiCol_Text, col);
-            ImGui::Text("%.3f,%.3f",xs_mono[idx], ys[idx]);
-            ImGui::PopStyleColor();
-            ImGui::EndTooltip();
+        if (idx >= 0) {
+            char buff1[32];
+            char buff2[32];
+            LabelAxisValue(gp.CurrentPlot->XAxis, gp.XTicks, (double)xs[idx], buff1, 32);
+            LabelAxisValue(gp.CurrentPlot->YAxis[yax], gp.YTicks[yax], (double)ys[idx], buff2, 32);
+            gp.Annotations.Append(pos, ImVec2(0.001f,0.001f), col32, CalcTextColor(col), clamp, "%s,%s", buff1, buff2);
+            return idx;
         }
-        else {
-            *idx_out = idx;
-        }
-        return true;
+        return -1;
     }
-    return false;
+    return -1;
 }
-
-void EndTooltip() {
-
-}
-
-// bool BeginTooltipY(const double* xs, const double* ys_mono, int* idx_out = NULL);
-
+template IMPLOT_API int Tooltip<ImS8>(const ImS8* xs, const ImS8* ys, int count, bool clamp);
+template IMPLOT_API int Tooltip<ImU8>(const ImU8* xs, const ImU8* ys, int count, bool clamp);
+template IMPLOT_API int Tooltip<ImS16>(const ImS16* xs, const ImS16* ys, int count, bool clamp);
+template IMPLOT_API int Tooltip<ImU16>(const ImU16* xs, const ImU16* ys, int count, bool clamp);
+template IMPLOT_API int Tooltip<ImS32>(const ImS32* xs, const ImS32* ys, int count, bool clamp);
+template IMPLOT_API int Tooltip<ImU32>(const ImU32* xs, const ImU32* ys, int count, bool clamp);
+template IMPLOT_API int Tooltip<ImS64>(const ImS64* xs, const ImS64* ys, int count, bool clamp);
+template IMPLOT_API int Tooltip<ImU64>(const ImU64* xs, const ImU64* ys, int count, bool clamp);
+template IMPLOT_API int Tooltip<float>(const float* xs, const float* ys, int count, bool clamp);
+template IMPLOT_API int Tooltip<double>(const double* xs, const double* ys, int count, bool clamp);
 
 //-----------------------------------------------------------------------------
 // LEGEND UTILS
