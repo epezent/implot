@@ -1,5 +1,5 @@
 # ImPlot
-ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that ImGui fans will love. ImPlot is well suited for visualizing program data in real-time or creating interactive plots, and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself.  
+ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](https://github.com/ocornut/imgui). It aims to provide a first-class API that ImGui fans will love. ImPlot is well suited for visualizing program data in real-time or creating interactive plots, and requires minimal code to integrate. Just like ImGui, it does not burden the end user with GUI state management, avoids STL containers and C++ headers, and has no external dependencies except for ImGui itself.
 
 <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/controls.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/dnd.gif" width="270"> <img src="https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/pie.gif" width="270">
 
@@ -29,7 +29,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
     - and more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
-- time formatted x-axes
+- time formatted x-axes (US formatted or ISO 8601)
 - reversible and lockable axes
 - up to three independent y-axes
 - controls for zooming, panning, box selection, and auto-fitting data
@@ -38,7 +38,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
 - several plot styling options: 10 marker types, adjustable marker sizes, line weights, outline colors, fill colors, etc.
 - 10 built-in and user definable colormaps
 - optional plot titles, axis labels, and grid labels
-- optional legend with toggle buttons to quickly show/hide items
+- optional and configurable legends with toggle buttons to quickly show/hide plot items
 - default styling based on current ImGui theme, but most elements can be customized independently
 - customizable data getters and data striding (just like ImGui:PlotLine)
 - accepts data as float, double, and 8, 16, 32, and 64-bit signed/unsigned integral types
@@ -46,7 +46,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
 
 ## Usage
 
-The API is used just like any other ImGui `BeginX`/`EndX` pair. First, start a new plot with `ImPlot::BeginPlot()`. Next, plot as many items as you want with the provided `PlotX` functions (e.g. `PlotLine()`, `PlotBars()`, `PlotErrorBars()`, etc). Finally, wrap things up with a call to `ImPlot::EndPlot()`. That's it!
+The API is used just like any other ImGui `BeginX`/`EndX` pair. First, start a new plot with `ImPlot::BeginPlot()`. Next, plot as many items as you want with the provided `PlotX` functions (e.g. `PlotLine()`, `PlotBars()`, `PlotScatter()`, etc). Finally, wrap things up with a call to `ImPlot::EndPlot()`. That's it!
 
 ```cpp
 int   bar_data[11] = ...;
@@ -74,8 +74,8 @@ An online version of the demo is hosted [here](https://traineq.org/implot_demo/s
 
 ## Integration
 
-0) Set up an [ImGui](https://github.com/ocornut/imgui) environment if you don't already have one. 
-1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources. Alternatively, you can get ImPlot using [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/implot). 
+0) Set up an [ImGui](https://github.com/ocornut/imgui) environment if you don't already have one.
+1) Add `implot.h`, `implot_internal.h`, `implot.cpp`, `implot_items.cpp` and optionally `implot_demo.cpp` to your sources. Alternatively, you can get ImPlot using [vcpkg](https://github.com/microsoft/vcpkg/tree/master/ports/implot).
 2) Create and destroy an `ImPlotContext` wherever you do so for your `ImGuiContext`:
 
 ```cpp
@@ -86,7 +86,7 @@ ImPlot::DestroyContext();
 ImGui::DestroyContext();
 ```
 
-You should be good to go!  
+You should be good to go!
 
 If you want to test ImPlot quickly, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
 
@@ -96,6 +96,7 @@ If you want to test ImPlot quickly, consider trying [mahi-gui](https://github.co
     1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be), OR...
     2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your ImGui `imconfig.h` file.
 - By default, no anti-aliasing is done on line plots for performance gains. If you use 4x MSAA, then you likely won't even notice. However, you can enable software AA per-plot with the `ImPlotFlags_AntiAliased` flag, or globally with `ImPlot::GetStyle().AntiAliasedLines = true;`.
+- Like ImGui, it is recommended that you compile and link ImPlot as a *static* library or directly as a part of your sources. However, if you are compiling ImPlot and ImGui as separate DLLs, make sure you set the current *ImGui* context with `ImPlot::SetImGuiContext(ImGuiContext* ctx)`. This ensures that global ImGui variables are correctly shared across the DLL boundary.
 
 ## FAQ
 
@@ -107,13 +108,17 @@ A: ImGui is an incredibly powerful tool for rapid prototyping and development, b
 
 A: If you're looking to generate publication quality plots and/or export plots to a file, ImPlot is NOT the library for you. ImPlot is geared toward plotting application data at realtime speeds. ImPlot does its best to create pretty plots (indeed, there are quite a few styling options available), but it will always favor function over form.
 
+**Q: Where is the documentation?**
+
+A: The API is thoroughly commented in `implot.h`, and the demo in `implot_demo.cpp` should be more than enough to get you started.
+
 **Q: Is ImPlot suitable for plotting large datasets?**
 
-A: Yes, within reason. You can plot tens to hundreds of thousands of points without issue, but don't expect millions to be a buttery smooth experience. However, you can downsample extremely large datasets by telling ImPlot to stride your data at larger intervals if needed. 
+A: Yes, within reason. You can plot tens to hundreds of thousands of points without issue, but don't expect millions to be a buttery smooth experience. That said, you can always downsample extremely large datasets by telling ImPlot to stride your data at larger intervals if needed.
 
 **Q: Can plot styles be modified?**
 
-A: Yes. Plot colors, palettes, and various styling variables can be pushed/popped or modified permanently on startup. Three default styles are available, as well as an automatic style that attempts to match you ImGui style. 
+A: Yes. Data colormaps and various styling colors and variables can be pushed/popped or modified permanently on startup. Three default styles are available, as well as an automatic style that attempts to match you ImGui style.
 
 **Q: Does ImPlot support logarithmic scaling or time formatting?**
 
@@ -121,7 +126,7 @@ A: Yep! Both logscale and timescale are supported.
 
 **Q: Does ImPlot support multiple y-axes? x-axes?**
 
-A: Yes. Up to three y-axes can be enabled. Multiple x-axes are not supported. 
+A: Yes. Up to three y-axes can be enabled. Multiple x-axes are not supported.
 
 **Q: Does ImPlot support [insert plot type]?**
 
@@ -145,9 +150,9 @@ A: Not currently. Use your OS's screen capturing mechanisms if you need to captu
 
 **Q: What data types can I plot?**
 
-A: ImPlot plotting functions accept most scalar types: 
-`float`, `double`, `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`.
+A: ImPlot plotting functions accept most scalar types:
+`float`, `double`, `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`. Arrays of custom structs or classes (e.g. `Vector2f` or similar) are easily passed to ImPlot functions using the built in striding features (see `implot.h` for documentation).
 
 **Q: Can ImPlot be used with other languages/bindings?**
 
-A: Yes, you can use the generated C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. [DearPyGui](https://github.com/hoffstadt/DearPyGui) provides a Python wrapper, among other things. A Rust binding, [implot-rs](https://github.com/4bb4/implot-rs), is currently in the works. An example using Emscripten can be found [here](https://github.com/pthom/implot_demo). 
+A: Yes, you can use the generated C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. [DearPyGui](https://github.com/hoffstadt/DearPyGui) provides a Python wrapper, among other things. A Rust binding, [implot-rs](https://github.com/4bb4/implot-rs), is currently in the works. An example using Emscripten can be found [here](https://github.com/pthom/implot_demo).

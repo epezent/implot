@@ -135,12 +135,16 @@ struct ImBufferWriter
     }
 
     void Write(const char* fmt, ...) {
-        va_list argp;
-        va_start(argp, fmt);
-        const int written = ::vsnprintf(&Buffer[Pos], Size - Pos - 1, fmt, argp);
+        va_list args;
+        va_start(args, fmt);
+        WriteV(fmt, args);
+        va_end(args);
+    }
+
+    void WriteV(const char* fmt, va_list args) {
+        const int written = ::vsnprintf(&Buffer[Pos], Size - Pos - 1, fmt, args);
         if (written > 0)
           Pos += ImMin(written, Size-Pos-1);
-        va_end(argp);
     }
 };
 
@@ -749,7 +753,7 @@ IMPLOT_API void BustItemCache();
 // Gets the current y-axis for the current plot
 inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
 // Updates axis ticks, lins, and label colors
-IMPLOT_API void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
+IMPLOT_API void UpdateAxisColors(int axis_flag, ImPlotAxis* axis);
 
 // Updates plot-to-pixel space transformation variables for the current plot.
 IMPLOT_API void UpdateTransformCache();
@@ -771,7 +775,7 @@ IMPLOT_API void PushLinkedAxis(ImPlotAxis& axis);
 IMPLOT_API void PullLinkedAxis(ImPlotAxis& axis);
 
 // Shows an axis's context menu.
-IMPLOT_API void ShowAxisContextMenu(ImPlotAxisState& state, bool time_allowed = false);
+IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_allowed = false);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils
