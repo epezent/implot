@@ -286,7 +286,7 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Shaded Plots")) {
+    if (ImGui::CollapsingHeader("Shaded Plots##")) {
         static float xs[1001], ys[1001], ys1[1001], ys2[1001], ys3[1001], ys4[1001];
         srand(0);
         for (int i = 0; i < 1001; ++i) {
@@ -419,7 +419,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
     }
-    if (ImGui::CollapsingHeader("Stem Plots")) {
+    if (ImGui::CollapsingHeader("Stem Plots##")) {
         static double xs[51], ys1[51], ys2[51];
         for (int i = 0; i < 51; ++i) {
             xs[i] = i * 0.02;
@@ -1239,7 +1239,7 @@ void ShowDemoWindow(bool* p_open) {
         }
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Custom Ticks")) {
+    if (ImGui::CollapsingHeader("Custom Ticks##")) {
         static bool custom_ticks  = true;
         static bool custom_labels = true;
         ImGui::Checkbox("Show Custom Ticks", &custom_ticks);
