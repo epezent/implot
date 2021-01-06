@@ -84,7 +84,7 @@ enum ImPlotFlags_ {
 // Options for plot axes (X and Y).
 enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_None          = 0,      // default
-    ImPlotAxisFlags_NoLabel       = 1 << 0, // the axis label will not be displayed
+    ImPlotAxisFlags_NoLabel       = 1 << 0, // the axis label will not be displayed (axis labels also hidden if string is NULL)
     ImPlotAxisFlags_NoGridLines   = 1 << 1, // the axis grid lines will not be displayed
     ImPlotAxisFlags_NoTickMarks   = 1 << 2, // the axis tick marks will not be displayed
     ImPlotAxisFlags_NoTickLabels  = 1 << 3, // the axis tick labels will not be displayed

@@ -1480,7 +1480,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
             ? plot.PlotRect.Max.x
             : gp.YAxisReference[1]
               + (plot.YAxis[1].IsLabeled() ? gp.Style.LabelPadding.x + gp.YTicks[1].MaxWidth : 0)
-              + (y2_label ? txt_height + gp.Style.LabelPadding.x : 0)
+              + (show_y2_label ? txt_height + gp.Style.LabelPadding.x : 0)
               + gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y;
 
     // y axis regions bb and hover
