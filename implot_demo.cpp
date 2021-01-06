@@ -708,7 +708,7 @@ void ShowDemoWindow(bool* p_open) {
         if (ImPlot::BeginPlot("Multi-Axis Plot", NULL, "First Y Axis", ImVec2(-1,0),
                              (y2_axis ? ImPlotFlags_YAxis2 : 0) |
                              (y3_axis ? ImPlotFlags_YAxis3 : 0),
-                              ImPlotFlags_None, ImPlotFlags_None, ImPlotFlags_None, ImPlotFlags_None,
+                              ImPlotAxisFlags_None, ImPlotAxisFlags_None, ImPlotAxisFlags_NoGridLines, ImPlotAxisFlags_NoGridLines,
                               "Second Y Axis", "Third Y Axis")) {
             ImPlot::PlotLine("f(x) = x", xs, xs, 1001);
             ImPlot::PlotLine("f(x) = sin(x)*3+1", xs, ys1, 1001);
