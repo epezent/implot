@@ -705,9 +705,11 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::SetNextPlotLimits(0.1, 100, 0, 10);
         ImPlot::SetNextPlotLimitsY(0, 1, ImGuiCond_Once, 1);
         ImPlot::SetNextPlotLimitsY(0, 300, ImGuiCond_Once, 2);
-        if (ImPlot::BeginPlot("Multi-Axis Plot", NULL, NULL, ImVec2(-1,0),
+        if (ImPlot::BeginPlot("Multi-Axis Plot", NULL, "First Y Axis", ImVec2(-1,0),
                              (y2_axis ? ImPlotFlags_YAxis2 : 0) |
-                             (y3_axis ? ImPlotFlags_YAxis3 : 0))) {
+                             (y3_axis ? ImPlotFlags_YAxis3 : 0),
+                              ImPlotFlags_None, ImPlotFlags_None, ImPlotFlags_None, ImPlotFlags_None,
+                              "Second Y Axis", "Third Y Axis")) {
             ImPlot::PlotLine("f(x) = x", xs, xs, 1001);
             ImPlot::PlotLine("f(x) = sin(x)*3+1", xs, ys1, 1001);
             if (y2_axis) {

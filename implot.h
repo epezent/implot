@@ -343,7 +343,9 @@ IMPLOT_API bool BeginPlot(const char* title_id,
                           ImPlotAxisFlags x_flags  = ImPlotAxisFlags_None,
                           ImPlotAxisFlags y_flags  = ImPlotAxisFlags_None,
                           ImPlotAxisFlags y2_flags = ImPlotAxisFlags_NoGridLines,
-                          ImPlotAxisFlags y3_flags = ImPlotAxisFlags_NoGridLines);
+                          ImPlotAxisFlags y3_flags = ImPlotAxisFlags_NoGridLines,
+                          const char* y2_label     = NULL,
+                          const char* y3_label     = NULL);
 
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().
