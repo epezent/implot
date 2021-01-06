@@ -1862,25 +1862,23 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         const ImVec2 xLabel_pos(plot.PlotRect.GetCenter().x - xLabel_size.x * 0.5f, plot.CanvasRect.Max.y - txt_height);
         DrawList.AddText(xLabel_pos, plot.XAxis.ColorTxt, x_label);
     }
+
     if (y_label) {
         const ImVec2 yLabel_size = CalcTextSizeVertical(y_label);
         const ImVec2 yLabel_pos(plot.CanvasRect.Min.x, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
         AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[0].ColorTxt, y_label);
    }
 
-    if (plot.YAxis[1].Present && y2_label) {
-        const ImVec2 yLabel_size = CalcTextSizeVertical(y2_label);
-        double label_offset = (plot.YAxis[1].IsLabeled() ? gp.YTicks[1].MaxWidth + gp.Style.LabelPadding.x : 0.0) + gp.Style.LabelPadding.x;
-        const ImVec2 yLabel_pos(gp.YAxisReference[1] + label_offset, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
-        AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[1].ColorTxt, y2_label);
-    }
-
-    if (plot.YAxis[2].Present && y3_label) {
-        const ImVec2 yLabel_size = CalcTextSizeVertical(y3_label);
-        double label_offset = (plot.YAxis[2].IsLabeled() ? gp.YTicks[2].MaxWidth + gp.Style.LabelPadding.x : 0.0) + gp.Style.LabelPadding.x;
-        const ImVec2 yLabel_pos(gp.YAxisReference[2] + label_offset, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
-        AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[2].ColorTxt, y3_label);
-    }
+   const char* y_labels[] = {y2_label, y3_label};
+   for (int i = 1; i < IMPLOT_Y_AXES; i++) {
+       const char* current_label = y_labels[i-1];
+       if (plot.YAxis[i].Present && current_label) {
+           const ImVec2 yLabel_size = CalcTextSizeVertical(current_label);
+           double label_offset = (plot.YAxis[i].IsLabeled() ? gp.YTicks[i].MaxWidth + gp.Style.LabelPadding.x : 0.0) + gp.Style.LabelPadding.x;
+           const ImVec2 yLabel_pos(gp.YAxisReference[i] + label_offset, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
+           AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[i].ColorTxt, current_label);
+       }
+   }
 
     // render tick labels
     ImGui::PushClipRect(plot.FrameRect.Min, plot.FrameRect.Max, true);
