@@ -84,16 +84,17 @@ enum ImPlotFlags_ {
 // Options for plot axes (X and Y).
 enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_None          = 0,      // default
-    ImPlotAxisFlags_NoGridLines   = 1 << 0, // no grid lines will be displayed
-    ImPlotAxisFlags_NoTickMarks   = 1 << 1, // no tick marks will be displayed
-    ImPlotAxisFlags_NoTickLabels  = 1 << 2, // no text labels will be displayed
-    ImPlotAxisFlags_LogScale      = 1 << 3, // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
-    ImPlotAxisFlags_Time          = 1 << 4, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
-    ImPlotAxisFlags_Invert        = 1 << 5, // the axis will be inverted
-    ImPlotAxisFlags_LockMin       = 1 << 6, // the axis minimum value will be locked when panning/zooming
-    ImPlotAxisFlags_LockMax       = 1 << 7, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_NoLabel       = 1 << 0, // the axis label will not be displayed (axis labels also hidden if string is NULL)
+    ImPlotAxisFlags_NoGridLines   = 1 << 1, // the axis grid lines will not be displayed
+    ImPlotAxisFlags_NoTickMarks   = 1 << 2, // the axis tick marks will not be displayed
+    ImPlotAxisFlags_NoTickLabels  = 1 << 3, // the axis tick labels will not be displayed
+    ImPlotAxisFlags_LogScale      = 1 << 4, // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
+    ImPlotAxisFlags_Time          = 1 << 5, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
+    ImPlotAxisFlags_Invert        = 1 << 6, // the axis will be inverted
+    ImPlotAxisFlags_LockMin       = 1 << 7, // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax       = 1 << 8, // the axis maximum value will be locked when panning/zooming
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
-    ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels
+    ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels
 };
 
 // Plot styling colors.
@@ -343,7 +344,9 @@ IMPLOT_API bool BeginPlot(const char* title_id,
                           ImPlotAxisFlags x_flags  = ImPlotAxisFlags_None,
                           ImPlotAxisFlags y_flags  = ImPlotAxisFlags_None,
                           ImPlotAxisFlags y2_flags = ImPlotAxisFlags_NoGridLines,
-                          ImPlotAxisFlags y3_flags = ImPlotAxisFlags_NoGridLines);
+                          ImPlotAxisFlags y3_flags = ImPlotAxisFlags_NoGridLines,
+                          const char* y2_label     = NULL,
+                          const char* y3_label     = NULL);
 
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot().

@@ -1219,8 +1219,9 @@ void UpdateAxisColors(int axis_flag, ImPlotAxis* axis) {
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
-bool BeginPlot(const char* title, const char* x_label, const char* y_label, const ImVec2& size,
-               ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y1_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags)
+bool BeginPlot(const char* title, const char* x_label, const char* y1_label, const ImVec2& size,
+               ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y1_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags,
+               const char* y2_label, const char* y3_label)
 {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     ImPlotContext& gp = *GImPlot;
@@ -1420,9 +1421,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
          title_size = ImGui::CalcTextSize(title, NULL, true);
     }
 
+    const bool show_x_label = x_label && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoLabel);
+
     const float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
     const float pad_bot = (plot.XAxis.IsLabeled() ? txt_height + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
-                        + (x_label ? txt_height + gp.Style.LabelPadding.y : 0);
+                        + (show_x_label ? txt_height + gp.Style.LabelPadding.y : 0);
 
     const float plot_height = plot.CanvasRect.GetHeight() - pad_top - pad_bot;
 
@@ -1437,11 +1440,17 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // (3) calc left/right pad
-    const float pad_left    = (y_label ? txt_height + gp.Style.LabelPadding.x : 0)
+    const bool show_y1_label = y1_label && !ImHasFlag(plot.YAxis[0].Flags, ImPlotAxisFlags_NoLabel);
+    const bool show_y2_label = y2_label && !ImHasFlag(plot.YAxis[1].Flags, ImPlotAxisFlags_NoLabel);
+    const bool show_y3_label = y3_label && !ImHasFlag(plot.YAxis[2].Flags, ImPlotAxisFlags_NoLabel);
+
+    const float pad_left    = (show_y1_label ? txt_height + gp.Style.LabelPadding.x : 0)
                             + (plot.YAxis[0].IsLabeled() ? gp.YTicks[0].MaxWidth + gp.Style.LabelPadding.x : 0);
     const float pad_right   = ((plot.YAxis[1].Present && plot.YAxis[1].IsLabeled()) ? gp.YTicks[1].MaxWidth + gp.Style.LabelPadding.x : 0)
+                            + ((plot.YAxis[1].Present && show_y2_label) ? txt_height + gp.Style.LabelPadding.x : 0)
                             + ((plot.YAxis[1].Present && plot.YAxis[2].Present)   ? gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y : 0)
-                            + ((plot.YAxis[2].Present && plot.YAxis[2].IsLabeled()) ? gp.YTicks[2].MaxWidth + gp.Style.LabelPadding.x : 0);
+                            + ((plot.YAxis[2].Present && plot.YAxis[2].IsLabeled()) ? gp.YTicks[2].MaxWidth + gp.Style.LabelPadding.x : 0)
+                            + ((plot.YAxis[2].Present && show_y3_label) ? txt_height + gp.Style.LabelPadding.x : 0);
 
     const float plot_width = plot.CanvasRect.GetWidth() - pad_left - pad_right;
 
@@ -1467,7 +1476,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     // axis label reference
     gp.YAxisReference[0] = plot.PlotRect.Min.x;
     gp.YAxisReference[1] = plot.PlotRect.Max.x;
-    gp.YAxisReference[2] = !plot.YAxis[1].Present ? plot.PlotRect.Max.x : (gp.YAxisReference[1] + (plot.YAxis[1].IsLabeled() ? gp.Style.LabelPadding.x + gp.YTicks[1].MaxWidth : 0) + gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y);
+    gp.YAxisReference[2] = !plot.YAxis[1].Present
+            ? plot.PlotRect.Max.x
+            : gp.YAxisReference[1]
+              + (plot.YAxis[1].IsLabeled() ? gp.Style.LabelPadding.x + gp.YTicks[1].MaxWidth : 0)
+              + (show_y2_label ? txt_height + gp.Style.LabelPadding.x : 0)
+              + gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y;
 
     // y axis regions bb and hover
     plot.YAxis[0].HoverRect = ImRect(ImVec2(plot.AxesRect.Min.x, plot.PlotRect.Min.y), ImVec2(plot.PlotRect.Min.x, plot.PlotRect.Max.y));
@@ -1849,15 +1863,27 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
     }
 
     // render axis labels
-    if (x_label) {
+    if (show_x_label) {
         const ImVec2 xLabel_size = ImGui::CalcTextSize(x_label);
         const ImVec2 xLabel_pos(plot.PlotRect.GetCenter().x - xLabel_size.x * 0.5f, plot.CanvasRect.Max.y - txt_height);
         DrawList.AddText(xLabel_pos, plot.XAxis.ColorTxt, x_label);
     }
-    if (y_label) {
-        const ImVec2 yLabel_size = CalcTextSizeVertical(y_label);
+
+    if (show_y1_label) {
+        const ImVec2 yLabel_size = CalcTextSizeVertical(y1_label);
         const ImVec2 yLabel_pos(plot.CanvasRect.Min.x, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
-        AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[0].ColorTxt, y_label);
+        AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[0].ColorTxt, y1_label);
+   }
+
+   const char* y_labels[] = {y2_label, y3_label};
+   for (int i = 1; i < IMPLOT_Y_AXES; i++) {
+       const char* current_label = y_labels[i-1];
+       if (plot.YAxis[i].Present && current_label && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoLabel)) {
+           const ImVec2 yLabel_size = CalcTextSizeVertical(current_label);
+           float label_offset = (plot.YAxis[i].IsLabeled() ? gp.YTicks[i].MaxWidth + gp.Style.LabelPadding.x : 0.0f) + gp.Style.LabelPadding.x;
+           const ImVec2 yLabel_pos(gp.YAxisReference[i] + label_offset, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
+           AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[i].ColorTxt, current_label);
+       }
    }
 
     // render tick labels
@@ -1883,6 +1909,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y_label, cons
         }
     }
     ImGui::PopClipRect();
+
     // clear legend
     plot.LegendData.Reset();
     // push plot ID into stack
@@ -1927,6 +1954,7 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_all
 
     ImGui::PushItemWidth(75);
     bool always_locked   = axis.IsAlwaysLocked();
+    bool label           = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoLabel);
     bool grid            = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
     bool ticks           = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
     bool labels          = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
@@ -2023,11 +2051,13 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_all
     }
 
     ImGui::Separator();
+    if (ImGui::Checkbox("Label", &label))
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoLabel);
     if (ImGui::Checkbox("Grid Lines", &grid))
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
     if (ImGui::Checkbox("Tick Marks", &ticks))
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
-    if (ImGui::Checkbox("Labels", &labels))
+    if (ImGui::Checkbox("Tick Labels", &labels))
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
 }
 
