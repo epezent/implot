@@ -1120,14 +1120,14 @@ void PlotStairsG(const char* label_id, ImPlotPoint (*getter_func)(void* data, in
 //-----------------------------------------------------------------------------
 
 template <typename Getter1, typename Getter2>
-inline void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& getter2) {
+inline void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, bool fit2) {
     if (BeginItem(label_id, ImPlotCol_Fill)) {
         if (FitThisFrame()) {
-            for (int i = 0; i < ImMin(getter1.Count, getter2.Count); ++i) {
-                ImPlotPoint p1 = getter1(i);
-                ImPlotPoint p2 = getter2(i);
-                FitPoint(p1);
-                FitPoint(p2);
+            for (int i = 0; i < getter1.Count; ++i) 
+                FitPoint(getter1(i));            
+            if (fit2) {
+                for (int i = 0; i < getter2.Count; ++i) 
+                    FitPoint(getter2(i));                
             }
         }
         const ImPlotNextItemData& s = GetItemData();
@@ -1147,9 +1147,18 @@ inline void PlotShadedEx(const char* label_id, const Getter1& getter1, const Get
 
 template <typename T>
 void PlotShaded(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, int offset, int stride) {
+    bool fit2 = true;
+    if (y_ref == -HUGE_VAL) {
+        fit2 = false;    
+        y_ref = GetPlotLimits().Y.Min;
+    }
+    if (y_ref == HUGE_VAL) {
+        fit2 = false;
+        y_ref = GetPlotLimits().Y.Max;
+    }
     GetterYs<T> getter1(values,count,xscale,x0,offset,stride);
     GetterYRef getter2(y_ref,count,xscale,x0);
-    PlotShadedEx(label_id, getter1, getter2);
+    PlotShadedEx(label_id, getter1, getter2, fit2);
 }
 
 template IMPLOT_API void PlotShaded<ImS8>(const char* label_id, const ImS8* values, int count, double y_ref, double xscale, double x0, int offset, int stride);
@@ -1165,9 +1174,18 @@ template IMPLOT_API void PlotShaded<double>(const char* label_id, const double* 
 
 template <typename T>
 void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref, int offset, int stride) {
+    bool fit2 = true;
+    if (y_ref == -HUGE_VAL) {
+        fit2 = false;    
+        y_ref = GetPlotLimits().Y.Min;
+    }
+    if (y_ref == HUGE_VAL) {
+        fit2 = false;
+        y_ref = GetPlotLimits().Y.Max;
+    }
     GetterXsYs<T> getter1(xs, ys, count, offset, stride);
     GetterXsYRef<T> getter2(xs, y_ref, count, offset, stride);
-    PlotShadedEx(label_id, getter1, getter2);
+    PlotShadedEx(label_id, getter1, getter2, fit2);
 }
 
 template IMPLOT_API void PlotShaded<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys, int count, double y_ref, int offset, int stride);
@@ -1185,7 +1203,7 @@ template <typename T>
 void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, int offset, int stride) {
     GetterXsYs<T> getter1(xs, ys1, count, offset, stride);
     GetterXsYs<T> getter2(xs, ys2, count, offset, stride);
-    PlotShadedEx(label_id, getter1, getter2);
+    PlotShadedEx(label_id, getter1, getter2, true);
 }
 
 template IMPLOT_API void PlotShaded<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys1, const ImS8* ys2, int count, int offset, int stride);
@@ -1203,7 +1221,7 @@ template IMPLOT_API void PlotShaded<double>(const char* label_id, const double* 
 void PlotShadedG(const char* label_id, ImPlotPoint (*g1)(void* data, int idx), void* data1, ImPlotPoint (*g2)(void* data, int idx), void* data2, int count, int offset) {
     GetterFuncPtr getter1(g1, data1, count, offset);
     GetterFuncPtr getter2(g2, data2, count, offset);
-    PlotShadedEx(label_id, getter1, getter2);
+    PlotShadedEx(label_id, getter1, getter2, true);
 }
 
 //-----------------------------------------------------------------------------
