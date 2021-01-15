@@ -302,6 +302,26 @@ struct GetterXsYRef {
     const int Stride;
 };
 
+// Interprets an array of Y points as ImPlotPoints where the X value is a constant reference value
+template <typename T>
+struct GetterXRefYs {
+    GetterXRefYs(double x_ref, const T* ys, int count, int offset, int stride) :
+        XRef(x_ref),
+        Ys(ys),
+        Count(count),
+        Offset(count ? ImPosMod(offset, count) : 0),
+        Stride(stride)
+    { }
+    inline ImPlotPoint operator()(int idx) const {
+        return ImPlotPoint(XRef, (double)OffsetAndStride(Ys, idx, Count, Offset, Stride));
+    }
+    const double XRef;
+    const T* const Ys;
+    const int Count;
+    const int Offset;
+    const int Stride;
+};
+
 /// Interprets a user's function pointer as ImPlotPoints
 struct GetterFuncPtr {
     GetterFuncPtr(ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset) :
@@ -1123,11 +1143,11 @@ template <typename Getter1, typename Getter2>
 inline void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, bool fit2) {
     if (BeginItem(label_id, ImPlotCol_Fill)) {
         if (FitThisFrame()) {
-            for (int i = 0; i < getter1.Count; ++i) 
-                FitPoint(getter1(i));            
+            for (int i = 0; i < getter1.Count; ++i)
+                FitPoint(getter1(i));
             if (fit2) {
-                for (int i = 0; i < getter2.Count; ++i) 
-                    FitPoint(getter2(i));                
+                for (int i = 0; i < getter2.Count; ++i)
+                    FitPoint(getter2(i));
             }
         }
         const ImPlotNextItemData& s = GetItemData();
@@ -1149,7 +1169,7 @@ template <typename T>
 void PlotShaded(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, int offset, int stride) {
     bool fit2 = true;
     if (y_ref == -HUGE_VAL) {
-        fit2 = false;    
+        fit2 = false;
         y_ref = GetPlotLimits().Y.Min;
     }
     if (y_ref == HUGE_VAL) {
@@ -1176,7 +1196,7 @@ template <typename T>
 void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref, int offset, int stride) {
     bool fit2 = true;
     if (y_ref == -HUGE_VAL) {
-        fit2 = false;    
+        fit2 = false;
         y_ref = GetPlotLimits().Y.Min;
     }
     if (y_ref == HUGE_VAL) {
@@ -1591,6 +1611,85 @@ template IMPLOT_API void PlotStems<ImS64>(const char* label_id, const ImS64* xs,
 template IMPLOT_API void PlotStems<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys, int count, double y_ref, int offset, int stride);
 template IMPLOT_API void PlotStems<float>(const char* label_id, const float* xs, const float* ys, int count, double y_ref, int offset, int stride);
 template IMPLOT_API void PlotStems<double>(const char* label_id, const double* xs, const double* ys, int count, double y_ref, int offset, int stride);
+
+//-----------------------------------------------------------------------------
+// INFINITE LINES
+//-----------------------------------------------------------------------------
+
+template <typename T>
+void PlotVLines(const char* label_id, const T* xs, int count, int offset, int stride) {
+    if (BeginItem(label_id, ImPlotCol_Line)) {
+        const ImPlotLimits lims = GetPlotLimits();
+        GetterXsYRef<T> get_min(xs,lims.Y.Min,count,offset,stride);
+        GetterXsYRef<T> get_max(xs,lims.Y.Max,count,offset,stride);
+        if (FitThisFrame()) {
+            for (int i = 0; i < get_min.Count; ++i)
+                FitPointX(get_min(i).x);
+        }
+        const ImPlotNextItemData& s = GetItemData();
+        ImDrawList& DrawList = *GetPlotDrawList();
+        // render stems
+        if (s.RenderLine) {
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+            switch (GetCurrentScale()) {
+                case ImPlotScale_LinLin: RenderLineSegments(get_min, get_max, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLin: RenderLineSegments(get_min, get_max, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LinLog: RenderLineSegments(get_min, get_max, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLog: RenderLineSegments(get_min, get_max, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+            }
+        }
+        EndItem();
+    }
+}
+
+template IMPLOT_API void PlotVLines<ImS8>(const char* label_id, const ImS8* xs, int count, int offset, int stride);
+template IMPLOT_API void PlotVLines<ImU8>(const char* label_id, const ImU8* xs, int count, int offset, int stride);
+template IMPLOT_API void PlotVLines<ImS16>(const char* label_id, const ImS16* xs, int count, int offset, int stride);
+template IMPLOT_API void PlotVLines<ImU16>(const char* label_id, const ImU16* xs, int count, int offset, int stride);
+template IMPLOT_API void PlotVLines<ImS32>(const char* label_id, const ImS32* xs, int count, int offset, int stride);
+template IMPLOT_API void PlotVLines<ImU32>(const char* label_id, const ImU32* xs, int count, int offset, int stride);
+template IMPLOT_API void PlotVLines<ImS64>(const char* label_id, const ImS64* xs, int count, int offset, int stride);
+template IMPLOT_API void PlotVLines<ImU64>(const char* label_id, const ImU64* xs, int count, int offset, int stride);
+template IMPLOT_API void PlotVLines<float>(const char* label_id, const float* xs, int count, int offset, int stride);
+template IMPLOT_API void PlotVLines<double>(const char* label_id, const double* xs, int count, int offset, int stride);
+
+
+template <typename T>
+void PlotHLines(const char* label_id, const T* ys, int count, int offset, int stride) {
+    if (BeginItem(label_id, ImPlotCol_Line)) {
+        const ImPlotLimits lims = GetPlotLimits();
+        GetterXRefYs<T> get_min(lims.X.Min,ys,count,offset,stride);
+        GetterXRefYs<T> get_max(lims.X.Max,ys,count,offset,stride);
+        if (FitThisFrame()) {
+            for (int i = 0; i < get_min.Count; ++i)
+                FitPointY(get_min(i).y);
+        }
+        const ImPlotNextItemData& s = GetItemData();
+        ImDrawList& DrawList = *GetPlotDrawList();
+        // render stems
+        if (s.RenderLine) {
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+            switch (GetCurrentScale()) {
+                case ImPlotScale_LinLin: RenderLineSegments(get_min, get_max, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLin: RenderLineSegments(get_min, get_max, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LinLog: RenderLineSegments(get_min, get_max, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLog: RenderLineSegments(get_min, get_max, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+            }
+        }
+        EndItem();
+    }
+}
+
+template IMPLOT_API void PlotHLines<ImS8>(const char* label_id, const ImS8* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotHLines<ImU8>(const char* label_id, const ImU8* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotHLines<ImS16>(const char* label_id, const ImS16* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotHLines<ImU16>(const char* label_id, const ImU16* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotHLines<ImS32>(const char* label_id, const ImS32* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotHLines<ImU32>(const char* label_id, const ImU32* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotHLines<ImS64>(const char* label_id, const ImS64* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotHLines<ImU64>(const char* label_id, const ImU64* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotHLines<float>(const char* label_id, const float* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotHLines<double>(const char* label_id, const double* ys, int count, int offset, int stride);
 
 //-----------------------------------------------------------------------------
 // PLOT PIE CHART

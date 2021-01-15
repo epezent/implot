@@ -429,19 +429,28 @@ void BustPlotCache() {
 }
 
 void FitPoint(const ImPlotPoint& p) {
+    FitPointX(p.x);
+    FitPointY(p.y);
+}
+
+void FitPointX(double x) {
+    ImPlotContext& gp = *GImPlot;
+    ImPlotRange& ex_x = gp.ExtentsX;
+    const bool log_x  = ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale);
+    if (!ImNanOrInf(x) && !(log_x && x <= 0)) {
+        ex_x.Min = x < ex_x.Min ? x : ex_x.Min;
+        ex_x.Max = x > ex_x.Max ? x : ex_x.Max;
+    }
+}
+
+void FitPointY(double y) {
     ImPlotContext& gp = *GImPlot;
     const ImPlotYAxis y_axis  = gp.CurrentPlot->CurrentYAxis;
-    ImPlotRange& ex_x = gp.ExtentsX;
     ImPlotRange& ex_y = gp.ExtentsY[y_axis];
-    const bool log_x  = ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale);
     const bool log_y  = ImHasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale);
-    if (!ImNanOrInf(p.x) && !(log_x && p.x <= 0)) {
-        ex_x.Min = p.x < ex_x.Min ? p.x : ex_x.Min;
-        ex_x.Max = p.x > ex_x.Max ? p.x : ex_x.Max;
-    }
-    if (!ImNanOrInf(p.y) && !(log_y && p.y <= 0)) {
-        ex_y.Min = p.y < ex_y.Min ? p.y : ex_y.Min;
-        ex_y.Max = p.y > ex_y.Max ? p.y : ex_y.Max;
+    if (!ImNanOrInf(y) && !(log_y && y <= 0)) {
+        ex_y.Min = y < ex_y.Min ? y : ex_y.Min;
+        ex_y.Max = y > ex_y.Max ? y : ex_y.Max;
     }
 }
 
