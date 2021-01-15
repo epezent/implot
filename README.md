@@ -42,7 +42,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
 - default styling based on current ImGui theme, but most elements can be customized independently
 - customizable data getters and data striding (just like ImGui:PlotLine)
 - accepts data as float, double, and 8, 16, 32, and 64-bit signed/unsigned integral types
-- and more! (see Announcements [2020](https://github.com/epezent/implot/issues/48)/[2021](https://github.com/epezent/implot/issues/164))
+- and more! (see Announcements [2020](https://github.com/epezent/implot/issues/48)/[2021](https://github.com/epezent/implot/issues/168))
 
 ## Usage
 
@@ -135,7 +135,7 @@ A: Yes. Up to three y-axes can be enabled. Multiple x-axes are not supported.
 
 **Q: Does ImPlot support [insert plot type]?**
 
-A: Maybe. Check the demo, gallery, or Announcements ([2020](https://github.com/epezent/implot/issues/48)/[2021](https://github.com/epezent/implot/issues/164))to see if your desired plot type is shown. If not, consider submitting an issue or better yet, a PR!
+A: Maybe. Check the demo, gallery, or Announcements ([2020](https://github.com/epezent/implot/issues/48)/[2021](https://github.com/epezent/implot/issues/168))to see if your desired plot type is shown. If not, consider submitting an issue or better yet, a PR!
 
 **Q: Does ImPlot support 3D plots?**
 
