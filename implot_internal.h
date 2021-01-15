@@ -762,8 +762,12 @@ inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]
 
 // Returns true if the user has requested data to be fit.
 inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
-// Extends the current plots axes so that it encompasses point p
+// Extends the current plot's axes so that it encompasses point p
 IMPLOT_API void FitPoint(const ImPlotPoint& p);
+// Extends the current plot's axes so that it encompasses a vertical line at x
+IMPLOT_API void FitPointX(double x);
+// Extends the current plot's axes so that it encompasses a horizontal line at y
+IMPLOT_API void FitPointY(double y);
 
 // Returns true if two ranges overlap
 inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)

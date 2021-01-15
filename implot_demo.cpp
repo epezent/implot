@@ -269,13 +269,13 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Checkbox("Fills",&show_fills);
         if (show_fills) {
             ImGui::SameLine();
-            if (ImGui::RadioButton("To -INF",shade_mode == 0)) 
+            if (ImGui::RadioButton("To -INF",shade_mode == 0))
                 shade_mode = 0;
             ImGui::SameLine();
-            if (ImGui::RadioButton("To +INF",shade_mode == 1)) 
+            if (ImGui::RadioButton("To +INF",shade_mode == 1))
                 shade_mode = 1;
             ImGui::SameLine();
-            if (ImGui::RadioButton("To Ref",shade_mode == 2)) 
+            if (ImGui::RadioButton("To Ref",shade_mode == 2))
                 shade_mode = 2;
             if (shade_mode == 2) {
                 ImGui::SameLine();
@@ -436,6 +436,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
     }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Stem Plots##")) {
         static double xs[51], ys1[51], ys2[51];
         for (int i = 0; i < 51; ++i) {
@@ -452,6 +453,15 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::SetNextMarkerStyle(ImPlotMarker_Square,5,ImVec4(1,0.5f,0,0.25f));
             ImPlot::PlotStems("Stems 2", xs, ys2,51);
 
+            ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Infinite Lines")) {
+        static double vals[] = {0.25, 0.5, 0.75};
+        if (ImPlot::BeginPlot("##Infinite")) {
+            ImPlot::PlotVLines("VLines",vals,3);
+            ImPlot::PlotHLines("HLines",vals,3);
             ImPlot::EndPlot();
         }
     }
