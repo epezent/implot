@@ -182,12 +182,16 @@ struct ImBufferWriter
     }
 
     void Write(const char* fmt, ...) {
-        va_list argp;
-        va_start(argp, fmt);
-        const int written = ::vsnprintf(&Buffer[Pos], Size - Pos - 1, fmt, argp);
+        va_list args;
+        va_start(args, fmt);
+        WriteV(fmt, args);
+        va_end(args);
+    }
+
+    void WriteV(const char* fmt, va_list args) {
+        const int written = ::vsnprintf(&Buffer[Pos], Size - Pos - 1, fmt, args);
         if (written > 0)
           Pos += ImMin(written, Size-Pos-1);
-        va_end(argp);
     }
 };
 
@@ -248,6 +252,23 @@ enum ImPlotTimeFmt_ {              // default        [ 24 Hour Clock ]
     ImPlotTimeFmt_HrMinS,          // 7:21:29pm      [ 19:21:29     ]
     ImPlotTimeFmt_HrMin,           // 7:21pm         [ 19:21        ]
     ImPlotTimeFmt_Hr               // 7pm            [ 19:00        ]
+};
+
+// Input mapping structure, default values listed in the comments.
+struct ImPlotInputMap {
+    ImGuiMouseButton PanButton;             // LMB      enables panning when held
+    ImGuiKeyModFlags PanMod;                // none     optional modifier that must be held for panning
+    ImGuiMouseButton FitButton;             // LMB      fits visible data when double clicked
+    ImGuiMouseButton ContextMenuButton;     // RMB      opens plot context menu (if enabled) when clicked
+    ImGuiMouseButton BoxSelectButton;       // RMB      begins box selection when pressed and confirms selection when released
+    ImGuiKeyModFlags BoxSelectMod;          // none     optional modifier that must be held for box selection
+    ImGuiMouseButton BoxSelectCancelButton; // LMB      cancels active box selection when pressed
+    ImGuiMouseButton QueryButton;           // MMB      begins query selection when pressed and end query selection when released
+    ImGuiKeyModFlags QueryMod;              // none     optional modifier that must be held for query selection
+    ImGuiKeyModFlags QueryToggleMod;        // Ctrl     when held, active box selections turn into queries
+    ImGuiKeyModFlags HorizontalMod;         // Alt      expands active box selection/query horizontally to plot edge when held
+    ImGuiKeyModFlags VerticalMod;           // Shift    expands active box selection/query vertically to plot edge when held
+    IMPLOT_API ImPlotInputMap();
 };
 
 //-----------------------------------------------------------------------------
@@ -582,6 +603,7 @@ struct ImPlotPlot
     ImVec2             QueryStart;
     ImRect             QueryRect;
     bool               Selecting;
+    bool               ContextLocked;
     bool               Querying;
     bool               Queried;
     bool               DraggingQuery;
@@ -606,7 +628,7 @@ struct ImPlotPlot
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
             YAxis[i].Orientation = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
-        Selecting         = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
+        Selecting         = ContextLocked = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
         ColormapIdx       = CurrentYAxis = 0;
         LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
         LegendOrientation = ImPlotOrientation_Vertical;
@@ -760,6 +782,13 @@ IMPLOT_API void Initialize(ImPlotContext* ctx);
 IMPLOT_API void Reset(ImPlotContext* ctx);
 
 //-----------------------------------------------------------------------------
+// [SECTION] Input Utils
+//-----------------------------------------------------------------------------
+
+// Allows changing how keyboard/mouse interaction works.
+IMPLOT_API ImPlotInputMap& GetInputMap();
+
+//-----------------------------------------------------------------------------
 // [SECTION] Plot Utils
 //-----------------------------------------------------------------------------
 
@@ -798,7 +827,7 @@ IMPLOT_API void BustItemCache();
 // Gets the current y-axis for the current plot
 inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
 // Updates axis ticks, lins, and label colors
-IMPLOT_API void UpdateAxisColors(int axis_flag, ImPlotAxisColor* col);
+IMPLOT_API void UpdateAxisColors(int axis_flag, ImPlotAxis* axis);
 
 // Updates plot-to-pixel space transformation variables for the current plot.
 IMPLOT_API void UpdateTransformCache();
@@ -807,8 +836,12 @@ inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]
 
 // Returns true if the user has requested data to be fit.
 inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
-// Extends the current plots axes so that it encompasses point p
+// Extends the current plot's axes so that it encompasses point p
 IMPLOT_API void FitPoint(const ImPlotPoint& p);
+// Extends the current plot's axes so that it encompasses a vertical line at x
+IMPLOT_API void FitPointX(double x);
+// Extends the current plot's axes so that it encompasses a horizontal line at y
+IMPLOT_API void FitPointY(double y);
 
 // Returns true if two ranges overlap
 inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)
@@ -820,7 +853,7 @@ IMPLOT_API void PushLinkedAxis(ImPlotAxis& axis);
 IMPLOT_API void PullLinkedAxis(ImPlotAxis& axis);
 
 // Shows an axis's context menu.
-IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis = NULL, bool time_allowed = false);
+IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_allowed = false);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils
@@ -851,7 +884,7 @@ IMPLOT_API void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
 IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with time formatted ticks.
-IMPLOT_API void AddTicksTime(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
 IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks);
 
