@@ -34,7 +34,6 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
 - up to three independent y-axes
 - controls for zooming, panning, box selection, and auto-fitting data
 - controls for creating persistent query ranges (see demo)
-- remappable input controls
 - several plot styling options: 10 marker types, adjustable marker sizes, line weights, outline colors, fill colors, etc.
 - 10 built-in and user definable colormaps
 - optional plot titles, axis labels, and grid labels
