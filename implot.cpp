@@ -2267,27 +2267,27 @@ void EndPlot() {
     }
     PopPlotClipRect();
 
-    // render y-axis drag/drop hover
-    if ((plot.YAxis[1].Present || plot.YAxis[2].Present) && ImGui::IsDragDropPayloadBeingAccepted()) {
-        for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
-            if (plot.YAxis[i].ExtHovered) {
-                float x_loc = gp.YAxisReference[i];
-                ImVec2 p1(x_loc - 5, plot.PlotRect.Min.y - 5);
-                ImVec2 p2(x_loc + 5, plot.PlotRect.Max.y + 5);
-                DrawList.AddRect(p1, p2, ImGui::GetColorU32(ImGuiCol_DragDropTarget), 0.0f,  ImDrawCornerFlags_All, 2.0f);
-            }
-        }
-    }
+    // // render y-axis drag/drop hover
+    // if ((plot.YAxis[1].Present || plot.YAxis[2].Present) && ImGui::IsDragDropPayloadBeingAccepted()) {
+    //     for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+    //         if (plot.YAxis[i].ExtHovered) {
+    //             float x_loc = gp.YAxisReference[i];
+    //             ImVec2 p1(x_loc - 5, plot.PlotRect.Min.y - 5);
+    //             ImVec2 p2(x_loc + 5, plot.PlotRect.Max.y + 5);
+    //             DrawList.AddRect(p1, p2, ImGui::GetColorU32(ImGuiCol_DragDropTarget), 0.0f,  ImDrawCornerFlags_All, 2.0f);
+    //         }
+    //     }
+    // }
 
-    // render x-axis drag/drop hover
-    if (plot.XAxis.Present && ImGui::IsDragDropPayloadBeingAccepted()) {
-        if (plot.XAxis.ExtHovered) {
-            float y_loc = plot.XAxis.HoverRect.Min.y;
-            ImVec2 p1(plot.XAxis.HoverRect.Min.x - 5, y_loc - 5);
-            ImVec2 p2(plot.XAxis.HoverRect.Max.x + 5, y_loc + 5);
-            DrawList.AddRect(p1, p2, ImGui::GetColorU32(ImGuiCol_DragDropTarget), 0.0f,  ImDrawCornerFlags_All, 2.0f);
-        }
-    }
+    // // render x-axis drag/drop hover
+    // if (plot.XAxis.Present && ImGui::IsDragDropPayloadBeingAccepted()) {
+    //     if (plot.XAxis.ExtHovered) {
+    //         float y_loc = plot.XAxis.HoverRect.Min.y;
+    //         ImVec2 p1(plot.XAxis.HoverRect.Min.x - 5, y_loc - 5);
+    //         ImVec2 p2(plot.XAxis.HoverRect.Max.x + 5, y_loc + 5);
+    //         DrawList.AddRect(p1, p2, ImGui::GetColorU32(ImGuiCol_DragDropTarget), 0.0f,  ImDrawCornerFlags_All, 2.0f);
+    //     }
+    // }
 
     PushPlotClipRect();
     // render selection/query
@@ -2423,9 +2423,9 @@ void EndPlot() {
                                                   legend_size,
                                                   plot.LegendLocation,
                                                   plot.LegendOutside ? gp.Style.PlotPadding : gp.Style.LegendPadding);
-        const ImRect legend_bb(legend_pos, legend_pos + legend_size);
+        plot.LegendRect = ImRect(legend_pos, legend_pos + legend_size);
         // test hover
-        plot.LegendHovered = plot.FrameHovered && legend_bb.Contains(IO.MousePos);
+        plot.LegendHovered = plot.FrameHovered && plot.LegendRect.Contains(IO.MousePos);
 
         if (plot.LegendOutside)
             ImGui::PushClipRect(plot.FrameRect.Min, plot.FrameRect.Max, true);
@@ -2433,10 +2433,13 @@ void EndPlot() {
             PushPlotClipRect();
         ImU32  col_bg      = GetStyleColorU32(ImPlotCol_LegendBg);
         ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
-        DrawList.AddRectFilled(legend_bb.Min, legend_bb.Max, col_bg);
-        DrawList.AddRect(legend_bb.Min, legend_bb.Max, col_bd);
-        ShowLegendEntries(plot, legend_bb, plot.LegendHovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation, DrawList);
+        DrawList.AddRectFilled(plot.LegendRect.Min, plot.LegendRect.Max, col_bg);
+        DrawList.AddRect(plot.LegendRect.Min, plot.LegendRect.Max, col_bd);
+        ShowLegendEntries(plot, plot.LegendRect, plot.LegendHovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation, DrawList);
         ImGui::PopClipRect();
+    }
+    else {
+        plot.LegendRect = ImRect();
     }
     if (plot.LegendFlipSideNextFrame)  {
         plot.LegendOutside  = !plot.LegendOutside;
@@ -2922,6 +2925,36 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
         dragging = true;
     }
     return dragging;
+}
+
+bool BeginDragDropEx(int id, const ImRect& rect) {
+    ImGuiContext& G  = *GImGui;
+    const ImGuiID ID = G.CurrentWindow->GetID(id);
+    if (ImGui::ItemAdd(rect, ID, &rect) && 
+        ImGui::BeginDragDropTarget())
+        return true;
+    return false;
+}
+
+bool BeginDragDropTarget() {
+    return BeginDragDropEx(10030910, GImPlot->CurrentPlot->PlotRect);
+}
+
+bool BeginDragDropTargetX() {
+    return BeginDragDropEx(10030911, GImPlot->CurrentPlot->XAxis.HoverRect);
+}
+
+bool BeginDragDropTargetY(ImPlotYAxis axis) {
+    return BeginDragDropEx(10030912+axis, GImPlot->CurrentPlot->YAxis[axis].HoverRect);
+}
+
+bool BeginDragDropTargetLegend() {
+    return !ImHasFlag(GImPlot->CurrentPlot->Flags,ImPlotFlags_NoLegend) &&
+            BeginDragDropEx(10030915, GImPlot->CurrentPlot->LegendRect);
+}
+
+void EndDragDropTarget() {
+	ImGui::EndDragDropTarget();
 }
 
 void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, bool outside) {

@@ -523,6 +523,12 @@ IMPLOT_API bool DragLineY(const char* id, double* y_value, bool show_label = tru
 // Shows a draggable point at x,y. #col defaults to ImGuiCol_Text.
 IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label = true, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 4);
 
+IMPLOT_API bool BeginDragDropTarget();
+IMPLOT_API bool BeginDragDropTargetX();
+IMPLOT_API bool BeginDragDropTargetY(ImPlotYAxis axis = ImPlotYAxis_1);
+IMPLOT_API bool BeginDragDropTargetLegend();
+IMPLOT_API void EndDragDropTarget();
+
 //-----------------------------------------------------------------------------
 // Legend Utils and Tools
 //-----------------------------------------------------------------------------

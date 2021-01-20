@@ -1032,134 +1032,91 @@ void ShowDemoWindow(bool* p_open) {
                     }
                 }
             }
-            // make our plot a drag and drop target
-			if (ImGui::BeginDragDropTarget()) {
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
-					int i = *(int*)payload->Data;
-					show[i] = true;
-                    yAxis[i] = 0;
-                    // set specific y-axis if hovered
-					for (int y = 0; y < 3; y++) {
-						if (ImPlot::IsPlotYAxisHovered(y))
-							yAxis[i] = y;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
+            // allow uses to DND on main plot area
+            if (ImPlot::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
+                    int i = *(int*)payload->Data; show[i] = true; yAxis[i] = 0;
+                }
+                ImPlot::EndDragDropTarget();
+            }
+            // allow users to DND on y-axes
+            for (int y = 0; y < 3; ++y) {
+                if (ImPlot::BeginDragDropTargetY(y)) {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
+                        int i = *(int*)payload->Data; show[i] = true; yAxis[i] = y;
+                    }
+                    ImPlot::EndDragDropTarget();
+                }
+            }
+            // allow users to DND on x-axes
+            if (ImPlot::BeginDragDropTargetX()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
+                    int i = *(int*)payload->Data; show[i] = true; yAxis[i] = 0;
+                }
+                ImPlot::EndDragDropTarget();
+            }	
+            // allow users to DND on x-axes
+            if (ImPlot::BeginDragDropTargetLegend()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
+                    int i = *(int*)payload->Data; show[i] = true; yAxis[i] = 0;
+                }
+                ImPlot::EndDragDropTarget();
+            }	
             ImPlot::EndPlot();
         }
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Digital and Analog Signals")) {
-        static bool paused = false;
-        #define K_PLOT_DIGITAL_CH_COUNT 4
-        #define K_PLOT_ANALOG_CH_COUNT  4
-        static ScrollingBuffer dataDigital[K_PLOT_DIGITAL_CH_COUNT];
-        static ScrollingBuffer dataAnalog[K_PLOT_ANALOG_CH_COUNT];
-        static bool showDigital[K_PLOT_DIGITAL_CH_COUNT];
-        static bool showAnalog[K_PLOT_ANALOG_CH_COUNT];
 
         ImGui::BulletText("You can plot digital and analog signals on the same plot.");
         ImGui::BulletText("Digital signals do not respond to Y drag and zoom, so that");
         ImGui::Indent();
         ImGui::Text("you can drag analog signals over the rising/falling digital edge.");
         ImGui::Unindent();
-        ImGui::BeginGroup();
-        if (ImGui::Button("Clear", ImVec2(100, 0))) {
-            for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i)
-                showDigital[i] = false;
-            for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i)
-                showAnalog[i] = false;
-        }
-        if (ImGui::Button(paused ? "Resume" : "Pause", ImVec2(100,0)))
-            paused = !paused;
-        for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
-            char label[32];
-            sprintf(label, "digital_%d", i);
-            ImGui::Checkbox(label, &showDigital[i]);
-            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-                ImGui::SetDragDropPayload("DND_DIGITAL_PLOT", &i, sizeof(int));
-                ImGui::TextUnformatted(label);
-                ImGui::EndDragDropSource();
-            }
-        }
-        for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
-            char label[32];
-            sprintf(label, "analog_%d", i);
-            ImGui::Checkbox(label, &showAnalog[i]);
-            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-                ImGui::SetDragDropPayload("DND_ANALOG_PLOT", &i, sizeof(int));
-                ImGui::TextUnformatted(label);
-                ImGui::EndDragDropSource();
-            }
-        }
-        ImGui::EndGroup();
-        ImGui::SameLine();
+
+        static bool paused = false;
+         static ScrollingBuffer dataDigital[2];
+        static ScrollingBuffer dataAnalog[2];
+        static bool showDigital[2] = {true, false};
+        static bool showAnalog[2] = {true, false};
+
+        char label[32];
+        ImGui::Checkbox("digital_0", &showDigital[0]); ImGui::SameLine();
+        ImGui::Checkbox("digital_1", &showDigital[1]); ImGui::SameLine();
+        ImGui::Checkbox("analog_0",  &showAnalog[0]);  ImGui::SameLine();
+        ImGui::Checkbox("analog_1",  &showAnalog[1]);        
+
         static float t = 0;
         if (!paused) {
             t += ImGui::GetIO().DeltaTime;
             //digital signal values
-            int i = 0;
-            if (showDigital[i])
-                dataDigital[i].AddPoint(t, sinf(2*t) > 0.45);
-            i++;
-            if (showDigital[i])
-                dataDigital[i].AddPoint(t, sinf(2*t) < 0.45);
-            i++;
-            if (showDigital[i])
-                dataDigital[i].AddPoint(t, fmodf(t,5.0f));
-            i++;
-            if (showDigital[i])
-                dataDigital[i].AddPoint(t, sinf(2*t) < 0.17);
+            if (showDigital[0])
+                dataDigital[0].AddPoint(t, sinf(2*t) > 0.45);
+            if (showDigital[1])
+                dataDigital[1].AddPoint(t, sinf(2*t) < 0.45);
             //Analog signal values
-            i = 0;
-            if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, sinf(2*t));
-            i++;
-            if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, cosf(2*t));
-            i++;
-            if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, sinf(2*t) * cosf(2*t));
-            i++;
-            if (showAnalog[i])
-                dataAnalog[i].AddPoint(t, sinf(2*t) - cosf(2*t));
+            if (showAnalog[0])
+                dataAnalog[0].AddPoint(t, sinf(2*t));
+            if (showAnalog[1])
+                dataAnalog[1].AddPoint(t, cosf(2*t));
         }
         ImPlot::SetNextPlotLimitsY(-1, 1);
         ImPlot::SetNextPlotLimitsX(t - 10.0, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         if (ImPlot::BeginPlot("##Digital")) {
-            for (int i = 0; i < K_PLOT_DIGITAL_CH_COUNT; ++i) {
+            for (int i = 0; i < 2; ++i) {
                 if (showDigital[i] && dataDigital[i].Data.size() > 0) {
-                    char label[32];
                     sprintf(label, "digital_%d", i);
                     ImPlot::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), dataDigital[i].Offset, 2 * sizeof(float));
                 }
             }
-            for (int i = 0; i < K_PLOT_ANALOG_CH_COUNT; ++i) {
+            for (int i = 0; i < 2; ++i) {
                 if (showAnalog[i]) {
-                    char label[32];
                     sprintf(label, "analog_%d", i);
                     if (dataAnalog[i].Data.size() > 0)
                         ImPlot::PlotLine(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), dataAnalog[i].Offset, 2 * sizeof(float));
                 }
             }
             ImPlot::EndPlot();
-        }
-        if (ImGui::BeginDragDropTarget()) {
-           const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_DIGITAL_PLOT");
-            if (payload) {
-                int i = *(int*)payload->Data;
-                showDigital[i] = true;
-            }
-            else
-            {
-               payload = ImGui::AcceptDragDropPayload("DND_ANALOG_PLOT");
-               if (payload) {
-                  int i = *(int*)payload->Data;
-                  showAnalog[i] = true;
-               }
-            }
-            ImGui::EndDragDropTarget();
         }
     }
     if (ImGui::CollapsingHeader("Tables")) {
