@@ -2279,6 +2279,16 @@ void EndPlot() {
         }
     }
 
+    // render x-axis drag/drop hover
+    if (plot.XAxis.Present && ImGui::IsDragDropPayloadBeingAccepted()) {
+        if (plot.XAxis.ExtHovered) {
+            float y_loc = plot.XAxis.HoverRect.Min.y;
+            ImVec2 p1(plot.XAxis.HoverRect.Min.x - 5, y_loc - 5);
+            ImVec2 p2(plot.XAxis.HoverRect.Max.x + 5, y_loc + 5);
+            DrawList.AddRect(p1, p2, ImGui::GetColorU32(ImGuiCol_DragDropTarget), 0.0f,  ImDrawCornerFlags_All, 2.0f);
+        }
+    }
+
     PushPlotClipRect();
     // render selection/query
     if (plot.Selecting) {
