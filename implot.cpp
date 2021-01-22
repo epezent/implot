@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2021/01/XX (0.9) - BeginLegendDragDropSource was changed to BeginDragDropSourceItem with a number of other drag and drop improvements.
 - 2021/01/18 (0.9) - The default behavior for opening context menus was change from double right-click to single right-click. ImPlotInputMap and related functions were moved
                      to implot_internal.h due to its immaturity.
 - 2020/10/16 (0.8) - ImPlotStyleVar_InfoPadding was changed to ImPlotStyleVar_MousePosPadding
@@ -2927,7 +2928,9 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
     return dragging;
 }
 
-bool BeginDragDropEx(int id, const ImRect& rect) {
+//-----------------------------------------------------------------------------
+
+bool BeginDragDropTargetEx(int id, const ImRect& rect) {
     ImGuiContext& G  = *GImGui;
     const ImGuiID ID = G.CurrentWindow->GetID(id);
     if (ImGui::ItemAdd(rect, ID, &rect) && 
@@ -2937,56 +2940,28 @@ bool BeginDragDropEx(int id, const ImRect& rect) {
 }
 
 bool BeginDragDropTarget() {
-    return BeginDragDropEx(10030910, GImPlot->CurrentPlot->PlotRect);
+    return BeginDragDropTargetEx(10030910, GImPlot->CurrentPlot->PlotRect);
 }
 
 bool BeginDragDropTargetX() {
-    return BeginDragDropEx(10030911, GImPlot->CurrentPlot->XAxis.HoverRect);
+    return BeginDragDropTargetEx(10030911, GImPlot->CurrentPlot->XAxis.HoverRect);
 }
 
 bool BeginDragDropTargetY(ImPlotYAxis axis) {
-    return BeginDragDropEx(10030912+axis, GImPlot->CurrentPlot->YAxis[axis].HoverRect);
+    return BeginDragDropTargetEx(10030912+axis, GImPlot->CurrentPlot->YAxis[axis].HoverRect);
 }
 
 bool BeginDragDropTargetLegend() {
     return !ImHasFlag(GImPlot->CurrentPlot->Flags,ImPlotFlags_NoLegend) &&
-            BeginDragDropEx(10030915, GImPlot->CurrentPlot->LegendRect);
+            BeginDragDropTargetEx(10030915, GImPlot->CurrentPlot->LegendRect);
 }
 
 void EndDragDropTarget() {
 	ImGui::EndDragDropTarget();
 }
 
-void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, bool outside) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetLegendLocation() needs to be called between BeginPlot() and EndPlot()!");
-    gp.CurrentPlot->LegendLocation         = location;
-    gp.CurrentPlot->LegendOrientation      = orientation;
-    if (gp.CurrentPlot->LegendOutside != outside)
-        gp.CurrentPlot->LegendFlipSideNextFrame = true;
-}
 
-void SetMousePosLocation(ImPlotLocation location) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetMousePosLocation() needs to be called between BeginPlot() and EndPlot()!");
-    gp.CurrentPlot->MousePosLocation = location;
-}
-
-bool IsLegendEntryHovered(const char* label_id) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotItemHighlight() needs to be called between BeginPlot() and EndPlot()!");
-    ImGuiID id = ImGui::GetID(label_id);
-    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
-    return item && item->LegendHovered;
-}
-
-bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginLegendDragDropSource() needs to be called between BeginPlot() and EndPlot()!");
-    ImGuiID source_id = ImGui::GetID(label_id);
-    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(source_id);
-    bool is_hovered = item && item->LegendHovered;
-
+bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlags flags) {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
 
@@ -3003,8 +2978,9 @@ bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags) {
         ImGui::FocusWindow(window);
     }
 
-    if (g.ActiveId != source_id)
+    if (g.ActiveId != source_id) {
         return false;
+    }
 
     // Allow the underlying widget to display/return hovered during the mouse
     // release frame, else we would get a flicker.
@@ -3016,6 +2992,7 @@ bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags) {
     g.ActiveIdUsingKeyInputMask = ~(ImU64)0;
 
     if (ImGui::IsMouseDragging(mouse_button)) {
+
         if (!g.DragDropActive) {
             ImGui::ClearDragDrop();
             ImGuiPayload& payload = g.DragDropPayload;
@@ -3045,9 +3022,65 @@ bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags) {
     return false;
 }
 
-void EndLegendDragDropSource() {
+IMPLOT_API bool BeginDragDropSourceX(ImGuiDragDropFlags flags) {
+    return BeginDragDropSourceEx(10030911, GImPlot->CurrentPlot->XAxis.ExtHovered, flags);
+}
+
+
+bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginDragDropSourceItem() needs to be called between BeginPlot() and EndPlot()!");
+    ImGuiID source_id = ImGui::GetID(label_id);
+    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(source_id);
+    bool is_hovered = item && item->LegendHovered;
+    return BeginDragDropSourceEx(source_id, is_hovered, flags);
+}
+
+void EndDragDropSource() {
     ImGui::EndDragDropSource();
 }
+
+void ItemIcon(const ImVec4& col) {
+    ItemIcon(ImGui::ColorConvertFloat4ToU32(col));
+}
+
+void ItemIcon(ImU32 col) {
+    const float txt_size = ImGui::GetTextLineHeight();
+    ImVec2 size(txt_size-4,txt_size);
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    ImVec2 pos = window->DC.CursorPos;
+    ImGui::GetWindowDrawList()->AddRectFilled(pos + ImVec2(0,2), pos + size - ImVec2(0,2), col);
+    ImGui::Dummy(size);
+}
+
+//-----------------------------------------------------------------------------
+
+void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, bool outside) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetLegendLocation() needs to be called between BeginPlot() and EndPlot()!");
+    gp.CurrentPlot->LegendLocation         = location;
+    gp.CurrentPlot->LegendOrientation      = orientation;
+    if (gp.CurrentPlot->LegendOutside != outside)
+        gp.CurrentPlot->LegendFlipSideNextFrame = true;
+}
+
+void SetMousePosLocation(ImPlotLocation location) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetMousePosLocation() needs to be called between BeginPlot() and EndPlot()!");
+    gp.CurrentPlot->MousePosLocation = location;
+}
+
+bool IsLegendEntryHovered(const char* label_id) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotItemHighlight() needs to be called between BeginPlot() and EndPlot()!");
+    ImGuiID id = ImGui::GetID(label_id);
+    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
+    return item && item->LegendHovered;
+}
+
+
+
+
 
 bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button) {
     ImPlotContext& gp = *GImPlot;

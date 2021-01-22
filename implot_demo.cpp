@@ -81,8 +81,8 @@ struct ScrollingBuffer {
     int MaxSize;
     int Offset;
     ImVector<ImVec2> Data;
-    ScrollingBuffer() {
-        MaxSize = 2000;
+    ScrollingBuffer(int max_size = 2000) {
+        MaxSize = max_size;
         Offset  = 0;
         Data.reserve(MaxSize);
     }
@@ -969,101 +969,138 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Drag and Drop")) {
-        const int K_CHANNELS = 9;
-        srand((int)(10000000 * DEMO_TIME));
-        static bool paused = false;
-        static bool init = true;
-        static ScrollingBuffer data[K_CHANNELS];
-        static bool show[K_CHANNELS];
-        static int yAxis[K_CHANNELS];
-        if (init) {
-            for (int i = 0; i < K_CHANNELS; ++i) {
-                show[i] = false;
-				yAxis[i] = 0;
-            }
-            init = false;
-        }
         ImGui::BulletText("Drag data items from the left column onto the plot or onto a specific y-axis.");
         ImGui::BulletText("Redrag data items from the legend onto other y-axes.");
-        ImGui::BeginGroup();
-        if (ImGui::Button("Clear", ImVec2(100, 0))) {
-            for (int i = 0; i < K_CHANNELS; ++i) {
-                show[i] = false;
-                data[i].Data.shrink(0);
-                data[i].Offset = 0;
+
+        // convenience struct to manage DND items
+        struct MyDndItem {
+            int              Idx;
+            int              Plt;
+            int              Yax;
+            char             Label[16];
+            ImVector<ImVec2> Data;
+            ImVec4           Color;
+            MyDndItem()        { 
+                static int i = 0; 
+                Idx = i++; 
+                Plt = 0; Yax = 
+                ImPlotYAxis_1; 
+                sprintf(Label, "%02d Hz", Idx+1); 
+                Color = ImPlot::GetColormapColor(Idx); 
+                Data.reserve(1001);
+                for (int k = 0; k < 1001; ++k) {
+                    float t = k * 1.0f / 999;
+                    Data.push_back(ImVec2(t, 0.5f + 0.5f * sinf(2*3.14f*t*(Idx+1))));
+                }
             }
+            void Reset()         { Plt = 0; Yax = ImPlotYAxis_1; }    
+        };
+
+        const int        k_dnd = 20;
+        static MyDndItem dnd[k_dnd];     
+
+
+        // child window to serve as initial source for our DND items
+        ImGui::BeginChild("DND_LEFT",ImVec2(100,400));
+        if (ImGui::Button("Reset Data", ImVec2(100, 0))) {
+            for (int k = 0; k < k_dnd; ++k) 
+                dnd[k].Reset();            
         }
-        if (ImGui::Button(paused ? "Resume" : "Pause", ImVec2(100,0)))
-            paused = !paused;
-        for (int i = 0; i < K_CHANNELS; ++i) {
-            char label[16];
-            sprintf(label, show[i] ? "data_%d (Y%d)" : "data_%d", i, yAxis[i]+1);
-            ImGui::Selectable(label, false, 0, ImVec2(100, 0));
+
+        for (int k = 0; k < k_dnd; ++k) {
+            if (dnd[k].Plt > 0)
+                continue;   
+            ImPlot::ItemIcon(dnd[k].Color); ImGui::SameLine();        
+            ImGui::Selectable(dnd[k].Label, false, 0, ImVec2(100, 0));
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
-                ImGui::SetDragDropPayload("DND_PLOT", &i, sizeof(int));
-                ImGui::TextUnformatted(label);
+                ImGui::SetDragDropPayload("MY_DND", &k, sizeof(int));
+                ImPlot::ItemIcon(dnd[k].Color); ImGui::SameLine();       
+                ImGui::TextUnformatted(dnd[k].Label);
                 ImGui::EndDragDropSource();
             }
         }
-        ImGui::EndGroup();
-        ImGui::SameLine();
-        srand((unsigned int)DEMO_TIME*10000000);
-        static float t = 0;
-        if (!paused) {
-            t += ImGui::GetIO().DeltaTime;
-            for (int i = 0; i < K_CHANNELS; ++i) {
-                if (show[i])
-                    data[i].AddPoint(t, (i+1)*0.1f + RandomRange(-0.01f,0.01f));
+        ImGui::EndChild();
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                int i = *(int*)payload->Data; dnd[i].Reset();
             }
+            ImGui::EndDragDropTarget();
         }
-        ImPlot::SetNextPlotLimitsX((double)t - 10, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##DND", NULL, NULL, ImVec2(-1,0), ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3, ImPlotAxisFlags_NoTickLabels)) {
-            for (int i = 0; i < K_CHANNELS; ++i) {
-                if (show[i] && data[i].Data.size() > 0) {
-                    char label[K_CHANNELS];
-                    sprintf(label, "data_%d", i);
-					ImPlot::SetPlotYAxis(yAxis[i]);
-                    ImPlot::PlotLine(label, &data[i].Data[0].x, &data[i].Data[0].y, data[i].Data.size(), data[i].Offset, 2 * sizeof(float));
+
+     
+        ImGui::SameLine();
+        ImGui::BeginChild("DND_RIGHT",ImVec2(-1,400));
+        // first plot (time series)
+        ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoGridLines;
+        if (ImPlot::BeginPlot("##DND1", NULL, "[drop here]", ImVec2(-1,195), ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3, flags | ImPlotAxisFlags_Lock, flags, flags, flags, "[drop here]", "[drop here]")) {
+            for (int k = 0; k < k_dnd; ++k) {
+                if (dnd[k].Plt == 1 && dnd[k].Data.size() > 0) {
+                    ImPlot::SetPlotYAxis(dnd[k].Yax);
+                    ImPlot::SetNextLineStyle(dnd[k].Color);
+                    static char label[16];
+                    sprintf(label,"%s (Y%d)", dnd[k].Label, dnd[k].Yax+1);
+                    ImPlot::PlotLine(label, &dnd[k].Data[0].x, &dnd[k].Data[0].y, dnd[k].Data.size(), 0, 2 * sizeof(float));
                     // allow legend labels to be dragged and dropped
-                    if (ImPlot::BeginLegendDragDropSource(label)) {
-                        ImGui::SetDragDropPayload("DND_PLOT", &i, sizeof(int));
-                        ImGui::TextUnformatted(label);
-                        ImPlot::EndLegendDragDropSource();
+                    if (ImPlot::BeginDragDropSourceItem(label)) {
+                        ImGui::SetDragDropPayload("MY_DND", &k, sizeof(int));
+                        ImPlot::ItemIcon(dnd[k].Color); ImGui::SameLine();       
+                        ImGui::TextUnformatted(dnd[k].Label);
+                        ImPlot::EndDragDropSource();
                     }
                 }
             }
             // allow uses to DND on main plot area
             if (ImPlot::BeginDragDropTarget()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
-                    int i = *(int*)payload->Data; show[i] = true; yAxis[i] = 0;
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                    int i = *(int*)payload->Data; dnd[i].Plt = 1; dnd[i].Yax = 0;
                 }
                 ImPlot::EndDragDropTarget();
             }
             // allow users to DND on y-axes
             for (int y = 0; y < 3; ++y) {
                 if (ImPlot::BeginDragDropTargetY(y)) {
-                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
-                        int i = *(int*)payload->Data; show[i] = true; yAxis[i] = y;
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                        int i = *(int*)payload->Data; dnd[i].Plt = 1; dnd[i].Yax = y;
                     }
                     ImPlot::EndDragDropTarget();
                 }
             }
-            // allow users to DND on x-axes
-            if (ImPlot::BeginDragDropTargetX()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
-                    int i = *(int*)payload->Data; show[i] = true; yAxis[i] = 0;
-                }
-                ImPlot::EndDragDropTarget();
-            }	
-            // allow users to DND on x-axes
+            // allow users to DND on legend
             if (ImPlot::BeginDragDropTargetLegend()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_PLOT")) {
-                    int i = *(int*)payload->Data; show[i] = true; yAxis[i] = 0;
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                    int i = *(int*)payload->Data; dnd[i].Plt = 1; dnd[i].Yax = 0;
                 }
                 ImPlot::EndDragDropTarget();
             }	
             ImPlot::EndPlot();
+        }   
+        // second plot (Lissajous)
+        static MyDndItem* dndx = NULL;
+        static MyDndItem* dndy = NULL;
+        ImPlot::PushStyleColor(ImPlotCol_XAxis, dndx == NULL ? ImPlot::GetStyle().Colors[ImPlotCol_XAxis] : dndx->Color);
+        ImPlot::PushStyleColor(ImPlotCol_YAxis, dndy == NULL ? ImPlot::GetStyle().Colors[ImPlotCol_YAxis] : dndy->Color);
+        if (ImPlot::BeginPlot("##DND2", dndx == NULL ? "[drop here]" : dndx->Label, dndy == NULL ? "[drop here]" : dndy->Label, ImVec2(-1,195), 0, flags | ImPlotAxisFlags_Lock, flags | ImPlotAxisFlags_Lock)) {
+            if (dndx != NULL && dndy != NULL) {
+                ImVec4 mixed((dndx->Color.x + dndy->Color.x)/2,(dndx->Color.y + dndy->Color.y)/2,(dndx->Color.z + dndy->Color.z)/2,(dndx->Color.w + dndy->Color.w)/2);
+                ImPlot::SetNextLineStyle(mixed);
+                ImPlot::PlotLine("##dndxy", &dndx->Data[0].y, &dndy->Data[0].y, dndx->Data.size(), 0, 2 * sizeof(float));
+            }
+            if (ImPlot::BeginDragDropTargetY()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                    int i = *(int*)payload->Data; dndy = &dnd[i];
+                }
+                ImPlot::EndDragDropTarget();
+            }	
+           if (ImPlot::BeginDragDropTargetX()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                    int i = *(int*)payload->Data; dndx = &dnd[i];
+                }
+                ImPlot::EndDragDropTarget();
+            }	  
+            ImPlot::EndPlot();
         }
+        ImPlot::PopStyleColor(2);
+        ImGui::EndChild();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Digital and Analog Signals")) {
