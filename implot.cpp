@@ -1492,6 +1492,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
             if (pad_right < alignedPlotGroup.pad_right) pad_right = alignedPlotGroup.pad_right;
         }
     }
+
     const float plot_width = plot.CanvasRect.GetWidth() - pad_left - pad_right;
 
     // (4) get x ticks
