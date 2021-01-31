@@ -3878,12 +3878,14 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
 
     ImGui::PushID(id);
     ImGui::BeginGroup();
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
 
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4 col_txt    = style.Colors[ImGuiCol_Text];
     ImVec4 col_dis    = style.Colors[ImGuiCol_TextDisabled];
+    ImVec4 col_btn    = style.Colors[ImGuiCol_Button];
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
+  
     const float ht    = ImGui::GetFrameHeight();
     ImVec2 cell_size(ht*1.25f,ht);
     char buff[32];
@@ -3969,7 +3971,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
                 if (off_mo)
                     ImGui::PushStyleColor(ImGuiCol_Text, col_dis);
                 if (t1_or_t2) {
-                    ImGui::PushStyleColor(ImGuiCol_Button, col_dis);
+                    ImGui::PushStyleColor(ImGuiCol_Button, col_btn);
                     ImGui::PushStyleColor(ImGuiCol_Text, col_txt);
                 }
                 ImGui::PushID(i*7+j);
@@ -4019,7 +4021,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
                 const bool t1_or_t2 = (t1 != NULL && t1_yr == this_yr && t1_mo == mo) ||
                                       (t2 != NULL && t2_yr == this_yr && t2_mo == mo);
                 if (t1_or_t2)
-                    ImGui::PushStyleColor(ImGuiCol_Button, col_dis);
+                    ImGui::PushStyleColor(ImGuiCol_Button, col_btn);
                 if (ImGui::Button(MONTH_ABRVS[mo],cell_size) && !clk) {
                     *t = MakeTime(this_yr, mo);
                     *level = 0;
@@ -4057,7 +4059,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
             for (int j = 0; j < 4; ++j) {
                 const bool t1_or_t2 = (t1 != NULL && t1_yr == yr) || (t2 != NULL && t2_yr == yr);
                 if (t1_or_t2)
-                    ImGui::PushStyleColor(ImGuiCol_Button, col_dis);
+                    ImGui::PushStyleColor(ImGuiCol_Button, col_btn);
                 snprintf(buff,32,"%d",yr);
                 if (yr<1970||yr>3000) {
                     ImGui::Dummy(cell_size);
