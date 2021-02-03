@@ -2930,6 +2930,11 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
 
 //-----------------------------------------------------------------------------
 
+#define IMPLOT_ID_PLT 10030910
+#define IMPLOT_ID_LEG 10030911
+#define IMPLOT_ID_XAX 10030912
+#define IMPLOT_ID_YAX 10030913
+
 bool BeginDragDropTargetEx(int id, const ImRect& rect) {
     ImGuiContext& G  = *GImGui;
     const ImGuiID ID = G.CurrentWindow->GetID(id);
@@ -2940,31 +2945,29 @@ bool BeginDragDropTargetEx(int id, const ImRect& rect) {
 }
 
 bool BeginDragDropTarget() {
-    return BeginDragDropTargetEx(10030910, GImPlot->CurrentPlot->PlotRect);
+    return BeginDragDropTargetEx(IMPLOT_ID_PLT, GImPlot->CurrentPlot->PlotRect);
 }
 
 bool BeginDragDropTargetX() {
-    return BeginDragDropTargetEx(10030911, GImPlot->CurrentPlot->XAxis.HoverRect);
+    return BeginDragDropTargetEx(IMPLOT_ID_XAX, GImPlot->CurrentPlot->XAxis.HoverRect);
 }
 
 bool BeginDragDropTargetY(ImPlotYAxis axis) {
-    return BeginDragDropTargetEx(10030912+axis, GImPlot->CurrentPlot->YAxis[axis].HoverRect);
+    return BeginDragDropTargetEx(IMPLOT_ID_YAX + axis, GImPlot->CurrentPlot->YAxis[axis].HoverRect);
 }
 
 bool BeginDragDropTargetLegend() {
     return !ImHasFlag(GImPlot->CurrentPlot->Flags,ImPlotFlags_NoLegend) &&
-            BeginDragDropTargetEx(10030915, GImPlot->CurrentPlot->LegendRect);
+            BeginDragDropTargetEx(IMPLOT_ID_LEG, GImPlot->CurrentPlot->LegendRect);
 }
 
 void EndDragDropTarget() {
 	ImGui::EndDragDropTarget();
 }
 
-
-bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlags flags) {
+bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlags flags, ImGuiKeyModFlags key_mods) {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
-
     ImGuiMouseButton mouse_button = ImGuiMouseButton_Left;
 
     if (g.IO.MouseDown[mouse_button] == false) {
@@ -2972,21 +2975,17 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
             ImGui::ClearActiveID();
         return false;
     }
-
-    if (is_hovered && g.IO.MouseClicked[mouse_button]) {
+    
+    if (is_hovered && g.IO.MouseClicked[mouse_button] && g.IO.KeyMods == key_mods) {
         ImGui::SetActiveID(source_id, window);
-        ImGui::FocusWindow(window);
+        ImGui::FocusWindow(window);        
     }
 
     if (g.ActiveId != source_id) {
         return false;
     }
 
-    // Allow the underlying widget to display/return hovered during the mouse
-    // release frame, else we would get a flicker.
     g.ActiveIdAllowOverlap = is_hovered;
-
-    // Disable navigation and key inputs while dragging
     g.ActiveIdUsingNavDirMask = ~(ImU32)0;
     g.ActiveIdUsingNavInputMask = ~(ImU32)0;
     g.ActiveIdUsingKeyInputMask = ~(ImU64)0;
@@ -3006,10 +3005,6 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
         g.DragDropWithinSource = true;
 
         if (!(flags & ImGuiDragDropFlags_SourceNoPreviewTooltip)) {
-            // Target can request the Source to not display its tooltip (we use a
-            // dedicated flag to make this request explicit) We unfortunately can't
-            // just modify the source flags and skip the call to BeginTooltip, as
-            // caller may be emitting contents.
             ImGui::BeginTooltip();
             if (g.DragDropAcceptIdPrev && (g.DragDropAcceptFlags & ImGuiDragDropFlags_AcceptNoPreviewTooltip)) {
                 ImGuiWindow* tooltip_window = g.CurrentWindow;
@@ -3022,10 +3017,21 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
     return false;
 }
 
-IMPLOT_API bool BeginDragDropSourceX(ImGuiDragDropFlags flags) {
-    return BeginDragDropSourceEx(10030911, GImPlot->CurrentPlot->XAxis.ExtHovered, flags);
+bool BeginDragDropSourceX(ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    if (ImGui::GetIO().KeyMods == key_mods)
+        GImPlot->CurrentPlot->XAxis.Dragging = false;
+    const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_XAX);
+    ImRect rect = GImPlot->CurrentPlot->XAxis.HoverRect;
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->XAxis.ExtHovered, flags, key_mods);       
 }
 
+bool BeginDragDropSourceY(ImPlotYAxis axis, ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    if (ImGui::GetIO().KeyMods == key_mods)
+        GImPlot->CurrentPlot->YAxis[axis].Dragging = false;
+    const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_YAX + axis);
+    ImRect rect = GImPlot->CurrentPlot->YAxis[axis].HoverRect;
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->YAxis[axis].ExtHovered, flags, key_mods);      
+}
 
 bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
     ImPlotContext& gp = *GImPlot;
@@ -3033,7 +3039,7 @@ bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
     ImGuiID source_id = ImGui::GetID(label_id);
     ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(source_id);
     bool is_hovered = item && item->LegendHovered;
-    return BeginDragDropSourceEx(source_id, is_hovered, flags);
+    return BeginDragDropSourceEx(source_id, is_hovered, flags, ImGuiKeyModFlags_None);
 }
 
 void EndDragDropSource() {

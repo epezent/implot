@@ -1079,11 +1079,24 @@ void ShowDemoWindow(bool* p_open) {
         static MyDndItem* dndy = NULL;
         ImPlot::PushStyleColor(ImPlotCol_XAxis, dndx == NULL ? ImPlot::GetStyle().Colors[ImPlotCol_XAxis] : dndx->Color);
         ImPlot::PushStyleColor(ImPlotCol_YAxis, dndy == NULL ? ImPlot::GetStyle().Colors[ImPlotCol_YAxis] : dndy->Color);
-        if (ImPlot::BeginPlot("##DND2", dndx == NULL ? "[drop here]" : dndx->Label, dndy == NULL ? "[drop here]" : dndy->Label, ImVec2(-1,195), 0, flags | ImPlotAxisFlags_Lock, flags | ImPlotAxisFlags_Lock)) {
+        if (ImPlot::BeginPlot("##DND2", dndx == NULL ? "[drop here]" : dndx->Label, dndy == NULL ? "[drop here]" : dndy->Label, ImVec2(-1,195), 0, flags, flags )) {
             if (dndx != NULL && dndy != NULL) {
                 ImVec4 mixed((dndx->Color.x + dndy->Color.x)/2,(dndx->Color.y + dndy->Color.y)/2,(dndx->Color.z + dndy->Color.z)/2,(dndx->Color.w + dndy->Color.w)/2);
                 ImPlot::SetNextLineStyle(mixed);
                 ImPlot::PlotLine("##dndxy", &dndx->Data[0].y, &dndy->Data[0].y, dndx->Data.size(), 0, 2 * sizeof(float));
+            }
+
+           if (ImPlot::BeginDragDropTargetX()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                    int i = *(int*)payload->Data; dndx = &dnd[i];
+                }
+                ImPlot::EndDragDropTarget();
+            }	
+            if (dndx != NULL && ImPlot::BeginDragDropSourceX()) {
+                ImGui::SetDragDropPayload("MY_DND", &dndx->Idx, sizeof(int));
+                ImPlot::ItemIcon(dndx->Color); ImGui::SameLine();       
+                ImGui::TextUnformatted(dndx->Label);
+                ImPlot::EndDragDropSource();
             }
             if (ImPlot::BeginDragDropTargetY()) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
@@ -1091,12 +1104,13 @@ void ShowDemoWindow(bool* p_open) {
                 }
                 ImPlot::EndDragDropTarget();
             }	
-           if (ImPlot::BeginDragDropTargetX()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
-                    int i = *(int*)payload->Data; dndx = &dnd[i];
-                }
-                ImPlot::EndDragDropTarget();
-            }	  
+            if (dndy != NULL && ImPlot::BeginDragDropSourceY()) {
+                ImGui::SetDragDropPayload("MY_DND", &dndy->Idx, sizeof(int));
+                ImPlot::ItemIcon(dndy->Color); ImGui::SameLine();       
+                ImGui::TextUnformatted(dndy->Label);
+                ImPlot::EndDragDropSource();
+            }
+  
             ImPlot::EndPlot();
         }
         ImPlot::PopStyleColor(2);
