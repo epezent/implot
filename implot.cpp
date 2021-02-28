@@ -2938,7 +2938,7 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
 bool BeginDragDropTargetEx(int id, const ImRect& rect) {
     ImGuiContext& G  = *GImGui;
     const ImGuiID ID = G.CurrentWindow->GetID(id);
-    if (ImGui::ItemAdd(rect, ID, &rect) && 
+    if (ImGui::ItemAdd(rect, ID, &rect) &&
         ImGui::BeginDragDropTarget())
         return true;
     return false;
@@ -2975,10 +2975,10 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
             ImGui::ClearActiveID();
         return false;
     }
-    
+
     if (is_hovered && g.IO.MouseClicked[mouse_button] && g.IO.KeyMods == key_mods) {
         ImGui::SetActiveID(source_id, window);
-        ImGui::FocusWindow(window);        
+        ImGui::FocusWindow(window);
     }
 
     if (g.ActiveId != source_id) {
@@ -3017,12 +3017,23 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
     return false;
 }
 
+bool BeginDragDropSource(ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    if (ImGui::GetIO().KeyMods == key_mods) {
+        GImPlot->CurrentPlot->XAxis.Dragging = false;
+        for (int i = 0; i < IMPLOT_Y_AXES; ++i)
+            GImPlot->CurrentPlot->YAxis[i].Dragging = false;
+    }
+    const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_PLT);
+    ImRect rect = GImPlot->CurrentPlot->PlotRect;
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->PlotHovered, flags, key_mods);
+}
+
 bool BeginDragDropSourceX(ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
     if (ImGui::GetIO().KeyMods == key_mods)
         GImPlot->CurrentPlot->XAxis.Dragging = false;
     const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_XAX);
     ImRect rect = GImPlot->CurrentPlot->XAxis.HoverRect;
-    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->XAxis.ExtHovered, flags, key_mods);       
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->XAxis.ExtHovered, flags, key_mods);
 }
 
 bool BeginDragDropSourceY(ImPlotYAxis axis, ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
@@ -3030,7 +3041,7 @@ bool BeginDragDropSourceY(ImPlotYAxis axis, ImGuiKeyModFlags key_mods, ImGuiDrag
         GImPlot->CurrentPlot->YAxis[axis].Dragging = false;
     const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_YAX + axis);
     ImRect rect = GImPlot->CurrentPlot->YAxis[axis].HoverRect;
-    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->YAxis[axis].ExtHovered, flags, key_mods);      
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->YAxis[axis].ExtHovered, flags, key_mods);
 }
 
 bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
@@ -3957,7 +3968,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
     ImVec4 col_btn    = style.Colors[ImGuiCol_Button];
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
-  
+
     const float ht    = ImGui::GetFrameHeight();
     ImVec2 cell_size(ht*1.25f,ht);
     char buff[32];

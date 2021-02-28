@@ -549,18 +549,25 @@ IMPLOT_API void EndLegendPopup();
 
 // Turns the current plot's plotting area into a drag and drop target. Don't forget to call EndDragDropTarget!
 IMPLOT_API bool BeginDragDropTarget();
-// Turns the current plot's plotting area into a drag and drop target. Don't forget to call EndDragDropTarget!
+// Turns the current plot's X-axis into a drag and drop target. Don't forget to call EndDragDropTarget!
 IMPLOT_API bool BeginDragDropTargetX();
-// Turns the current plot's plotting area into a drag and drop target. Don't forget to call EndDragDropTarget!
+// Turns the current plot's Y-Axis into a drag and drop target. Don't forget to call EndDragDropTarget!
 IMPLOT_API bool BeginDragDropTargetY(ImPlotYAxis axis = ImPlotYAxis_1);
-// Turns the current plot's plotting area into a drag and drop target. Don't forget to call EndDragDropTarget!
+// Turns the current plot's legend into a drag and drop target. Don't forget to call EndDragDropTarget!
 IMPLOT_API bool BeginDragDropTargetLegend();
 // Ends a drag and drop target (currently just an alias for ImGui::EndDragDropTarget).
 IMPLOT_API void EndDragDropTarget();
 
+// NB: By default, plot and axes drag and drop sources require holding the Ctrl modifier to initiate the drag.
+// You can change the modifier if desired. If ImGuiKeyModFlags_None is provided, the axes will be locked from panning.
+
+// Turns the current plot's plotting area into a drag and drop source. Don't forget to call EndDragDropSource!
+IMPLOT_API bool BeginDragDropSource(ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
+// Turns the current plot's X-axis into a drag and drop source. Don't forget to call EndDragDropSource!
 IMPLOT_API bool BeginDragDropSourceX(ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
+// Turns the current plot's Y-axis into a drag and drop source. Don't forget to call EndDragDropSource!
 IMPLOT_API bool BeginDragDropSourceY(ImPlotYAxis axis = ImPlotYAxis_1, ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
-// Begin a drag and drop source from a legend item. The only supported flag is SourceNoPreviewTooltip
+// Turns an item in the current plot's legend into drag and drop source. Don't forget to call EndDragDropSource!
 IMPLOT_API bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags = 0);
 // Ends a drag and drop source (currently just an alias for ImGui::EndDragDropSource).
 IMPLOT_API void EndDragDropSource();
