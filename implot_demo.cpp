@@ -663,8 +663,8 @@ void ShowDemoWindow(bool* p_open) {
     }
     if (ImGui::CollapsingHeader("Time Formatted Axes")) {
 
-        static double t_min = 1577836800; // 01/01/2020 @ 12:00:00am (UTC)
-        static double t_max = 1609459200; // 01/01/2021 @ 12:00:00am (UTC)
+        static double t_min = 1609459200; // 01/01/2021 @ 12:00:00am (UTC)
+        static double t_max = 1640995200; // 01/01/2022 @ 12:00:00am (UTC)
 
         ImGui::BulletText("When ImPlotAxisFlags_Time is enabled on the X-Axis, values are interpreted as\n"
                           "UNIX timestamps in seconds and axis labels are formated as date/time.");
@@ -1143,7 +1143,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::Unindent();
 
         static bool paused = false;
-         static ScrollingBuffer dataDigital[2];
+        static ScrollingBuffer dataDigital[2];
         static ScrollingBuffer dataAnalog[2];
         static bool showDigital[2] = {true, false};
         static bool showAnalog[2] = {true, false};
