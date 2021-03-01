@@ -572,6 +572,7 @@ struct ImPlotPlot
     ImRect             CanvasRect;
     ImRect             PlotRect;
     ImRect             AxesRect;
+    ImRect             LegendRect;
 
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;

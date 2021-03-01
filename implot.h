@@ -527,7 +527,7 @@ IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label 
 // Legend Utils and Tools
 //-----------------------------------------------------------------------------
 
-// The following functions MUST be called between Begin/EndPlot!
+// The following functions MUST be called BETWEEN Begin/EndPlot!
 
 // Set the location of the current plot's legend.
 IMPLOT_API void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation = ImPlotOrientation_Vertical, bool outside = false);
@@ -535,14 +535,42 @@ IMPLOT_API void SetLegendLocation(ImPlotLocation location, ImPlotOrientation ori
 IMPLOT_API void SetMousePosLocation(ImPlotLocation location);
 // Returns true if a plot item legend entry is hovered.
 IMPLOT_API bool IsLegendEntryHovered(const char* label_id);
-// Begin a drag and drop source from a legend entry. The only supported flag is SourceNoPreviewTooltip
-IMPLOT_API bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags = 0);
-// End legend drag and drop source.
-IMPLOT_API void EndLegendDragDropSource();
+
 // Begin a popup for a legend entry.
 IMPLOT_API bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button = 1);
 // End a popup for a legend entry.
 IMPLOT_API void EndLegendPopup();
+
+//-----------------------------------------------------------------------------
+// Drag and Drop Utils
+//-----------------------------------------------------------------------------
+
+// The following functions MUST be called BETWEEN Begin/EndPlot!
+
+// Turns the current plot's plotting area into a drag and drop target. Don't forget to call EndDragDropTarget!
+IMPLOT_API bool BeginDragDropTarget();
+// Turns the current plot's X-axis into a drag and drop target. Don't forget to call EndDragDropTarget!
+IMPLOT_API bool BeginDragDropTargetX();
+// Turns the current plot's Y-Axis into a drag and drop target. Don't forget to call EndDragDropTarget!
+IMPLOT_API bool BeginDragDropTargetY(ImPlotYAxis axis = ImPlotYAxis_1);
+// Turns the current plot's legend into a drag and drop target. Don't forget to call EndDragDropTarget!
+IMPLOT_API bool BeginDragDropTargetLegend();
+// Ends a drag and drop target (currently just an alias for ImGui::EndDragDropTarget).
+IMPLOT_API void EndDragDropTarget();
+
+// NB: By default, plot and axes drag and drop sources require holding the Ctrl modifier to initiate the drag.
+// You can change the modifier if desired. If ImGuiKeyModFlags_None is provided, the axes will be locked from panning.
+
+// Turns the current plot's plotting area into a drag and drop source. Don't forget to call EndDragDropSource!
+IMPLOT_API bool BeginDragDropSource(ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
+// Turns the current plot's X-axis into a drag and drop source. Don't forget to call EndDragDropSource!
+IMPLOT_API bool BeginDragDropSourceX(ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
+// Turns the current plot's Y-axis into a drag and drop source. Don't forget to call EndDragDropSource!
+IMPLOT_API bool BeginDragDropSourceY(ImPlotYAxis axis = ImPlotYAxis_1, ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
+// Turns an item in the current plot's legend into drag and drop source. Don't forget to call EndDragDropSource!
+IMPLOT_API bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags = 0);
+// Ends a drag and drop source (currently just an alias for ImGui::EndDragDropSource).
+IMPLOT_API void EndDragDropSource();
 
 //-----------------------------------------------------------------------------
 // Plot and Item Styling
@@ -644,6 +672,10 @@ IMPLOT_API const char* GetColormapName(ImPlotColormap colormap);
 //-----------------------------------------------------------------------------
 // Miscellaneous
 //-----------------------------------------------------------------------------
+
+// Render a icon similar to those that appear in legends (nifty for data lists).
+IMPLOT_API void ItemIcon(const ImVec4& col);
+IMPLOT_API void ItemIcon(ImU32 col);
 
 // Get the plot draw list for rendering to the current plot area.
 IMPLOT_API ImDrawList* GetPlotDrawList();
