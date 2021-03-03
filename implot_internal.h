@@ -658,11 +658,12 @@ struct ImPlotNextItemData {
     }
 };
 
-// Holds state information that must persist between calls to BeginPlot()/EndPlot()
+// Holds transient state information that must persist between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
     // Plot States
     ImPool<ImPlotPlot> Plots;
     ImPlotPlot*        CurrentPlot;
+    ImPlotPlot*        PreviousPlot;
     ImPlotItem*        CurrentItem;
     ImPlotItem*        PreviousItem;
 
@@ -748,6 +749,8 @@ IMPLOT_API ImPlotInputMap& GetInputMap();
 IMPLOT_API ImPlotPlot* GetPlot(const char* title);
 // Gets the current plot from the current ImPlotContext
 IMPLOT_API ImPlotPlot* GetCurrentPlot();
+// Gets the current or previous plot from the current ImPlotContext
+IMPLOT_API ImPlotPlot* GetCurrentOrPreviousPlot();
 // Busts the cache for every plot in the current context
 IMPLOT_API void BustPlotCache();
 

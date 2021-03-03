@@ -384,6 +384,7 @@ void SetCurrentContext(ImPlotContext* ctx) {
 
 void Initialize(ImPlotContext* ctx) {
     Reset(ctx);
+    ctx->CurrentPlot = ctx->PreviousPlot = NULL;
     ctx->Colormap = GetColormap(ImPlotColormap_Default, &ctx->ColormapSize);
 }
 
@@ -417,6 +418,7 @@ void Reset(ImPlotContext* ctx) {
     ctx->DigitalPlotItemCnt = 0;
     ctx->DigitalPlotOffset = 0;
     // nullify plot
+    ctx->PreviousPlot = ctx->CurrentPlot;
     ctx->CurrentPlot  = NULL;
     ctx->CurrentItem  = NULL;
     ctx->PreviousItem = NULL;
@@ -434,6 +436,10 @@ ImPlotPlot* GetPlot(const char* title) {
 
 ImPlotPlot* GetCurrentPlot() {
     return GImPlot->CurrentPlot;
+}
+
+ImPlotPlot* GetCurrentOrPreviousPlot() {
+    return GImPlot->CurrentPlot == NULL ? GImPlot->PreviousPlot : GImPlot->CurrentPlot;
 }
 
 void BustPlotCache() {
@@ -2914,27 +2920,37 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
 bool BeginDragDropTargetEx(int id, const ImRect& rect) {
     ImGuiContext& G  = *GImGui;
     const ImGuiID ID = G.CurrentWindow->GetID(id);
-    if (ImGui::ItemAdd(rect, ID, &rect) &&
-        ImGui::BeginDragDropTarget())
+    if (ImGui::ItemAdd(rect, ID, &rect) && ImGui::BeginDragDropTarget())
         return true;
     return false;
 }
 
 bool BeginDragDropTarget() {
-    return BeginDragDropTargetEx(IMPLOT_ID_PLT, GImPlot->CurrentPlot->PlotRect);
+    ImPlotPlot* plt = GetCurrentOrPreviousPlot();
+    if (plt == NULL) 
+        return false;
+    return BeginDragDropTargetEx(IMPLOT_ID_PLT, plt->PlotRect);
 }
 
 bool BeginDragDropTargetX() {
-    return BeginDragDropTargetEx(IMPLOT_ID_XAX, GImPlot->CurrentPlot->XAxis.HoverRect);
+    ImPlotPlot* plt = GetCurrentOrPreviousPlot();
+    if (plt == NULL) 
+        return false;
+    return BeginDragDropTargetEx(IMPLOT_ID_XAX, plt->XAxis.HoverRect);
 }
 
 bool BeginDragDropTargetY(ImPlotYAxis axis) {
-    return BeginDragDropTargetEx(IMPLOT_ID_YAX + axis, GImPlot->CurrentPlot->YAxis[axis].HoverRect);
+    ImPlotPlot* plt = GetCurrentOrPreviousPlot();
+    if (plt == NULL) 
+        return false;
+    return BeginDragDropTargetEx(IMPLOT_ID_YAX + axis, plt->YAxis[axis].HoverRect);
 }
 
 bool BeginDragDropTargetLegend() {
-    return !ImHasFlag(GImPlot->CurrentPlot->Flags,ImPlotFlags_NoLegend) &&
-            BeginDragDropTargetEx(IMPLOT_ID_LEG, GImPlot->CurrentPlot->LegendRect);
+    ImPlotPlot* plt = GetCurrentOrPreviousPlot();
+    if (plt == NULL) 
+        return false;
+    return !ImHasFlag(plt->Flags,ImPlotFlags_NoLegend) && BeginDragDropTargetEx(IMPLOT_ID_LEG, plt->LegendRect);
 }
 
 void EndDragDropTarget() {
@@ -2994,37 +3010,47 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
 }
 
 bool BeginDragDropSource(ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    ImPlotPlot* plt = GetCurrentOrPreviousPlot();
+    if (plt == NULL) 
+        return false;
     if (ImGui::GetIO().KeyMods == key_mods) {
-        GImPlot->CurrentPlot->XAxis.Dragging = false;
+        plt->XAxis.Dragging = false;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
-            GImPlot->CurrentPlot->YAxis[i].Dragging = false;
+            plt->YAxis[i].Dragging = false;
     }
     const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_PLT);
-    ImRect rect = GImPlot->CurrentPlot->PlotRect;
-    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->PlotHovered, flags, key_mods);
+    ImRect rect = plt->PlotRect;
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, plt->PlotHovered, flags, key_mods);
 }
 
 bool BeginDragDropSourceX(ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    ImPlotPlot* plt = GetCurrentOrPreviousPlot();
+    if (plt == NULL) 
+        return false;
     if (ImGui::GetIO().KeyMods == key_mods)
-        GImPlot->CurrentPlot->XAxis.Dragging = false;
+        plt->XAxis.Dragging = false;
     const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_XAX);
-    ImRect rect = GImPlot->CurrentPlot->XAxis.HoverRect;
-    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->XAxis.ExtHovered, flags, key_mods);
+    ImRect rect = plt->XAxis.HoverRect;
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, plt->XAxis.ExtHovered, flags, key_mods);
 }
 
 bool BeginDragDropSourceY(ImPlotYAxis axis, ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    ImPlotPlot* plt = GetCurrentOrPreviousPlot();
+    if (plt == NULL) 
+        return false;
     if (ImGui::GetIO().KeyMods == key_mods)
-        GImPlot->CurrentPlot->YAxis[axis].Dragging = false;
+        plt->YAxis[axis].Dragging = false;
     const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_YAX + axis);
-    ImRect rect = GImPlot->CurrentPlot->YAxis[axis].HoverRect;
-    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->YAxis[axis].ExtHovered, flags, key_mods);
+    ImRect rect = plt->YAxis[axis].HoverRect;
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, plt->YAxis[axis].ExtHovered, flags, key_mods);
 }
 
 bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginDragDropSourceItem() needs to be called between BeginPlot() and EndPlot()!");
+    ImPlotPlot* plt = GetCurrentOrPreviousPlot();
+    if (plt == NULL) 
+        return false;
     ImGuiID source_id = ImGui::GetID(label_id);
-    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(source_id);
+    ImPlotItem* item = plt->Items.GetByKey(source_id);
     bool is_hovered = item && item->LegendHovered;
     return BeginDragDropSourceEx(source_id, is_hovered, flags, ImGuiKeyModFlags_None);
 }

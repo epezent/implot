@@ -1089,48 +1089,52 @@ void ShowDemoWindow(bool* p_open) {
                 ImPlot::SetNextLineStyle(mixed);
                 ImPlot::PlotLine("##dndxy", &dndx->Data[0].y, &dndy->Data[0].y, dndx->Data.size(), 0, 2 * sizeof(float));
             }
-            // allow the x-axis to be a DND target
-            if (ImPlot::BeginDragDropTargetX()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
-                    int i = *(int*)payload->Data; dndx = &dnd[i];
-                }
-                ImPlot::EndDragDropTarget();
-            }
-            // allow the x-axis to be a DND source
-            if (dndx != NULL && ImPlot::BeginDragDropSourceX()) {
-                ImGui::SetDragDropPayload("MY_DND", &dndx->Idx, sizeof(int));
-                ImPlot::ItemIcon(dndx->Color); ImGui::SameLine();
-                ImGui::TextUnformatted(dndx->Label);
-                ImPlot::EndDragDropSource();
-            }
-            // allow the y-axis to be a DND target
-            if (ImPlot::BeginDragDropTargetY()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
-                    int i = *(int*)payload->Data; dndy = &dnd[i];
-                }
-                ImPlot::EndDragDropTarget();
-            }
-            // allow the y-axis to be a DND source
-            if (dndy != NULL && ImPlot::BeginDragDropSourceY()) {
-                ImGui::SetDragDropPayload("MY_DND", &dndy->Idx, sizeof(int));
-                ImPlot::ItemIcon(dndy->Color); ImGui::SameLine();
-                ImGui::TextUnformatted(dndy->Label);
-                ImPlot::EndDragDropSource();
-            }
-            // allow the plot area to be a DND target
-            if (ImPlot::BeginDragDropTarget()) {
-                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
-                    int i = *(int*)payload->Data; dndx = dndy = &dnd[i];
-                }
-            }
-            // allow the plot area to be a DND source
-            if (ImPlot::BeginDragDropSource()) {
-                ImGui::TextUnformatted("Yes, you can\ndrag this!");
-                ImPlot::EndDragDropSource();
-            }
             ImPlot::EndPlot();
         }
         ImPlot::PopStyleColor(2);
+
+        // you can also add DND after EndPlot:
+
+        // allow the x-axis to be a DND target
+        if (ImPlot::BeginDragDropTargetX()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                int i = *(int*)payload->Data; dndx = &dnd[i];
+            }
+            ImPlot::EndDragDropTarget();
+        }
+        // allow the x-axis to be a DND source
+        if (dndx != NULL && ImPlot::BeginDragDropSourceX()) {
+            ImGui::SetDragDropPayload("MY_DND", &dndx->Idx, sizeof(int));
+            ImPlot::ItemIcon(dndx->Color); ImGui::SameLine();
+            ImGui::TextUnformatted(dndx->Label);
+            ImPlot::EndDragDropSource();
+        }
+        // allow the y-axis to be a DND target
+        if (ImPlot::BeginDragDropTargetY()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                int i = *(int*)payload->Data; dndy = &dnd[i];
+            }
+            ImPlot::EndDragDropTarget();
+        }
+        // allow the y-axis to be a DND source
+        if (dndy != NULL && ImPlot::BeginDragDropSourceY()) {
+            ImGui::SetDragDropPayload("MY_DND", &dndy->Idx, sizeof(int));
+            ImPlot::ItemIcon(dndy->Color); ImGui::SameLine();
+            ImGui::TextUnformatted(dndy->Label);
+            ImPlot::EndDragDropSource();
+        }
+        // allow the plot area to be a DND target
+        if (ImPlot::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
+                int i = *(int*)payload->Data; dndx = dndy = &dnd[i];
+            }
+        }
+        // allow the plot area to be a DND source
+        if (ImPlot::BeginDragDropSource()) {
+            ImGui::TextUnformatted("Yes, you can\ndrag this!");
+            ImPlot::EndDragDropSource();
+        }
+
         ImGui::EndChild();
     }
     //-------------------------------------------------------------------------
