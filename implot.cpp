@@ -644,11 +644,16 @@ void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interacta
 // Tick Utils
 //-----------------------------------------------------------------------------
 
+#define BASICALLY_ZERO 1e-16
+
 void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer) {
     char temp[32];
     if (tick.ShowLabel) {
         tick.TextOffset = buffer.size();
-        snprintf(temp, 32, "%.10g", tick.PlotPos);
+        if (ImAbs(tick.PlotPos) < BASICALLY_ZERO)
+            snprintf(temp, 32, "0");
+        else
+            snprintf(temp, 32, "%.10g", tick.PlotPos);
         buffer.append(temp, temp + strlen(temp) + 1);
         tick.LabelSize = ImGui::CalcTextSize(buffer.Buf.Data + tick.TextOffset);
     }
@@ -3479,7 +3484,6 @@ void ShowColormapScale(double scale_min, double scale_max, float height) {
     range.Max = scale_max;
 
     AddTicksDefault(range, 10, 0, ticks);
-
 
     ImGuiContext &G      = *GImGui;
     ImGuiWindow * Window = G.CurrentWindow;
