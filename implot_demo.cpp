@@ -1043,7 +1043,7 @@ void ShowDemoWindow(bool* p_open) {
                 if (dnd[k].Plt == 1 && dnd[k].Data.size() > 0) {
                     ImPlot::SetPlotYAxis(dnd[k].Yax);
                     ImPlot::SetNextLineStyle(dnd[k].Color);
-                    static char label[16];
+                    static char label[32];
                     sprintf(label,"%s (Y%d)", dnd[k].Label, dnd[k].Yax+1);
                     ImPlot::PlotLine(label, &dnd[k].Data[0].x, &dnd[k].Data[0].y, dnd[k].Data.size(), 0, 2 * sizeof(float));
                     // allow legend item labels to be DND sources
