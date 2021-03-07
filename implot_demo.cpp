@@ -528,7 +528,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
-        ImPlot::ShowColormapScale(scale_min, scale_max, 225);
+        ImPlot::ShowColormapScale(scale_min, scale_max, ImVec2(60,225));
         ImPlot::PopColormap();
 
         ImGui::SameLine();

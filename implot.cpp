@@ -31,7 +31,8 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2021/01/XX (0.9) - BeginLegendDragDropSource was changed to BeginDragDropSourceItem with a number of other drag and drop improvements.
+- 2021/03/07 (0.9) - The signature of ShowColormapScale was modified to accept a ImVec2 size.
+- 2021/02/28 (0.9) - BeginLegendDragDropSource was changed to BeginDragDropSourceItem with a number of other drag and drop improvements.
 - 2021/01/18 (0.9) - The default behavior for opening context menus was change from double right-click to single right-click. ImPlotInputMap and related functions were moved
                      to implot_internal.h due to its immaturity.
 - 2020/10/16 (0.8) - ImPlotStyleVar_InfoPadding was changed to ImPlotStyleVar_MousePosPadding
@@ -644,16 +645,11 @@ void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interacta
 // Tick Utils
 //-----------------------------------------------------------------------------
 
-#define BASICALLY_ZERO 1e-16
-
 void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer) {
     char temp[32];
     if (tick.ShowLabel) {
         tick.TextOffset = buffer.size();
-        if (ImAbs(tick.PlotPos) < BASICALLY_ZERO)
-            snprintf(temp, 32, "0");
-        else
-            snprintf(temp, 32, "%.10g", tick.PlotPos);
+        snprintf(temp, 32, "%.10g", tick.PlotPos);
         buffer.append(temp, temp + strlen(temp) + 1);
         tick.LabelSize = ImGui::CalcTextSize(buffer.Buf.Data + tick.TextOffset);
     }
@@ -1041,7 +1037,7 @@ int FormatDateTime(const ImPlotTime& t, char* buffer, int size, ImPlotDateTimeFm
 }
 
 inline float GetDateTimeWidth(ImPlotDateTimeFmt fmt) {
-    static ImPlotTime t_max_width = MakeTime(2888, 12, 22, 12, 58, 58, 888888); // best guess at time that maximizes pixel width
+    static const ImPlotTime t_max_width = MakeTime(2888, 12, 22, 12, 58, 58, 888888); // best guess at time that maximizes pixel width
     char buffer[32];
     FormatDateTime(t_max_width, buffer, 32, fmt);
     return ImGui::CalcTextSize(buffer).x;
@@ -3475,54 +3471,64 @@ ImVec4 NextColormapColor() {
     return col;
 }
 
-void ShowColormapScale(double scale_min, double scale_max, float height) {
-    ImPlotContext& gp = *GImPlot;
-    static ImPlotTickCollection ticks;
-    ticks.Reset();
-    ImPlotRange range;
-    range.Min = scale_min;
-    range.Max = scale_max;
-
-    AddTicksDefault(range, 10, 0, ticks);
-
+void ShowColormapScale(double scale_min, double scale_max, const ImVec2& size) {
     ImGuiContext &G      = *GImGui;
     ImGuiWindow * Window = G.CurrentWindow;
     if (Window->SkipItems)
         return;
-    const float txt_off = 5;
-    const float bar_w   = 20;
+
+    ImPlotContext& gp = *GImPlot;
+    gp.CTicks.Reset();
+
+    ImPlotRange range;
+    range.Min = scale_min;
+    range.Max = scale_max;
+
+    const float txt_off = gp.Style.LabelPadding.x;
+    float bar_w         = 20;
+
+    ImVec2 frame_size  = ImGui::CalcItemSize(size, 0, gp.Style.PlotDefaultSize.y);
+    if (frame_size.y < gp.Style.PlotMinSize.y && size.y < 0.0f)
+        frame_size.y = gp.Style.PlotMinSize.y;
+
+    AddTicksDefault(range, ImMax(2, (int)IM_ROUND(0.0025 * frame_size.y)), IMPLOT_SUB_DIV, gp.CTicks);
+    if (frame_size.x == 0)
+        frame_size.x = bar_w + txt_off + gp.CTicks.MaxWidth + 2 * gp.Style.PlotPadding.x;
+    else {
+        bar_w = frame_size.x - (txt_off + gp.CTicks.MaxWidth + 2 * gp.Style.PlotPadding.x);
+        if (bar_w < gp.Style.MajorTickLen.y)
+            bar_w = gp.Style.MajorTickLen.y;
+    }
 
     ImDrawList &DrawList = *Window->DrawList;
-    ImVec2 size(bar_w + txt_off + ticks.MaxWidth + 2 * gp.Style.PlotPadding.x, height);
-    ImRect bb_frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + size);
+    ImRect bb_frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
     ImGui::ItemSize(bb_frame);
     if (!ImGui::ItemAdd(bb_frame, 0, &bb_frame))
         return;
-    ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, G.Style.FrameRounding);
-    ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding, bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x, height - gp.Style.PlotPadding.y));
 
-    int num_cols = GetColormapSize();
-    float h_step = (height - 2 * gp.Style.PlotPadding.y) / (num_cols - 1);
-    for (int i = 0; i < num_cols-1; ++i) {
-        ImRect rect(bb_grad.Min.x, bb_grad.Min.y + h_step * i, bb_grad.Max.x, bb_grad.Min.y + h_step * (i + 1));
-        ImU32 col1 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - i));
-        ImU32 col2 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - (i+1)));
-        DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col1, col2, col2);
-    }
-    ImVec4 col_tik4 = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-    col_tik4.w *= 0.25f;
-    const ImU32 col_tick = ImGui::GetColorU32(col_tik4);
+    ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, G.Style.FrameRounding);
+    ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding, bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x, frame_size.y - gp.Style.PlotPadding.y));
 
     ImGui::PushClipRect(bb_frame.Min, bb_frame.Max, true);
-    for (int i = 0; i < ticks.Size; ++i) {
-        float ypos = ImRemap((float)ticks.Ticks[i].PlotPos, (float)range.Max, (float)range.Min, bb_grad.Min.y, bb_grad.Max.y);
-        if (ypos < bb_grad.Max.y - 2 && ypos > bb_grad.Min.y + 2)
-            DrawList.AddLine(ImVec2(bb_grad.Max.x-1, ypos), ImVec2(bb_grad.Max.x - (ticks.Ticks[i].Major ? 10.0f : 5.0f), ypos), col_tick, 1.0f);
-        DrawList.AddText(ImVec2(bb_grad.Max.x-1, ypos) + ImVec2(txt_off, -ticks.Ticks[i].LabelSize.y * 0.5f), GetStyleColorU32(ImPlotCol_TitleText), ticks.GetText(i));
+    int num_cols = GetColormapSize();
+    float h_step = (frame_size.y - 2 * gp.Style.PlotPadding.y) / (num_cols - 1);
+    for (int i = 0; i < num_cols-1; ++i) {
+        ImRect rect(bb_grad.Min.x, bb_grad.Min.y + h_step * i, bb_grad.Max.x, bb_grad.Min.y + h_step * (i + 1));
+        ImU32 col1 = ImGui::GetColorU32(GetColormapColor(num_cols - i - 1));
+        ImU32 col2 = ImGui::GetColorU32(GetColormapColor(num_cols - i - 2));
+        DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col1, col2, col2);
     }
-    ImGui::PopClipRect();
-
+    const ImU32 col_tick = GetStyleColorU32(ImPlotCol_TitleText);
+    for (int i = 0; i < gp.CTicks.Size; ++i) {
+        const float ypos = ImRemap((float)gp.CTicks.Ticks[i].PlotPos, (float)range.Max, (float)range.Min, bb_grad.Min.y, bb_grad.Max.y);
+        const float tick_width = gp.CTicks.Ticks[i].Major ? gp.Style.MajorTickLen.y : gp.Style.MinorTickLen.y;
+        const float tick_thick = gp.CTicks.Ticks[i].Major ? gp.Style.MajorTickSize.y : gp.Style.MinorTickSize.y;
+        if (ypos < bb_grad.Max.y - 2 && ypos > bb_grad.Min.y + 2)
+            DrawList.AddLine(ImVec2(bb_grad.Max.x-1, ypos), ImVec2(bb_grad.Max.x - tick_width, ypos), col_tick, tick_thick);
+        DrawList.AddText(ImVec2(bb_grad.Max.x-1, ypos) + ImVec2(txt_off, -gp.CTicks.Ticks[i].LabelSize.y * 0.5f), col_tick, gp.CTicks.GetText(i));
+    }
     DrawList.AddRect(bb_grad.Min, bb_grad.Max, GetStyleColorU32(ImPlotCol_PlotBorder));
+    ImGui::PopClipRect();
 }
 
 

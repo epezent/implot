@@ -664,7 +664,7 @@ IMPLOT_API ImVec4 LerpColormap(float t);
 IMPLOT_API ImVec4 NextColormapColor();
 
 // Renders a vertical color scale using the current color map. Call this before or after Begin/EndPlot.
-IMPLOT_API void ShowColormapScale(double scale_min, double scale_max, float height);
+IMPLOT_API void ShowColormapScale(double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0));
 
 // Returns a null terminated string name for a built-in colormap.
 IMPLOT_API const char* GetColormapName(ImPlotColormap colormap);

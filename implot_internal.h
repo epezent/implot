@@ -667,6 +667,7 @@ struct ImPlotContext {
     ImPlotItem*        PreviousItem;
 
     // Tick Marks and Labels
+    ImPlotTickCollection CTicks;
     ImPlotTickCollection XTicks;
     ImPlotTickCollection YTicks[IMPLOT_Y_AXES];
     float                YAxisReference[IMPLOT_Y_AXES];
