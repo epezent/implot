@@ -148,25 +148,29 @@ inline double ImStdDev(const T* values, int count) {
 }
 // Mix color a and b by factor t [0 256]
 inline ImU32 ImMixColor32(ImU32 a, ImU32 b, ImU32 t) {
-    ImU32 af = 256 - t;
+#ifdef IMPLOT_MIX64
+    ImU32 af = 256-t;
     ImU32 bf = t;  
     ImU64 al = (a & 0x00ff00ff) | (((ImU64)(a & 0xff00ff00)) << 24);
     ImU64 bl = (b & 0x00ff00ff) | (((ImU64)(b & 0xff00ff00)) << 24); 
     ImU64 mix = (al * af + bl * bf); 
-    ImU32 result = ((mix >> 32) & 0xff00ff00) | ((mix & 0xff00ff00) >> 8); 
-    return result;
+    return ((mix >> 32) & 0xff00ff00) | ((mix & 0xff00ff00) >> 8); 
+#else
+    ImU32 af = 256-t;
+    ImU32 bf = t;
+    ImU32 al = (a & 0x00ff00ff);
+    ImU32 ah = (a & 0xff00ff00) >> 8;
+    ImU32 bl = (b & 0x00ff00ff);
+    ImU32 bh = (b & 0xff00ff00) >> 8;
+    ImU32 ml = (al * af + bl * bf);
+    ImU32 mh = (ah * af + bh * bf);
+    return (mh & 0xff00ff00) | ((ml & 0xff00ff00) >> 8);
+#endif
 }
-
-// Offset calculator helper
-template <int Count>
-struct ImOffsetCalculator {
-    ImOffsetCalculator(const int* sizes) {
-        Offsets[0] = 0;
-        for (int i = 1; i < Count; ++i)
-            Offsets[i] = Offsets[i-1] + sizes[i-1];
-    }
-    int Offsets[Count];
-};
+// Set alpha channel of 32-bit color from float in range [0 1]
+inline ImU32 ImAlphaColor32(ImU32 col, float alpha) {
+    return col & ~((ImU32)((1.0f-alpha)*255)<<IM_COL32_A_SHIFT);
+}
 
 // Character buffer writer helper (FIXME: Can't we replace this with ImGuiTextBuffer?)
 struct ImBufferWriter
@@ -315,19 +319,72 @@ static inline bool operator<=(const ImPlotTime& lhs, const ImPlotTime& rhs)
 static inline bool operator>=(const ImPlotTime& lhs, const ImPlotTime& rhs)
 { return lhs > rhs || lhs == rhs; }
 
-// Storage for colormap modifiers
-struct ImPlotColormapMod {
-    ImPlotColormapMod(const ImVec4* colormap, int colormap_size) {
-        Colormap     = colormap;
-        ColormapSize = colormap_size;
+// Colormap data storage
+struct ImPlotColormapData {
+    ImVector<ImU32> Data;
+    ImVector<int>   DataSizes;
+    ImVector<int>   DataOffsets;
+    ImGuiTextBuffer Text;
+    ImVector<int>   TextOffsets;
+    ImGuiStorage    Map;
+    int             Count;
+
+    ImPlotColormapData() { Count = 0; }
+
+    int Append(const char* name, const ImU32* data, int size) {  
+        DataOffsets.push_back(Data.size());
+        DataSizes.push_back(size);
+        Data.reserve(Data.size()+size);
+        for (int i = 0; i < size; ++i)
+            Data.push_back(data[i]);
+        TextOffsets.push_back(Text.size());
+        Text.append(name, name + strlen(name) + 1);
+        ImGuiID key = ImHashStr(name);
+        int     idx = Count;
+        Map.SetInt(key,idx);
+        Count++;
+        return idx;
     }
-    const ImVec4* Colormap;
-    int ColormapSize;
+
+    ImPlotColormap Append(const char* name, const ImVec4* data, int size) {  
+        DataOffsets.push_back(Data.size());
+        DataSizes.push_back(size);
+        Data.reserve(Data.size()+size);
+        for (int i = 0; i < size; ++i)
+            Data.push_back(ImGui::ColorConvertFloat4ToU32(data[i]));
+        TextOffsets.push_back(Text.size());
+        Text.append(name, name + strlen(name) + 1);
+        ImGuiID key = ImHashStr(name);
+        int     idx = Count;
+        Map.SetInt(key,idx);
+        Count++;
+        return idx;
+    }
+
+    inline const ImU32*   GetData(ImPlotColormap cmap)                        { return &Data[DataOffsets[cmap]];          }
+    inline int            GetSize(ImPlotColormap cmap)                        { return DataSizes[cmap];                   }
+    inline const char*    GetName(ImPlotColormap cmap)                        { return Text.Buf.Data + TextOffsets[cmap]; }     
+    inline ImU32          GetColor(ImPlotColormap cmap, int idx)              { return Data[DataOffsets[cmap]+idx];       } 
+    inline void           SetColor(ImPlotColormap cmap, int idx, ImU32 value) { Data[DataOffsets[cmap]+idx] = value;      }
+    inline ImPlotColormap Lookup(const char* name)                            { ImGuiID key = ImHashStr(name); return Map.GetInt(key,-1); }
+
+    inline ImU32 Lerp(ImPlotColormap cmap, float t) {
+        int size = GetSize(cmap);
+        int i1 = (int)((size -1 ) * t);
+        int i2 = i1 + 1;
+        if (i2 == size || size == 1)
+            return GetColor(cmap, i1);
+        float den = 1.0f / (size - 1);
+        float t1 = i1 * den;
+        float t2 = i2 * den;
+        float tr = ImRemap01(t, t1, t2);
+        return ImMixColor32(GetColor(cmap, i1), GetColor(cmap, i2), (ImU32)(tr*256));
+    }
+
 };
 
 // ImPlotPoint with positive/negative error values
-struct ImPlotPointError
-{
+struct ImPlotPointError {
     double X, Y, Neg, Pos;
     ImPlotPointError(double x, double y, double neg, double pos) {
         X = x; Y = y; Neg = neg; Pos = pos;
@@ -750,9 +807,8 @@ struct ImPlotContext {
     ImPlotStyle                 Style;
     ImVector<ImGuiColorMod>     ColorModifiers;
     ImVector<ImGuiStyleMod>     StyleModifiers;
-    const ImVec4*               Colormap;
-    int                         ColormapSize;
-    ImVector<ImPlotColormapMod> ColormapModifiers;
+    ImPlotColormapData          ColormapData;
+    ImVector<ImPlotColormap>    ColormapModifiers;
 
     // Time
     tm Tm;
@@ -911,28 +967,6 @@ IMPLOT_API ImVec4 GetAutoColor(ImPlotCol idx);
 inline ImVec4 GetStyleColorVec4(ImPlotCol idx) { return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
 inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
 
-// Get built-in colormap data and size
-IMPLOT_API const ImVec4* GetColormap(ImPlotColormap colormap, int* size_out);
-// Linearly interpolates a color from the current colormap given t between 0 and 1.
-IMPLOT_API ImVec4 LerpColormap(const ImVec4* colormap, int size, float t);
-// Resamples a colormap. #size_out must be greater than 1.
-IMPLOT_API void ResampleColormap(const ImVec4* colormap_in, int size_in, ImVec4* colormap_out, int size_out);
-
-IMPLOT_API const ImU32* GetColormap32(ImPlotColormap colormap, int* size_out);
-
-// Linearly interpolates a color from the current colormap given t between 0 and 1 (t must be clamped!)
-inline ImU32 LerpColormap32(const ImU32* colormap, int size, float t) {
-    int i1 = (int)((size -1 ) * t);
-    int i2 = i1 + 1;
-    if (i2 == size || size == 1)
-        return colormap[i1];
-    float den = 1.0f / (size - 1);
-    float t1 = i1 * den;
-    float t2 = i2 * den;
-    float tr = ImRemap01(t, t1, t2);
-    return ImMixColor32(colormap[i1], colormap[i2], (ImU32)(tr*256));
-}
-
 // Draws vertical text. The position is the bottom left of the text rect.
 IMPLOT_API void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
@@ -948,6 +982,13 @@ inline ImVec2 ClampLabelPos(ImVec2 pos, const ImVec2& size, const ImVec2& Min, c
     if ((pos.y + size.y) > Max.y)   pos.y = Max.y - size.y;
     return pos;
 }
+
+// Returns a color from the Color map given an index >= 0 (modulo will be performed).
+IMPLOT_API ImU32  GetColormapColorU32(int idx);
+// Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
+IMPLOT_API ImU32  NextColormapColorU32();
+// Linearly interpolates a color from the current colormap given t between 0 and 1.
+IMPLOT_API ImU32  LerpColormapU32(float t);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Math and Misc Utils

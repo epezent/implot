@@ -472,9 +472,10 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
 
+        srand(0);
         static NormalDistribution<10000> dist1(1, 2);
         static NormalDistribution<10000> dist2(1, 1);
-        ImPlot::PushColormap(ImPlotColormap_Jet);
+        ImPlot::PushColormap("Cool");
         if (ImPlot::BeginPlot("Hist2D",0,0,ImVec2(-1,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
             ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,10000,100,100,false,ImPlotLimits(-6,6,-6,6));
             ImPlot::EndPlot();
@@ -589,7 +590,7 @@ void ShowDemoWindow(bool* p_open) {
 
         static ImPlotColormap map = ImPlotColormap_Viridis;
         if (ImGui::Button("Change Colormap",ImVec2(225,0)))
-            map = (map + 1) % ImPlotColormap_COUNT;
+            map = (map + 1) % ImPlot::GetColormapCount();
 
         ImGui::SameLine();
         ImGui::LabelText("##Colormap Index", "%s", ImPlot::GetColormapName(map));
@@ -606,7 +607,6 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImGui::SameLine();
         ImPlot::ShowColormapScale(scale_min, scale_max, ImVec2(60,225));
-        ImPlot::PopColormap();
 
         ImGui::SameLine();
 
@@ -615,8 +615,6 @@ void ShowDemoWindow(bool* p_open) {
         for (int i = 0; i < 500*500; ++i)
             values2[i] = RandomRange(0.0,1.0);
 
-        static ImVec4 gray[2] = {ImVec4(0,0,0,1), ImVec4(1,1,1,1)};
-        ImPlot::PushColormap(gray, 2);
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
         if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),0,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotHeatmap("heat1",values2,500,500,0,1,NULL);
@@ -624,6 +622,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
         ImPlot::PopColormap();
+
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Images")) {

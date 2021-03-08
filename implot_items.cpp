@@ -1780,7 +1780,6 @@ struct RectRenderer {
 template <typename T>
 struct GetterHeatmap {
     GetterHeatmap(const T* values, int rows, int cols, double scale_min, double scale_max, double width, double height, double xref, double yref, double ydir) :
-        Colormap(GetColormap32(ImPlotColormap_Jet,&ColormapSize)),
         Values(values),
         Count(rows*cols),
         Rows(rows),
@@ -1799,21 +1798,15 @@ struct GetterHeatmap {
         const int r = idx / Cols;
         const int c = idx % Cols;
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
-        const double t = ImRemap01((double)Values[idx], ScaleMin, ScaleMax);
-        // ImVec4 color = LerpColormap((float)t);
-        // color.w *= GImPlot->Style.FillAlpha;
+        const float t = (float)ImRemap01((double)Values[idx], ScaleMin, ScaleMax);
         RectInfo rect;
         rect.Min.x = p.x - HalfSize.x;
         rect.Min.y = p.y - HalfSize.y;
         rect.Max.x = p.x + HalfSize.x;
         rect.Max.y = p.y + HalfSize.y;
-        // rect.Color = ImGui::GetColorU32(color);
-        rect.Color = LerpColormap32(Colormap, ColormapSize, (float)t);
+        rect.Color = GImPlot->ColormapData.Lerp(GImPlot->Style.Colormap,t);
         return rect;
     }
-
-    int ColormapSize;
-    const ImU32* Colormap;
     const T* const Values;
     const int Count, Rows, Cols;
     const double ScaleMin, ScaleMax, Width, Height, XRef, YRef, YDir;
@@ -1826,7 +1819,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     if (scale_min == scale_max) {
         ImVec2 a = transformer(bounds_min);
         ImVec2 b = transformer(bounds_max);
-        ImU32  col = ImGui::GetColorU32(LerpColormap(0));
+        ImU32  col = GetColormapColorU32(0);
         DrawList.AddRectFilled(a, b, col);
         return;
     }

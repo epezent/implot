@@ -192,8 +192,7 @@ enum ImPlotColormap_ {
     ImPlotColormap_Hot      = 7,  // a.k.a. matplotlib/MATLAB "hot"  (n=11)
     ImPlotColormap_Cool     = 8,  // a.k.a. matplotlib/MATLAB "cool" (n=11)
     ImPlotColormap_Pink     = 9,  // a.k.a. matplotlib/MATLAB "pink" (n=11)
-    ImPlotColormap_Jet      = 10, // a.k.a. MATLAB "jet"             (n=11)
-    ImPlotColormap_COUNT
+    ImPlotColormap_Jet      = 10  // a.k.a. MATLAB "jet"             (n=11)
 };
 
 // Used to position items on a plot (e.g. legends, labels, etc.)
@@ -295,8 +294,10 @@ struct ImPlotStyle {
     ImVec2  FitPadding;              // = 0,0     additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
     ImVec2  PlotDefaultSize;         // = 400,300 default size used when ImVec2(0,0) is passed to BeginPlot
     ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
-    // colors
+    // style colors
     ImVec4  Colors[ImPlotCol_COUNT]; //           array of plot specific colors
+    // colormap
+    ImPlotColormap Colormap;         //           index of current colormap
     // settings/flags
     bool    AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
     bool    UseLocalTime;            // = false,  axis labels will be formatted for your timezone when ImPlotAxisFlag_Time is enabled
@@ -664,32 +665,34 @@ IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
 //     2) Pushed an item style color using PushStyleColor().
 //     3) Set the next item style with a SetNextXStyle function.
 
-// Temporarily switch to one of the built-in colormaps.
-IMPLOT_API void PushColormap(ImPlotColormap colormap);
-// Temporarily switch to your custom colormap. The pointer data must persist until the matching call to PopColormap!
-IMPLOT_API void PushColormap(const ImVec4* colormap, int size);
+// Add a new colormap. The colormap can be used by pushing either the returned index or the string name with PushColormap.
+// The colormap name must be unique and the size must be greater than 1.
+IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImVec4* colormap, int size);
+IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImU32*  colormap, int size);
+
+// Temporarily switch to one of the built-in (i.e. ImPlotColormap_XXX) or user-added colormaps (i.e. a return value of AddColormap). Don't forget to call PopColormap!
+IMPLOT_API void PushColormap(ImPlotColormap cmap);
+// Push a colormap by string name. Use the string you provided to AddColormap, or use built-in names such as "Default", "Deep", etc. Don't forget to call PopColormap!
+IMPLOT_API void PushColormap(const char* name);
 // Undo temporary colormap modification.
 IMPLOT_API void PopColormap(int count = 1);
-
-// Permanently sets a custom colormap. The colors will be copied to internal memory. Typically used on startup. Prefer PushColormap instead of calling this each frame.
-IMPLOT_API void SetColormap(const ImVec4* colormap, int size);
-// Permanently switch to one of the built-in colormaps. If samples is greater than 1, the map will be linearly resampled. Typically used on startup. Don't call this each frame.
-IMPLOT_API void SetColormap(ImPlotColormap colormap, int samples = 0);
 
 // Returns the size of the current colormap.
 IMPLOT_API int GetColormapSize();
 // Returns a color from the Color map given an index >= 0 (modulo will be performed).
-IMPLOT_API ImVec4 GetColormapColor(int index);
+IMPLOT_API ImVec4 GetColormapColor(int idx);
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
 IMPLOT_API ImVec4 LerpColormap(float t);
 // Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
 IMPLOT_API ImVec4 NextColormapColor();
 
+// Returns the number of available colormaps.
+IMPLOT_API int GetColormapCount();
+// Returns a null terminated string name for a built-in colormap.
+IMPLOT_API const char* GetColormapName(ImPlotColormap cmap);
+
 // Renders a vertical color scale using the current color map. Call this before or after Begin/EndPlot.
 IMPLOT_API void ShowColormapScale(double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0));
-
-// Returns a null terminated string name for a built-in colormap.
-IMPLOT_API const char* GetColormapName(ImPlotColormap colormap);
 
 //-----------------------------------------------------------------------------
 // Miscellaneous
