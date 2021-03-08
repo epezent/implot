@@ -31,6 +31,8 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2021/03/07 (0.9) - The signature of ShowColormapScale was modified to accept a ImVec2 size.
+- 2021/02/28 (0.9) - BeginLegendDragDropSource was changed to BeginDragDropSourceItem with a number of other drag and drop improvements.
 - 2021/01/18 (0.9) - The default behavior for opening context menus was change from double right-click to single right-click. ImPlotInputMap and related functions were moved
                      to implot_internal.h due to its immaturity.
 - 2020/10/16 (0.8) - ImPlotStyleVar_InfoPadding was changed to ImPlotStyleVar_MousePosPadding
@@ -282,17 +284,21 @@ static const ImPlotStyleVarInfo* GetPlotStyleVarInfo(ImPlotStyleVar idx) {
 //-----------------------------------------------------------------------------
 
 void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char *text_begin, const char* text_end) {
+    // the code below is based loosely on ImFont::RenderText
     if (!text_end)
         text_end = text_begin + strlen(text_begin);
     ImGuiContext& g = *GImGui;
     ImFont* font = g.Font;
-    pos.x = IM_FLOOR(pos.x); // + font->ConfigData->GlyphOffset.y);
-    pos.y = IM_FLOOR(pos.y); // + font->ConfigData->GlyphOffset.x);
-    const char* s = text_begin;
-    const int vtx_count = (int)(text_end - s) * 4;
-    const int idx_count = (int)(text_end - s) * 6;
-    DrawList->PrimReserve(idx_count, vtx_count);
+    // Align to be pixel perfect
+    pos.x = IM_FLOOR(pos.x);
+    pos.y = IM_FLOOR(pos.y);
     const float scale = g.FontSize / font->FontSize;
+    const char* s = text_begin;
+    int chars_exp = (int)(text_end - s);
+    int chars_rnd = 0;
+    const int vtx_count_max = chars_exp * 4;
+    const int idx_count_max = chars_exp * 6;
+    DrawList->PrimReserve(idx_count_max, vtx_count_max);
     while (s < text_end) {
         unsigned int c = (unsigned int)*s;
         if (c < 0x80) {
@@ -304,15 +310,20 @@ void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char *te
                 break;
         }
         const ImFontGlyph * glyph = font->FindGlyph((ImWchar)c);
-        if (glyph == NULL)
+        if (glyph == NULL) {
             continue;
+        }
         DrawList->PrimQuadUV(pos + ImVec2(glyph->Y0, -glyph->X0) * scale, pos + ImVec2(glyph->Y0, -glyph->X1) * scale,
                              pos + ImVec2(glyph->Y1, -glyph->X1) * scale, pos + ImVec2(glyph->Y1, -glyph->X0) * scale,
                              ImVec2(glyph->U0, glyph->V0), ImVec2(glyph->U1, glyph->V0),
                              ImVec2(glyph->U1, glyph->V1), ImVec2(glyph->U0, glyph->V1),
                              col);
         pos.y -= glyph->AdvanceX * scale;
+        chars_rnd++;
     }
+    // Give back unused vertices
+    int chars_skp = chars_exp-chars_rnd;
+    DrawList->PrimUnreserve(chars_skp*6, chars_skp*4);
 }
 
 double NiceNum(double x, bool round) {
@@ -1026,7 +1037,7 @@ int FormatDateTime(const ImPlotTime& t, char* buffer, int size, ImPlotDateTimeFm
 }
 
 inline float GetDateTimeWidth(ImPlotDateTimeFmt fmt) {
-    static ImPlotTime t_max_width = MakeTime(2888, 12, 22, 12, 58, 58, 888888); // best guess at time that maximizes pixel width
+    static const ImPlotTime t_max_width = MakeTime(2888, 12, 22, 12, 58, 58, 888888); // best guess at time that maximizes pixel width
     char buffer[32];
     FormatDateTime(t_max_width, buffer, 32, fmt);
     return ImGui::CalcTextSize(buffer).x;
@@ -2256,21 +2267,7 @@ void EndPlot() {
         DrawList.AddRectFilled(rect.Min, rect.Max, an.ColorBg);
         DrawList.AddText(pos + gp.Style.AnnotationPadding, an.ColorFg, txt);
     }
-    PopPlotClipRect();
 
-    // render y-axis drag/drop hover
-    if ((plot.YAxis[1].Present || plot.YAxis[2].Present) && ImGui::IsDragDropPayloadBeingAccepted()) {
-        for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
-            if (plot.YAxis[i].ExtHovered) {
-                float x_loc = gp.YAxisReference[i];
-                ImVec2 p1(x_loc - 5, plot.PlotRect.Min.y - 5);
-                ImVec2 p2(x_loc + 5, plot.PlotRect.Max.y + 5);
-                DrawList.AddRect(p1, p2, ImGui::GetColorU32(ImGuiCol_DragDropTarget), 0.0f,  ImDrawCornerFlags_All, 2.0f);
-            }
-        }
-    }
-
-    PushPlotClipRect();
     // render selection/query
     if (plot.Selecting) {
         const ImRect select_bb(ImMin(IO.MousePos, plot.SelectStart), ImMax(IO.MousePos, plot.SelectStart));
@@ -2404,9 +2401,9 @@ void EndPlot() {
                                                   legend_size,
                                                   plot.LegendLocation,
                                                   plot.LegendOutside ? gp.Style.PlotPadding : gp.Style.LegendPadding);
-        const ImRect legend_bb(legend_pos, legend_pos + legend_size);
+        plot.LegendRect = ImRect(legend_pos, legend_pos + legend_size);
         // test hover
-        plot.LegendHovered = plot.FrameHovered && legend_bb.Contains(IO.MousePos);
+        plot.LegendHovered = plot.FrameHovered && plot.LegendRect.Contains(IO.MousePos);
 
         if (plot.LegendOutside)
             ImGui::PushClipRect(plot.FrameRect.Min, plot.FrameRect.Max, true);
@@ -2414,10 +2411,13 @@ void EndPlot() {
             PushPlotClipRect();
         ImU32  col_bg      = GetStyleColorU32(ImPlotCol_LegendBg);
         ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
-        DrawList.AddRectFilled(legend_bb.Min, legend_bb.Max, col_bg);
-        DrawList.AddRect(legend_bb.Min, legend_bb.Max, col_bd);
-        ShowLegendEntries(plot, legend_bb, plot.LegendHovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation, DrawList);
+        DrawList.AddRectFilled(plot.LegendRect.Min, plot.LegendRect.Max, col_bg);
+        DrawList.AddRect(plot.LegendRect.Min, plot.LegendRect.Max, col_bd);
+        ShowLegendEntries(plot, plot.LegendRect, plot.LegendHovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.LegendOrientation, DrawList);
         ImGui::PopClipRect();
+    }
+    else {
+        plot.LegendRect = ImRect();
     }
     if (plot.LegendFlipSideNextFrame)  {
         plot.LegendOutside  = !plot.LegendOutside;
@@ -2905,6 +2905,150 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
     return dragging;
 }
 
+//-----------------------------------------------------------------------------
+
+#define IMPLOT_ID_PLT 10030910
+#define IMPLOT_ID_LEG 10030911
+#define IMPLOT_ID_XAX 10030912
+#define IMPLOT_ID_YAX 10030913
+
+bool BeginDragDropTargetEx(int id, const ImRect& rect) {
+    ImGuiContext& G  = *GImGui;
+    const ImGuiID ID = G.CurrentWindow->GetID(id);
+    if (ImGui::ItemAdd(rect, ID, &rect) &&
+        ImGui::BeginDragDropTarget())
+        return true;
+    return false;
+}
+
+bool BeginDragDropTarget() {
+    return BeginDragDropTargetEx(IMPLOT_ID_PLT, GImPlot->CurrentPlot->PlotRect);
+}
+
+bool BeginDragDropTargetX() {
+    return BeginDragDropTargetEx(IMPLOT_ID_XAX, GImPlot->CurrentPlot->XAxis.HoverRect);
+}
+
+bool BeginDragDropTargetY(ImPlotYAxis axis) {
+    return BeginDragDropTargetEx(IMPLOT_ID_YAX + axis, GImPlot->CurrentPlot->YAxis[axis].HoverRect);
+}
+
+bool BeginDragDropTargetLegend() {
+    return !ImHasFlag(GImPlot->CurrentPlot->Flags,ImPlotFlags_NoLegend) &&
+            BeginDragDropTargetEx(IMPLOT_ID_LEG, GImPlot->CurrentPlot->LegendRect);
+}
+
+void EndDragDropTarget() {
+	ImGui::EndDragDropTarget();
+}
+
+bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlags flags, ImGuiKeyModFlags key_mods) {
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = g.CurrentWindow;
+    ImGuiMouseButton mouse_button = ImGuiMouseButton_Left;
+
+    if (g.IO.MouseDown[mouse_button] == false) {
+        if (g.ActiveId == source_id)
+            ImGui::ClearActiveID();
+        return false;
+    }
+
+    if (is_hovered && g.IO.MouseClicked[mouse_button] && g.IO.KeyMods == key_mods) {
+        ImGui::SetActiveID(source_id, window);
+        ImGui::FocusWindow(window);
+    }
+
+    if (g.ActiveId != source_id) {
+        return false;
+    }
+
+    g.ActiveIdAllowOverlap = is_hovered;
+    g.ActiveIdUsingNavDirMask = ~(ImU32)0;
+    g.ActiveIdUsingNavInputMask = ~(ImU32)0;
+    g.ActiveIdUsingKeyInputMask = ~(ImU64)0;
+
+    if (ImGui::IsMouseDragging(mouse_button)) {
+
+        if (!g.DragDropActive) {
+            ImGui::ClearDragDrop();
+            ImGuiPayload& payload = g.DragDropPayload;
+            payload.SourceId = source_id;
+            payload.SourceParentId = 0;
+            g.DragDropActive = true;
+            g.DragDropSourceFlags = 0;
+            g.DragDropMouseButton = mouse_button;
+        }
+        g.DragDropSourceFrameCount = g.FrameCount;
+        g.DragDropWithinSource = true;
+
+        if (!(flags & ImGuiDragDropFlags_SourceNoPreviewTooltip)) {
+            ImGui::BeginTooltip();
+            if (g.DragDropAcceptIdPrev && (g.DragDropAcceptFlags & ImGuiDragDropFlags_AcceptNoPreviewTooltip)) {
+                ImGuiWindow* tooltip_window = g.CurrentWindow;
+                tooltip_window->SkipItems = true;
+                tooltip_window->HiddenFramesCanSkipItems = 1;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool BeginDragDropSource(ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    if (ImGui::GetIO().KeyMods == key_mods) {
+        GImPlot->CurrentPlot->XAxis.Dragging = false;
+        for (int i = 0; i < IMPLOT_Y_AXES; ++i)
+            GImPlot->CurrentPlot->YAxis[i].Dragging = false;
+    }
+    const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_PLT);
+    ImRect rect = GImPlot->CurrentPlot->PlotRect;
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->PlotHovered, flags, key_mods);
+}
+
+bool BeginDragDropSourceX(ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    if (ImGui::GetIO().KeyMods == key_mods)
+        GImPlot->CurrentPlot->XAxis.Dragging = false;
+    const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_XAX);
+    ImRect rect = GImPlot->CurrentPlot->XAxis.HoverRect;
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->XAxis.ExtHovered, flags, key_mods);
+}
+
+bool BeginDragDropSourceY(ImPlotYAxis axis, ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    if (ImGui::GetIO().KeyMods == key_mods)
+        GImPlot->CurrentPlot->YAxis[axis].Dragging = false;
+    const ImGuiID ID = GImGui->CurrentWindow->GetID(IMPLOT_ID_YAX + axis);
+    ImRect rect = GImPlot->CurrentPlot->YAxis[axis].HoverRect;
+    return  ImGui::ItemAdd(rect, ID, &rect) && BeginDragDropSourceEx(ID, GImPlot->CurrentPlot->YAxis[axis].ExtHovered, flags, key_mods);
+}
+
+bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginDragDropSourceItem() needs to be called between BeginPlot() and EndPlot()!");
+    ImGuiID source_id = ImGui::GetID(label_id);
+    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(source_id);
+    bool is_hovered = item && item->LegendHovered;
+    return BeginDragDropSourceEx(source_id, is_hovered, flags, ImGuiKeyModFlags_None);
+}
+
+void EndDragDropSource() {
+    ImGui::EndDragDropSource();
+}
+
+void ItemIcon(const ImVec4& col) {
+    ItemIcon(ImGui::ColorConvertFloat4ToU32(col));
+}
+
+void ItemIcon(ImU32 col) {
+    const float txt_size = ImGui::GetTextLineHeight();
+    ImVec2 size(txt_size-4,txt_size);
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    ImVec2 pos = window->DC.CursorPos;
+    ImGui::GetWindowDrawList()->AddRectFilled(pos + ImVec2(0,2), pos + size - ImVec2(0,2), col);
+    ImGui::Dummy(size);
+}
+
+//-----------------------------------------------------------------------------
+
 void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, bool outside) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetLegendLocation() needs to be called between BeginPlot() and EndPlot()!");
@@ -2928,74 +3072,9 @@ bool IsLegendEntryHovered(const char* label_id) {
     return item && item->LegendHovered;
 }
 
-bool BeginLegendDragDropSource(const char* label_id, ImGuiDragDropFlags flags) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginLegendDragDropSource() needs to be called between BeginPlot() and EndPlot()!");
-    ImGuiID source_id = ImGui::GetID(label_id);
-    ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(source_id);
-    bool is_hovered = item && item->LegendHovered;
 
-    ImGuiContext& g = *GImGui;
-    ImGuiWindow* window = g.CurrentWindow;
 
-    ImGuiMouseButton mouse_button = ImGuiMouseButton_Left;
 
-    if (g.IO.MouseDown[mouse_button] == false) {
-        if (g.ActiveId == source_id)
-            ImGui::ClearActiveID();
-        return false;
-    }
-
-    if (is_hovered && g.IO.MouseClicked[mouse_button]) {
-        ImGui::SetActiveID(source_id, window);
-        ImGui::FocusWindow(window);
-    }
-
-    if (g.ActiveId != source_id)
-        return false;
-
-    // Allow the underlying widget to display/return hovered during the mouse
-    // release frame, else we would get a flicker.
-    g.ActiveIdAllowOverlap = is_hovered;
-
-    // Disable navigation and key inputs while dragging
-    g.ActiveIdUsingNavDirMask = ~(ImU32)0;
-    g.ActiveIdUsingNavInputMask = ~(ImU32)0;
-    g.ActiveIdUsingKeyInputMask = ~(ImU64)0;
-
-    if (ImGui::IsMouseDragging(mouse_button)) {
-        if (!g.DragDropActive) {
-            ImGui::ClearDragDrop();
-            ImGuiPayload& payload = g.DragDropPayload;
-            payload.SourceId = source_id;
-            payload.SourceParentId = 0;
-            g.DragDropActive = true;
-            g.DragDropSourceFlags = 0;
-            g.DragDropMouseButton = mouse_button;
-        }
-        g.DragDropSourceFrameCount = g.FrameCount;
-        g.DragDropWithinSource = true;
-
-        if (!(flags & ImGuiDragDropFlags_SourceNoPreviewTooltip)) {
-            // Target can request the Source to not display its tooltip (we use a
-            // dedicated flag to make this request explicit) We unfortunately can't
-            // just modify the source flags and skip the call to BeginTooltip, as
-            // caller may be emitting contents.
-            ImGui::BeginTooltip();
-            if (g.DragDropAcceptIdPrev && (g.DragDropAcceptFlags & ImGuiDragDropFlags_AcceptNoPreviewTooltip)) {
-                ImGuiWindow* tooltip_window = g.CurrentWindow;
-                tooltip_window->SkipItems = true;
-                tooltip_window->HiddenFramesCanSkipItems = 1;
-            }
-        }
-        return true;
-    }
-    return false;
-}
-
-void EndLegendDragDropSource() {
-    ImGui::EndDragDropSource();
-}
 
 bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button) {
     ImPlotContext& gp = *GImPlot;
@@ -3412,55 +3491,64 @@ ImVec4 NextColormapColor() {
     return col;
 }
 
-void ShowColormapScale(double scale_min, double scale_max, float height) {
-    ImPlotContext& gp = *GImPlot;
-    static ImPlotTickCollection ticks;
-    ticks.Reset();
-    ImPlotRange range;
-    range.Min = scale_min;
-    range.Max = scale_max;
-
-    AddTicksDefault(range, 10, 0, ticks);
-
-
+void ShowColormapScale(double scale_min, double scale_max, const ImVec2& size) {
     ImGuiContext &G      = *GImGui;
     ImGuiWindow * Window = G.CurrentWindow;
     if (Window->SkipItems)
         return;
-    const float txt_off = 5;
-    const float bar_w   = 20;
+
+    ImPlotContext& gp = *GImPlot;
+    gp.CTicks.Reset();
+
+    ImPlotRange range;
+    range.Min = scale_min;
+    range.Max = scale_max;
+
+    const float txt_off = gp.Style.LabelPadding.x;
+    float bar_w         = 20;
+
+    ImVec2 frame_size  = ImGui::CalcItemSize(size, 0, gp.Style.PlotDefaultSize.y);
+    if (frame_size.y < gp.Style.PlotMinSize.y && size.y < 0.0f)
+        frame_size.y = gp.Style.PlotMinSize.y;
+
+    AddTicksDefault(range, ImMax(2, (int)IM_ROUND(0.0025 * frame_size.y)), IMPLOT_SUB_DIV, gp.CTicks);
+    if (frame_size.x == 0)
+        frame_size.x = bar_w + txt_off + gp.CTicks.MaxWidth + 2 * gp.Style.PlotPadding.x;
+    else {
+        bar_w = frame_size.x - (txt_off + gp.CTicks.MaxWidth + 2 * gp.Style.PlotPadding.x);
+        if (bar_w < gp.Style.MajorTickLen.y)
+            bar_w = gp.Style.MajorTickLen.y;
+    }
 
     ImDrawList &DrawList = *Window->DrawList;
-    ImVec2 size(bar_w + txt_off + ticks.MaxWidth + 2 * gp.Style.PlotPadding.x, height);
-    ImRect bb_frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + size);
+    ImRect bb_frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
     ImGui::ItemSize(bb_frame);
     if (!ImGui::ItemAdd(bb_frame, 0, &bb_frame))
         return;
-    ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, G.Style.FrameRounding);
-    ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding, bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x, height - gp.Style.PlotPadding.y));
 
-    int num_cols = GetColormapSize();
-    float h_step = (height - 2 * gp.Style.PlotPadding.y) / (num_cols - 1);
-    for (int i = 0; i < num_cols-1; ++i) {
-        ImRect rect(bb_grad.Min.x, bb_grad.Min.y + h_step * i, bb_grad.Max.x, bb_grad.Min.y + h_step * (i + 1));
-        ImU32 col1 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - i));
-        ImU32 col2 = ImGui::GetColorU32(GetColormapColor(num_cols - 1 - (i+1)));
-        DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col1, col2, col2);
-    }
-    ImVec4 col_tik4 = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-    col_tik4.w *= 0.25f;
-    const ImU32 col_tick = ImGui::GetColorU32(col_tik4);
+    ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, G.Style.FrameRounding);
+    ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding, bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x, frame_size.y - gp.Style.PlotPadding.y));
 
     ImGui::PushClipRect(bb_frame.Min, bb_frame.Max, true);
-    for (int i = 0; i < ticks.Size; ++i) {
-        float ypos = ImRemap((float)ticks.Ticks[i].PlotPos, (float)range.Max, (float)range.Min, bb_grad.Min.y, bb_grad.Max.y);
-        if (ypos < bb_grad.Max.y - 2 && ypos > bb_grad.Min.y + 2)
-            DrawList.AddLine(ImVec2(bb_grad.Max.x-1, ypos), ImVec2(bb_grad.Max.x - (ticks.Ticks[i].Major ? 10.0f : 5.0f), ypos), col_tick, 1.0f);
-        DrawList.AddText(ImVec2(bb_grad.Max.x-1, ypos) + ImVec2(txt_off, -ticks.Ticks[i].LabelSize.y * 0.5f), GetStyleColorU32(ImPlotCol_TitleText), ticks.GetText(i));
+    int num_cols = GetColormapSize();
+    float h_step = (frame_size.y - 2 * gp.Style.PlotPadding.y) / (num_cols - 1);
+    for (int i = 0; i < num_cols-1; ++i) {
+        ImRect rect(bb_grad.Min.x, bb_grad.Min.y + h_step * i, bb_grad.Max.x, bb_grad.Min.y + h_step * (i + 1));
+        ImU32 col1 = ImGui::GetColorU32(GetColormapColor(num_cols - i - 1));
+        ImU32 col2 = ImGui::GetColorU32(GetColormapColor(num_cols - i - 2));
+        DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col1, col2, col2);
     }
-    ImGui::PopClipRect();
-
+    const ImU32 col_tick = GetStyleColorU32(ImPlotCol_TitleText);
+    for (int i = 0; i < gp.CTicks.Size; ++i) {
+        const float ypos = ImRemap((float)gp.CTicks.Ticks[i].PlotPos, (float)range.Max, (float)range.Min, bb_grad.Min.y, bb_grad.Max.y);
+        const float tick_width = gp.CTicks.Ticks[i].Major ? gp.Style.MajorTickLen.y : gp.Style.MinorTickLen.y;
+        const float tick_thick = gp.CTicks.Ticks[i].Major ? gp.Style.MajorTickSize.y : gp.Style.MinorTickSize.y;
+        if (ypos < bb_grad.Max.y - 2 && ypos > bb_grad.Min.y + 2)
+            DrawList.AddLine(ImVec2(bb_grad.Max.x-1, ypos), ImVec2(bb_grad.Max.x - tick_width, ypos), col_tick, tick_thick);
+        DrawList.AddText(ImVec2(bb_grad.Max.x-1, ypos) + ImVec2(txt_off, -gp.CTicks.Ticks[i].LabelSize.y * 0.5f), col_tick, gp.CTicks.GetText(i));
+    }
     DrawList.AddRect(bb_grad.Min, bb_grad.Max, GetStyleColorU32(ImPlotCol_PlotBorder));
+    ImGui::PopClipRect();
 }
 
 
@@ -3879,12 +3967,14 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
 
     ImGui::PushID(id);
     ImGui::BeginGroup();
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
 
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4 col_txt    = style.Colors[ImGuiCol_Text];
     ImVec4 col_dis    = style.Colors[ImGuiCol_TextDisabled];
+    ImVec4 col_btn    = style.Colors[ImGuiCol_Button];
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
+
     const float ht    = ImGui::GetFrameHeight();
     ImVec2 cell_size(ht*1.25f,ht);
     char buff[32];
@@ -3970,7 +4060,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
                 if (off_mo)
                     ImGui::PushStyleColor(ImGuiCol_Text, col_dis);
                 if (t1_or_t2) {
-                    ImGui::PushStyleColor(ImGuiCol_Button, col_dis);
+                    ImGui::PushStyleColor(ImGuiCol_Button, col_btn);
                     ImGui::PushStyleColor(ImGuiCol_Text, col_txt);
                 }
                 ImGui::PushID(i*7+j);
@@ -4020,7 +4110,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
                 const bool t1_or_t2 = (t1 != NULL && t1_yr == this_yr && t1_mo == mo) ||
                                       (t2 != NULL && t2_yr == this_yr && t2_mo == mo);
                 if (t1_or_t2)
-                    ImGui::PushStyleColor(ImGuiCol_Button, col_dis);
+                    ImGui::PushStyleColor(ImGuiCol_Button, col_btn);
                 if (ImGui::Button(MONTH_ABRVS[mo],cell_size) && !clk) {
                     *t = MakeTime(this_yr, mo);
                     *level = 0;
@@ -4058,7 +4148,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
             for (int j = 0; j < 4; ++j) {
                 const bool t1_or_t2 = (t1 != NULL && t1_yr == yr) || (t2 != NULL && t2_yr == yr);
                 if (t1_or_t2)
-                    ImGui::PushStyleColor(ImGuiCol_Button, col_dis);
+                    ImGui::PushStyleColor(ImGuiCol_Button, col_btn);
                 snprintf(buff,32,"%d",yr);
                 if (yr<1970||yr>3000) {
                     ImGui::Dummy(cell_size);

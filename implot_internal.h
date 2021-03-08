@@ -621,6 +621,7 @@ struct ImPlotPlot
     ImRect             CanvasRect;
     ImRect             PlotRect;
     ImRect             AxesRect;
+    ImRect             LegendRect;
 
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
@@ -715,6 +716,7 @@ struct ImPlotContext {
     ImPlotItem*        PreviousItem;
 
     // Tick Marks and Labels
+    ImPlotTickCollection CTicks;
     ImPlotTickCollection XTicks;
     ImPlotTickCollection YTicks[IMPLOT_Y_AXES];
     float                YAxisReference[IMPLOT_Y_AXES];
