@@ -370,10 +370,10 @@ struct ImPlotColormapData {
 
     inline ImU32 Lerp(ImPlotColormap cmap, float t) {
         int size = GetSize(cmap);
-        int i1 = (int)((size -1 ) * t);
+        int i1 = (int)((size - 1 ) * t);
         int i2 = i1 + 1;
-        if (i2 == size || size == 1)
-            return GetColor(cmap, i1);
+        if (i2 == size || size == 1) 
+            return GetColor(cmap, i1);        
         float den = 1.0f / (size - 1);
         float t1 = i1 * den;
         float t2 = i2 * den;
@@ -813,6 +813,9 @@ struct ImPlotContext {
     // Time
     tm Tm;
 
+    // Temp data for general use
+    ImVector<double>   Temp1, Temp2;
+
     // Misc
     int                VisibleItemCount;
     int                DigitalPlotItemCnt;
@@ -1025,6 +1028,27 @@ template <typename T>
 inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
     idx = ImPosMod(offset + idx, count);
     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
+}
+
+// Calculate histogram bin counts and widths
+template <typename T>
+void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
+    switch (meth) {
+        case ImPlotBin_Sqrt:    
+            bins_out  = (int)ceil(sqrt(count));           
+            break;
+        case ImPlotBin_Sturges: 
+            bins_out  = (int)ceil(1.0 + log2(count));     
+            break;
+        case ImPlotBin_Rice:    
+            bins_out  = (int)ceil(2 * cbrt(count));       
+            break;
+        case ImPlotBin_Scott:  
+            width_out = 3.49 * ImStdDev(values, count) / cbrt(count);
+            bins_out  = (int)round(range.Size() / width_out);
+            break;
+    }
+    width_out = range.Size() / bins_out;
 }
 
 //-----------------------------------------------------------------------------

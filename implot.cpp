@@ -31,7 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2021/03/08 (0.9) - 
+- 2021/03/08 (0.9) - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support.
 - 2021/03/07 (0.9) - The signature of ShowColormapScale was modified to accept a ImVec2 size.
 - 2021/02/28 (0.9) - BeginLegendDragDropSource was changed to BeginDragDropSourceItem with a number of other drag and drop improvements.
 - 2021/01/18 (0.9) - The default behavior for opening context menus was change from double right-click to single right-click. ImPlotInputMap and related functions were moved
@@ -1733,21 +1733,25 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
         UpdateTransformCache();
         ImVec2 select_size = plot.SelectStart - IO.MousePos;
         if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)) {
-            ImPlotPoint p1 = PixelsToPlot(plot.SelectStart);
-            ImPlotPoint p2 = PixelsToPlot(IO.MousePos);
             const bool x_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImFabs(select_size.x) > 2;
             const bool y_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.VerticalMod)   && ImFabs(select_size.y) > 2;
-            if (!plot.XAxis.IsLockedMin() && x_can_change)
-                plot.XAxis.SetMin(ImMin(p1.x, p2.x));
-            if (!plot.XAxis.IsLockedMax() && x_can_change)
-                plot.XAxis.SetMax(ImMax(p1.x, p2.x));
+            if (!plot.XAxis.IsInputLocked()) { 
+                ImPlotPoint p1 = PixelsToPlot(plot.SelectStart);
+                ImPlotPoint p2 = PixelsToPlot(IO.MousePos);   
+                if (!plot.XAxis.IsLockedMin() && x_can_change)
+                    plot.XAxis.SetMin(ImMin(p1.x, p2.x));
+                if (!plot.XAxis.IsLockedMax() && x_can_change)
+                    plot.XAxis.SetMax(ImMax(p1.x, p2.x));
+            }
             for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-                p1 = PixelsToPlot(plot.SelectStart, i);
-                p2 = PixelsToPlot(IO.MousePos, i);
-                if (!plot.YAxis[i].IsLockedMin() && y_can_change)
-                    plot.YAxis[i].SetMin(ImMin(p1.y, p2.y));
-                if (!plot.YAxis[i].IsLockedMax() && y_can_change)
-                    plot.YAxis[i].SetMax(ImMax(p1.y, p2.y));
+                if (!plot.YAxis->IsInputLocked()) {
+                    ImPlotPoint p1 = PixelsToPlot(plot.SelectStart, i);
+                    ImPlotPoint p2 = PixelsToPlot(IO.MousePos, i);
+                    if (!plot.YAxis[i].IsLockedMin() && y_can_change)
+                        plot.YAxis[i].SetMin(ImMin(p1.y, p2.y));
+                    if (!plot.YAxis[i].IsLockedMax() && y_can_change)
+                        plot.YAxis[i].SetMax(ImMax(p1.y, p2.y));
+                }
             }
             if (x_can_change || y_can_change || (ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImHasFlag(IO.KeyMods,gp.InputMap.VerticalMod)))
                 plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
@@ -3755,6 +3759,11 @@ void ShowMetricsWindow(bool* p_popen) {
     ImGui::Separator();
     int n_plots = gp.Plots.GetSize();
     if (ImGui::TreeNode("Tools")) {
+        if (ImGui::Button("Bust Plot Cache"))
+            BustPlotCache();
+        ImGui::SameLine();
+        if (ImGui::Button("Bust Item Cache"))
+            BustItemCache();
         ImGui::Checkbox("Show Plot Rects", &show_plot_rects);
         ImGui::Checkbox("Show Axes Rects", &show_axes_rects);
         ImGui::TreePop();
@@ -3775,7 +3784,7 @@ void ShowMetricsWindow(bool* p_popen) {
                             ImGui::Bullet(); ImGui::ColorEdit4("Color",&item->Color.x, ImGuiColorEditFlags_NoInputs);
                             ImGui::Bullet(); ImGui::Text("NameOffset: %d",item->NameOffset);
                             ImGui::Bullet(); ImGui::Text("Name:       %s", item->NameOffset != -1 ? plot->LegendData.Labels.Buf.Data + item->NameOffset : "N/A");
-                            ImGui::Bullet(); ImGui::Value("Hovered:   %s",item->LegendHovered ? "true" : "false");
+                            ImGui::Bullet(); ImGui::Text("Hovered:    %s",item->LegendHovered ? "true" : "false");
                             ImGui::TreePop();
                         }
                         ImGui::PopID();

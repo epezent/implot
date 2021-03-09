@@ -431,57 +431,7 @@ void ShowDemoWindow(bool* p_open) {
             }
             ImPlot::EndPlot();
         }
-    }
-    //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Histograms")) {
-        static int  bins       = ImPlotBinMethod_Sturges;
-        static bool cumulative = false;
-        static bool density    = true;
-        static double mu       = 5;
-        static double sigma    = 2;
-        static NormalDistribution<10000> dist(mu, sigma);
-        static double x[100];
-        static double y[100];
-        if (density) {
-            for (int i = 0; i < 100; ++i) {
-                x[i] = -3 + 16 * (double)i/99.0;
-                y[i] = exp( - (x[i]-mu)*(x[i]-mu) / (2*sigma*sigma)) / (sigma * sqrt(2*3.141592653589793238));
-            }
-            if (cumulative) {
-                for (int i = 1; i < 100; ++i)
-                    y[i] += y[i-1];
-                for (int i = 0; i < 100; ++i)
-                    y[i] /= y[99];
-            }
-        }
-        ImGui::SetNextItemWidth(200);
-        ImGui::SliderInt("Bins", &bins, -4, 100);
-        ImGui::SameLine();
-        ImGui::Checkbox("Density", &density);
-        ImGui::SameLine();
-        ImGui::Checkbox("Cumulative", &cumulative);
-        static float rmin = 0;
-        static float rmax = 0;
-        ImGui::DragFloat2("Range",&rmin,0.1f,-3,13);
-        ImPlot::SetNextPlotLimits(-3, 13, 0, 0.25);
-        if (ImPlot::BeginPlot("##Histograms")) {
-            ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
-            ImPlot::PlotHistogram("Empirical", dist.Data, 10000, bins, cumulative, density, ImPlotRange(rmin,rmax));
-            if (density)
-                ImPlot::PlotLine("Theoretical",x,y,100);
-            ImPlot::EndPlot();
-        }
-
-        srand(0);
-        static NormalDistribution<10000> dist1(1, 2);
-        static NormalDistribution<10000> dist2(1, 1);
-        ImPlot::PushColormap("Cool");
-        if (ImPlot::BeginPlot("Hist2D",0,0,ImVec2(-1,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
-            ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,10000,100,100,false,ImPlotLimits(-6,6,-6,6));
-            ImPlot::EndPlot();
-        }
-        ImPlot::PopColormap();
-    }
+    }    
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Error Bars")) {
         static float xs[5]    = {1,2,3,4,5};
@@ -625,6 +575,83 @@ void ShowDemoWindow(bool* p_open) {
 
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Histograms")) {
+        static int  bins       = 50;
+        static bool cumulative = false;
+        static bool density    = true;
+        static bool outliers   = true;
+        static double mu       = 5;
+        static double sigma    = 2;
+        static NormalDistribution<10000> dist(mu, sigma);
+        static double x[100];
+        static double y[100];
+        if (density) {
+            for (int i = 0; i < 100; ++i) {
+                x[i] = -3 + 16 * (double)i/99.0;
+                y[i] = exp( - (x[i]-mu)*(x[i]-mu) / (2*sigma*sigma)) / (sigma * sqrt(2*3.141592653589793238));
+            }
+            if (cumulative) {
+                for (int i = 1; i < 100; ++i)
+                    y[i] += y[i-1];
+                for (int i = 0; i < 100; ++i)
+                    y[i] /= y[99];
+            }
+        }
+        ImGui::SetNextItemWidth(200);
+        if (ImGui::RadioButton("Sqrt",bins==ImPlotBin_Sqrt))       bins = ImPlotBin_Sqrt;     ImGui::SameLine();
+        if (ImGui::RadioButton("Sturges",bins==ImPlotBin_Sturges)) bins = ImPlotBin_Sturges;  ImGui::SameLine();
+        if (ImGui::RadioButton("Rice",bins==ImPlotBin_Rice))       bins = ImPlotBin_Rice;     ImGui::SameLine();
+        if (ImGui::RadioButton("Scott",bins==ImPlotBin_Scott))     bins = ImPlotBin_Scott;    ImGui::SameLine();
+        if (ImGui::RadioButton("N Bins",bins>=0))                       bins = 50;                 
+        if (bins>=0) {
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(200);
+            ImGui::SliderInt("##Bins", &bins, 1, 100);
+        }
+        ImGui::Checkbox("Density", &density);
+        ImGui::SameLine();
+        ImGui::Checkbox("Cumulative", &cumulative);   
+        ImGui::SameLine();
+        static bool range = false;    
+        ImGui::Checkbox("Range", &range);  
+        static float rmin = -3;
+        static float rmax = 13;
+        if (range) {
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(200);
+            ImGui::DragFloat2("##Range",&rmin,0.1f,-3,13);
+            ImGui::SameLine();
+            ImGui::Checkbox("Outliers",&outliers);
+        }
+        ImPlot::SetNextPlotLimits(-3, 13, 0, 0.25);
+        if (ImPlot::BeginPlot("##Histograms")) {
+            ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
+            ImPlot::PlotHistogram("Empirical", dist.Data, 10000, bins, cumulative, density, range ? ImPlotRange(rmin,rmax) : ImPlotRange(), outliers);
+            if (density && outliers)
+                ImPlot::PlotLine("Theoretical",x,y,100);
+            ImPlot::EndPlot();
+        }
+
+        static int count     = 500000;
+        static int xybins[2] = {200,200};
+        static bool density2 = false;
+        ImGui::SliderInt("Count",&count,100,500000);
+        ImGui::SliderInt2("Bins",xybins,1,500);
+        ImGui::SameLine();
+        ImGui::Checkbox("Density##2",&density2);
+        static NormalDistribution<500000> dist1(1, 2);
+        static NormalDistribution<500000> dist2(1, 1);
+        double max_count = 0;
+        ImPlot::PushColormap("Viridis");
+        if (ImPlot::BeginPlot("##Hist2D",0,0,ImVec2(ImGui::GetContentRegionAvail().x-75-ImGui::GetStyle().ItemSpacing.x,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
+            max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],density2,ImPlotLimits(-6,6,-6,6));
+            ImPlot::EndPlot();
+        }
+        ImGui::SameLine();
+        ImPlot::ShowColormapScale(0,max_count,ImVec2(75,0));
+        ImPlot::PopColormap();
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Images")) {
         ImGui::BulletText("Below we are displaying the font texture, which is the only texture we have\naccess to in this demo.");
         ImGui::BulletText("Use the 'ImTextureID' type as storage to pass pointers or identifiers to your\nown texture data.");
@@ -726,7 +753,7 @@ void ShowDemoWindow(bool* p_open) {
             ys2[i] = log(xs[i]);
             ys3[i] = pow(10.0, xs[i]);
         }
-        ImGui::BulletText("Open the plot context menu (double right click) to change scales.");
+        ImGui::BulletText("Open the plot context menu (right click) to change scales.");
 
         ImPlot::SetNextPlotLimits(0.1, 100, 0, 10);
         if (ImPlot::BeginPlot("Log Plot", NULL, NULL, ImVec2(-1,0), 0, ImPlotAxisFlags_LogScale )) {

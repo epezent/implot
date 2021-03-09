@@ -61,7 +61,7 @@ typedef int ImPlotColormap;    // -> enum ImPlotColormap_
 typedef int ImPlotLocation;    // -> enum ImPlotLocation_
 typedef int ImPlotOrientation; // -> enum ImPlotOrientation_
 typedef int ImPlotYAxis;       // -> enum ImPlotYAxis_;
-typedef int ImPlotBinMethod;   // -> enum ImPlotBinMethod_
+typedef int ImPlotBin;         // -> enum ImPlotBin_
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -222,11 +222,11 @@ enum ImPlotYAxis_ {
 };
 
 // Enums for different automatic histogram binning methods (k = bin count or w = bin width)
-enum ImPlotBinMethod_ {
-    ImPlotBinMethod_Sqrt    = -1, // k = sqrt(n)
-    ImPlotBinMethod_Sturges = -2, // k = 1 + log2(n)
-    ImPlotBinMethod_Rice    = -3, // k = 2 * cbrt(n)
-    ImPlotBinMethod_Scott   = -4, // w = 3.49 * sigma / cbrt(n)
+enum ImPlotBin_ {
+    ImPlotBin_Sqrt    = -1, // k = sqrt(n)
+    ImPlotBin_Sturges = -2, // k = 1 + log2(n)
+    ImPlotBin_Rice    = -3, // k = 2 * cbrt(n)
+    ImPlotBin_Scott   = -4, // w = 3.49 * sigma / cbrt(n)
 };
 
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
@@ -442,13 +442,15 @@ template <typename T> IMPLOT_API void PlotPieChart(const char* const label_ids[]
 // Plots a 2D heatmap chart. Values are expected to be in row-major order. #label_fmt can be set to NULL for no labels.
 template <typename T> IMPLOT_API void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt="%.1f", const ImPlotPoint& bounds_min=ImPlotPoint(0,0), const ImPlotPoint& bounds_max=ImPlotPoint(1,1));
 
-// Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBinMethod. If #cumulative is true, each bin contains its count plus the counts of all previous bins. If #density is true, the PDF is visualized. 
-// If both are true, the CDF is visualized. If #range is left unspecified, the min/max of #values will be used as the range. Values outside of range are not binned and are ignored in the total count for #density=true histograms.
-template <typename T> IMPLOT_API void PlotHistogram(const char* label_id, const T* values, int count, int bins=ImPlotBinMethod_Sturges, bool cumulative=false, bool density=false, ImPlotRange range=ImPlotRange(), double bar_scale=1.0);
+// Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBin_ method. If #cumulative is true, each bin contains its count plus the counts of all previous bins. 
+// If #density is true, the PDF is visualized. If both are true, the CDF is visualized. If #range is left unspecified, the min/max of #values will be used as the range. 
+// If #range is specified, outlier values outside of the range are not binned. However, outliers still count toward normalizing and cumulative counts unless #outliers is false. The largest bin count or density is returned.
+template <typename T> IMPLOT_API double PlotHistogram(const char* label_id, const T* values, int count, int bins=ImPlotBin_Sturges, bool cumulative=false, bool density=false, ImPlotRange range=ImPlotRange(), bool outliers=true, double bar_scale=1.0);
 
-// Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBinMethod. If #density is true, the PDF is visualized. If #range is left unspecified, 
-// the min/max of #xs an #ys will be used as the ranges. Values outside of range are not binned and are ignored in the total count for #density=true histograms.
-template <typename T> IMPLOT_API void PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins=ImPlotBinMethod_Sturges, int y_bins=ImPlotBinMethod_Sturges, bool density=false, ImPlotLimits range=ImPlotLimits());
+// Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBin. If #density is true, the PDF is visualized. 
+// If #range is left unspecified, the min/max of #xs an #ys will be used as the ranges. If #range is specified, outlier values outside of range are not binned.
+// However, outliers still count toward the normalizing count for density plots unless #outliers is false. The largest bin count or density is returned.
+template <typename T> IMPLOT_API double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins=ImPlotBin_Sturges, int y_bins=ImPlotBin_Sturges, bool density=false, ImPlotLimits range=ImPlotLimits(), bool outliers=true);
 
 // Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
 template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
@@ -656,25 +658,26 @@ IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
 // Colormaps
 //-----------------------------------------------------------------------------
 
-// Item styling is based on Colormaps when the relevant ImPlotCol_ is set to
-// IMPLOT_AUTO_COL (default). Several built in colormaps are available and can be
-// toggled in the demo. You can push/pop or set your own colormaps as well.
+// Item styling is based on colormaps when the relevant ImPlotCol_ is set to
+// IMPLOT_AUTO_COL (default). Several built-in colormaps are available. You can 
+// add and then push/pop or set your own colormaps as well. To permanently set
+// a colormap, modify the Colormap member of your ImPlotStyle.
 
-// The Colormap data will be ignored and a custom color will be used if you have done one of the following:
-//     1) Modified an item style color in your ImPlotStyle to anything other than IMPLOT_AUTO_COL.
+// Colormap data will be ignored and a custom color will be used if you have done one of the following:
+//     1) Modified an item style color in your ImPlotStyle to anything other than IMPLOT_AUTO_COL. 
 //     2) Pushed an item style color using PushStyleColor().
 //     3) Set the next item style with a SetNextXStyle function.
 
 // Add a new colormap. The colormap can be used by pushing either the returned index or the string name with PushColormap.
-// The colormap name must be unique and the size must be greater than 1.
+// The colormap name must be unique and the size must be greater than 1. 
 IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImVec4* colormap, int size);
 IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImU32*  colormap, int size);
 
 // Temporarily switch to one of the built-in (i.e. ImPlotColormap_XXX) or user-added colormaps (i.e. a return value of AddColormap). Don't forget to call PopColormap!
 IMPLOT_API void PushColormap(ImPlotColormap cmap);
-// Push a colormap by string name. Use the string you provided to AddColormap, or use built-in names such as "Default", "Deep", etc. Don't forget to call PopColormap!
+// Push a colormap by string name. Use the string you provided to AddColormap, or use built-in names such as "Default", "Deep", "Jet", etc. Don't forget to call PopColormap!
 IMPLOT_API void PushColormap(const char* name);
-// Undo temporary colormap modification.
+// Undo temporary colormap modification(s).
 IMPLOT_API void PopColormap(int count = 1);
 
 // Returns the size of the current colormap.
@@ -688,7 +691,7 @@ IMPLOT_API ImVec4 NextColormapColor();
 
 // Returns the number of available colormaps.
 IMPLOT_API int GetColormapCount();
-// Returns a null terminated string name for a built-in colormap.
+// Returns a null terminated string name for a colormap by index (built-in or user-added).
 IMPLOT_API const char* GetColormapName(ImPlotColormap cmap);
 
 // Renders a vertical color scale using the current color map. Call this before or after Begin/EndPlot.
@@ -702,7 +705,7 @@ IMPLOT_API void ShowColormapScale(double scale_min, double scale_max, const ImVe
 IMPLOT_API void ItemIcon(const ImVec4& col);
 IMPLOT_API void ItemIcon(ImU32 col);
 
-// Get the plot draw list for rendering to the current plot area.
+// Get the plot draw list for custom rendering to the current plot area.
 IMPLOT_API ImDrawList* GetPlotDrawList();
 // Push clip rect for rendering to current plot area.
 IMPLOT_API void PushPlotClipRect();
