@@ -3735,8 +3735,8 @@ void ShowAxisMetrics(ImPlotAxis* axis, bool show_axis_rects) {
     ImGui::Bullet(); ImGui::Text("AllHovered: %s", axis->AllHovered ? "true" : "false");
     ImGui::Bullet(); ImGui::Text("Present:    %s", axis->Present ? "true" : "false");
     ImGui::Bullet(); ImGui::Text("HasRange:   %s", axis->HasRange ? "true" : "false");
-    ImGui::Bullet(); ImGui::Text("LinkedMin:  %p", axis->LinkedMin);
-    ImGui::Bullet(); ImGui::Text("LinkedMax:  %p", axis->LinkedMax);
+    ImGui::Bullet(); ImGui::Text("LinkedMin:  %p", (void*)axis->LinkedMin);
+    ImGui::Bullet(); ImGui::Text("LinkedMax:  %p", (void*)axis->LinkedMax);
     if (show_axis_rects) {
         ImDrawList& fg = *ImGui::GetForegroundDrawList();
         fg.AddRect(axis->HoverRect.Min, axis->HoverRect.Max, IM_COL32(0,255,0,255));

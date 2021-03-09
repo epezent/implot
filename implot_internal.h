@@ -148,25 +148,26 @@ inline double ImStdDev(const T* values, int count) {
 }
 // Mix color a and b by factor t [0 256]
 inline ImU32 ImMixColor32(ImU32 a, ImU32 b, ImU32 t) {
-#ifdef IMPLOT_MIX64
-    ImU32 af = 256-t;
-    ImU32 bf = t;  
-    ImU64 al = (a & 0x00ff00ff) | (((ImU64)(a & 0xff00ff00)) << 24);
-    ImU64 bl = (b & 0x00ff00ff) | (((ImU64)(b & 0xff00ff00)) << 24); 
-    ImU64 mix = (al * af + bl * bf); 
+#ifdef IMPLOT_MIX64 // may be slightly faster on 64-bit machines
+    const ImU32 af = 256-t;
+    const ImU32 bf = t;  
+    const ImU64 al = (a & 0x00ff00ff) | (((ImU64)(a & 0xff00ff00)) << 24);
+    const ImU64 bl = (b & 0x00ff00ff) | (((ImU64)(b & 0xff00ff00)) << 24); 
+    const ImU64 mix = (al * af + bl * bf); 
     return ((mix >> 32) & 0xff00ff00) | ((mix & 0xff00ff00) >> 8); 
 #else
-    ImU32 af = 256-t;
-    ImU32 bf = t;
-    ImU32 al = (a & 0x00ff00ff);
-    ImU32 ah = (a & 0xff00ff00) >> 8;
-    ImU32 bl = (b & 0x00ff00ff);
-    ImU32 bh = (b & 0xff00ff00) >> 8;
-    ImU32 ml = (al * af + bl * bf);
-    ImU32 mh = (ah * af + bh * bf);
+    const ImU32 af = 256-t;
+    const ImU32 bf = t;
+    const ImU32 al = (a & 0x00ff00ff);
+    const ImU32 ah = (a & 0xff00ff00) >> 8;
+    const ImU32 bl = (b & 0x00ff00ff);
+    const ImU32 bh = (b & 0xff00ff00) >> 8;
+    const ImU32 ml = (al * af + bl * bf);
+    const ImU32 mh = (ah * af + bh * bf);
     return (mh & 0xff00ff00) | ((ml & 0xff00ff00) >> 8);
 #endif
 }
+
 // Set alpha channel of 32-bit color from float in range [0 1]
 inline ImU32 ImAlphaColor32(ImU32 col, float alpha) {
     return col & ~((ImU32)((1.0f-alpha)*255)<<IM_COL32_A_SHIFT);

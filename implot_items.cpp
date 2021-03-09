@@ -1802,7 +1802,7 @@ struct GetterHeatmap {
         const int r = idx / Cols;
         const int c = idx % Cols;
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
-        const float t = (float)ImRemap01((double)Values[idx], ScaleMin, ScaleMax);
+        const float t = ImClamp((float)ImRemap01((double)Values[idx], ScaleMin, ScaleMax),0.0f,1.0f);
         RectInfo rect;
         rect.Min.x = p.x - HalfSize.x;
         rect.Min.y = p.y - HalfSize.y;
@@ -1850,7 +1850,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
                 char buff[32];
                 sprintf(buff, fmt, values[i]);
                 ImVec2 size = ImGui::CalcTextSize(buff);
-                double t = ImRemap01((double)values[i], scale_min, scale_max);
+                double t = ImClamp(ImRemap01((double)values[i], scale_min, scale_max),0.0,1.0);
                 ImVec4 color = LerpColormap((float)t);
                 ImU32 col = CalcTextColor(color);
                 DrawList.AddText(px - size * 0.5f, col, buff);

@@ -598,10 +598,10 @@ void ShowDemoWindow(bool* p_open) {
             }
         }
         ImGui::SetNextItemWidth(200);
-        if (ImGui::RadioButton("Sqrt",bins==ImPlotBin_Sqrt))       bins = ImPlotBin_Sqrt;     ImGui::SameLine();
-        if (ImGui::RadioButton("Sturges",bins==ImPlotBin_Sturges)) bins = ImPlotBin_Sturges;  ImGui::SameLine();
-        if (ImGui::RadioButton("Rice",bins==ImPlotBin_Rice))       bins = ImPlotBin_Rice;     ImGui::SameLine();
-        if (ImGui::RadioButton("Scott",bins==ImPlotBin_Scott))     bins = ImPlotBin_Scott;    ImGui::SameLine();
+        if (ImGui::RadioButton("Sqrt",bins==ImPlotBin_Sqrt))       { bins = ImPlotBin_Sqrt;    } ImGui::SameLine();
+        if (ImGui::RadioButton("Sturges",bins==ImPlotBin_Sturges)) { bins = ImPlotBin_Sturges; } ImGui::SameLine();
+        if (ImGui::RadioButton("Rice",bins==ImPlotBin_Rice))       { bins = ImPlotBin_Rice;    } ImGui::SameLine();
+        if (ImGui::RadioButton("Scott",bins==ImPlotBin_Scott))     { bins = ImPlotBin_Scott;   } ImGui::SameLine();
         if (ImGui::RadioButton("N Bins",bins>=0))                       bins = 50;                 
         if (bins>=0) {
             ImGui::SameLine();
