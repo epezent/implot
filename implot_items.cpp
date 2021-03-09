@@ -1746,8 +1746,8 @@ struct RectRenderer {
         ImVec2 P1 = Transformer(rect.Min);
         ImVec2 P2 = Transformer(rect.Max);
 
-        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2)))) 
-            return false;        
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
+            return false;
 
         DrawList._VtxWritePtr[0].pos   = P1;
         DrawList._VtxWritePtr[0].uv    = uv;
@@ -1808,7 +1808,9 @@ struct GetterHeatmap {
         rect.Min.y = p.y - HalfSize.y;
         rect.Max.x = p.x + HalfSize.x;
         rect.Max.y = p.y + HalfSize.y;
-        rect.Color = GImPlot->ColormapData.Lerp(GImPlot->Style.Colormap,t);
+
+        // rect.Color = ImLerpU32(Colormap,ColormapSize,t);
+        rect.Color = GImPlot->ColormapData.Lerp(GImPlot->Style.Colormap, t);  // ImLerpU32(Colormap,ColormapSize,t);
         return rect;
     }
     const T* const Values;
@@ -1895,7 +1897,7 @@ template IMPLOT_API void PlotHeatmap<double>(const char* label_id, const double*
 
 template <typename T>
 double PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale) {
-    
+
     if (count <= 0 || bins == 0)
         return 0;
 
@@ -1907,7 +1909,7 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
     }
 
     double width;
-    if (bins < 0) 
+    if (bins < 0)
         CalculateBins(values, count, bins, range, bins, width);
     else
         width = range.Size() / bins;
@@ -1979,12 +1981,12 @@ template IMPLOT_API double PlotHistogram<double>(const char* label_id, const dou
 // PLOT HISTOGRAM 2D
 //-----------------------------------------------------------------------------
 
-template <typename T> 
+template <typename T>
 double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density, ImPlotLimits range, bool outliers) {
-    
+
     if (count <= 0 || x_bins == 0 || y_bins == 0)
         return 0;
-    
+
     if (range.X.Min == 0 && range.X.Max == 0) {
         T Min, Max;
         ImMinMaxArray(xs, count, &Min, &Max);
@@ -1999,11 +2001,11 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
     }
 
     double width, height;
-    if (x_bins < 0) 
+    if (x_bins < 0)
         CalculateBins(xs, count, x_bins, range.X, x_bins, width);
     else
         width = range.X.Size() / x_bins;
-    if (y_bins < 0) 
+    if (y_bins < 0)
         CalculateBins(ys, count, y_bins, range.Y, y_bins, height);
     else
         height = range.Y.Size() / y_bins;
@@ -2012,7 +2014,7 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
 
     ImVector<double>& bin_counts = GImPlot->Temp1;
     bin_counts.resize(bins);
-    
+
     for (int b = 0; b < bins; ++b)
         bin_counts[b] = 0;
 

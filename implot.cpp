@@ -396,9 +396,9 @@ void Initialize(ImPlotContext* ctx) {
     const ImU32 Dark[]    = {4280031972, 4290281015, 4283084621, 4288892568, 4278222847, 4281597951, 4280833702, 4290740727, 4288256409                                    };
     const ImU32 Pastel[]  = {4289639675, 4293119411, 4291161036, 4293184478, 4289124862, 4291624959, 4290631909, 4293712637, 4294111986                                    };
     const ImU32 Paired[]  = {4293119554, 4290017311, 4287291314, 4281114675, 4288256763, 4280031971, 4285513725, 4278222847, 4292260554, 4288298346, 4288282623, 4280834481};
-    const ImU32 Viridis[] = {4283695428, 4285867080, 4287054913, 4287455029, 4287526954, 4287402273, 4286883874, 4285579076, 4283552122, 4280737725, 4280674301            }; 
+    const ImU32 Viridis[] = {4283695428, 4285867080, 4287054913, 4287455029, 4287526954, 4287402273, 4286883874, 4285579076, 4283552122, 4280737725, 4280674301            };
     const ImU32 Plasma[]  = {4287039501, 4288480321, 4289200234, 4288941455, 4287638193, 4286072780, 4284638433, 4283139314, 4281771772, 4280667900, 4280416752            };
-    const ImU32 Hot[]     = {4278190144, 4278190208, 4278190271, 4278190335, 4278206719, 4278223103, 4278239231, 4278255615, 4283826175, 4289396735, 4294967295            }; 
+    const ImU32 Hot[]     = {4278190144, 4278190208, 4278190271, 4278190335, 4278206719, 4278223103, 4278239231, 4278255615, 4283826175, 4289396735, 4294967295            };
     const ImU32 Cool[]    = {4294967040, 4294960666, 4294954035, 4294947661, 4294941030, 4294934656, 4294928025, 4294921651, 4294915020, 4294908646, 4294902015            };
     const ImU32 Pink[]    = {4278190154, 4282532475, 4284308894, 4285690554, 4286879686, 4287870160, 4288794330, 4289651940, 4291685869, 4293392118, 4294967295            };
     const ImU32 Jet[]     = {4289331200, 4294901760, 4294923520, 4294945280, 4294967040, 4289396565, 4283826090, 4278255615, 4278233855, 4278212095, 4278190335            };
@@ -1735,9 +1735,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
         if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)) {
             const bool x_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImFabs(select_size.x) > 2;
             const bool y_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.VerticalMod)   && ImFabs(select_size.y) > 2;
-            if (!plot.XAxis.IsInputLocked()) { 
+            if (!plot.XAxis.IsInputLocked()) {
                 ImPlotPoint p1 = PixelsToPlot(plot.SelectStart);
-                ImPlotPoint p2 = PixelsToPlot(IO.MousePos);   
+                ImPlotPoint p2 = PixelsToPlot(IO.MousePos);
                 if (!plot.XAxis.IsLockedMin() && x_can_change)
                     plot.XAxis.SetMin(ImMin(p1.x, p2.x));
                 if (!plot.XAxis.IsLockedMax() && x_can_change)
@@ -3293,7 +3293,7 @@ void PushColormap(ImPlotColormap colormap) {
 
 void PushColormap(const char* name) {
     ImPlotContext& gp = *GImPlot;
-    PushColormap(gp.ColormapData.Lookup(name)); 
+    PushColormap(gp.ColormapData.Lookup(name));
 }
 
 void PopColormap(int count) {
@@ -3621,8 +3621,8 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                 ImGui::LogFinish();
             }
             ImGui::SameLine(); ImGui::SetNextItemWidth(120); ImGui::Combo("##output_type", &output_dest, "To Clipboard\0To TTY\0");
-            ImGui::SameLine(); HelpMarker("Export code for current Colormap.");         
-          
+            ImGui::SameLine(); HelpMarker("Export code for current Colormap.");
+
 
             // built-in/added
             ImGui::Separator();
@@ -3630,7 +3630,7 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                 ImGui::PushID(i);
                 int size = gp.ColormapData.GetSize(i);
                 bool selected = i == gp.Style.Colormap;
-      
+
 
                 if (!selected)
                     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.25f);
@@ -3663,21 +3663,22 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             if (custom.Size == 0) {
                 custom.push_back(ImVec4(1,1,1,1));
                 custom.push_back(ImVec4(0.5f,0.5f,0.5f,1));
-            }            
+            }
             ImGui::Separator();
             ImGui::BeginGroup();
             static char name[16] = "MyColormap";
-            ImGui::SetNextItemWidth(75);
-            ImGui::InputText("##Name",name,16,ImGuiInputTextFlags_CharsNoBlank);    
-   
-            if (ImGui::Button("+", ImVec2((75 - ImGui::GetStyle().ItemSpacing.x)/2,0))) 
-                custom.push_back(ImVec4(0,0,0,1));            
+
+
+            if (ImGui::Button("+", ImVec2((75 - ImGui::GetStyle().ItemSpacing.x)/2,0)))
+                custom.push_back(ImVec4(0,0,0,1));
             ImGui::SameLine();
-            if (ImGui::Button("-", ImVec2((75 - ImGui::GetStyle().ItemSpacing.x)/2,0)) && custom.Size > 2) 
-                custom.pop_back();            
-            if (ImGui::Button("Add", ImVec2(75, 0))) 
-                AddColormap(name,custom.Data,custom.Size);         
-           
+            if (ImGui::Button("-", ImVec2((75 - ImGui::GetStyle().ItemSpacing.x)/2,0)) && custom.Size > 2)
+                custom.pop_back();
+            ImGui::SetNextItemWidth(75);
+            ImGui::InputText("##Name",name,16,ImGuiInputTextFlags_CharsNoBlank);
+            if (ImGui::Button("Add", ImVec2(75, 0)) && gp.ColormapData.Lookup(name)==-1)
+                AddColormap(name,custom.Data,custom.Size);
+
             ImGui::EndGroup();
             ImGui::SameLine();
             ImGui::BeginGroup();
@@ -3766,6 +3767,20 @@ void ShowMetricsWindow(bool* p_popen) {
             BustItemCache();
         ImGui::Checkbox("Show Plot Rects", &show_plot_rects);
         ImGui::Checkbox("Show Axes Rects", &show_axes_rects);
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Colormaps")) {
+#ifdef IMPLOT_USE_COLORMAP_TABLES
+        ImGui::Text("IMPLOT_USE_COLORMAP_TABLES: true");
+#else
+        ImGui::Text("IMPLOT_USE_COLORMAP_TABLES: false");
+#endif
+        ImGui::Separator();
+        ImGui::Text("Colormaps:  %d", gp.ColormapData.Count);
+        ImGui::Text("Data Size:  %d", gp.ColormapData.Data.Size);
+#ifdef IMPLOT_USE_COLORMAP_TABLES
+        ImGui::Text("Table Size: %d", gp.ColormapData.Table.Size);
+#endif
         ImGui::TreePop();
     }
     if (ImGui::TreeNode("Plots","Plots (%d)", n_plots)) {

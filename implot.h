@@ -442,12 +442,12 @@ template <typename T> IMPLOT_API void PlotPieChart(const char* const label_ids[]
 // Plots a 2D heatmap chart. Values are expected to be in row-major order. #label_fmt can be set to NULL for no labels.
 template <typename T> IMPLOT_API void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt="%.1f", const ImPlotPoint& bounds_min=ImPlotPoint(0,0), const ImPlotPoint& bounds_max=ImPlotPoint(1,1));
 
-// Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBin_ method. If #cumulative is true, each bin contains its count plus the counts of all previous bins. 
-// If #density is true, the PDF is visualized. If both are true, the CDF is visualized. If #range is left unspecified, the min/max of #values will be used as the range. 
+// Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBin_ method. If #cumulative is true, each bin contains its count plus the counts of all previous bins.
+// If #density is true, the PDF is visualized. If both are true, the CDF is visualized. If #range is left unspecified, the min/max of #values will be used as the range.
 // If #range is specified, outlier values outside of the range are not binned. However, outliers still count toward normalizing and cumulative counts unless #outliers is false. The largest bin count or density is returned.
 template <typename T> IMPLOT_API double PlotHistogram(const char* label_id, const T* values, int count, int bins=ImPlotBin_Sturges, bool cumulative=false, bool density=false, ImPlotRange range=ImPlotRange(), bool outliers=true, double bar_scale=1.0);
 
-// Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBin. If #density is true, the PDF is visualized. 
+// Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBin. If #density is true, the PDF is visualized.
 // If #range is left unspecified, the min/max of #xs an #ys will be used as the ranges. If #range is specified, outlier values outside of range are not binned.
 // However, outliers still count toward the normalizing count for density plots unless #outliers is false. The largest bin count or density is returned.
 template <typename T> IMPLOT_API double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins=ImPlotBin_Sturges, int y_bins=ImPlotBin_Sturges, bool density=false, ImPlotLimits range=ImPlotLimits(), bool outliers=true);
@@ -659,17 +659,21 @@ IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
 //-----------------------------------------------------------------------------
 
 // Item styling is based on colormaps when the relevant ImPlotCol_ is set to
-// IMPLOT_AUTO_COL (default). Several built-in colormaps are available. You can 
+// IMPLOT_AUTO_COL (default). Several built-in colormaps are available. You can
 // add and then push/pop or set your own colormaps as well. To permanently set
 // a colormap, modify the Colormap member of your ImPlotStyle.
 
 // Colormap data will be ignored and a custom color will be used if you have done one of the following:
-//     1) Modified an item style color in your ImPlotStyle to anything other than IMPLOT_AUTO_COL. 
+//     1) Modified an item style color in your ImPlotStyle to anything other than IMPLOT_AUTO_COL.
 //     2) Pushed an item style color using PushStyleColor().
 //     3) Set the next item style with a SetNextXStyle function.
 
+// NB: If you make heavy use of plots where colormap interpolation is
+// required (e.g. PlotHeatmap or PlotHistogram2D), consider defining the
+// compile time option IMPLOT_USE_COLORMAP_TABLES (see implot_internal.h).
+
 // Add a new colormap. The colormap can be used by pushing either the returned index or the string name with PushColormap.
-// The colormap name must be unique and the size must be greater than 1. 
+// The colormap name must be unique and the size must be greater than 1. You will receive an assert otherwise!
 IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImVec4* colormap, int size);
 IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImU32*  colormap, int size);
 

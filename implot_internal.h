@@ -43,22 +43,24 @@
 #endif
 
 //-----------------------------------------------------------------------------
-// [SECTION] Forward Declarations
+// [SECTION] Compile Time Options
 //-----------------------------------------------------------------------------
 
-struct ImPlotTick;
-struct ImPlotAxis;
-struct ImPlotAxisColor;
-struct ImPlotItem;
-struct ImPlotLegendData;
-struct ImPlotPlot;
-struct ImPlotNextPlotData;
+// If this is defined, colormap interpolation will be based on lookup tables.
+// The size of each table is exactly (N-1)*255+1 where N is the number of colors
+// in the colormap. E.g., a 10 color colormap will consume 9,184 bytes. Tables
+// are generated when a new colormap is added (or on startup for built-in tables).
+// In some cases, the performance gain may outweigh the memory requirement.
+// Experiment for yourself.
 
-//-----------------------------------------------------------------------------
-// [SECTION] Context Pointer
-//-----------------------------------------------------------------------------
+// #define IMPLOT_USE_COLORMAP_TABLES
 
-extern IMPLOT_API ImPlotContext* GImPlot; // Current implicit context pointer
+// If this is defined, 64-bit multiplications will be used to mix 32-bit colors.
+// On 64-bit machines, this may yield a slight performance boost. It is not
+// advisable to enable this on 32-bit machines. This options is mostly irrelevant
+// if IMPLOT_USE_COLORMAP_TABLES is also defined.
+
+// #define IMPLOT_MIX64
 
 //-----------------------------------------------------------------------------
 // [SECTION] Macros and Constants
@@ -77,6 +79,24 @@ extern IMPLOT_API ImPlotContext* GImPlot; // Current implicit context pointer
 #define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
 #define IMPLOT_MAX_TIME  32503680000
+
+//-----------------------------------------------------------------------------
+// [SECTION] Forward Declarations
+//-----------------------------------------------------------------------------
+
+struct ImPlotTick;
+struct ImPlotAxis;
+struct ImPlotAxisColor;
+struct ImPlotItem;
+struct ImPlotLegendData;
+struct ImPlotPlot;
+struct ImPlotNextPlotData;
+
+//-----------------------------------------------------------------------------
+// [SECTION] Context Pointer
+//-----------------------------------------------------------------------------
+
+extern IMPLOT_API ImPlotContext* GImPlot; // Current implicit context pointer
 
 //-----------------------------------------------------------------------------
 // [SECTION] Generic Helpers
@@ -146,18 +166,18 @@ inline double ImStdDev(const T* values, int count) {
         x += (values[i] - mu) * (values[i] - mu) * den;
     return sqrt(x);
 }
-// Mix color a and b by factor t [0 256]
-inline ImU32 ImMixColor32(ImU32 a, ImU32 b, ImU32 t) {
-#ifdef IMPLOT_MIX64 // may be slightly faster on 64-bit machines
-    const ImU32 af = 256-t;
-    const ImU32 bf = t;  
+// Mix color a and b by factor s in [0 256]
+inline ImU32 ImMixU32(ImU32 a, ImU32 b, ImU32 s) {
+#ifdef IMPLOT_MIX64
+    const ImU32 af = 256-s;
+    const ImU32 bf = s;
     const ImU64 al = (a & 0x00ff00ff) | (((ImU64)(a & 0xff00ff00)) << 24);
-    const ImU64 bl = (b & 0x00ff00ff) | (((ImU64)(b & 0xff00ff00)) << 24); 
-    const ImU64 mix = (al * af + bl * bf); 
-    return ((mix >> 32) & 0xff00ff00) | ((mix & 0xff00ff00) >> 8); 
+    const ImU64 bl = (b & 0x00ff00ff) | (((ImU64)(b & 0xff00ff00)) << 24);
+    const ImU64 mix = (al * af + bl * bf);
+    return ((mix >> 32) & 0xff00ff00) | ((mix & 0xff00ff00) >> 8);
 #else
-    const ImU32 af = 256-t;
-    const ImU32 bf = t;
+    const ImU32 af = 256-s;
+    const ImU32 bf = s;
     const ImU32 al = (a & 0x00ff00ff);
     const ImU32 ah = (a & 0xff00ff00) >> 8;
     const ImU32 bl = (b & 0x00ff00ff);
@@ -168,8 +188,21 @@ inline ImU32 ImMixColor32(ImU32 a, ImU32 b, ImU32 t) {
 #endif
 }
 
-// Set alpha channel of 32-bit color from float in range [0 1]
-inline ImU32 ImAlphaColor32(ImU32 col, float alpha) {
+// Lerp across an array of 32-bit collors given t in [0.0 1.0]
+inline ImU32 ImLerpU32(const ImU32* colors, int size, float t) {
+    int i1 = (int)((size - 1 ) * t);
+    int i2 = i1 + 1;
+    if (i2 == size || size == 1)
+        return colors[i1];
+    float den = 1.0f / (size - 1);
+    float t1 = i1 * den;
+    float t2 = i2 * den;
+    float tr = ImRemap01(t, t1, t2);
+    return ImMixU32(colors[i1], colors[i2], (ImU32)(tr*256));
+};
+
+// Set alpha channel of 32-bit color from float in range [0.0 1.0]
+inline ImU32 ImAlphaU32(ImU32 col, float alpha) {
     return col & ~((ImU32)((1.0f-alpha)*255)<<IM_COL32_A_SHIFT);
 }
 
@@ -332,7 +365,7 @@ struct ImPlotColormapData {
 
     ImPlotColormapData() { Count = 0; }
 
-    int Append(const char* name, const ImU32* data, int size) {  
+    int Append(const char* name, const ImU32* data, int size) {
         DataOffsets.push_back(Data.size());
         DataSizes.push_back(size);
         Data.reserve(Data.size()+size);
@@ -344,10 +377,17 @@ struct ImPlotColormapData {
         int     idx = Count;
         Map.SetInt(key,idx);
         Count++;
+#ifdef IMPLOT_USE_COLORMAP_TABLES
+        int table_size = 255 * (size-1) + 1;
+        TableOffsets.push_back(Table.size());
+        TableSizes.push_back(table_size);
+        Table.resize(Table.size()+table_size);
+        RegenTable(idx);
+#endif
         return idx;
     }
 
-    ImPlotColormap Append(const char* name, const ImVec4* data, int size) {  
+    ImPlotColormap Append(const char* name, const ImVec4* data, int size) {
         DataOffsets.push_back(Data.size());
         DataSizes.push_back(size);
         Data.reserve(Data.size()+size);
@@ -359,28 +399,62 @@ struct ImPlotColormapData {
         int     idx = Count;
         Map.SetInt(key,idx);
         Count++;
+#ifdef IMPLOT_USE_COLORMAP_TABLES
+        int table_size = 255 * (size-1) + 1;
+        TableOffsets.push_back(Table.size());
+        TableSizes.push_back(table_size);
+        Table.resize(Table.size()+table_size);
+        RegenTable(idx);
+#endif
         return idx;
     }
 
-    inline const ImU32*   GetData(ImPlotColormap cmap)                        { return &Data[DataOffsets[cmap]];          }
-    inline int            GetSize(ImPlotColormap cmap)                        { return DataSizes[cmap];                   }
-    inline const char*    GetName(ImPlotColormap cmap)                        { return Text.Buf.Data + TextOffsets[cmap]; }     
-    inline ImU32          GetColor(ImPlotColormap cmap, int idx)              { return Data[DataOffsets[cmap]+idx];       } 
-    inline void           SetColor(ImPlotColormap cmap, int idx, ImU32 value) { Data[DataOffsets[cmap]+idx] = value;      }
-    inline ImPlotColormap Lookup(const char* name)                            { ImGuiID key = ImHashStr(name); return Map.GetInt(key,-1); }
+#ifdef IMPLOT_USE_COLORMAP_TABLES
+
+    ImVector<ImU32> Table;
+    ImVector<int>   TableSizes;
+    ImVector<int>   TableOffsets;
+
+    void RegenTable(ImPlotColormap cmap) {
+        const ImU32* data = GetData(cmap);
+        const int    size = GetSize(cmap);
+        const int    off  = TableOffsets[cmap];
+        const int table_size = 255 * (size-1) + 1;
+        int j = 0;
+        for (int i = 0; i < size-1; ++i) {
+            for (int s = 0; s < 255; ++s) {
+                ImU32 a = data[i];
+                ImU32 b = data[i+1];
+                ImU32 c = ImMixU32(a,b,s);
+                Table[off + j++] = c;
+            }
+        }
+        Table[off+j] = data[size-1];
+    }
 
     inline ImU32 Lerp(ImPlotColormap cmap, float t) {
-        int size = GetSize(cmap);
-        int i1 = (int)((size - 1 ) * t);
-        int i2 = i1 + 1;
-        if (i2 == size || size == 1) 
-            return GetColor(cmap, i1);        
-        float den = 1.0f / (size - 1);
-        float t1 = i1 * den;
-        float t2 = i2 * den;
-        float tr = ImRemap01(t, t1, t2);
-        return ImMixColor32(GetColor(cmap, i1), GetColor(cmap, i2), (ImU32)(tr*256));
+        ImU32* table = &Table[TableOffsets[cmap]];
+        int    size  = TableSizes[cmap];
+        int    idx   = (int)((size-1)*t);
+        return table[idx];
     }
+
+    inline void SetColor(ImPlotColormap cmap, int idx, ImU32 value) {
+        Data[DataOffsets[cmap]+idx] = value;
+        RegenTable(cmap);
+    }
+
+#else
+    inline ImU32          Lerp(ImPlotColormap cmap, float t)                  { return ImLerpU32(GetData(cmap),GetSize(cmap),t);          }
+    inline void           SetColor(ImPlotColormap cmap, int idx, ImU32 value) { Data[DataOffsets[cmap]+idx] = value;                      }
+#endif
+
+    inline const ImU32*   GetData(ImPlotColormap cmap) const                  { return &Data[DataOffsets[cmap]];                          }
+    inline       ImU32*   GetData(ImPlotColormap cmap)                        { return &Data[DataOffsets[cmap]];                          }
+    inline int            GetSize(ImPlotColormap cmap)                        { return DataSizes[cmap];                                   }
+    inline const char*    GetName(ImPlotColormap cmap)                        { return Text.Buf.Data + TextOffsets[cmap];                 }
+    inline ImU32          GetColor(ImPlotColormap cmap, int idx)              { return Data[DataOffsets[cmap]+idx];                       }
+    inline ImPlotColormap Lookup(const char* name)                            { ImGuiID key = ImHashStr(name); return Map.GetInt(key,-1); }
 
 };
 
@@ -1035,16 +1109,16 @@ inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stri
 template <typename T>
 void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
     switch (meth) {
-        case ImPlotBin_Sqrt:    
-            bins_out  = (int)ceil(sqrt(count));           
+        case ImPlotBin_Sqrt:
+            bins_out  = (int)ceil(sqrt(count));
             break;
-        case ImPlotBin_Sturges: 
-            bins_out  = (int)ceil(1.0 + log2(count));     
+        case ImPlotBin_Sturges:
+            bins_out  = (int)ceil(1.0 + log2(count));
             break;
-        case ImPlotBin_Rice:    
-            bins_out  = (int)ceil(2 * cbrt(count));       
+        case ImPlotBin_Rice:
+            bins_out  = (int)ceil(2 * cbrt(count));
             break;
-        case ImPlotBin_Scott:  
+        case ImPlotBin_Scott:
             width_out = 3.49 * ImStdDev(values, count) / cbrt(count);
             bins_out  = (int)round(range.Size() / width_out);
             break;

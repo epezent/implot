@@ -431,7 +431,7 @@ void ShowDemoWindow(bool* p_open) {
             }
             ImPlot::EndPlot();
         }
-    }    
+    }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Error Bars")) {
         static float xs[5]    = {1,2,3,4,5};
@@ -560,15 +560,16 @@ void ShowDemoWindow(bool* p_open) {
 
         ImGui::SameLine();
 
-        static double values2[500*500];
+        const int size = 200;
+        static double values2[size*size];
         srand((unsigned int)(DEMO_TIME*1000000));
-        for (int i = 0; i < 500*500; ++i)
+        for (int i = 0; i < size*size; ++i)
             values2[i] = RandomRange(0.0,1.0);
 
         ImPlot::SetNextPlotLimits(-1,1,-1,1);
         if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),0,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations)) {
-            ImPlot::PlotHeatmap("heat1",values2,500,500,0,1,NULL);
-            ImPlot::PlotHeatmap("heat2",values2,500,500,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
+            ImPlot::PlotHeatmap("heat1",values2,size,size,0,1,NULL);
+            ImPlot::PlotHeatmap("heat2",values2,size,size,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
             ImPlot::EndPlot();
         }
         ImPlot::PopColormap();
@@ -602,7 +603,7 @@ void ShowDemoWindow(bool* p_open) {
         if (ImGui::RadioButton("Sturges",bins==ImPlotBin_Sturges)) { bins = ImPlotBin_Sturges; } ImGui::SameLine();
         if (ImGui::RadioButton("Rice",bins==ImPlotBin_Rice))       { bins = ImPlotBin_Rice;    } ImGui::SameLine();
         if (ImGui::RadioButton("Scott",bins==ImPlotBin_Scott))     { bins = ImPlotBin_Scott;   } ImGui::SameLine();
-        if (ImGui::RadioButton("N Bins",bins>=0))                       bins = 50;                 
+        if (ImGui::RadioButton("N Bins",bins>=0))                       bins = 50;
         if (bins>=0) {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(200);
@@ -610,10 +611,10 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImGui::Checkbox("Density", &density);
         ImGui::SameLine();
-        ImGui::Checkbox("Cumulative", &cumulative);   
+        ImGui::Checkbox("Cumulative", &cumulative);
         ImGui::SameLine();
-        static bool range = false;    
-        ImGui::Checkbox("Range", &range);  
+        static bool range = false;
+        ImGui::Checkbox("Range", &range);
         static float rmin = -3;
         static float rmax = 13;
         if (range) {
@@ -642,14 +643,14 @@ void ShowDemoWindow(bool* p_open) {
         static NormalDistribution<500000> dist1(1, 2);
         static NormalDistribution<500000> dist2(1, 1);
         double max_count = 0;
-        ImPlot::PushColormap("Viridis");
+        // ImPlot::PushColormap("Viridis");
         if (ImPlot::BeginPlot("##Hist2D",0,0,ImVec2(ImGui::GetContentRegionAvail().x-75-ImGui::GetStyle().ItemSpacing.x,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
             max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],density2,ImPlotLimits(-6,6,-6,6));
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
         ImPlot::ShowColormapScale(0,max_count,ImVec2(75,0));
-        ImPlot::PopColormap();
+        // ImPlot::PopColormap();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Images")) {
