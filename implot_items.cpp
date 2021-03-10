@@ -114,7 +114,7 @@ void SetNextErrorBarStyle(const ImVec4& col, float size, float weight) {
 ImVec4 GetLastItemColor() {
     ImPlotContext& gp = *GImPlot;
     if (gp.PreviousItem)
-        return gp.PreviousItem->Color;
+        return ImGui::ColorConvertU32ToFloat4(gp.PreviousItem->Color);
     return ImVec4();
 }
 
@@ -148,12 +148,17 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
     // set current item
     gp.CurrentItem = item;
     ImPlotNextItemData& s = gp.NextItemData;
-    // override item color
+    // set/override item color
     if (recolor_from != -1) {
         if (!IsColorAuto(s.Colors[recolor_from]))
-            item->Color = s.Colors[recolor_from];
+            item->Color = ImGui::ColorConvertFloat4ToU32(s.Colors[recolor_from]);
         else if (!IsColorAuto(gp.Style.Colors[recolor_from]))
-            item->Color = gp.Style.Colors[recolor_from];
+            item->Color = ImGui::ColorConvertFloat4ToU32(gp.Style.Colors[recolor_from]);
+        else if (just_created)
+            item->Color = NextColormapColorU32();
+    }
+    else if (just_created) {
+        item->Color = NextColormapColorU32();
     }
     // hide/show item
     if (gp.NextItemData.HasHidden) {
@@ -168,9 +173,10 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
         return false;
     }
     else {
+        ImVec4 item_color = ImGui::ColorConvertU32ToFloat4(item->Color);
         // stage next item colors
-        s.Colors[ImPlotCol_Line]           = IsColorAuto(s.Colors[ImPlotCol_Line])          ? ( IsColorAuto(ImPlotCol_Line)           ? item->Color                : gp.Style.Colors[ImPlotCol_Line]          ) : s.Colors[ImPlotCol_Line];
-        s.Colors[ImPlotCol_Fill]           = IsColorAuto(s.Colors[ImPlotCol_Fill])          ? ( IsColorAuto(ImPlotCol_Fill)           ? item->Color                : gp.Style.Colors[ImPlotCol_Fill]          ) : s.Colors[ImPlotCol_Fill];
+        s.Colors[ImPlotCol_Line]           = IsColorAuto(s.Colors[ImPlotCol_Line])          ? ( IsColorAuto(ImPlotCol_Line)           ? item_color                 : gp.Style.Colors[ImPlotCol_Line]          ) : s.Colors[ImPlotCol_Line];
+        s.Colors[ImPlotCol_Fill]           = IsColorAuto(s.Colors[ImPlotCol_Fill])          ? ( IsColorAuto(ImPlotCol_Fill)           ? item_color                 : gp.Style.Colors[ImPlotCol_Fill]          ) : s.Colors[ImPlotCol_Fill];
         s.Colors[ImPlotCol_MarkerOutline]  = IsColorAuto(s.Colors[ImPlotCol_MarkerOutline]) ? ( IsColorAuto(ImPlotCol_MarkerOutline)  ? s.Colors[ImPlotCol_Line]   : gp.Style.Colors[ImPlotCol_MarkerOutline] ) : s.Colors[ImPlotCol_MarkerOutline];
         s.Colors[ImPlotCol_MarkerFill]     = IsColorAuto(s.Colors[ImPlotCol_MarkerFill])    ? ( IsColorAuto(ImPlotCol_MarkerFill)     ? s.Colors[ImPlotCol_Line]   : gp.Style.Colors[ImPlotCol_MarkerFill]    ) : s.Colors[ImPlotCol_MarkerFill];
         s.Colors[ImPlotCol_ErrorBar]       = IsColorAuto(s.Colors[ImPlotCol_ErrorBar])      ? ( GetStyleColorVec4(ImPlotCol_ErrorBar)                                                                         ) : s.Colors[ImPlotCol_ErrorBar];
@@ -1680,7 +1686,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
         double percent = normalize ? (double)values[i] / sum : (double)values[i];
         a1 = a0 + 2 * IM_PI * percent;
         if (BeginItem(label_ids[i])) {
-            ImU32 col = ImGui::GetColorU32(GetCurrentItem()->Color);
+            ImU32 col = GetCurrentItem()->Color;
             if (percent < 0.5) {
                 RenderPieSlice(DrawList, center, radius, a0, a1, col);
             }
@@ -1705,7 +1711,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
                 ImVec2 size = ImGui::CalcTextSize(buffer);
                 double angle = a0 + (a1 - a0) * 0.5;
                 ImVec2 pos = PlotToPixels(center.x + 0.5 * radius * cos(angle), center.y + 0.5 * radius * sin(angle));
-                ImU32 col = CalcTextColor(item->Color);
+                ImU32 col  = CalcTextColor(ImGui::ColorConvertU32ToFloat4(item->Color));
                 DrawList.AddText(pos - size * 0.5f, col, buffer);
             }
             a0 = a1;
@@ -1746,7 +1752,7 @@ struct RectRenderer {
         ImVec2 P1 = Transformer(rect.Min);
         ImVec2 P2 = Transformer(rect.Max);
 
-        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
+        if ((rect.Color & IM_COL32_A_MASK) == 0 || !cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
             return false;
 
         DrawList._VtxWritePtr[0].pos   = P1;
@@ -1799,18 +1805,17 @@ struct GetterHeatmap {
     { }
 
     inline RectInfo operator()(int idx) const {
+        double val = (double)Values[idx];
         const int r = idx / Cols;
         const int c = idx % Cols;
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
-        const float t = ImClamp((float)ImRemap01((double)Values[idx], ScaleMin, ScaleMax),0.0f,1.0f);
         RectInfo rect;
         rect.Min.x = p.x - HalfSize.x;
         rect.Min.y = p.y - HalfSize.y;
         rect.Max.x = p.x + HalfSize.x;
         rect.Max.y = p.y + HalfSize.y;
-
-        // rect.Color = ImLerpU32(Colormap,ColormapSize,t);
-        rect.Color = GImPlot->ColormapData.Lerp(GImPlot->Style.Colormap, t);  // ImLerpU32(Colormap,ColormapSize,t);
+        const float t = ImClamp((float)ImRemap01(val, ScaleMin, ScaleMax),0.0f,1.0f);
+        rect.Color = GImPlot->ColormapData.Lerp(GImPlot->Style.Colormap, t);
         return rect;
     }
     const T* const Values;
@@ -2162,12 +2167,13 @@ void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPo
             FitPoint(bmin);
             FitPoint(bmax);
         }
-        GetCurrentItem()->Color = tint_col;
+        ImU32 tint_col32 = ImGui::ColorConvertFloat4ToU32(tint_col);
+        GetCurrentItem()->Color = tint_col32;
         ImDrawList& DrawList = *GetPlotDrawList();
         ImVec2 p1 = PlotToPixels(bmin.x, bmax.y);
         ImVec2 p2 = PlotToPixels(bmax.x, bmin.y);
         PushPlotClipRect();
-        DrawList.AddImage(user_texture_id, p1, p2, uv0, uv1, ImGui::ColorConvertFloat4ToU32(tint_col));
+        DrawList.AddImage(user_texture_id, p1, p2, uv0, uv1, tint_col32);
         PopPlotClipRect();
         EndItem();
     }

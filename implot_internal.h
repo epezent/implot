@@ -47,17 +47,18 @@
 //-----------------------------------------------------------------------------
 
 // If this is defined, colormap interpolation will be based on lookup tables.
-// The size of each table is exactly (N-1)*255+1 where N is the number of colors
-// in the colormap. E.g., a 10 color colormap will consume 9,184 bytes. Tables
-// are generated when a new colormap is added (or on startup for built-in tables).
-// In some cases, the performance gain may outweigh the memory requirement.
-// Experiment for yourself.
+// The size of each table is exactly ((N-1)*255+1)*4 bytes where N is the number of
+// colors in the colormap. E.g., a 10 color colormap will consume 9,184 bytes.
+// Tables are generated when a new colormap is added (or on startup for built-in
+// tables). In most cases, the performance gain will outweigh the memory requirement.
+// If your application is memory limited, you may disable this, and runtime
+// interpolation will be performed. Expect ~20% performance hit for large heatmaps.
 
-// #define IMPLOT_USE_COLORMAP_TABLES
+#define IMPLOT_USE_COLORMAP_TABLES
 
 // If this is defined, 64-bit multiplications will be used to mix 32-bit colors.
-// On 64-bit machines, this may yield a slight performance boost. It is not
-// advisable to enable this on 32-bit machines. This options is mostly irrelevant
+// On 64-bit machines, this may yield a slight (~5%) performance boost. It is not
+// advisable to enable this on 32-bit machines. This option is mostly irrelevant
 // if IMPLOT_USE_COLORMAP_TABLES is also defined.
 
 // #define IMPLOT_MIX64
@@ -199,7 +200,7 @@ inline ImU32 ImLerpU32(const ImU32* colors, int size, float t) {
     float t2 = i2 * den;
     float tr = ImRemap01(t, t1, t2);
     return ImMixU32(colors[i1], colors[i2], (ImU32)(tr*256));
-};
+}
 
 // Set alpha channel of 32-bit color from float in range [0.0 1.0]
 inline ImU32 ImAlphaU32(ImU32 col, float alpha) {
@@ -366,6 +367,8 @@ struct ImPlotColormapData {
     ImPlotColormapData() { Count = 0; }
 
     int Append(const char* name, const ImU32* data, int size) {
+        if (Lookup(name) != -1)
+            return -1;
         DataOffsets.push_back(Data.size());
         DataSizes.push_back(size);
         Data.reserve(Data.size()+size);
@@ -388,6 +391,8 @@ struct ImPlotColormapData {
     }
 
     ImPlotColormap Append(const char* name, const ImVec4* data, int size) {
+        if (Lookup(name) != -1)
+            return -1;
         DataOffsets.push_back(Data.size());
         DataSizes.push_back(size);
         Data.reserve(Data.size()+size);
@@ -419,7 +424,6 @@ struct ImPlotColormapData {
         const ImU32* data = GetData(cmap);
         const int    size = GetSize(cmap);
         const int    off  = TableOffsets[cmap];
-        const int table_size = 255 * (size-1) + 1;
         int j = 0;
         for (int i = 0; i < size-1; ++i) {
             for (int s = 0; s < 255; ++s) {
@@ -695,7 +699,7 @@ struct ImPlotAxis
 struct ImPlotItem
 {
     ImGuiID      ID;
-    ImVec4       Color;
+    ImU32        Color;
     int          NameOffset;
     bool         Show;
     bool         LegendHovered;
@@ -703,7 +707,7 @@ struct ImPlotItem
 
     ImPlotItem() {
         ID            = 0;
-        Color         = ImPlot::NextColormapColor();
+        // Color         = ImPlot::NextColormapColor();
         NameOffset    = -1;
         Show          = true;
         SeenThisFrame = false;

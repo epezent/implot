@@ -668,9 +668,10 @@ IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
 //     2) Pushed an item style color using PushStyleColor().
 //     3) Set the next item style with a SetNextXStyle function.
 
-// NB: If you make heavy use of plots where colormap interpolation is
-// required (e.g. PlotHeatmap or PlotHistogram2D), consider defining the
-// compile time option IMPLOT_USE_COLORMAP_TABLES (see implot_internal.h).
+// NB: When colormaps are added, an 32-bit color interpolation table is built and stored.
+// The size of this table is ((N-1)*255+1)*4 bytes, where N is the colormap size. If your
+// application is memory limited, you can disable interpolation tables by undefining
+// IMPLOT_USE_COLORMAP_TABLES in implot_internal.h.
 
 // Add a new colormap. The colormap can be used by pushing either the returned index or the string name with PushColormap.
 // The colormap name must be unique and the size must be greater than 1. You will receive an assert otherwise!

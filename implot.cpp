@@ -622,8 +622,8 @@ void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interacta
     const float txt_ht      = ImGui::GetTextLineHeight();
     const float icon_size   = txt_ht;
     const float icon_shrink = 2;
-    ImVec4 col_txt          = GetStyleColorVec4(ImPlotCol_LegendText);
-    ImU32  col_txt_dis      = ImGui::GetColorU32(col_txt * ImVec4(1,1,1,0.25f));
+    ImU32 col_txt           = GetStyleColorU32(ImPlotCol_LegendText);
+    ImU32  col_txt_dis      = ImAlphaU32(col_txt, 0.25f);
     // render each legend item
     float sum_label_width = 0;
     for (int i = 0; i < plot.GetLegendCount(); ++i) {
@@ -641,26 +641,24 @@ void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interacta
         label_bb.Min = top_left;
         label_bb.Max = top_left + ImVec2(label_width + icon_size, icon_size);
         ImU32 col_hl_txt;
+        ImU32 col_item = ImAlphaU32(item->Color,1);
         if (interactable && (icon_bb.Contains(IO.MousePos) || label_bb.Contains(IO.MousePos))) {
             item->LegendHovered = true;
-            col_hl_txt = ImGui::GetColorU32(ImLerp(col_txt, item->Color, 0.25f));
+            col_hl_txt = ImMixU32(col_txt, col_item, 64);
         }
         else {
             // item->LegendHovered = false;
             col_hl_txt = ImGui::GetColorU32(col_txt);
         }
         ImU32 iconColor;
-        ImVec4 item_color = item->Color;
-        item_color.w = 1;
         if (interactable && icon_bb.Contains(IO.MousePos)) {
-            ImVec4 colAlpha = item_color;
-            colAlpha.w    = 0.5f;
-            iconColor     = item->Show ? ImGui::GetColorU32(colAlpha) : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.5f);
+            ImU32 col_alpha = ImAlphaU32(col_item,0.5f);
+            iconColor     = item->Show ? col_alpha : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.5f);
             if (IO.MouseClicked[0])
                 item->Show = !item->Show;
         }
         else {
-            iconColor = item->Show ? ImGui::GetColorU32(item_color) : col_txt_dis;
+            iconColor = item->Show ? col_item : col_txt_dis;
         }
         DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, iconColor, 1);
         const char* text_display_end = ImGui::FindRenderedTextEnd(label, NULL);
@@ -3769,20 +3767,6 @@ void ShowMetricsWindow(bool* p_popen) {
         ImGui::Checkbox("Show Axes Rects", &show_axes_rects);
         ImGui::TreePop();
     }
-    if (ImGui::TreeNode("Colormaps")) {
-#ifdef IMPLOT_USE_COLORMAP_TABLES
-        ImGui::Text("IMPLOT_USE_COLORMAP_TABLES: true");
-#else
-        ImGui::Text("IMPLOT_USE_COLORMAP_TABLES: false");
-#endif
-        ImGui::Separator();
-        ImGui::Text("Colormaps:  %d", gp.ColormapData.Count);
-        ImGui::Text("Data Size:  %d", gp.ColormapData.Data.Size);
-#ifdef IMPLOT_USE_COLORMAP_TABLES
-        ImGui::Text("Table Size: %d", gp.ColormapData.Table.Size);
-#endif
-        ImGui::TreePop();
-    }
     if (ImGui::TreeNode("Plots","Plots (%d)", n_plots)) {
         for (int p = 0; p < n_plots; ++p) {
             // plot
@@ -3796,7 +3780,11 @@ void ShowMetricsWindow(bool* p_popen) {
                         ImGui::PushID(i);
                         if (ImGui::TreeNode("Item", "Item [ID=%u]", item->ID)) {
                             ImGui::Bullet(); ImGui::Checkbox("Show", &item->Show);
-                            ImGui::Bullet(); ImGui::ColorEdit4("Color",&item->Color.x, ImGuiColorEditFlags_NoInputs);
+                            ImGui::Bullet();
+                            ImVec4 temp = ImGui::ColorConvertU32ToFloat4(item->Color);
+                            if (ImGui::ColorEdit4("Color",&temp.x, ImGuiColorEditFlags_NoInputs))
+                                item->Color = ImGui::ColorConvertFloat4ToU32(temp);
+
                             ImGui::Bullet(); ImGui::Text("NameOffset: %d",item->NameOffset);
                             ImGui::Bullet(); ImGui::Text("Name:       %s", item->NameOffset != -1 ? plot->LegendData.Labels.Buf.Data + item->NameOffset : "N/A");
                             ImGui::Bullet(); ImGui::Text("Hovered:    %s",item->LegendHovered ? "true" : "false");
@@ -3835,6 +3823,58 @@ void ShowMetricsWindow(bool* p_popen) {
             }
             ImGui::PopID();
         }
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Colormaps")) {
+#ifdef IMPLOT_USE_COLORMAP_TABLES
+        ImGui::BulletText("IMPLOT_USE_COLORMAP_TABLES: true");
+#else
+        ImGui::BulletText("IMPLOT_USE_COLORMAP_TABLES: false");
+#endif
+#ifdef IMPLOT_MIX64
+        ImGui::BulletText("IMPLOT_MIX64: true");
+#else
+        ImGui::BulletText("IMPLOT_MIX64: false");
+#endif
+        ImGui::BulletText("Colormaps:  %d", gp.ColormapData.Count);
+        ImGui::BulletText("Data Size:  %d", gp.ColormapData.Data.Size);
+#ifdef IMPLOT_USE_COLORMAP_TABLES
+        ImGui::BulletText("Table Size: %d", gp.ColormapData.Table.Size);
+        if (ImGui::TreeNode("Table Data")) {
+            for (int m = 0; m < gp.ColormapData.Count; ++m) {
+                if (ImGui::TreeNode(gp.ColormapData.GetName(m))) {
+                    int keys = gp.ColormapData.GetSize(m);
+                    int size = gp.ColormapData.TableSizes[m];
+                    int off  = gp.ColormapData.TableOffsets[m];
+                    static float t = 0.5;
+                    ImGui::BulletText("Keys: %d", keys);
+                    ImGui::BulletText("Size: %d", size);
+                    ImGui::SetNextItemWidth(200);
+                    ImGui::SliderFloat("##Sample",&t,0,1);
+                    ImGui::SameLine();
+                    ImVec4 samp = ImGui::ColorConvertU32ToFloat4(gp.ColormapData.Lerp(m,t));
+                    ImGui::ColorButton("Sampler",samp);
+                    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0,0,0,0));
+                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
+                    for (int c = 0; c < size; ++c) {
+                        ImVec4 col = ImGui::ColorConvertU32ToFloat4(gp.ColormapData.Table[off+c]);
+                        ImGui::PushID(m*10000+c);
+                        ImGui::ColorButton("",col,0,ImVec2(6,6));
+                        ImGui::PopID();
+                        if ((c + 1) % 255 != 0 && c != size - 1)
+                            ImGui::SameLine();
+
+                    }
+                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor();
+                    ImGui::TreePop();
+                }
+            }
+            ImGui::TreePop();
+        }
+#endif
+
+
         ImGui::TreePop();
     }
     ImGui::End();

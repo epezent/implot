@@ -643,14 +643,14 @@ void ShowDemoWindow(bool* p_open) {
         static NormalDistribution<500000> dist1(1, 2);
         static NormalDistribution<500000> dist2(1, 1);
         double max_count = 0;
-        // ImPlot::PushColormap("Viridis");
+        ImPlot::PushColormap("Hot");
         if (ImPlot::BeginPlot("##Hist2D",0,0,ImVec2(ImGui::GetContentRegionAvail().x-75-ImGui::GetStyle().ItemSpacing.x,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
             max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],density2,ImPlotLimits(-6,6,-6,6));
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
         ImPlot::ShowColormapScale(0,max_count,ImVec2(75,0));
-        // ImPlot::PopColormap();
+        ImPlot::PopColormap();
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Images")) {
@@ -1694,7 +1694,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
     // begin plot item
     if (ImPlot::BeginItem(label_id)) {
         // override legend icon color
-        ImPlot::GetCurrentItem()->Color = ImVec4(0.25f,0.25f,0.25f,1);
+        ImPlot::GetCurrentItem()->Color = IM_COL32(64,64,64,255);
         // fit data if requested
         if (ImPlot::FitThisFrame()) {
             for (int i = 0; i < count; ++i) {
