@@ -43,27 +43,6 @@
 #endif
 
 //-----------------------------------------------------------------------------
-// [SECTION] Compile Time Options
-//-----------------------------------------------------------------------------
-
-// If this is defined, colormap interpolation will be based on lookup tables.
-// The size of each table is exactly ((N-1)*255+1)*4 bytes where N is the number of
-// colors in the colormap. E.g., a 10 color colormap will consume 9,184 bytes.
-// Tables are generated when a new colormap is added (or on startup for built-in
-// tables). In most cases, the performance gain will outweigh the memory requirement.
-// If your application is memory limited, you may disable this, and runtime
-// interpolation will be performed. Expect ~20% performance hit for large heatmaps.
-
-#define IMPLOT_USE_COLORMAP_TABLES
-
-// If this is defined, 64-bit multiplications will be used to mix 32-bit colors.
-// On 64-bit machines, this may yield a slight (~5%) performance boost. It is not
-// advisable to enable this on 32-bit machines. This option is mostly irrelevant
-// if IMPLOT_USE_COLORMAP_TABLES is also defined.
-
-// #define IMPLOT_MIX64
-
-//-----------------------------------------------------------------------------
 // [SECTION] Macros and Constants
 //-----------------------------------------------------------------------------
 
@@ -356,110 +335,104 @@ static inline bool operator>=(const ImPlotTime& lhs, const ImPlotTime& rhs)
 
 // Colormap data storage
 struct ImPlotColormapData {
-    ImVector<ImU32> Data;
-    ImVector<int>   DataSizes;
-    ImVector<int>   DataOffsets;
+    ImVector<ImU32> Keys;
+    ImVector<int>   KeyCounts;
+    ImVector<int>   KeyOffsets;
+    ImVector<ImU32> Tables;
+    ImVector<int>   TableSizes;
+    ImVector<int>   TableOffsets;  
     ImGuiTextBuffer Text;
     ImVector<int>   TextOffsets;
+    ImVector<bool>  Quals;
     ImGuiStorage    Map;
     int             Count;
 
     ImPlotColormapData() { Count = 0; }
 
-    int Append(const char* name, const ImU32* data, int size) {
-        if (Lookup(name) != -1)
+    int Append(const char* name, const ImU32* keys, int count, bool qual) {
+        if (GetIndex(name) != -1)
             return -1;
-        DataOffsets.push_back(Data.size());
-        DataSizes.push_back(size);
-        Data.reserve(Data.size()+size);
-        for (int i = 0; i < size; ++i)
-            Data.push_back(data[i]);
+        KeyOffsets.push_back(Keys.size());
+        KeyCounts.push_back(count);
+        Keys.reserve(Keys.size()+count);
+        for (int i = 0; i < count; ++i)
+            Keys.push_back(keys[i]);
         TextOffsets.push_back(Text.size());
         Text.append(name, name + strlen(name) + 1);
-        ImGuiID key = ImHashStr(name);
-        int     idx = Count;
-        Map.SetInt(key,idx);
-        Count++;
-#ifdef IMPLOT_USE_COLORMAP_TABLES
-        int table_size = 255 * (size-1) + 1;
-        TableOffsets.push_back(Table.size());
-        TableSizes.push_back(table_size);
-        Table.resize(Table.size()+table_size);
-        RegenTable(idx);
-#endif
-        return idx;
+        Quals.push_back(qual);
+        ImGuiID id = ImHashStr(name);
+        int idx = Count++;
+        Map.SetInt(id,idx);
+        _AppendTable(idx);
+        return idx;    
     }
 
-    ImPlotColormap Append(const char* name, const ImVec4* data, int size) {
-        if (Lookup(name) != -1)
-            return -1;
-        DataOffsets.push_back(Data.size());
-        DataSizes.push_back(size);
-        Data.reserve(Data.size()+size);
-        for (int i = 0; i < size; ++i)
-            Data.push_back(ImGui::ColorConvertFloat4ToU32(data[i]));
-        TextOffsets.push_back(Text.size());
-        Text.append(name, name + strlen(name) + 1);
-        ImGuiID key = ImHashStr(name);
-        int     idx = Count;
-        Map.SetInt(key,idx);
-        Count++;
-#ifdef IMPLOT_USE_COLORMAP_TABLES
-        int table_size = 255 * (size-1) + 1;
-        TableOffsets.push_back(Table.size());
-        TableSizes.push_back(table_size);
-        Table.resize(Table.size()+table_size);
-        RegenTable(idx);
-#endif
-        return idx;
-    }
-
-#ifdef IMPLOT_USE_COLORMAP_TABLES
-
-    ImVector<ImU32> Table;
-    ImVector<int>   TableSizes;
-    ImVector<int>   TableOffsets;
-
-    void RegenTable(ImPlotColormap cmap) {
-        const ImU32* data = GetData(cmap);
-        const int    size = GetSize(cmap);
-        const int    off  = TableOffsets[cmap];
-        int j = 0;
-        for (int i = 0; i < size-1; ++i) {
-            for (int s = 0; s < 255; ++s) {
-                ImU32 a = data[i];
-                ImU32 b = data[i+1];
-                ImU32 c = ImMixU32(a,b,s);
-                Table[off + j++] = c;
-            }
+    void _AppendTable(ImPlotColormap cmap) {
+        int key_count     = GetKeyCount(cmap);
+        const ImU32* keys = GetKeys(cmap);
+        int off = Tables.size();
+        TableOffsets.push_back(off);
+        if (IsQual(cmap)) {
+            Tables.reserve(key_count);
+            for (int i = 0; i < key_count; ++i)
+                Tables.push_back(keys[i]);
+            TableSizes.push_back(key_count);
         }
-        Table[off+j] = data[size-1];
+        else {
+            int max_size = 255 * (key_count-1) + 1;
+            Tables.reserve(off + max_size);
+            ImU32 last = keys[0];
+            Tables.push_back(last);
+            int n = 1;
+            for (int i = 0; i < key_count-1; ++i) {
+                for (int s = 0; s < 255; ++s) {
+                    ImU32 a = keys[i];
+                    ImU32 b = keys[i+1];
+                    ImU32 c = ImMixU32(a,b,s);
+                    if (c != last) {
+                        Tables.push_back(c);
+                        last = c;
+                        n++;
+                    }
+                }
+            }
+            ImU32 c = keys[key_count-1];
+            if (c != last) {
+                Tables.push_back(c);
+                n++;
+            }
+            TableSizes.push_back(n);
+        }
     }
 
-    inline ImU32 Lerp(ImPlotColormap cmap, float t) {
-        ImU32* table = &Table[TableOffsets[cmap]];
-        int    size  = TableSizes[cmap];
-        int    idx   = (int)((size-1)*t);
-        return table[idx];
+    void RebuildTables() {
+        Tables.resize(0); 
+        TableSizes.resize(0); 
+        TableOffsets.resize(0);
+        for (int i = 0; i < Count; ++i) 
+            _AppendTable(i); 
     }
 
-    inline void SetColor(ImPlotColormap cmap, int idx, ImU32 value) {
-        Data[DataOffsets[cmap]+idx] = value;
-        RegenTable(cmap);
+    inline bool           IsQual(ImPlotColormap cmap) const                      { return Quals[cmap];                                                         }
+    inline const char*    GetName(ImPlotColormap cmap) const                     { return Text.Buf.Data + TextOffsets[cmap];                                   }
+    inline ImPlotColormap GetIndex(const char* name) const                       { ImGuiID key = ImHashStr(name); return Map.GetInt(key,-1);                   }
+
+    inline const ImU32*   GetKeys(ImPlotColormap cmap) const                     { return &Keys[KeyOffsets[cmap]];                                             }
+    inline int            GetKeyCount(ImPlotColormap cmap) const                 { return KeyCounts[cmap];                                                     }
+    inline ImU32          GetKeyColor(ImPlotColormap cmap, int idx) const        { return Keys[KeyOffsets[cmap]+idx];                                          }
+    inline void           SetKeyColor(ImPlotColormap cmap, int idx, ImU32 value) { Keys[KeyOffsets[cmap]+idx] = value; RebuildTables();                        } 
+     
+    inline const ImU32*   GetTable(ImPlotColormap cmap) const                    { return &Tables[TableOffsets[cmap]];                                         }
+    inline int            GetTableSize(ImPlotColormap cmap) const                { return TableSizes[cmap];                                                    }
+    inline ImU32          GetTableColor(ImPlotColormap cmap, int idx) const      { return Tables[TableOffsets[cmap]+idx];                                      }
+    
+    inline ImU32 LerpTable(ImPlotColormap cmap, float t) const { 
+        int off = TableOffsets[cmap];
+        int siz = TableSizes[cmap];
+        int idx = Quals[cmap] ? ImClamp((int)(siz*t),0,siz-1) : (int)((siz - 1) * t + 0.5f);
+        return Tables[off + idx];              
     }
-
-#else
-    inline ImU32          Lerp(ImPlotColormap cmap, float t)                  { return ImLerpU32(GetData(cmap),GetSize(cmap),t);          }
-    inline void           SetColor(ImPlotColormap cmap, int idx, ImU32 value) { Data[DataOffsets[cmap]+idx] = value;                      }
-#endif
-
-    inline const ImU32*   GetData(ImPlotColormap cmap) const                  { return &Data[DataOffsets[cmap]];                          }
-    inline       ImU32*   GetData(ImPlotColormap cmap)                        { return &Data[DataOffsets[cmap]];                          }
-    inline int            GetSize(ImPlotColormap cmap)                        { return DataSizes[cmap];                                   }
-    inline const char*    GetName(ImPlotColormap cmap)                        { return Text.Buf.Data + TextOffsets[cmap];                 }
-    inline ImU32          GetColor(ImPlotColormap cmap, int idx)              { return Data[DataOffsets[cmap]+idx];                       }
-    inline ImPlotColormap Lookup(const char* name)                            { ImGuiID key = ImHashStr(name); return Map.GetInt(key,-1); }
-
+ 
 };
 
 // ImPlotPoint with positive/negative error values
@@ -1070,7 +1043,10 @@ IMPLOT_API ImU32  GetColormapColorU32(int idx);
 // Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
 IMPLOT_API ImU32  NextColormapColorU32();
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
-IMPLOT_API ImU32  LerpColormapU32(float t);
+IMPLOT_API ImU32  SampleColormapU32(float t);
+
+// Render a colormap bar
+IMPLOT_API void RenderColorBar(const ImU32* colors, int size, ImDrawList& DrawList, const ImRect& bounds, bool vert, bool reversed, bool continuous);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Math and Misc Utils

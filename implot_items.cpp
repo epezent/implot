@@ -1815,7 +1815,7 @@ struct GetterHeatmap {
         rect.Max.x = p.x + HalfSize.x;
         rect.Max.y = p.y + HalfSize.y;
         const float t = ImClamp((float)ImRemap01(val, ScaleMin, ScaleMax),0.0f,1.0f);
-        rect.Color = GImPlot->ColormapData.Lerp(GImPlot->Style.Colormap, t);
+        rect.Color = GImPlot->ColormapData.LerpTable(GImPlot->Style.Colormap, t);
         return rect;
     }
     const T* const Values;
@@ -1858,7 +1858,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
                 sprintf(buff, fmt, values[i]);
                 ImVec2 size = ImGui::CalcTextSize(buff);
                 double t = ImClamp(ImRemap01((double)values[i], scale_min, scale_max),0.0,1.0);
-                ImVec4 color = LerpColormap((float)t);
+                ImVec4 color = SampleColormap((float)t);
                 ImU32 col = CalcTextColor(color);
                 DrawList.AddText(px - size * 0.5f, col, buff);
                 i++;

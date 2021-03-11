@@ -75,6 +75,15 @@ inline T RandomRange(T min, T max) {
     return min + scale * ( max - min );
 }
 
+ImVec4 RandomColor() {
+    ImVec4 col;
+    col.x = RandomRange(0.0f,1.0f);
+    col.y = RandomRange(0.0f,1.0f);
+    col.z = RandomRange(0.0f,1.0f);
+    col.w = 1.0f;
+    return col;
+}
+
 double RandomGauss() {
 	static double V1, V2, S;
 	static int phase = 0;
@@ -1096,7 +1105,7 @@ void ShowDemoWindow(bool* p_open) {
                 Plt = 0;
                 Yax = ImPlotYAxis_1;
                 sprintf(Label, "%02d Hz", Idx+1);
-                Color = ImPlot::GetColormapColor(Idx);
+                Color = RandomColor();
                 Data.reserve(1001);
                 for (int k = 0; k < 1001; ++k) {
                     float t = k * 1.0f / 999;

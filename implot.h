@@ -182,17 +182,16 @@ enum ImPlotMarker_ {
 
 // Built-in colormaps
 enum ImPlotColormap_ {
-    ImPlotColormap_Default  = 0,  // ImPlot default colormap         (n=10)
-    ImPlotColormap_Deep     = 1,  // a.k.a. seaborn deep             (n=10)
-    ImPlotColormap_Dark     = 2,  // a.k.a. matplotlib "Set1"        (n=9)
-    ImPlotColormap_Pastel   = 3,  // a.k.a. matplotlib "Pastel1"     (n=9)
-    ImPlotColormap_Paired   = 4,  // a.k.a. matplotlib "Paired"      (n=12)
-    ImPlotColormap_Viridis  = 5,  // a.k.a. matplotlib "viridis"     (n=11)
-    ImPlotColormap_Plasma   = 6,  // a.k.a. matplotlib "plasma"      (n=11)
-    ImPlotColormap_Hot      = 7,  // a.k.a. matplotlib/MATLAB "hot"  (n=11)
-    ImPlotColormap_Cool     = 8,  // a.k.a. matplotlib/MATLAB "cool" (n=11)
-    ImPlotColormap_Pink     = 9,  // a.k.a. matplotlib/MATLAB "pink" (n=11)
-    ImPlotColormap_Jet      = 10  // a.k.a. MATLAB "jet"             (n=11)
+    ImPlotColormap_Deep     = 0,  // a.k.a. seaborn deep             (qual=true,  n=10) (default)
+    ImPlotColormap_Dark     = 1,  // a.k.a. matplotlib "Set1"        (qual=true,  n=9 )
+    ImPlotColormap_Pastel   = 2,  // a.k.a. matplotlib "Pastel1"     (qual=true,  n=9 )
+    ImPlotColormap_Paired   = 3,  // a.k.a. matplotlib "Paired"      (qual=true,  n=12)
+    ImPlotColormap_Viridis  = 4,  // a.k.a. matplotlib "viridis"     (qual=false, n=11)
+    ImPlotColormap_Plasma   = 5,  // a.k.a. matplotlib "plasma"      (qual=false, n=11)
+    ImPlotColormap_Hot      = 6,  // a.k.a. matplotlib/MATLAB "hot"  (qual=false, n=11)
+    ImPlotColormap_Cool     = 7,  // a.k.a. matplotlib/MATLAB "cool" (qual=false, n=11)
+    ImPlotColormap_Pink     = 8,  // a.k.a. matplotlib/MATLAB "pink" (qual=false, n=11)
+    ImPlotColormap_Jet      = 9   // a.k.a. MATLAB "jet"             (qual=false, n=11)
 };
 
 // Used to position items on a plot (e.g. legends, labels, etc.)
@@ -661,22 +660,21 @@ IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
 // Item styling is based on colormaps when the relevant ImPlotCol_ is set to
 // IMPLOT_AUTO_COL (default). Several built-in colormaps are available. You can
 // add and then push/pop or set your own colormaps as well. To permanently set
-// a colormap, modify the Colormap member of your ImPlotStyle.
+// a colormap, modify the Colormap index member of your ImPlotStyle.
 
 // Colormap data will be ignored and a custom color will be used if you have done one of the following:
 //     1) Modified an item style color in your ImPlotStyle to anything other than IMPLOT_AUTO_COL.
 //     2) Pushed an item style color using PushStyleColor().
 //     3) Set the next item style with a SetNextXStyle function.
 
-// NB: When colormaps are added, an 32-bit color interpolation table is built and stored.
-// The size of this table is ((N-1)*255+1)*4 bytes, where N is the colormap size. If your
-// application is memory limited, you can disable interpolation tables by undefining
-// IMPLOT_USE_COLORMAP_TABLES in implot_internal.h.
-
 // Add a new colormap. The colormap can be used by pushing either the returned index or the string name with PushColormap.
-// The colormap name must be unique and the size must be greater than 1. You will receive an assert otherwise!
-IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImVec4* colormap, int size);
-IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImU32*  colormap, int size);
+// The colormap name must be unique and the size must be greater than 1. You will receive an assert otherwise! By default
+// colormaps are considered to be qualitative. If you want to create a perceptually continuous colormap, set #qual=false.
+// This will treat the colors you provide as keys, and ImPlot will build a linearly interpolated lookup table that fills
+// in the gaps. The memory footprint of this table will be ((size-1)*255+1)*4 bytes at a maximum, but likely less depending
+// upon how spatially separated your colors are in RGB space.
+IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImVec4* cols, int size, bool qual=true);
+IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImU32*  cols, int size, bool qual=true);
 
 // Temporarily switch to one of the built-in (i.e. ImPlotColormap_XXX) or user-added colormaps (i.e. a return value of AddColormap). Don't forget to call PopColormap!
 IMPLOT_API void PushColormap(ImPlotColormap cmap);
@@ -689,8 +687,8 @@ IMPLOT_API void PopColormap(int count = 1);
 IMPLOT_API int GetColormapSize();
 // Returns a color from the Color map given an index >= 0 (modulo will be performed).
 IMPLOT_API ImVec4 GetColormapColor(int idx);
-// Linearly interpolates a color from the current colormap given t between 0 and 1.
-IMPLOT_API ImVec4 LerpColormap(float t);
+// Sample a color from the current colormap given t between 0 and 1.
+IMPLOT_API ImVec4 SampleColormap(float t);
 // Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
 IMPLOT_API ImVec4 NextColormapColor();
 

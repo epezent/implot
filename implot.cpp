@@ -31,7 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2021/03/08 (0.9) - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support.
+- 2021/03/08 (0.9) - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support. LerpColormap was changed to SampleColormap.
 - 2021/03/07 (0.9) - The signature of ShowColormapScale was modified to accept a ImVec2 size.
 - 2021/02/28 (0.9) - BeginLegendDragDropSource was changed to BeginDragDropSourceItem with a number of other drag and drop improvements.
 - 2021/01/18 (0.9) - The default behavior for opening context menus was change from double right-click to single right-click. ImPlotInputMap and related functions were moved
@@ -386,12 +386,11 @@ void SetCurrentContext(ImPlotContext* ctx) {
     GImPlot = ctx;
 }
 
-#define IMPLOT_APPEND_CMAP(name) ctx->ColormapData.Append(#name, name, sizeof(name)/sizeof(ImU32))
+#define IMPLOT_APPEND_CMAP(name, qual) ctx->ColormapData.Append(#name, name, sizeof(name)/sizeof(ImU32), qual)
 
 void Initialize(ImPlotContext* ctx) {
     Reset(ctx);
 
-    const ImU32 Default[] = {4294950656, 4278190335, 4278255487, 4278255615, 4294967040, 4278232575, 4294902015, 4293012362, 4286611584, 4287411410                        };
     const ImU32 Deep[]    = {4289753676, 4283598045, 4285048917, 4283584196, 4289950337, 4284512403, 4291005402, 4287401100, 4285839820, 4291671396                        };
     const ImU32 Dark[]    = {4280031972, 4290281015, 4283084621, 4288892568, 4278222847, 4281597951, 4280833702, 4290740727, 4288256409                                    };
     const ImU32 Pastel[]  = {4289639675, 4293119411, 4291161036, 4293184478, 4289124862, 4291624959, 4290631909, 4293712637, 4294111986                                    };
@@ -403,17 +402,16 @@ void Initialize(ImPlotContext* ctx) {
     const ImU32 Pink[]    = {4278190154, 4282532475, 4284308894, 4285690554, 4286879686, 4287870160, 4288794330, 4289651940, 4291685869, 4293392118, 4294967295            };
     const ImU32 Jet[]     = {4289331200, 4294901760, 4294923520, 4294945280, 4294967040, 4289396565, 4283826090, 4278255615, 4278233855, 4278212095, 4278190335            };
 
-    IMPLOT_APPEND_CMAP(Default);
-    IMPLOT_APPEND_CMAP(Deep);
-    IMPLOT_APPEND_CMAP(Dark);
-    IMPLOT_APPEND_CMAP(Pastel);
-    IMPLOT_APPEND_CMAP(Paired);
-    IMPLOT_APPEND_CMAP(Viridis);
-    IMPLOT_APPEND_CMAP(Plasma);
-    IMPLOT_APPEND_CMAP(Hot);
-    IMPLOT_APPEND_CMAP(Cool);
-    IMPLOT_APPEND_CMAP(Pink);
-    IMPLOT_APPEND_CMAP(Jet);
+    IMPLOT_APPEND_CMAP(Deep, true);
+    IMPLOT_APPEND_CMAP(Dark, true);
+    IMPLOT_APPEND_CMAP(Pastel, true);
+    IMPLOT_APPEND_CMAP(Paired, true);
+    IMPLOT_APPEND_CMAP(Viridis, false);
+    IMPLOT_APPEND_CMAP(Plasma, false);
+    IMPLOT_APPEND_CMAP(Hot, false);
+    IMPLOT_APPEND_CMAP(Cool, false);
+    IMPLOT_APPEND_CMAP(Pink, false);
+    IMPLOT_APPEND_CMAP(Jet, false);
 }
 
 void Reset(ImPlotContext* ctx) {
@@ -3268,18 +3266,22 @@ void PopStyleVar(int count) {
 // COLORMAPS
 //------------------------------------------------------------------------------
 
-ImPlotColormap AddColormap(const char* name, const ImVec4* colormap, int size) {
+ImPlotColormap AddColormap(const char* name, const ImVec4* colormap, int size, bool qual) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(size > 1, "The colormap size must be greater than 1!");
-    IM_ASSERT_USER_ERROR(gp.ColormapData.Lookup(name) == -1, "The colormap name has already been used!");
-    return gp.ColormapData.Append(name, colormap, size);
+    IM_ASSERT_USER_ERROR(gp.ColormapData.GetIndex(name) == -1, "The colormap name has already been used!");
+    ImVector<ImU32> buffer;
+    buffer.resize(size);
+    for (int i = 0; i < size; ++i)
+        buffer[i] = ImGui::ColorConvertFloat4ToU32(colormap[i]);
+    return gp.ColormapData.Append(name, buffer.Data, size, qual);
 }
 
-ImPlotColormap AddColormap(const char* name, const ImU32*  colormap, int size) {
+ImPlotColormap AddColormap(const char* name, const ImU32*  colormap, int size, bool qual) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(size > 1, "The colormap size must be greater than 1!");
-    IM_ASSERT_USER_ERROR(gp.ColormapData.Lookup(name) == -1, "The colormap name has already be used!");
-    return gp.ColormapData.Append(name, colormap, size);
+    IM_ASSERT_USER_ERROR(gp.ColormapData.GetIndex(name) == -1, "The colormap name has already be used!");
+    return gp.ColormapData.Append(name, colormap, size, qual);
 }
 
 void PushColormap(ImPlotColormap colormap) {
@@ -3291,7 +3293,9 @@ void PushColormap(ImPlotColormap colormap) {
 
 void PushColormap(const char* name) {
     ImPlotContext& gp = *GImPlot;
-    PushColormap(gp.ColormapData.Lookup(name));
+    ImPlotColormap idx = gp.ColormapData.GetIndex(name);
+    IM_ASSERT_USER_ERROR(idx != -1, "The colormap name is invalid!");
+    PushColormap(idx);
 }
 
 void PopColormap(int count) {
@@ -3316,12 +3320,13 @@ const char* GetColormapName(ImPlotColormap colormap) {
 
 int GetColormapSize() {
     ImPlotContext& gp = *GImPlot;
-    return gp.ColormapData.GetSize(gp.Style.Colormap);
+    return gp.ColormapData.GetKeyCount(gp.Style.Colormap);
 }
 
 ImU32 GetColormapColorU32(int idx) {
     ImPlotContext& gp = *GImPlot;
-    return gp.ColormapData.GetColor(gp.Style.Colormap, idx);
+    idx = idx % gp.ColormapData.GetKeyCount(gp.Style.Colormap);
+    return gp.ColormapData.GetKeyColor(gp.Style.Colormap, idx);
 }
 
 ImVec4 GetColormapColor(int idx) {
@@ -3331,8 +3336,8 @@ ImVec4 GetColormapColor(int idx) {
 ImU32 NextColormapColorU32() {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "NextColormapColor() needs to be called between BeginPlot() and EndPlot()!");
-    int idx = gp.CurrentPlot->ColormapIdx % gp.ColormapData.GetSize(gp.Style.Colormap);
-    ImU32 col  = gp.ColormapData.GetColor(gp.Style.Colormap, idx);
+    int idx = gp.CurrentPlot->ColormapIdx % gp.ColormapData.GetKeyCount(gp.Style.Colormap);
+    ImU32 col  = gp.ColormapData.GetKeyColor(gp.Style.Colormap, idx);
     gp.CurrentPlot->ColormapIdx++;
     return col;
 }
@@ -3341,13 +3346,50 @@ ImVec4 NextColormapColor() {
     return ImGui::ColorConvertU32ToFloat4(NextColormapColorU32());
 }
 
-ImU32  LerpColormapU32(float t) {
+ImU32  SampleColormapU32(float t) {
     ImPlotContext& gp = *GImPlot;
-    return gp.ColormapData.Lerp(gp.Style.Colormap,t);
+    return gp.ColormapData.LerpTable(gp.Style.Colormap,t);
 }
 
-ImVec4 LerpColormap(float t) {
-    return ImGui::ColorConvertU32ToFloat4(LerpColormapU32(t));
+ImVec4 SampleColormap(float t) {
+    return ImGui::ColorConvertU32ToFloat4(SampleColormapU32(t));
+}
+
+void RenderColorBar(const ImU32* colors, int size, ImDrawList& DrawList, const ImRect& bounds, bool vert, bool reversed, bool continuous) {
+    const int n = continuous ? size - 1 : size;
+    ImU32 col1, col2;
+    if (vert) {
+        const float step = bounds.GetHeight() / n;
+        ImRect rect(bounds.Min.x, bounds.Min.y, bounds.Max.x, bounds.Min.y + step);
+        for (int i = 0; i < n; ++i) {
+            if (reversed) {
+                col1 = colors[size-i-1];
+                col2 = continuous ? colors[size-i-2] : col1;
+            }
+            else {
+                col1 = colors[i];
+                col2 = continuous ? colors[i+1] : col1;
+            }
+            DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col1, col2, col2);
+            rect.TranslateY(step);
+        } 
+    }
+    else {
+        const float step = bounds.GetWidth() / n;
+        ImRect rect(bounds.Min.x, bounds.Min.y, bounds.Min.x + step, bounds.Max.y);
+        for (int i = 0; i < n; ++i) {
+            if (reversed) {
+                col1 = colors[size-i-1];
+                col2 = continuous ? colors[size-i-2] : col1;
+            }
+            else {
+                col1 = colors[i];
+                col2 = continuous ? colors[i+1] : col1;
+            }
+            DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col2, col2, col1);
+            rect.TranslateX(step);
+        }
+    }   
 }
 
 void ShowColormapScale(double scale_min, double scale_max, const ImVec2& size) {
@@ -3389,14 +3431,10 @@ void ShowColormapScale(double scale_min, double scale_max, const ImVec2& size) {
     ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding, bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x, frame_size.y - gp.Style.PlotPadding.y));
 
     ImGui::PushClipRect(bb_frame.Min, bb_frame.Max, true);
-    int num_cols = GetColormapSize();
-    float h_step = (frame_size.y - 2 * gp.Style.PlotPadding.y) / (num_cols - 1);
-    for (int i = 0; i < num_cols-1; ++i) {
-        ImRect rect(bb_grad.Min.x, bb_grad.Min.y + h_step * i, bb_grad.Max.x, bb_grad.Min.y + h_step * (i + 1));
-        ImU32 col1 = GetColormapColorU32(num_cols - i - 1);
-        ImU32 col2 = GetColormapColorU32(num_cols - i - 2);
-        DrawList.AddRectFilledMultiColor(rect.Min, rect.Max, col1, col1, col2, col2);
-    }
+
+    ImPlotColormap map = gp.Style.Colormap;
+    RenderColorBar(gp.ColormapData.GetKeys(map), gp.ColormapData.GetKeyCount(map), DrawList, bb_grad, true, true, !gp.ColormapData.IsQual(map));
+
     const ImU32 col_tick = GetStyleColorU32(ImPlotCol_TitleText);
     for (int i = 0; i < gp.CTicks.Size; ++i) {
         const float ypos = ImRemap((float)gp.CTicks.Ticks[i].PlotPos, (float)range.Max, (float)range.Min, bb_grad.Min.y, bb_grad.Max.y);
@@ -3626,13 +3664,13 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::Separator();
             for (int i = 0; i < gp.ColormapData.Count; ++i) {
                 ImGui::PushID(i);
-                int size = gp.ColormapData.GetSize(i);
+                int size = gp.ColormapData.GetKeyCount(i);
                 bool selected = i == gp.Style.Colormap;
 
 
                 if (!selected)
                     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.25f);
-                if (ImGui::Button(GetColormapName(i), ImVec2(75,0))) {
+                if (ImGui::Button(GetColormapName(i), ImVec2(100,0))) {
                     gp.Style.Colormap = i;
                     BustItemCache();
                 }
@@ -3642,10 +3680,10 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                 ImGui::BeginGroup();
                 for (int c = 0; c < size; ++c) {
                     ImGui::PushID(c);
-                    ImVec4 col4 = ImGui::ColorConvertU32ToFloat4(gp.ColormapData.GetColor(i,c));
+                    ImVec4 col4 = ImGui::ColorConvertU32ToFloat4(gp.ColormapData.GetKeyColor(i,c));
                     if (ImGui::ColorEdit4("",&col4.x,ImGuiColorEditFlags_NoInputs)) {
                         ImU32 col32 = ImGui::ColorConvertFloat4ToU32(col4);
-                        gp.ColormapData.SetColor(i,c,col32);
+                        gp.ColormapData.SetKeyColor(i,c,col32);
                         BustItemCache();
                     }
                     if ((c + 1) % 12 != 0 && c != size -1)
@@ -3667,15 +3705,17 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             static char name[16] = "MyColormap";
 
 
-            if (ImGui::Button("+", ImVec2((75 - ImGui::GetStyle().ItemSpacing.x)/2,0)))
+            if (ImGui::Button("+", ImVec2((100 - ImGui::GetStyle().ItemSpacing.x)/2,0)))
                 custom.push_back(ImVec4(0,0,0,1));
             ImGui::SameLine();
-            if (ImGui::Button("-", ImVec2((75 - ImGui::GetStyle().ItemSpacing.x)/2,0)) && custom.Size > 2)
+            if (ImGui::Button("-", ImVec2((100 - ImGui::GetStyle().ItemSpacing.x)/2,0)) && custom.Size > 2)
                 custom.pop_back();
-            ImGui::SetNextItemWidth(75);
+            ImGui::SetNextItemWidth(100);
             ImGui::InputText("##Name",name,16,ImGuiInputTextFlags_CharsNoBlank);
-            if (ImGui::Button("Add", ImVec2(75, 0)) && gp.ColormapData.Lookup(name)==-1)
-                AddColormap(name,custom.Data,custom.Size);
+            static bool qual = true;
+            ImGui::Checkbox("Qualitative",&qual);
+            if (ImGui::Button("Add", ImVec2(100, 0)) && gp.ColormapData.GetIndex(name)==-1)
+                AddColormap(name,custom.Data,custom.Size,qual);
 
             ImGui::EndGroup();
             ImGui::SameLine();
@@ -3826,55 +3866,52 @@ void ShowMetricsWindow(bool* p_popen) {
         ImGui::TreePop();
     }
     if (ImGui::TreeNode("Colormaps")) {
-#ifdef IMPLOT_USE_COLORMAP_TABLES
-        ImGui::BulletText("IMPLOT_USE_COLORMAP_TABLES: true");
-#else
-        ImGui::BulletText("IMPLOT_USE_COLORMAP_TABLES: false");
-#endif
-#ifdef IMPLOT_MIX64
-        ImGui::BulletText("IMPLOT_MIX64: true");
-#else
-        ImGui::BulletText("IMPLOT_MIX64: false");
-#endif
         ImGui::BulletText("Colormaps:  %d", gp.ColormapData.Count);
-        ImGui::BulletText("Data Size:  %d", gp.ColormapData.Data.Size);
-#ifdef IMPLOT_USE_COLORMAP_TABLES
-        ImGui::BulletText("Table Size: %d", gp.ColormapData.Table.Size);
-        if (ImGui::TreeNode("Table Data")) {
+        ImGui::BulletText("Memory: %d bytes", gp.ColormapData.Tables.Size * 4);
+        if (ImGui::TreeNode("Data")) {
             for (int m = 0; m < gp.ColormapData.Count; ++m) {
                 if (ImGui::TreeNode(gp.ColormapData.GetName(m))) {
-                    int keys = gp.ColormapData.GetSize(m);
-                    int size = gp.ColormapData.TableSizes[m];
-                    int off  = gp.ColormapData.TableOffsets[m];
+                    const ImU32* keys = gp.ColormapData.GetKeys(m);
+                    int count = gp.ColormapData.GetKeyCount(m);
+                    int size = gp.ColormapData.GetTableSize(m);
+                    bool qual = gp.ColormapData.IsQual(m);
                     static float t = 0.5;
-                    ImGui::BulletText("Keys: %d", keys);
-                    ImGui::BulletText("Size: %d", size);
-                    ImGui::SetNextItemWidth(200);
+                    ImGui::BulletText("Qualitative: %s", qual ? "true" : "false");
+                    ImGui::BulletText("Key Count: %d", count);
+                    ImGui::BulletText("Table Size: %d", size);
+                    ImGui::Indent();
+                    ImGui::SetNextItemWidth(370);
+                    ImVec2 pos = ImGui::GetCurrentWindow()->DC.CursorPos;
+                    RenderColorBar(keys,count,*ImGui::GetWindowDrawList(),ImRect(pos.x,pos.y,pos.x+370,pos.y+ImGui::GetFrameHeight()),false,false,!qual);
+                    ImGui::PushStyleColor(ImGuiCol_FrameBg,IM_COL32_BLACK_TRANS);
+                    ImGui::PushStyleColor(ImGuiCol_FrameBgActive,IM_COL32_BLACK_TRANS);
+                    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered,IM_COL32_BLACK_TRANS);
+                    ImGui::PushStyleColor(ImGuiCol_SliderGrab,IM_COL32_WHITE);
+                    ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize,1);
                     ImGui::SliderFloat("##Sample",&t,0,1);
+                    ImGui::PopStyleColor(4);
+                    ImGui::PopStyleVar(1);
                     ImGui::SameLine();
-                    ImVec4 samp = ImGui::ColorConvertU32ToFloat4(gp.ColormapData.Lerp(m,t));
+                    ImVec4 samp = ImGui::ColorConvertU32ToFloat4(gp.ColormapData.LerpTable(m,t));
                     ImGui::ColorButton("Sampler",samp);
                     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0,0,0,0));
                     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
                     for (int c = 0; c < size; ++c) {
-                        ImVec4 col = ImGui::ColorConvertU32ToFloat4(gp.ColormapData.Table[off+c]);
-                        ImGui::PushID(m*10000+c);
-                        ImGui::ColorButton("",col,0,ImVec2(6,6));
+                        ImVec4 col = ImGui::ColorConvertU32ToFloat4(gp.ColormapData.GetTableColor(m,c));
+                        ImGui::PushID(m*1000+c);
+                        ImGui::ColorButton("",col,0,ImVec2(10,10));
                         ImGui::PopID();
-                        if ((c + 1) % 255 != 0 && c != size - 1)
+                        if ((c + 1) % 40 != 0 && c != size - 1)
                             ImGui::SameLine();
-
                     }
                     ImGui::PopStyleVar();
                     ImGui::PopStyleColor();
+                    ImGui::Unindent();
                     ImGui::TreePop();
                 }
             }
             ImGui::TreePop();
         }
-#endif
-
-
         ImGui::TreePop();
     }
     ImGui::End();
