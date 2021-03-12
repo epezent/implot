@@ -42,6 +42,11 @@
         }                                                                                          \
     }
 
+// Support for pre-1.82 version. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
+#if (IMGUI_VERSION_NUM < 18102) && !defined(ImDrawFlags_RoundCornersAll)
+#define ImDrawFlags_RoundCornersAll ImDrawCornerFlags_All
+#endif
+
 namespace ImPlot {
 
 //-----------------------------------------------------------------------------
@@ -1277,7 +1282,7 @@ void PlotBarsEx(const char* label_id, const Getter& getter, double width) {
             if (s.RenderFill)
                 DrawList.AddRectFilled(a, b, col_fill);
             if (rend_line)
-                DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, s.LineWeight);
+                DrawList.AddRect(a, b, col_line, 0, ImDrawFlags_RoundCornersAll, s.LineWeight);
         }
         EndItem();
     }
@@ -1356,7 +1361,7 @@ void PlotBarsHEx(const char* label_id, const Getter& getter, THeight height) {
             if (s.RenderFill)
                 DrawList.AddRectFilled(a, b, col_fill);
             if (rend_line)
-                DrawList.AddRect(a, b, col_line, 0, ImDrawCornerFlags_All, s.LineWeight);
+                DrawList.AddRect(a, b, col_line, 0, ImDrawFlags_RoundCornersAll, s.LineWeight);
         }
         EndItem();
     }

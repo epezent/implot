@@ -76,6 +76,11 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #define sprintf sprintf_s
 #endif
 
+// Support for pre-1.82 version. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
+#if (IMGUI_VERSION_NUM < 18102) && !defined(ImDrawFlags_RoundCornersAll)
+#define ImDrawFlags_RoundCornersAll ImDrawCornerFlags_All
+#endif
+
 // Global plot context
 ImPlotContext* GImPlot = NULL;
 
@@ -2426,7 +2431,7 @@ void EndPlot() {
 
     // render border
     if (gp.Style.PlotBorderSize > 0)
-        DrawList.AddRect(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBorder), 0, ImDrawCornerFlags_All, gp.Style.PlotBorderSize);
+        DrawList.AddRect(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBorder), 0, ImDrawFlags_RoundCornersAll, gp.Style.PlotBorderSize);
 
     // FIT DATA --------------------------------------------------------------
     const bool axis_equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
@@ -3902,7 +3907,7 @@ void ShowMetricsWindow(bool* p_popen) {
                             ImGui::Bullet(); ImGui::ColorEdit4("Color",&item->Color.x, ImGuiColorEditFlags_NoInputs);
                             ImGui::Bullet(); ImGui::Text("NameOffset: %d",item->NameOffset);
                             ImGui::Bullet(); ImGui::Text("Name:       %s", item->NameOffset != -1 ? plot->LegendData.Labels.Buf.Data + item->NameOffset : "N/A");
-                            ImGui::Bullet(); ImGui::Value("Hovered:   %s",item->LegendHovered ? "true" : "false");
+                            ImGui::Bullet(); ImGui::Text("Hovered:    %s", item->LegendHovered ? "true" : "false");
                             ImGui::TreePop();
                         }
                         ImGui::PopID();
