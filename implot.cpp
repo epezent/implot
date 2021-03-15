@@ -3448,6 +3448,21 @@ void ShowColormapScale(double scale_min, double scale_max, const ImVec2& size) {
     ImGui::PopClipRect();
 }
 
+void ShowColormapIcon(const ImVec2& size){
+    const ImGuiContext &G = *GImGui;
+    ImGuiWindow * Window = G.CurrentWindow;
+    ImPlotContext& gp = *GImPlot;
+    ImDrawList &DrawList = *Window->DrawList;
+    ImRect bb_frame = ImRect(Window->DC.CursorPos + ImVec2{0,-2}, Window->DC.CursorPos + ImVec2{size.x+2,size.y});
+    ImGui::ItemSize({size.x,size.y});
+    ImRect bb_grad(bb_frame.Min, bb_frame.Max);
+    ImGui::PushClipRect(bb_frame.Min, bb_frame.Max, true);
+    ImPlotColormap map = gp.Style.Colormap;
+    RenderColorBar(gp.ColormapData.GetKeys(map), gp.ColormapData.GetKeyCount(map), 
+        DrawList, bb_grad, true, true, !gp.ColormapData.IsQual(map));
+    DrawList.AddRect(bb_grad.Min, bb_grad.Max, GetStyleColorU32(ImPlotCol_PlotBorder));
+    ImGui::PopClipRect();
+}
 
 //-----------------------------------------------------------------------------
 // Style Editor etc.

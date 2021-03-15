@@ -700,6 +700,9 @@ IMPLOT_API const char* GetColormapName(ImPlotColormap cmap);
 // Renders a vertical color scale using the current color map. Call this before or after Begin/EndPlot.
 IMPLOT_API void ShowColormapScale(double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0));
 
+// Render colormap in a rectangle of given size
+IMPLOT_API void ShowColormapIcon(const ImVec2& size = {ImGui::GetFontSize(),ImGui::GetFontSize()});
+
 //-----------------------------------------------------------------------------
 // Miscellaneous
 //-----------------------------------------------------------------------------
