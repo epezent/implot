@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2020 Evan Pezent
+// Copyright (c) 2021 Evan Pezent
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -548,11 +548,17 @@ void ShowDemoWindow(bool* p_open) {
         static const char* ylabels[] = {"R1","R2","R3","R4","R5","R6","R7"};
 
         static ImPlotColormap map = ImPlotColormap_Viridis;
-        if (ImGui::Button("Change Colormap",ImVec2(225,0)))
+        if (ImPlot::ColormapButton(ImPlot::GetColormapName(map),ImVec2(225,0),map)) {
             map = (map + 1) % ImPlot::GetColormapCount();
+            // We bust the color cache of our plots so that item colors will
+            // resample the new colormap in the event that they have already
+            // been created. See documentation in implot.h.
+            BustColorCache("##Heatmap1");
+            BustColorCache("##Heatmap2");
+        }
 
         ImGui::SameLine();
-        ImGui::LabelText("##Colormap Index", "%s", ImPlot::GetColormapName(map));
+        ImGui::LabelText("##Colormap Index", "%s", "Change Colormap");
         ImGui::SetNextItemWidth(225);
         ImGui::DragFloatRange2("Min / Max",&scale_min, &scale_max, 0.01f, -20, 20);
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks;
@@ -565,7 +571,7 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
-        ImPlot::ShowColormapScale(scale_min, scale_max, ImVec2(60,225));
+        ImPlot::ColormapScale("##HeatScale",scale_min, scale_max, ImVec2(60,225));
 
         ImGui::SameLine();
 
@@ -652,14 +658,66 @@ void ShowDemoWindow(bool* p_open) {
         static NormalDistribution<500000> dist1(1, 2);
         static NormalDistribution<500000> dist2(1, 1);
         double max_count = 0;
-        ImPlot::PushColormap("Hot");
-        if (ImPlot::BeginPlot("##Hist2D",0,0,ImVec2(ImGui::GetContentRegionAvail().x-75-ImGui::GetStyle().ItemSpacing.x,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
+        ImPlot::PushColormap("Twilight");
+        if (ImPlot::BeginPlot("##Hist2D",0,0,ImVec2(ImGui::GetContentRegionAvail().x-100-ImGui::GetStyle().ItemSpacing.x,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
             max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],density2,ImPlotLimits(-6,6,-6,6));
             ImPlot::EndPlot();
         }
         ImGui::SameLine();
-        ImPlot::ShowColormapScale(0,max_count,ImVec2(75,0));
+        ImPlot::ColormapScale(density2 ? "Density" : "Count",0,max_count,ImVec2(100,0));
         ImPlot::PopColormap();
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Digital Plots")) {
+        ImGui::BulletText("Digital plots do not respond to Y drag and zoom, so that");
+        ImGui::Indent();
+        ImGui::Text("you can drag analog plots over the rising/falling digital edge.");
+        ImGui::Unindent();
+
+        static bool paused = false;
+        static ScrollingBuffer dataDigital[2];
+        static ScrollingBuffer dataAnalog[2];
+        static bool showDigital[2] = {true, false};
+        static bool showAnalog[2] = {true, false};
+
+        char label[32];
+        ImGui::Checkbox("digital_0", &showDigital[0]); ImGui::SameLine();
+        ImGui::Checkbox("digital_1", &showDigital[1]); ImGui::SameLine();
+        ImGui::Checkbox("analog_0",  &showAnalog[0]);  ImGui::SameLine();
+        ImGui::Checkbox("analog_1",  &showAnalog[1]);
+
+        static float t = 0;
+        if (!paused) {
+            t += ImGui::GetIO().DeltaTime;
+            //digital signal values
+            if (showDigital[0])
+                dataDigital[0].AddPoint(t, sinf(2*t) > 0.45);
+            if (showDigital[1])
+                dataDigital[1].AddPoint(t, sinf(2*t) < 0.45);
+            //Analog signal values
+            if (showAnalog[0])
+                dataAnalog[0].AddPoint(t, sinf(2*t));
+            if (showAnalog[1])
+                dataAnalog[1].AddPoint(t, cosf(2*t));
+        }
+        ImPlot::SetNextPlotLimitsY(-1, 1);
+        ImPlot::SetNextPlotLimitsX(t - 10.0, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
+        if (ImPlot::BeginPlot("##Digital")) {
+            for (int i = 0; i < 2; ++i) {
+                if (showDigital[i] && dataDigital[i].Data.size() > 0) {
+                    sprintf(label, "digital_%d", i);
+                    ImPlot::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), dataDigital[i].Offset, 2 * sizeof(float));
+                }
+            }
+            for (int i = 0; i < 2; ++i) {
+                if (showAnalog[i]) {
+                    sprintf(label, "analog_%d", i);
+                    if (dataAnalog[i].Data.size() > 0)
+                        ImPlot::PlotLine(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), dataAnalog[i].Offset, 2 * sizeof(float));
+                }
+            }
+            ImPlot::EndPlot();
+        }
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Images")) {
@@ -939,9 +997,9 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImGui::Text("The current plot limits are:  [%g,%g,%g,%g]", range.X.Min, range.X.Max, range.Y.Min, range.Y.Max);
         ImGui::Text("The current query limits are: [%g,%g,%g,%g]", query.X.Min, query.X.Max, query.Y.Min, query.Y.Max);
-    }
-    //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Views")) {
+
+        ImGui::Separator();
+
         // mimic's soulthread's imgui_plot demo
         static float x_data[512];
         static float y_data1[512];
@@ -960,15 +1018,15 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("Query the first plot to render a subview in the second plot (see above for controls).");
         ImPlot::SetNextPlotLimits(0,0.01,-1,1);
         ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
-        ImPlotLimits query;
+        ImPlotLimits query2;
         if (ImPlot::BeginPlot("##View1",NULL,NULL,ImVec2(-1,150), ImPlotFlags_Query, flags, flags)) {
             ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
             ImPlot::PlotLine("Signal 2", x_data, y_data2, 512);
             ImPlot::PlotLine("Signal 3", x_data, y_data3, 512);
-            query = ImPlot::GetPlotQuery();
+            query2 = ImPlot::GetPlotQuery();
             ImPlot::EndPlot();
         }
-        ImPlot::SetNextPlotLimits(query.X.Min, query.X.Max, query.Y.Min, query.Y.Max, ImGuiCond_Always);
+        ImPlot::SetNextPlotLimits(query2.X.Min, query2.X.Max, query2.Y.Min, query2.Y.Max, ImGuiCond_Always);
         if (ImPlot::BeginPlot("##View2",NULL,NULL,ImVec2(-1,150), ImPlotFlags_CanvasOnly, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
             ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
             ImPlot::PlotLine("Signal 2", x_data, y_data2, 512);
@@ -984,7 +1042,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::CheckboxFlags("South", (unsigned int*)&loc, ImPlotLocation_South); ImGui::SameLine();
         ImGui::CheckboxFlags("West",  (unsigned int*)&loc, ImPlotLocation_West);  ImGui::SameLine();
         ImGui::CheckboxFlags("East",  (unsigned int*)&loc, ImPlotLocation_East);  ImGui::SameLine();
-        ImGui::Checkbox("Horizontal", &h); ImGui::SameLine();
+        ImGui::Checkbox("Horizontal##2", &h); ImGui::SameLine();
         ImGui::Checkbox("Outside", &o);
 
         ImGui::SliderFloat2("LegendPadding", (float*)&GetStyle().LegendPadding, 0.0f, 20.0f, "%.0f");
@@ -1247,59 +1305,6 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::EndChild();
     }
     //-------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Digital and Analog Signals")) {
-
-        ImGui::BulletText("You can plot digital and analog signals on the same plot.");
-        ImGui::BulletText("Digital signals do not respond to Y drag and zoom, so that");
-        ImGui::Indent();
-        ImGui::Text("you can drag analog signals over the rising/falling digital edge.");
-        ImGui::Unindent();
-
-        static bool paused = false;
-        static ScrollingBuffer dataDigital[2];
-        static ScrollingBuffer dataAnalog[2];
-        static bool showDigital[2] = {true, false};
-        static bool showAnalog[2] = {true, false};
-
-        char label[32];
-        ImGui::Checkbox("digital_0", &showDigital[0]); ImGui::SameLine();
-        ImGui::Checkbox("digital_1", &showDigital[1]); ImGui::SameLine();
-        ImGui::Checkbox("analog_0",  &showAnalog[0]);  ImGui::SameLine();
-        ImGui::Checkbox("analog_1",  &showAnalog[1]);
-
-        static float t = 0;
-        if (!paused) {
-            t += ImGui::GetIO().DeltaTime;
-            //digital signal values
-            if (showDigital[0])
-                dataDigital[0].AddPoint(t, sinf(2*t) > 0.45);
-            if (showDigital[1])
-                dataDigital[1].AddPoint(t, sinf(2*t) < 0.45);
-            //Analog signal values
-            if (showAnalog[0])
-                dataAnalog[0].AddPoint(t, sinf(2*t));
-            if (showAnalog[1])
-                dataAnalog[1].AddPoint(t, cosf(2*t));
-        }
-        ImPlot::SetNextPlotLimitsY(-1, 1);
-        ImPlot::SetNextPlotLimitsX(t - 10.0, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
-        if (ImPlot::BeginPlot("##Digital")) {
-            for (int i = 0; i < 2; ++i) {
-                if (showDigital[i] && dataDigital[i].Data.size() > 0) {
-                    sprintf(label, "digital_%d", i);
-                    ImPlot::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), dataDigital[i].Offset, 2 * sizeof(float));
-                }
-            }
-            for (int i = 0; i < 2; ++i) {
-                if (showAnalog[i]) {
-                    sprintf(label, "analog_%d", i);
-                    if (dataAnalog[i].Data.size() > 0)
-                        ImPlot::PlotLine(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), dataAnalog[i].Offset, 2 * sizeof(float));
-                }
-            }
-            ImPlot::EndPlot();
-        }
-    }
     if (ImGui::CollapsingHeader("Tables")) {
 #ifdef IMGUI_HAS_TABLE
         static ImGuiTableFlags flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_RowBg;

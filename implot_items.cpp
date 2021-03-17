@@ -135,6 +135,21 @@ void BustItemCache() {
     }
 }
 
+void BustColorCache(const char* plot_title_id) {
+    ImPlotContext& gp = *GImPlot;
+    if (plot_title_id == NULL) {
+        BustItemCache();
+    }
+    else {
+        ImPlotPlot* plot = gp.Plots.GetByKey(ImGui::GetCurrentWindow()->GetID(plot_title_id));
+        if (plot == NULL)
+            return;
+        plot->ColormapIdx = 0;
+        plot->Items.Clear();
+        plot->LegendData.Reset();
+    }
+}
+
 //-----------------------------------------------------------------------------
 // Begin/EndItem
 //-----------------------------------------------------------------------------
@@ -1830,7 +1845,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     if (scale_min == scale_max) {
         ImVec2 a = transformer(bounds_min);
         ImVec2 b = transformer(bounds_max);
-        ImU32  col = GetColormapColorU32(0);
+        ImU32  col = GetColormapColorU32(0,gp.Style.Colormap);
         DrawList.AddRectFilled(a, b, col);
         return;
     }

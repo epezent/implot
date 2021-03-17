@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2020 Evan Pezent
+// Copyright (c) 2021 Evan Pezent
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@
 #endif
 
 //-----------------------------------------------------------------------------
-// [SECTION] Macros and Constants
+// [SECTION] Constants
 //-----------------------------------------------------------------------------
 
 // Constants can be changed unless stated otherwise. We may move some of these
@@ -59,6 +59,16 @@
 #define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
 #define IMPLOT_MAX_TIME  32503680000
+
+//-----------------------------------------------------------------------------
+// [SECTION] Macros
+//-----------------------------------------------------------------------------
+
+// Split ImU32 color into RGB components [0 255]
+#define IM_COL32_SPLIT_RGB(col,r,g,b) \
+    ImU32 r = ((col >> IM_COL32_R_SHIFT) & 0xFF); \
+    ImU32 g = ((col >> IM_COL32_G_SHIFT) & 0xFF); \
+    ImU32 b = ((col >> IM_COL32_B_SHIFT) & 0xFF);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Forward Declarations
@@ -340,7 +350,7 @@ struct ImPlotColormapData {
     ImVector<int>   KeyOffsets;
     ImVector<ImU32> Tables;
     ImVector<int>   TableSizes;
-    ImVector<int>   TableOffsets;  
+    ImVector<int>   TableOffsets;
     ImGuiTextBuffer Text;
     ImVector<int>   TextOffsets;
     ImVector<bool>  Quals;
@@ -364,7 +374,7 @@ struct ImPlotColormapData {
         int idx = Count++;
         Map.SetInt(id,idx);
         _AppendTable(idx);
-        return idx;    
+        return idx;
     }
 
     void _AppendTable(ImPlotColormap cmap) {
@@ -381,58 +391,59 @@ struct ImPlotColormapData {
         else {
             int max_size = 255 * (key_count-1) + 1;
             Tables.reserve(off + max_size);
-            ImU32 last = keys[0];
-            Tables.push_back(last);
-            int n = 1;
+            // ImU32 last = keys[0];
+            // Tables.push_back(last);
+            // int n = 1;
             for (int i = 0; i < key_count-1; ++i) {
                 for (int s = 0; s < 255; ++s) {
                     ImU32 a = keys[i];
                     ImU32 b = keys[i+1];
                     ImU32 c = ImMixU32(a,b,s);
-                    if (c != last) {
+                    // if (c != last) {
                         Tables.push_back(c);
-                        last = c;
-                        n++;
-                    }
+                        // last = c;
+                        // n++;
+                    // }
                 }
             }
             ImU32 c = keys[key_count-1];
-            if (c != last) {
+            // if (c != last) {
                 Tables.push_back(c);
-                n++;
-            }
-            TableSizes.push_back(n);
+                // n++;
+            // }
+            // TableSizes.push_back(n);
+            TableSizes.push_back(max_size);
         }
     }
 
     void RebuildTables() {
-        Tables.resize(0); 
-        TableSizes.resize(0); 
+        Tables.resize(0);
+        TableSizes.resize(0);
         TableOffsets.resize(0);
-        for (int i = 0; i < Count; ++i) 
-            _AppendTable(i); 
+        for (int i = 0; i < Count; ++i)
+            _AppendTable(i);
     }
 
-    inline bool           IsQual(ImPlotColormap cmap) const                      { return Quals[cmap];                                                         }
-    inline const char*    GetName(ImPlotColormap cmap) const                     { return Text.Buf.Data + TextOffsets[cmap];                                   }
-    inline ImPlotColormap GetIndex(const char* name) const                       { ImGuiID key = ImHashStr(name); return Map.GetInt(key,-1);                   }
+    inline bool           IsQual(ImPlotColormap cmap) const                      { return Quals[cmap];                                             }
+    inline const char*    GetName(ImPlotColormap cmap) const                     { return cmap < Count ? Text.Buf.Data + TextOffsets[cmap] : NULL; }
+    inline ImPlotColormap GetIndex(const char* name) const                       { ImGuiID key = ImHashStr(name); return Map.GetInt(key,-1);       }
 
-    inline const ImU32*   GetKeys(ImPlotColormap cmap) const                     { return &Keys[KeyOffsets[cmap]];                                             }
-    inline int            GetKeyCount(ImPlotColormap cmap) const                 { return KeyCounts[cmap];                                                     }
-    inline ImU32          GetKeyColor(ImPlotColormap cmap, int idx) const        { return Keys[KeyOffsets[cmap]+idx];                                          }
-    inline void           SetKeyColor(ImPlotColormap cmap, int idx, ImU32 value) { Keys[KeyOffsets[cmap]+idx] = value; RebuildTables();                        } 
-     
-    inline const ImU32*   GetTable(ImPlotColormap cmap) const                    { return &Tables[TableOffsets[cmap]];                                         }
-    inline int            GetTableSize(ImPlotColormap cmap) const                { return TableSizes[cmap];                                                    }
-    inline ImU32          GetTableColor(ImPlotColormap cmap, int idx) const      { return Tables[TableOffsets[cmap]+idx];                                      }
-    
-    inline ImU32 LerpTable(ImPlotColormap cmap, float t) const { 
+    inline const ImU32*   GetKeys(ImPlotColormap cmap) const                     { return &Keys[KeyOffsets[cmap]];                                 }
+    inline int            GetKeyCount(ImPlotColormap cmap) const                 { return KeyCounts[cmap];                                         }
+    inline ImU32          GetKeyColor(ImPlotColormap cmap, int idx) const        { return Keys[KeyOffsets[cmap]+idx];                              }
+    inline void           SetKeyColor(ImPlotColormap cmap, int idx, ImU32 value) { Keys[KeyOffsets[cmap]+idx] = value; RebuildTables();            }
+
+    inline const ImU32*   GetTable(ImPlotColormap cmap) const                    { return &Tables[TableOffsets[cmap]];                             }
+    inline int            GetTableSize(ImPlotColormap cmap) const                { return TableSizes[cmap];                                        }
+    inline ImU32          GetTableColor(ImPlotColormap cmap, int idx) const      { return Tables[TableOffsets[cmap]+idx];                          }
+
+    inline ImU32 LerpTable(ImPlotColormap cmap, float t) const {
         int off = TableOffsets[cmap];
         int siz = TableSizes[cmap];
         int idx = Quals[cmap] ? ImClamp((int)(siz*t),0,siz-1) : (int)((siz - 1) * t + 0.5f);
-        return Tables[off + idx];              
+        return Tables[off + idx];
     }
- 
+
 };
 
 // ImPlotPoint with positive/negative error values
@@ -543,7 +554,7 @@ struct ImPlotTickCollection {
         Append(tick);
     }
 
-    const char* GetText(int idx) {
+    const char* GetText(int idx) const {
         return TextBuffer.Buf.Data + Ticks[idx].TextOffset;
     }
 
@@ -1025,9 +1036,13 @@ inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat
 // Draws vertical text. The position is the bottom left of the text rect.
 IMPLOT_API void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
-inline ImVec2 CalcTextSizeVertical(const char *text) { ImVec2 sz = ImGui::CalcTextSize(text); return ImVec2(sz.y, sz.x); }
+inline ImVec2 CalcTextSizeVertical(const char *text) {
+    ImVec2 sz = ImGui::CalcTextSize(text);
+    return ImVec2(sz.y, sz.x);
+}
 // Returns white or black text given background color
 inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.5 ? IM_COL32_BLACK : IM_COL32_WHITE; }
+inline ImU32 CalcTextColor(ImU32 bg)         { return CalcTextColor(ImGui::ColorConvertU32ToFloat4(bg)); }
 
 // Clamps a label position so that it fits a rect defined by Min/Max
 inline ImVec2 ClampLabelPos(ImVec2 pos, const ImVec2& size, const ImVec2& Min, const ImVec2& Max) {
@@ -1039,11 +1054,11 @@ inline ImVec2 ClampLabelPos(ImVec2 pos, const ImVec2& size, const ImVec2& Min, c
 }
 
 // Returns a color from the Color map given an index >= 0 (modulo will be performed).
-IMPLOT_API ImU32  GetColormapColorU32(int idx);
+IMPLOT_API ImU32  GetColormapColorU32(int idx, ImPlotColormap cmap);
 // Returns the next unused colormap color and advances the colormap. Can be used to skip colors if desired.
 IMPLOT_API ImU32  NextColormapColorU32();
 // Linearly interpolates a color from the current colormap given t between 0 and 1.
-IMPLOT_API ImU32  SampleColormapU32(float t);
+IMPLOT_API ImU32  SampleColormapU32(float t, ImPlotColormap cmap);
 
 // Render a colormap bar
 IMPLOT_API void RenderColorBar(const ImU32* colors, int size, ImDrawList& DrawList, const ImRect& bounds, bool vert, bool reversed, bool continuous);
