@@ -1847,6 +1847,12 @@ struct GetterHeatmap {
 template <typename T, typename Transformer>
 void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, bool reverse_y) {
     ImPlotContext& gp = *GImPlot;
+    if (scale_min == 0 && scale_max == 0) {
+        T temp_min, temp_max;
+        ImMinMaxArray(values,rows*cols,&temp_min,&temp_max);
+        scale_min = (double)temp_min;
+        scale_max = (double)temp_max;
+    }
     if (scale_min == scale_max) {
         ImVec2 a = transformer(bounds_min);
         ImVec2 b = transformer(bounds_max);
