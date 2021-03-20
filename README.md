@@ -25,6 +25,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
     - stair plots
     - pie charts
     - heatmap charts
+    - 1D/2D histograms
     - images
     - and more likely to come
 - mix/match multiple plot items on a single plot
