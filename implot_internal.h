@@ -97,39 +97,39 @@ static inline float  ImLog10(float x)  { return log10f(x); }
 static inline double ImLog10(double x) { return log10(x);  }
 // Returns true if a flag is set
 template <typename TSet, typename TFlag>
-inline bool ImHasFlag(TSet set, TFlag flag) { return (set & flag) == flag; }
+static inline bool ImHasFlag(TSet set, TFlag flag) { return (set & flag) == flag; }
 // Flips a flag in a flagset
 template <typename TSet, typename TFlag>
-inline void ImFlipFlag(TSet& set, TFlag flag) { ImHasFlag(set, flag) ? set &= ~flag : set |= flag; }
+static inline void ImFlipFlag(TSet& set, TFlag flag) { ImHasFlag(set, flag) ? set &= ~flag : set |= flag; }
 // Linearly remaps x from [x0 x1] to [y0 y1].
 template <typename T>
-inline T ImRemap(T x, T x0, T x1, T y0, T y1) { return y0 + (x - x0) * (y1 - y0) / (x1 - x0); }
+static inline T ImRemap(T x, T x0, T x1, T y0, T y1) { return y0 + (x - x0) * (y1 - y0) / (x1 - x0); }
 // Linear rempas x from [x0 x1] to [0 1]
 template <typename T>
-inline T ImRemap01(T x, T x0, T x1) { return (x - x0) / (x1 - x0); }
+static inline T ImRemap01(T x, T x0, T x1) { return (x - x0) / (x1 - x0); }
 // Returns always positive modulo (assumes r != 0)
-inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
+static inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
 // Returns true if val is NAN or INFINITY
-inline bool ImNanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
+static inline bool ImNanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
 // Turns NANs to 0s
-inline double ImConstrainNan(double val) { return isnan(val) ? 0 : val; }
+static inline double ImConstrainNan(double val) { return isnan(val) ? 0 : val; }
 // Turns infinity to floating point maximums
-inline double ImConstrainInf(double val) { return val == HUGE_VAL ?  DBL_MAX : val == -HUGE_VAL ? - DBL_MAX : val; }
+static inline double ImConstrainInf(double val) { return val == HUGE_VAL ?  DBL_MAX : val == -HUGE_VAL ? - DBL_MAX : val; }
 // Turns numbers less than or equal to 0 to 0.001 (sort of arbitrary, is there a better way?)
-inline double ImConstrainLog(double val) { return val <= 0 ? 0.001f : val; }
+static inline double ImConstrainLog(double val) { return val <= 0 ? 0.001f : val; }
 // Turns numbers less than 0 to zero
-inline double ImConstrainTime(double val) { return val < IMPLOT_MIN_TIME ? IMPLOT_MIN_TIME : (val > IMPLOT_MAX_TIME ? IMPLOT_MAX_TIME : val); }
+static inline double ImConstrainTime(double val) { return val < IMPLOT_MIN_TIME ? IMPLOT_MIN_TIME : (val > IMPLOT_MAX_TIME ? IMPLOT_MAX_TIME : val); }
 // True if two numbers are approximately equal using units in the last place.
-inline bool ImAlmostEqual(double v1, double v2, int ulp = 2) { return ImAbs(v1-v2) < DBL_EPSILON * ImAbs(v1+v2) * ulp || ImAbs(v1-v2) < DBL_MIN; }
+static inline bool ImAlmostEqual(double v1, double v2, int ulp = 2) { return ImAbs(v1-v2) < DBL_EPSILON * ImAbs(v1+v2) * ulp || ImAbs(v1-v2) < DBL_MIN; }
 // Finds min value in an unsorted array
 template <typename T>
-inline T ImMinArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] < m) { m = values[i]; } } return m; }
+static inline T ImMinArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] < m) { m = values[i]; } } return m; }
 // Finds the max value in an unsorted array
 template <typename T>
-inline T ImMaxArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] > m) { m = values[i]; } } return m; }
+static inline T ImMaxArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] > m) { m = values[i]; } } return m; }
 // Finds the min and max value in an unsorted array
 template <typename T>
-inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_out) {
+static inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_out) {
     T Min = values[0]; T Max = values[0];
     for (int i = 1; i < count; ++i) {
         if (values[i] < Min) { Min = values[i]; }
@@ -139,7 +139,7 @@ inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_out) {
 }
 // Finds the mean of an array
 template <typename T>
-inline double ImMean(const T* values, int count) {
+static inline double ImMean(const T* values, int count) {
     double den = 1.0 / count;
     double mu  = 0;
     for (int i = 0; i < count; ++i)
@@ -148,7 +148,7 @@ inline double ImMean(const T* values, int count) {
 }
 // Finds the sample standard deviation of an array
 template <typename T>
-inline double ImStdDev(const T* values, int count) {
+static inline double ImStdDev(const T* values, int count) {
     double den = 1.0 / (count - 1.0);
     double mu  = ImMean(values, count);
     double x   = 0;
@@ -157,7 +157,7 @@ inline double ImStdDev(const T* values, int count) {
     return sqrt(x);
 }
 // Mix color a and b by factor s in [0 256]
-inline ImU32 ImMixU32(ImU32 a, ImU32 b, ImU32 s) {
+static inline ImU32 ImMixU32(ImU32 a, ImU32 b, ImU32 s) {
 #ifdef IMPLOT_MIX64
     const ImU32 af = 256-s;
     const ImU32 bf = s;
@@ -179,7 +179,7 @@ inline ImU32 ImMixU32(ImU32 a, ImU32 b, ImU32 s) {
 }
 
 // Lerp across an array of 32-bit collors given t in [0.0 1.0]
-inline ImU32 ImLerpU32(const ImU32* colors, int size, float t) {
+static inline ImU32 ImLerpU32(const ImU32* colors, int size, float t) {
     int i1 = (int)((size - 1 ) * t);
     int i2 = i1 + 1;
     if (i2 == size || size == 1)
@@ -192,7 +192,7 @@ inline ImU32 ImLerpU32(const ImU32* colors, int size, float t) {
 }
 
 // Set alpha channel of 32-bit color from float in range [0.0 1.0]
-inline ImU32 ImAlphaU32(ImU32 col, float alpha) {
+static inline ImU32 ImAlphaU32(ImU32 col, float alpha) {
     return col & ~((ImU32)((1.0f-alpha)*255)<<IM_COL32_A_SHIFT);
 }
 
@@ -949,17 +949,17 @@ IMPLOT_API void BustItemCache();
 //-----------------------------------------------------------------------------
 
 // Gets the current y-axis for the current plot
-inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
+static inline int GetCurrentYAxis() { return GImPlot->CurrentPlot->CurrentYAxis; }
 // Updates axis ticks, lins, and label colors
 IMPLOT_API void UpdateAxisColors(int axis_flag, ImPlotAxis* axis);
 
 // Updates plot-to-pixel space transformation variables for the current plot.
 IMPLOT_API void UpdateTransformCache();
 // Gets the XY scale for the current plot and y-axis
-inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
+static inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
 
 // Returns true if the user has requested data to be fit.
-inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
+static inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
 // Extends the current plot's axes so that it encompasses point p
 IMPLOT_API void FitPoint(const ImPlotPoint& p);
 // Extends the current plot's axes so that it encompasses a vertical line at x
@@ -968,7 +968,7 @@ IMPLOT_API void FitPointX(double x);
 IMPLOT_API void FitPointY(double y);
 
 // Returns true if two ranges overlap
-inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)
+static inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)
 { return r1.Min <= r2.Max && r2.Min <= r1.Max; }
 
 // Updates pointers for linked axes from axis internal range.
@@ -1020,32 +1020,32 @@ IMPLOT_API int LabelAxisValue(const ImPlotAxis& axis, const ImPlotTickCollection
 //-----------------------------------------------------------------------------
 
 // Get styling data for next item (call between Begin/EndItem)
-inline const ImPlotNextItemData& GetItemData() { return GImPlot->NextItemData; }
+static inline const ImPlotNextItemData& GetItemData() { return GImPlot->NextItemData; }
 
 // Returns true if a color is set to be automatically determined
-inline bool IsColorAuto(const ImVec4& col) { return col.w == -1; }
+static inline bool IsColorAuto(const ImVec4& col) { return col.w == -1; }
 // Returns true if a style color is set to be automaticaly determined
-inline bool IsColorAuto(ImPlotCol idx) { return IsColorAuto(GImPlot->Style.Colors[idx]); }
+static inline bool IsColorAuto(ImPlotCol idx) { return IsColorAuto(GImPlot->Style.Colors[idx]); }
 // Returns the automatically deduced style color
 IMPLOT_API ImVec4 GetAutoColor(ImPlotCol idx);
 
 // Returns the style color whether it is automatic or custom set
-inline ImVec4 GetStyleColorVec4(ImPlotCol idx) { return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
-inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
+static inline ImVec4 GetStyleColorVec4(ImPlotCol idx) { return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
+static inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
 
 // Draws vertical text. The position is the bottom left of the text rect.
 IMPLOT_API void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
-inline ImVec2 CalcTextSizeVertical(const char *text) {
+static inline ImVec2 CalcTextSizeVertical(const char *text) {
     ImVec2 sz = ImGui::CalcTextSize(text);
     return ImVec2(sz.y, sz.x);
 }
 // Returns white or black text given background color
-inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.5 ? IM_COL32_BLACK : IM_COL32_WHITE; }
-inline ImU32 CalcTextColor(ImU32 bg)         { return CalcTextColor(ImGui::ColorConvertU32ToFloat4(bg)); }
+static inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.5 ? IM_COL32_BLACK : IM_COL32_WHITE; }
+static inline ImU32 CalcTextColor(ImU32 bg)         { return CalcTextColor(ImGui::ColorConvertU32ToFloat4(bg)); }
 
 // Clamps a label position so that it fits a rect defined by Min/Max
-inline ImVec2 ClampLabelPos(ImVec2 pos, const ImVec2& size, const ImVec2& Min, const ImVec2& Max) {
+static inline ImVec2 ClampLabelPos(ImVec2 pos, const ImVec2& size, const ImVec2& Min, const ImVec2& Max) {
     if (pos.x < Min.x)              pos.x = Min.x;
     if (pos.y < Min.y)              pos.y = Min.y;
     if ((pos.x + size.x) > Max.x)   pos.x = Max.x - size.x;
@@ -1070,14 +1070,14 @@ IMPLOT_API void RenderColorBar(const ImU32* colors, int size, ImDrawList& DrawLi
 // Rounds x to powers of 2,5 and 10 for generating axis labels (from Graphics Gems 1 Chapter 11.2)
 IMPLOT_API double NiceNum(double x, bool round);
 // Computes order of magnitude of double.
-inline int OrderOfMagnitude(double val) { return val == 0 ? 0 : (int)(floor(log10(fabs(val)))); }
+static inline int OrderOfMagnitude(double val) { return val == 0 ? 0 : (int)(floor(log10(fabs(val)))); }
 // Returns the precision required for a order of magnitude.
-inline int OrderToPrecision(int order) { return order > 0 ? 0 : 1 - order; }
+static inline int OrderToPrecision(int order) { return order > 0 ? 0 : 1 - order; }
 // Returns a floating point precision to use given a value
-inline int Precision(double val) { return OrderToPrecision(OrderOfMagnitude(val)); }
+static inline int Precision(double val) { return OrderToPrecision(OrderOfMagnitude(val)); }
 
 // Returns the intersection point of two lines A and B (assumes they are not parallel!)
-inline ImVec2 Intersection(const ImVec2& a1, const ImVec2& a2, const ImVec2& b1, const ImVec2& b2) {
+static inline ImVec2 Intersection(const ImVec2& a1, const ImVec2& a2, const ImVec2& b1, const ImVec2& b2) {
     float v1 = (a1.x * a2.y - a1.y * a2.x);  float v2 = (b1.x * b2.y - b1.y * b2.x);
     float v3 = ((a1.x - a2.x) * (b1.y - b2.y) - (a1.y - a2.y) * (b1.x - b2.x));
     return ImVec2((v1 * (b1.x - b2.x) - v2 * (a1.x - a2.x)) / v3, (v1 * (b1.y - b2.y) - v2 * (a1.y - a2.y)) / v3);
@@ -1095,7 +1095,7 @@ void FillRange(ImVector<T>& buffer, int n, T vmin, T vmax) {
 
 // Offsets and strides a data buffer
 template <typename T>
-inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
+static inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
     idx = ImPosMod(offset + idx, count);
     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
 }
@@ -1126,11 +1126,11 @@ void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange
 //-----------------------------------------------------------------------------
 
 // Returns true if year is leap year (366 days long)
-inline bool IsLeapYear(int year) {
+static inline bool IsLeapYear(int year) {
     return  year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
 }
 // Returns the number of days in a month, accounting for Feb. leap years. #month is zero indexed.
-inline int GetDaysInMonth(int year, int month) {
+static inline int GetDaysInMonth(int year, int month) {
     static const int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     return  days[month] + (int)(month == 1 && IsLeapYear(year));
 }
