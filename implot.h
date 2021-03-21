@@ -84,17 +84,18 @@ enum ImPlotFlags_ {
 
 // Options for plot axes (X and Y).
 enum ImPlotAxisFlags_ {
-    ImPlotAxisFlags_None          = 0,      // default
-    ImPlotAxisFlags_NoLabel       = 1 << 0, // the axis label will not be displayed (axis labels also hidden if the supplied string name is NULL)
-    ImPlotAxisFlags_NoGridLines   = 1 << 1, // no grid lines will be displayed
-    ImPlotAxisFlags_NoTickMarks   = 1 << 2, // no tick marks will be displayed
-    ImPlotAxisFlags_NoTickLabels  = 1 << 3, // no text labels will be displayed
-    ImPlotAxisFlags_LogScale      = 1 << 4, // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
-    ImPlotAxisFlags_Time          = 1 << 5, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
-    ImPlotAxisFlags_Invert        = 1 << 6, // the axis will be inverted
-    ImPlotAxisFlags_AutoFit       = 1 << 7, // axis will be auto-fitting to data extents
-    ImPlotAxisFlags_LockMin       = 1 << 8, // the axis minimum value will be locked when panning/zooming
-    ImPlotAxisFlags_LockMax       = 1 << 9, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_None          = 0,       // default
+    ImPlotAxisFlags_NoLabel       = 1 << 0,  // the axis label will not be displayed (axis labels also hidden if the supplied string name is NULL)
+    ImPlotAxisFlags_NoGridLines   = 1 << 1,  // no grid lines will be displayed
+    ImPlotAxisFlags_NoTickMarks   = 1 << 2,  // no tick marks will be displayed
+    ImPlotAxisFlags_NoTickLabels  = 1 << 3,  // no text labels will be displayed
+    ImPlotAxisFlags_LogScale      = 1 << 4,  // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
+    ImPlotAxisFlags_Time          = 1 << 5,  // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
+    ImPlotAxisFlags_Invert        = 1 << 6,  // the axis will be inverted
+    ImPlotAxisFlags_NoInitialFit  = 1 << 7,  // axis will not be initially fit to data extents on the first rendered frame (also the case if SetNextPlotLimits explicitly called)
+    ImPlotAxisFlags_AutoFit       = 1 << 8,  // axis will be auto-fitting to data extents
+    ImPlotAxisFlags_LockMin       = 1 << 9,  // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax       = 1 << 10, // the axis maximum value will be locked when panning/zooming
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
     ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels
 };

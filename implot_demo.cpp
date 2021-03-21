@@ -483,20 +483,17 @@ void ShowDemoWindow(bool* p_open) {
         }
         ImPlot::SetNextPlotLimits(0,1,0,1.6);
         if (ImPlot::BeginPlot("Stem Plots")) {
-
             ImPlot::PlotStems("Stems 1",xs,ys1,51);
-
             ImPlot::SetNextLineStyle(ImVec4(1,0.5f,0,0.75f));
             ImPlot::SetNextMarkerStyle(ImPlotMarker_Square,5,ImVec4(1,0.5f,0,0.25f));
             ImPlot::PlotStems("Stems 2", xs, ys2,51);
-
             ImPlot::EndPlot();
         }
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Infinite Lines")) {
         static double vals[] = {0.25, 0.5, 0.75};
-        if (ImPlot::BeginPlot("##Infinite")) {
+        if (ImPlot::BeginPlot("##Infinite",0,0,ImVec2(-1,0),0,ImPlotAxisFlags_NoInitialFit,ImPlotAxisFlags_NoInitialFit)) {
             ImPlot::PlotVLines("VLines",vals,3);
             ImPlot::PlotHLines("HLines",vals,3);
             ImPlot::EndPlot();
@@ -639,7 +636,6 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::SameLine();
             ImGui::Checkbox("Outliers",&outliers);
         }
-        ImPlot::SetNextPlotLimits(-3, 13, 0, 0.25);
         if (ImPlot::BeginPlot("##Histograms")) {
             ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
             ImPlot::PlotHistogram("Empirical", dist.Data, 10000, bins, cumulative, density, range ? ImPlotRange(rmin,rmax) : ImPlotRange(), outliers);
@@ -760,12 +756,14 @@ void ShowDemoWindow(bool* p_open) {
 
         static ImPlotAxisFlags rt_axis = ImPlotAxisFlags_NoTickLabels;
         ImPlot::SetNextPlotLimitsX(t - history, t, ImGuiCond_Always);
+        ImPlot::SetNextPlotLimitsY(0,1);
         if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
             ImPlot::PlotShaded("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), 0, sdata1.Offset, 2 * sizeof(float));
             ImPlot::PlotLine("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2*sizeof(float));
             ImPlot::EndPlot();
         }
         ImPlot::SetNextPlotLimitsX(0, history, ImGuiCond_Always);
+        ImPlot::SetNextPlotLimitsY(0,1);
         if (ImPlot::BeginPlot("##Rolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis)) {
             ImPlot::PlotLine("Data 1", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 2 * sizeof(float));
             ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(float));
@@ -947,7 +945,6 @@ void ShowDemoWindow(bool* p_open) {
             double angle = i * 2 * PI / 999.0;
             xs[i] = cos(angle); ys[i] = sin(angle);
         }
-        ImPlot::SetNextPlotLimits(-1,1,-1,1);
         if (ImPlot::BeginPlot("",0,0,ImVec2(-1,0),ImPlotFlags_Equal)) {
             ImPlot::PlotLine("Circle",xs,ys,1000);
             ImPlot::EndPlot();
@@ -1072,6 +1069,7 @@ void ShowDemoWindow(bool* p_open) {
         static double f = 0.1;
         static bool show_labels = true;
         ImGui::Checkbox("Show Labels##1",&show_labels);
+        ImPlot::SetNextPlotLimits(0,1,0,1);
         if (ImPlot::BeginPlot("##guides",0,0,ImVec2(-1,0),ImPlotFlags_YAxis2)) {
             ImPlot::DragLineX("x1",&x1,show_labels);
             ImPlot::DragLineX("x2",&x2,show_labels);
@@ -1090,6 +1088,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("Click and drag any point.");
         ImGui::Checkbox("Show Labels##2",&show_labels);
         ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
+        ImPlot::SetNextPlotLimits(0,1,0,1);
         if (ImPlot::BeginPlot("##Bezier",0,0,ImVec2(-1,0),ImPlotFlags_CanvasOnly,flags,flags)) {
             static ImPlotPoint P[] = {ImPlotPoint(.05f,.05f), ImPlotPoint(0.2,0.4),  ImPlotPoint(0.8,0.6),  ImPlotPoint(.95f,.95f)};
             static ImPlotPoint B[100];

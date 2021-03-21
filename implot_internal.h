@@ -722,6 +722,7 @@ struct ImPlotPlot
     ImVec2             SelectStart;
     ImVec2             QueryStart;
     ImRect             QueryRect;
+    bool               Initialized;
     bool               Selecting;
     bool               ContextLocked;
     bool               Querying;
@@ -749,7 +750,7 @@ struct ImPlotPlot
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
             YAxis[i].Orientation = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
-        Selecting         = ContextLocked = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
+        Initialized       = Selecting = ContextLocked = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
         ColormapIdx       = CurrentYAxis = 0;
         LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
         LegendOrientation = ImPlotOrientation_Vertical;
@@ -768,8 +769,8 @@ struct ImPlotNextPlotData
 {
     ImGuiCond   XRangeCond;
     ImGuiCond   YRangeCond[IMPLOT_Y_AXES];
-    ImPlotRange X;
-    ImPlotRange Y[IMPLOT_Y_AXES];
+    ImPlotRange XRange;
+    ImPlotRange YRange[IMPLOT_Y_AXES];
     bool        HasXRange;
     bool        HasYRange[IMPLOT_Y_AXES];
     bool        ShowDefaultTicksX;

@@ -1369,14 +1369,25 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     }
 
     if (gp.NextPlotData.HasXRange) {
-        if (just_created || gp.NextPlotData.XRangeCond == ImGuiCond_Always)
-            plot.XAxis.SetRange(gp.NextPlotData.X);
+        if (!plot.Initialized || gp.NextPlotData.XRangeCond == ImGuiCond_Always)
+            plot.XAxis.SetRange(gp.NextPlotData.XRange);
     }
 
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
         if (gp.NextPlotData.HasYRange[i]) {
-            if (just_created || gp.NextPlotData.YRangeCond[i] == ImGuiCond_Always)
-                plot.YAxis[i].SetRange(gp.NextPlotData.Y[i]);
+            if (!plot.Initialized || gp.NextPlotData.YRangeCond[i] == ImGuiCond_Always)
+                plot.YAxis[i].SetRange(gp.NextPlotData.YRange[i]);
+        }
+    }
+
+    // Initialization ------------------------------------------------------------
+
+    if (!plot.Initialized) {
+        if (!ImHasFlag(plot.XAxis.Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasXRange)
+            gp.FitThisFrame = gp.FitX = true;
+        for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+            if (!ImHasFlag(plot.YAxis[i].Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasYRange[i])
+                gp.FitThisFrame = gp.FitY[i] = true;
         }
     }
 
@@ -2570,9 +2581,12 @@ void EndPlot() {
 
 
     // reset the plot items for the next frame
-    for (int i = 0; i < gp.CurrentPlot->Items.GetSize(); ++i) {
-        gp.CurrentPlot->Items.GetByIndex(i)->SeenThisFrame = false;
+    for (int i = 0; i < plot.Items.GetSize(); ++i) {
+        plot.Items.GetByIndex(i)->SeenThisFrame = false;
     }
+
+    // mark the plot as initialized, i.e. having made it through one frame completely
+    plot.Initialized = true;
 
     // Pop ImGui::PushID at the end of BeginPlot
     ImGui::PopID();
@@ -2600,8 +2614,8 @@ void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond) {
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
     gp.NextPlotData.HasXRange = true;
     gp.NextPlotData.XRangeCond = cond;
-    gp.NextPlotData.X.Min = x_min;
-    gp.NextPlotData.X.Max = x_max;
+    gp.NextPlotData.XRange.Min = x_min;
+    gp.NextPlotData.XRange.Max = x_max;
 }
 
 void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond, ImPlotYAxis y_axis) {
@@ -2611,8 +2625,8 @@ void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond, ImPlotYAxis 
     IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
     gp.NextPlotData.HasYRange[y_axis] = true;
     gp.NextPlotData.YRangeCond[y_axis] = cond;
-    gp.NextPlotData.Y[y_axis].Min = y_min;
-    gp.NextPlotData.Y[y_axis].Max = y_max;
+    gp.NextPlotData.YRange[y_axis].Min = y_min;
+    gp.NextPlotData.YRange[y_axis].Max = y_max;
 }
 
 void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2, double* ymax2, double* ymin3, double* ymax3) {
@@ -3129,10 +3143,6 @@ bool IsLegendEntryHovered(const char* label_id) {
     ImPlotItem* item = gp.CurrentPlot->Items.GetByKey(id);
     return item && item->LegendHovered;
 }
-
-
-
-
 
 bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button) {
     ImPlotContext& gp = *GImPlot;
@@ -3973,12 +3983,13 @@ void ShowMetricsWindow(bool* p_popen) {
                     ShowAxisMetrics(&plot->YAxis[2], show_axes_rects);
                     ImGui::TreePop();
                 }
-                ImGui::Bullet(); ImGui::Text("Flags:         %d", plot->Flags);
-                ImGui::Bullet(); ImGui::Text("Selecting:     %s", plot->Selecting ? "true" : "false");
-                ImGui::Bullet(); ImGui::Text("Querying:      %s", plot->Querying ? "true" : "false");
-                ImGui::Bullet(); ImGui::Text("Queried:       %s", plot->Queried ? "true" : "false");
-                ImGui::Bullet(); ImGui::Text("FrameHovered:  %s", plot->FrameHovered ? "true" : "false");
-                ImGui::Bullet(); ImGui::Text("PlotHovered:   %s", plot->PlotHovered ? "true" : "false");
+                ImGui::Bullet(); ImGui::Text("Flags: %d", plot->Flags);
+                ImGui::Bullet(); ImGui::Text("Initialized: %s", plot->Initialized ? "true" : "false");
+                ImGui::Bullet(); ImGui::Text("Selecting: %s", plot->Selecting ? "true" : "false");
+                ImGui::Bullet(); ImGui::Text("Querying: %s", plot->Querying ? "true" : "false");
+                ImGui::Bullet(); ImGui::Text("Queried: %s", plot->Queried ? "true" : "false");
+                ImGui::Bullet(); ImGui::Text("FrameHovered: %s", plot->FrameHovered ? "true" : "false");
+                ImGui::Bullet(); ImGui::Text("PlotHovered: %s", plot->PlotHovered ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("LegendHovered: %s", plot->LegendHovered ? "true" : "false");
                 ImGui::TreePop();
                 if (show_plot_rects)
