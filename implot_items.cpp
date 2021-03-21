@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.9 WIP
+// ImPlot v0.10 WIP
 
 #include "implot.h"
 #include "implot_internal.h"
@@ -32,7 +32,7 @@
 #define SQRT_1_2 0.70710678118f
 #define SQRT_3_2 0.86602540378f
 
-#define IMPLOT_NORMALIZE2F_OVER_ZERO(VX, VY)                                                           \
+#define IMPLOT_NORMALIZE2F_OVER_ZERO(VX, VY)                                                       \
     {                                                                                              \
         float d2 = VX * VX + VY * VY;                                                              \
         if (d2 > 0.0f) {                                                                           \
