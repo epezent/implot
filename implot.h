@@ -341,23 +341,24 @@ IMPLOT_API void SetImGuiContext(ImGuiContext* ctx);
 // Begin/End Plot
 //-----------------------------------------------------------------------------
 
-// Starts a 2D plotting context. If this function returns true, EndPlot() must
-// be called! You are encouraged to use the following call convention:
+// Starts a 2D plotting context. If this function returns true, EndPlot() MUST
+// be called! You are encouraged to use the following convention:
 //
 // if (BeginPlot(...)) {
 //     ImPlot::PlotLine(...);
+//     ...
 //     EndPlot();
 // }
 //
 // Important notes:
 //
-// - #title_id must be unique to the current ImGui window. If you need to avoid ID
+// - #title_id must be unique to the current ImGui ID scope. If you need to avoid ID
 //   collisions or don't want to display a title in the plot, use double hashes
-//   (e.g. "MyPlot##Hidden" or "##NoTitle").
+//   (e.g. "MyPlot##HiddenIdText" or "##NoTitle").
 // - If #x_label and/or #y_label are provided, axes labels will be displayed.
 // - #size is the **frame** size of the plot widget, not the plot area. The default
 //   size of plots (i.e. when ImVec2(0,0)) can be modified in your ImPlotStyle
-//   (default is 400x300).
+//   (default is 400x300 px).
 // - Auxiliary y-axes must be enabled with ImPlotFlags_YAxis2/3 to be displayed.
 // - See ImPlotFlags and ImPlotAxisFlags for more available options.
 
@@ -374,7 +375,7 @@ IMPLOT_API bool BeginPlot(const char* title_id,
                           const char* y3_label     = NULL);
 
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
-// of an if statement conditioned on BeginPlot(). See above.
+// of an if statement conditioned on BeginPlot(). See example above.
 IMPLOT_API void EndPlot();
 
 //-----------------------------------------------------------------------------
@@ -398,9 +399,9 @@ IMPLOT_API void EndPlot();
 //    Vector2f data[42];
 //    ImPlot::PlotLine("line", &data[0].x, &data[0].y, 42, 0, sizeof(Vector2f)); // or sizeof(float)*2
 //
-// 2. Write a custom getter C function or C++ lambda and pass it and your data to
-//    an ImPlot function post-fixed with a G (e.g. PlotScatterG). This has a
-//    slight performance cost, but probably not enough to worry about. Example:
+// 2. Write a custom getter C function or C++ lambda and pass it and optionally your data to
+//    an ImPlot function post-fixed with a G (e.g. PlotScatterG). This has a slight performance 
+//    cost, but probably not enough to worry about unless your data is very large. Examples:
 //
 //    ImPlotPoint MyDataGetter(void* data, int idx) {
 //        MyData* my_data = (MyData*)data;
@@ -492,10 +493,10 @@ template <typename T> IMPLOT_API double PlotHistogram2D(const char* label_id, co
 template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
                       IMPLOT_API void PlotDigitalG(const char* label_id, ImPlotPoint (*getter)(void* data, int idx), void* data, int count, int offset=0);
 
-// Plots an axis-aligned image. #bounds_min/bounds_max are in plot coordinatse (y-up) and #uv0/uv1 are in texture coordinates (y-down).
+// Plots an axis-aligned image. #bounds_min/bounds_max are in plot coordinates (y-up) and #uv0/uv1 are in texture coordinates (y-down).
 IMPLOT_API void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, const ImVec2& uv0=ImVec2(0,0), const ImVec2& uv1=ImVec2(1,1), const ImVec4& tint_col=ImVec4(1,1,1,1));
 
-// Plots a centered text label at point x,y with optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
+// Plots a centered text label at point x,y with an optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
 IMPLOT_API void PlotText(const char* text, double x, double y, bool vertical=false, const ImVec2& pix_offset=ImVec2(0,0));
 
 // Plots a dummy item (i.e. adds a legend entry colored by ImPlotCol_Line)
@@ -513,16 +514,16 @@ IMPLOT_API void SetNextPlotLimits(double xmin, double xmax, double ymin, double 
 IMPLOT_API void SetNextPlotLimitsX(double xmin, double xmax, ImGuiCond cond = ImGuiCond_Once);
 // Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
 IMPLOT_API void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, ImPlotYAxis y_axis = 0);
-// Links the next plot limits to external values. Set to NULL for no linkage. The pointer data must remain valid until the matching call EndPlot.
+// Links the next plot limits to external values. Set to NULL for no linkage. The pointer data must remain valid until the matching call to EndPlot.
 IMPLOT_API void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2 = NULL, double* ymax2 = NULL, double* ymin3 = NULL, double* ymax3 = NULL);
 // Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
 IMPLOT_API void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true);
 
-// Set the X axis ticks and optionally the labels for the next plot.
+// Set the X axis ticks and optionally the labels for the next plot. To keep the default ticks, set #show_default=true.
 IMPLOT_API void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[] = NULL, bool show_default = false);
 IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool show_default = false);
 
-// Set the Y axis ticks and optionally the labels for the next plot.
+// Set the Y axis ticks and optionally the labels for the next plot. To keep the default ticks, set #show_default=true.
 IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool show_default = false, ImPlotYAxis y_axis = 0);
 IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool show_default = false, ImPlotYAxis y_axis = 0);
 
@@ -554,10 +555,17 @@ IMPLOT_API ImPlotPoint GetPlotMousePos(ImPlotYAxis y_axis = IMPLOT_AUTO);
 // Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
 IMPLOT_API ImPlotLimits GetPlotLimits(ImPlotYAxis y_axis = IMPLOT_AUTO);
 
-// Returns true if the current plot is being queried. Query must be enabled with ImPlotFlags_Query.
+// Returns true if the current plot is being box selected.
+IMPLOT_API bool IsPlotSelected();
+// Returns the current plot box selection bounds.
+IMPLOT_API ImPlotLimits GetPlotSelection(ImPlotYAxis y_axis = IMPLOT_AUTO);
+
+// Returns true if the current plot is being queried or has an active query. Query must be enabled with ImPlotFlags_Query.
 IMPLOT_API bool IsPlotQueried();
 // Returns the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
 IMPLOT_API ImPlotLimits GetPlotQuery(ImPlotYAxis y_axis = IMPLOT_AUTO);
+// Set the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
+IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImPlotYAxis y_axis = IMPLOT_AUTO);
 
 //-----------------------------------------------------------------------------
 // Plot Tools
@@ -619,7 +627,7 @@ IMPLOT_API bool BeginDragDropTargetLegend();
 // Ends a drag and drop target (currently just an alias for ImGui::EndDragDropTarget).
 IMPLOT_API void EndDragDropTarget();
 
-// NB: By default, plot and axes drag and drop sources require holding the Ctrl modifier to initiate the drag.
+// NB: By default, plot and axes drag and drop *sources* require holding the Ctrl modifier to initiate the drag.
 // You can change the modifier if desired. If ImGuiKeyModFlags_None is provided, the axes will be locked from panning.
 
 // Turns the current plot's plotting area into a drag and drop source. Don't forget to call EndDragDropSource!
@@ -650,7 +658,7 @@ IMPLOT_API void EndDragDropSource();
 //        color in the current colormap. Thus, every item will have a different
 //        color up to the number of colors in the colormap, at which point the
 //        colormap will roll over. For most use cases, you should not need to
-//        modify these style colors to anything but IMPLOT_COL_AUTO. You are
+//        set these style colors to anything but IMPLOT_COL_AUTO; you are
 //        probably better off changing the current colormap. However, if you
 //        need to explicitly color a particular item you may either Push/Pop
 //        the style color around the item in question, or use the SetNextXXXStyle
@@ -664,7 +672,7 @@ IMPLOT_API void EndDragDropSource();
 //        detailed above, and in general have been mapped to produce plots visually
 //        consistent with your current ImGui style. Of course, you are free to
 //        manually set these colors to whatever you like, and further can Push/Pop
-//        them around individual plots.
+//        them around individual plots for plot-specific styling (e.g. coloring axes).
 
 // Provides access to plot style structure for permanant modifications to colors, sizes, etc.
 IMPLOT_API ImPlotStyle& GetStyle();
@@ -733,15 +741,15 @@ IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
 //     2) Pushed an item style color using PushStyleColor().
 //     3) Set the next item style with a SetNextXXXStyle function.
 
-// Add a new colormap. The colormap can be used by pushing either the returned index or the string name with PushColormap.
-// The colormap name must be unique and the size must be greater than 1. You will receive an assert otherwise! By default
-// colormaps are considered to be qualitative (i.e. discrete). If you want to create a continuous colormap, set #qual=false.
-// This will treat the colors you provide as keys, and ImPlot will build a linearly interpolated lookup table that fills
-// in the gaps. The memory footprint of this table will be exactly ((size-1)*255+1)*4 bytes.
+// Add a new colormap. The color data will be copied. The colormap can be used by pushing either the returned index or the 
+// string name with PushColormap. The colormap name must be unique and the size must be greater than 1. You will receive 
+// an assert otherwise! By default colormaps are considered to be qualitative (i.e. discrete). If you want to create a 
+// continuous colormap, set #qual=false. This will treat the colors you provide as keys, and ImPlot will build a linearly 
+// interpolated lookup table. The memory footprint of this table will be exactly ((size-1)*255+1)*4 bytes.
 IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImVec4* cols, int size, bool qual=true);
 IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImU32*  cols, int size, bool qual=true);
 
-// Returns the number of available colormaps.
+// Returns the number of available colormaps (i.e. the built-in + user-added count).
 IMPLOT_API int GetColormapCount();
 // Returns a null terminated string name for a colormap given an index. Returns NULL if index is invalid.
 IMPLOT_API const char* GetColormapName(ImPlotColormap cmap);
@@ -750,7 +758,7 @@ IMPLOT_API ImPlotColormap GetColormapIndex(const char* name);
 
 // Temporarily switch to one of the built-in (i.e. ImPlotColormap_XXX) or user-added colormaps (i.e. a return value of AddColormap). Don't forget to call PopColormap!
 IMPLOT_API void PushColormap(ImPlotColormap cmap);
-// Push a colormap by string name. Use built-in names such as "Default", "Deep", "Jet", etc or a string you provided to AddColormap. Don't forget to call PopColormap!
+// Push a colormap by string name. Use built-in names such as "Default", "Deep", "Jet", etc. or a string you provided to AddColormap. Don't forget to call PopColormap!
 IMPLOT_API void PushColormap(const char* name);
 // Undo temporary colormap modification(s). Undo multiple pushes at once by increasing count.
 IMPLOT_API void PopColormap(int count = 1);
@@ -760,7 +768,7 @@ IMPLOT_API void PopColormap(int count = 1);
 IMPLOT_API ImVec4 NextColormapColor();
 
 // Colormap utils. If cmap = IMPLOT_AUTO (default), the current colormap is assumed.
-// Pass an explicit colormap index (built-in or user added) to specify otherwise.
+// Pass an explicit colormap index (built-in or user-added) to specify otherwise.
 
 // Returns the size of a colormap.
 IMPLOT_API int GetColormapSize(ImPlotColormap cmap = IMPLOT_AUTO);
@@ -778,11 +786,11 @@ IMPLOT_API bool ColormapButton(const char* label, const ImVec2& size = ImVec2(0,
 
 // When items in a plot sample their color from a colormap, the color is cached and does not change
 // unless explicitly overriden. Therefore, if you change the colormap after the item has already been plotted,
-// item colors will not update. If you need item colors to resample the new colormap, then use this
+// item colors will NOT update. If you need item colors to resample the new colormap, then use this
 // function to bust the cached colors. If #plot_title_id is NULL, then every item in EVERY existing plot
 // will be cache busted. Otherwise only the plot specified by #plot_title_id will be busted. For the
-// latter, this function must be called in the ImGui window that the plot is in. You should rarely if ever
-// need this function, but it is available for applications that require runtime swaps (see Heatmaps demo).
+// latter, this function must be called in the same ImGui ID scope that the plot is in. You should rarely if ever
+// need this function, but it is available for applications that require runtime colormap swaps (e.g. Heatmaps demo).
 IMPLOT_API void BustColorCache(const char* plot_title_id = NULL);
 
 //-----------------------------------------------------------------------------
@@ -809,14 +817,14 @@ IMPLOT_API bool ShowColormapSelector(const char* label);
 IMPLOT_API void ShowStyleEditor(ImPlotStyle* ref = NULL);
 // Add basic help/info block for end users (not a window).
 IMPLOT_API void ShowUserGuide();
-// Shows ImPlot metrics/debug information.
+// Shows ImPlot metrics/debug information window.
 IMPLOT_API void ShowMetricsWindow(bool* p_popen = NULL);
 
 //-----------------------------------------------------------------------------
 // Demo (add implot_demo.cpp to your sources!)
 //-----------------------------------------------------------------------------
 
-// Shows the ImPlot demo.
+// Shows the ImPlot demo window.
 IMPLOT_API void ShowDemoWindow(bool* p_open = NULL);
 
 }  // namespace ImPlot

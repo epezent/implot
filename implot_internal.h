@@ -667,16 +667,22 @@ struct ImPlotAxis
             Range.Max = Range.Min + DBL_EPSILON;
     }
 
-    inline bool IsLabeled()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                    }
-    inline bool IsInverted()     const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                           }
-    inline bool IsAutoFitting()  const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                          }
-    inline bool IsRangeLocked()  const { return HasRange && RangeCond == ImGuiCond_Always;                          }
-    inline bool IsLockedMin()    const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMin) || IsRangeLocked();       }
-    inline bool IsLockedMax()    const { return ImHasFlag(Flags, ImPlotAxisFlags_LockMax) || IsRangeLocked();       }
-    inline bool IsLocked()       const { return !Present || ((IsLockedMin() && IsLockedMax()) || IsRangeLocked());  }
-    inline bool IsInputLocked()  const { return IsLocked() || IsAutoFitting();                                      }
-    inline bool IsTime()         const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                             }
-    inline bool IsLog()          const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                         }
+    inline bool IsLabeled()         const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                          }
+    inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                 }
+
+    inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                }
+    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImGuiCond_Always;                                }
+    
+    inline bool IsLockedMin()       const { return !Present || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin); }
+    inline bool IsLockedMax()       const { return !Present || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax); }
+    inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                           }
+    
+    inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                         }
+    inline bool IsInputLockedMax()  const { return IsLockedMax() || IsAutoFitting();                                         }
+    inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                         }
+
+    inline bool IsTime()            const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                                   }
+    inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                               }
 };
 
 // State information for Plot items
@@ -720,10 +726,12 @@ struct ImPlotPlot
     ImPlotLegendData   LegendData;
     ImPool<ImPlotItem> Items;
     ImVec2             SelectStart;
+    ImRect             SelectRect;
     ImVec2             QueryStart;
     ImRect             QueryRect;
     bool               Initialized;
     bool               Selecting;
+    bool               Selected;
     bool               ContextLocked;
     bool               Querying;
     bool               Queried;
@@ -750,7 +758,7 @@ struct ImPlotPlot
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
             YAxis[i].Orientation = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
-        Initialized       = Selecting = ContextLocked = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
+        Initialized       = Selecting = Selected = ContextLocked = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
         ColormapIdx       = CurrentYAxis = 0;
         LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
         LegendOrientation = ImPlotOrientation_Vertical;
@@ -761,7 +769,8 @@ struct ImPlotPlot
     ImPlotItem* GetLegendItem(int i);
     const char* GetLegendLabel(int i);
 
-    inline bool IsInputLocked() const { return XAxis.IsInputLocked() && YAxis[0].IsInputLocked() && YAxis[1].IsInputLocked() && YAxis[2].IsInputLocked(); }
+    inline bool AnyYLocked() const    { return YAxis[0].IsInputLocked() || YAxis[1].Present ? YAxis[1].IsInputLocked() : false || YAxis[2].Present ? YAxis[2].IsInputLocked() : false; }
+    inline bool IsInputLocked() const { return XAxis.IsInputLocked() && YAxis[0].IsInputLocked() && YAxis[1].IsInputLocked() && YAxis[2].IsInputLocked();                              }
 };
 
 // Temporary data storage for upcoming plot

@@ -1753,13 +1753,20 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     // BOX-SELECTION AND QUERY ------------------------------------------------
 
-    // confirm selection
-    if (plot.Selecting && (IO.MouseReleased[gp.InputMap.BoxSelectButton] || !IO.MouseDown[gp.InputMap.BoxSelectButton])) {
+    // begin selection
+    if (plot.FrameHovered && plot.PlotHovered && IO.MouseClicked[gp.InputMap.BoxSelectButton] && ImHasFlag(IO.KeyMods, gp.InputMap.BoxSelectMod)) {
+        plot.Selecting   = true;
+        plot.SelectStart = IO.MousePos;
+        plot.SelectRect  = ImRect(0,0,0,0);
+    }
+    // update selection
+    if (plot.Selecting) {
         UpdateTransformCache();
-        ImVec2 select_size = plot.SelectStart - IO.MousePos;
-        if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)) {
-            const bool x_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImFabs(select_size.x) > 2;
-            const bool y_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.VerticalMod)   && ImFabs(select_size.y) > 2;
+        const ImVec2 d = plot.SelectStart - IO.MousePos;
+        const bool x_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImFabs(d.x) > 2;
+        const bool y_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.VerticalMod)   && ImFabs(d.y) > 2;
+        // confirm
+        if (IO.MouseReleased[gp.InputMap.BoxSelectButton] || !IO.MouseDown[gp.InputMap.BoxSelectButton]) {
             if (!plot.XAxis.IsInputLocked()) {
                 ImPlotPoint p1 = PixelsToPlot(plot.SelectStart);
                 ImPlotPoint p2 = PixelsToPlot(IO.MousePos);
@@ -1769,7 +1776,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
                     plot.XAxis.SetMax(ImMax(p1.x, p2.x));
             }
             for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-                if (!plot.YAxis->IsInputLocked()) {
+                if (!plot.YAxis[i].IsInputLocked()) {
                     ImPlotPoint p1 = PixelsToPlot(plot.SelectStart, i);
                     ImPlotPoint p2 = PixelsToPlot(IO.MousePos, i);
                     if (!plot.YAxis[i].IsLockedMin() && y_can_change)
@@ -1780,71 +1787,81 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
             }
             if (x_can_change || y_can_change || (ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImHasFlag(IO.KeyMods,gp.InputMap.VerticalMod)))
                 plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
+            plot.Selected = plot.Selecting = false;
         }
-        plot.Selecting = false;
-    }
-    // bad selection
-    if (plot.Selecting && (ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) || plot.IsInputLocked()) && ImLengthSqr(plot.SelectStart - IO.MousePos) > 4) {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
-        plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
-    }
-    // cancel selection
-    if (plot.Selecting && (IO.MouseClicked[gp.InputMap.BoxSelectCancelButton] || IO.MouseDown[gp.InputMap.BoxSelectCancelButton])) {
-        plot.Selecting = false;
-        plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
-    }
-    // begin selection or query
-    if (plot.FrameHovered && plot.PlotHovered && IO.MouseClicked[gp.InputMap.BoxSelectButton] && ImHasFlag(IO.KeyMods, gp.InputMap.BoxSelectMod)) {
-        plot.SelectStart = IO.MousePos;
-        plot.Selecting = true;
-    }
-    // update query
-    if (plot.Querying) {
-        UpdateTransformCache();
-        plot.QueryRect.Min.x = ImHasFlag(IO.KeyMods, gp.InputMap.HorizontalMod) ? plot.PlotRect.Min.x : ImMin(plot.QueryStart.x, IO.MousePos.x);
-        plot.QueryRect.Max.x = ImHasFlag(IO.KeyMods, gp.InputMap.HorizontalMod) ? plot.PlotRect.Max.x : ImMax(plot.QueryStart.x, IO.MousePos.x);
-        plot.QueryRect.Min.y = ImHasFlag(IO.KeyMods, gp.InputMap.VerticalMod) ? plot.PlotRect.Min.y : ImMin(plot.QueryStart.y, IO.MousePos.y);
-        plot.QueryRect.Max.y = ImHasFlag(IO.KeyMods, gp.InputMap.VerticalMod) ? plot.PlotRect.Max.y : ImMax(plot.QueryStart.y, IO.MousePos.y);
-
-        plot.QueryRect.Min -= plot.PlotRect.Min;
-        plot.QueryRect.Max -= plot.PlotRect.Min;
-    }
-    // end query
-    if (plot.Querying && (IO.MouseReleased[gp.InputMap.QueryButton] || IO.MouseReleased[gp.InputMap.BoxSelectButton])) {
-        plot.Querying = false;
-        if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
-            plot.Queried = true;
+        // cancel
+        else if (IO.MouseClicked[gp.InputMap.BoxSelectCancelButton] || IO.MouseDown[gp.InputMap.BoxSelectCancelButton]) {
+            plot.Selected = plot.Selecting = false;
             plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
         }
-        else
-            plot.Queried = false;
+        else if (ImLengthSqr(d) > 4) {
+            // bad selection
+            if (ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) || plot.IsInputLocked()) {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
+                plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
+                plot.Selected      = false;
+            }
+            else {
+                const bool any_y_locked   = plot.AnyYLocked();
+                // TODO: Handle only min or max locked cases
+                plot.SelectRect.Min.x = ImHasFlag(IO.KeyMods, gp.InputMap.HorizontalMod) || plot.XAxis.IsInputLocked() ? plot.PlotRect.Min.x : ImMin(plot.SelectStart.x, IO.MousePos.x);
+                plot.SelectRect.Max.x = ImHasFlag(IO.KeyMods, gp.InputMap.HorizontalMod) || plot.XAxis.IsInputLocked() ? plot.PlotRect.Max.x : ImMax(plot.SelectStart.x, IO.MousePos.x);
+                plot.SelectRect.Min.y = ImHasFlag(IO.KeyMods, gp.InputMap.VerticalMod)   || any_y_locked               ? plot.PlotRect.Min.y : ImMin(plot.SelectStart.y, IO.MousePos.y);
+                plot.SelectRect.Max.y = ImHasFlag(IO.KeyMods, gp.InputMap.VerticalMod)   || any_y_locked               ? plot.PlotRect.Max.y : ImMax(plot.SelectStart.y, IO.MousePos.y);
+                plot.SelectRect.Min  -= plot.PlotRect.Min;
+                plot.SelectRect.Max  -= plot.PlotRect.Min;
+                plot.Selected = true;
+            }
+        }
+        else {
+            plot.Selected = false;
+        }
     }
 
     // begin query
     if (ImHasFlag(plot.Flags, ImPlotFlags_Query) && plot.FrameHovered && plot.PlotHovered && IO.MouseClicked[gp.InputMap.QueryButton] && ImHasFlag(IO.KeyMods, gp.InputMap.QueryMod)) {
-        plot.QueryRect = ImRect(0,0,0,0);
-        plot.Querying = true;
-        plot.Queried  = true;
+        plot.Querying   = true;
         plot.QueryStart = IO.MousePos;
+        plot.QueryRect  = ImRect(0,0,0,0);
     }
-    // toggle between select/query
+    // update query
+    if (plot.Querying) {
+        UpdateTransformCache();
+        // confirm
+        if (IO.MouseReleased[gp.InputMap.QueryButton] || IO.MouseReleased[gp.InputMap.BoxSelectButton]) {
+            plot.Querying = false;
+            if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
+                plot.Queried = true;
+                plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
+            }
+            else
+                plot.Queried = false;
+        }
+        else {
+            plot.QueryRect.Min.x = ImHasFlag(IO.KeyMods, gp.InputMap.HorizontalMod) ? plot.PlotRect.Min.x : ImMin(plot.QueryStart.x, IO.MousePos.x);
+            plot.QueryRect.Max.x = ImHasFlag(IO.KeyMods, gp.InputMap.HorizontalMod) ? plot.PlotRect.Max.x : ImMax(plot.QueryStart.x, IO.MousePos.x);
+            plot.QueryRect.Min.y = ImHasFlag(IO.KeyMods, gp.InputMap.VerticalMod)   ? plot.PlotRect.Min.y : ImMin(plot.QueryStart.y, IO.MousePos.y);
+            plot.QueryRect.Max.y = ImHasFlag(IO.KeyMods, gp.InputMap.VerticalMod)   ? plot.PlotRect.Max.y : ImMax(plot.QueryStart.y, IO.MousePos.y);
+            plot.QueryRect.Min  -= plot.PlotRect.Min;
+            plot.QueryRect.Max  -= plot.PlotRect.Min;
+            plot.Queried         = plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2;
+        }
+    }
+
+    // switch select to query
     if (ImHasFlag(plot.Flags, ImPlotFlags_Query) && plot.Selecting && ImHasFlag(IO.KeyMods,gp.InputMap.QueryToggleMod)) {
-        plot.Selecting = false;
-        plot.QueryRect = ImRect(0,0,0,0);
-        plot.Querying = true;
-        plot.Queried  = true;
-        plot.QueryStart = plot.SelectStart;
+        plot.Selecting   = plot.Selected = false;
+        plot.Querying    = plot.Queried  = true;
+        plot.QueryStart  = plot.SelectStart;
+        plot.QueryRect   = plot.SelectRect;
+
     }
+    // switch query to select
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) && plot.Querying && !ImHasFlag(IO.KeyMods, gp.InputMap.QueryToggleMod) && !IO.MouseDown[gp.InputMap.QueryButton]) {
-        plot.Selecting = true;
-        plot.Querying = false;
-        plot.Queried = false;
-        plot.QueryRect = ImRect(0,0,0,0);
-    }
-    if (!ImHasFlag(plot.Flags, ImPlotFlags_Query)) {
-        plot.Queried  = false;
-        plot.Querying = false;
-        plot.QueryRect = ImRect(0,0,0,0);
+        plot.Selecting   = plot.Selected = true;
+        plot.Querying    = plot.Queried  = false;
+        plot.SelectStart = plot.QueryStart;
+        plot.SelectRect  = plot.QueryRect;
     }
 
     // FIT -----------------------------------------------------------
@@ -2235,7 +2252,7 @@ void EndPlot() {
 
     // AXIS STATES ------------------------------------------------------------
 
-    const bool any_y_locked   = plot.YAxis[0].IsInputLocked() || plot.YAxis[1].Present ? plot.YAxis[1].IsInputLocked() : false || plot.YAxis[2].Present ? plot.YAxis[2].IsInputLocked() : false;
+    const bool any_y_locked   = plot.AnyYLocked();
     const bool any_y_dragging = plot.YAxis[0].Dragging || plot.YAxis[1].Dragging || plot.YAxis[2].Dragging;
 
 
@@ -2324,56 +2341,22 @@ void EndPlot() {
         DrawList.AddRectFilled(rect.Min, rect.Max, an.ColorBg);
         DrawList.AddText(pos + gp.Style.AnnotationPadding, an.ColorFg, txt);
     }
-
-    // render selection/query
-    if (plot.Selecting) {
-        const ImRect select_bb(ImMin(IO.MousePos, plot.SelectStart), ImMax(IO.MousePos, plot.SelectStart));
-        const bool wide_enough = ImFabs(select_bb.GetWidth())  > 2;
-        const bool tall_enough = ImFabs(select_bb.GetHeight()) > 2;
-        const bool big_enough  = wide_enough && tall_enough;
-        if (plot.Selecting && !plot.IsInputLocked() && !ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)) {
-            const ImVec4 col   = GetStyleColorVec4(ImPlotCol_Selection);
-            const ImU32 col_bg = ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
-            const ImU32 col_bd = ImGui::GetColorU32(col);
-            if (IO.KeyMods == (gp.InputMap.HorizontalMod | gp.InputMap.VerticalMod) && big_enough) {
-                DrawList.AddRectFilled(plot.PlotRect.Min, plot.PlotRect.Max, col_bg);
-                DrawList.AddRect(      plot.PlotRect.Min, plot.PlotRect.Max, col_bd);
-            }
-            else if ((plot.XAxis.IsInputLocked() || IO.KeyMods == gp.InputMap.HorizontalMod) && tall_enough) {
-                DrawList.AddRectFilled(ImVec2(plot.PlotRect.Min.x, select_bb.Min.y), ImVec2(plot.PlotRect.Max.x, select_bb.Max.y), col_bg);
-                DrawList.AddRect(      ImVec2(plot.PlotRect.Min.x, select_bb.Min.y), ImVec2(plot.PlotRect.Max.x, select_bb.Max.y), col_bd);
-            }
-            else if ((any_y_locked || IO.KeyMods == gp.InputMap.VerticalMod) && wide_enough) {
-                DrawList.AddRectFilled(ImVec2(select_bb.Min.x, plot.PlotRect.Min.y), ImVec2(select_bb.Max.x, plot.PlotRect.Max.y), col_bg);
-                DrawList.AddRect(      ImVec2(select_bb.Min.x, plot.PlotRect.Min.y), ImVec2(select_bb.Max.x, plot.PlotRect.Max.y), col_bd);
-            }
-            else if (big_enough) {
-                DrawList.AddRectFilled(select_bb.Min, select_bb.Max, col_bg);
-                DrawList.AddRect(      select_bb.Min, select_bb.Max, col_bd);
-            }
-        }
+    // render selection
+    if (plot.Selected) {
+        const ImVec4 col   = GetStyleColorVec4(ImPlotCol_Selection);
+        const ImU32 col_bg = ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
+        const ImU32 col_bd = ImGui::GetColorU32(col);
+        DrawList.AddRectFilled(plot.SelectRect.Min + plot.PlotRect.Min, plot.SelectRect.Max + plot.PlotRect.Min, col_bg);
+        DrawList.AddRect(      plot.SelectRect.Min + plot.PlotRect.Min, plot.SelectRect.Max + plot.PlotRect.Min, col_bd);
     }
-
-    if (ImHasFlag(plot.Flags, ImPlotFlags_Query)) // draw query rect only when query enabled.
-    {
+    // render query
+    if (plot.Queried) {
         const ImVec4 col   = GetStyleColorVec4(ImPlotCol_Query);
-        const ImU32 col_bd =  ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
-        const ImU32 col_bg =  ImGui::GetColorU32(col);
-        if (plot.Querying || plot.Queried) {
-            if (plot.QueryRect.GetWidth() > 2 && plot.QueryRect.GetHeight() > 2) {
-                DrawList.AddRectFilled(plot.QueryRect.Min + plot.PlotRect.Min, plot.QueryRect.Max + plot.PlotRect.Min, col_bd);
-                DrawList.AddRect(      plot.QueryRect.Min + plot.PlotRect.Min, plot.QueryRect.Max + plot.PlotRect.Min, col_bg);
-            }
-        }
-        else if (plot.Queried) {
-            ImRect bb_query = plot.QueryRect;
-            bb_query.Min += plot.PlotRect.Min;
-            bb_query.Max += plot.PlotRect.Min;
-            DrawList.AddRectFilled(bb_query.Min, bb_query.Max, col_bd);
-            DrawList.AddRect(      bb_query.Min, bb_query.Max, col_bg);
-        }
+        const ImU32 col_bg =  ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
+        const ImU32 col_bd =  ImGui::GetColorU32(col);
+        DrawList.AddRectFilled(plot.QueryRect.Min + plot.PlotRect.Min, plot.QueryRect.Max + plot.PlotRect.Min, col_bg);
+        DrawList.AddRect(      plot.QueryRect.Min + plot.PlotRect.Min, plot.QueryRect.Max + plot.PlotRect.Min, col_bd);
     }
-
     // render crosshairs
     if (ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs) && plot.PlotHovered && plot.FrameHovered &&
         !(plot.XAxis.Dragging || any_y_dragging) && !plot.Selecting && !plot.Querying && !plot.LegendHovered) {
@@ -2754,29 +2737,68 @@ ImPlotLimits GetPlotLimits(ImPlotYAxis y_axis_in) {
     return limits;
 }
 
-bool IsPlotQueried() {
+bool IsPlotSelected() {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotQueried() needs to be called between BeginPlot() and EndPlot()!");
-    return gp.CurrentPlot->Queried;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotSelected() needs to be called between BeginPlot() and EndPlot()!");
+    return gp.CurrentPlot->Selected;
 }
 
-ImPlotLimits GetPlotQuery(ImPlotYAxis y_axis_in) {
+ImPlotLimits GetPlotSelection(ImPlotYAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(y_axis >= -1 && y_axis < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotSelection() needs to be called between BeginPlot() and EndPlot()!");
     ImPlotPlot& plot = *gp.CurrentPlot;
-    const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
-
+    y_axis = y_axis >= 0 ? y_axis : gp.CurrentPlot->CurrentYAxis;
+    if (!plot.Selecting)
+        return ImPlotLimits(0,0,0,0);
     UpdateTransformCache();
-    ImPlotPoint p1 = PixelsToPlot(plot.QueryRect.Min + plot.PlotRect.Min, y_axis);
-    ImPlotPoint p2 = PixelsToPlot(plot.QueryRect.Max + plot.PlotRect.Min, y_axis);
-
+    ImPlotPoint p1 = PixelsToPlot(plot.SelectRect.Min + plot.PlotRect.Min, y_axis);
+    ImPlotPoint p2 = PixelsToPlot(plot.SelectRect.Max + plot.PlotRect.Min, y_axis);
     ImPlotLimits result;
     result.X.Min = ImMin(p1.x, p2.x);
     result.X.Max = ImMax(p1.x, p2.x);
     result.Y.Min = ImMin(p1.y, p2.y);
     result.Y.Max = ImMax(p1.y, p2.y);
     return result;
+}
+
+bool IsPlotQueried() {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotQueried() needs to be called between BeginPlot() and EndPlot()!");
+    return gp.CurrentPlot->Queried;
+}
+
+ImPlotLimits GetPlotQuery(ImPlotYAxis y_axis) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(y_axis >= -1 && y_axis < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
+    ImPlotPlot& plot = *gp.CurrentPlot;
+    y_axis = y_axis >= 0 ? y_axis : gp.CurrentPlot->CurrentYAxis;
+    if (!plot.Queried)
+        return ImPlotLimits(0,0,0,0);
+    UpdateTransformCache();
+    ImPlotPoint p1 = PixelsToPlot(plot.QueryRect.Min + plot.PlotRect.Min, y_axis);
+    ImPlotPoint p2 = PixelsToPlot(plot.QueryRect.Max + plot.PlotRect.Min, y_axis);
+    ImPlotLimits result;
+    result.X.Min = ImMin(p1.x, p2.x);
+    result.X.Max = ImMax(p1.x, p2.x);
+    result.Y.Min = ImMin(p1.y, p2.y);
+    result.Y.Max = ImMax(p1.y, p2.y);
+    return result;
+}
+
+void SetPlotQuery(const ImPlotLimits& query, ImPlotYAxis y_axis) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
+    ImPlotPlot& plot = *gp.CurrentPlot;
+    y_axis = y_axis >= 0 ? y_axis : gp.CurrentPlot->CurrentYAxis;
+    UpdateTransformCache();
+    ImVec2 p1 = PlotToPixels(query.Min(),y_axis);
+    ImVec2 p2 = PlotToPixels(query.Max(),y_axis);
+    plot.Queried = true;
+    plot.Querying = false;
+    plot.QueryRect = ImRect(ImMin(p1,p2)-plot.PlotRect.Min, ImMax(p1,p2)-plot.PlotRect.Min);
 }
 
 void AnnotateEx(double x, double y, bool clamp, const ImVec4& col, const ImVec2& off, const char* fmt, va_list args) {
@@ -3986,6 +4008,7 @@ void ShowMetricsWindow(bool* p_popen) {
                 ImGui::Bullet(); ImGui::Text("Flags: %d", plot->Flags);
                 ImGui::Bullet(); ImGui::Text("Initialized: %s", plot->Initialized ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("Selecting: %s", plot->Selecting ? "true" : "false");
+                ImGui::Bullet(); ImGui::Text("Selected: %s", plot->Selected ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("Querying: %s", plot->Querying ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("Queried: %s", plot->Queried ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("FrameHovered: %s", plot->FrameHovered ? "true" : "false");
