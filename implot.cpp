@@ -1282,6 +1282,17 @@ void UpdateAxisColors(int axis_flag, ImPlotAxis* axis) {
 }
 
 //-----------------------------------------------------------------------------
+// RENDERING
+//-----------------------------------------------------------------------------
+
+static inline void RenderSelectionRect(ImDrawList& DrawList, const ImVec2& p_min, const ImVec2& p_max, const ImVec4& col) {
+    const ImU32 col_bg = ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
+    const ImU32 col_bd = ImGui::GetColorU32(col);
+    DrawList.AddRectFilled(p_min, p_max, col_bg);
+    DrawList.AddRect(p_min, p_max, col_bd);    
+}
+
+//-----------------------------------------------------------------------------
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
@@ -2342,13 +2353,9 @@ void EndPlot() {
         DrawList.AddText(pos + gp.Style.AnnotationPadding, an.ColorFg, txt);
     }
     // render selection
-    if (plot.Selected) {
-        const ImVec4 col   = GetStyleColorVec4(ImPlotCol_Selection);
-        const ImU32 col_bg = ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
-        const ImU32 col_bd = ImGui::GetColorU32(col);
-        DrawList.AddRectFilled(plot.SelectRect.Min + plot.PlotRect.Min, plot.SelectRect.Max + plot.PlotRect.Min, col_bg);
-        DrawList.AddRect(      plot.SelectRect.Min + plot.PlotRect.Min, plot.SelectRect.Max + plot.PlotRect.Min, col_bd);
-    }
+    if (plot.Selected) 
+        RenderSelectionRect(DrawList, plot.SelectRect.Min + plot.PlotRect.Min, plot.SelectRect.Max + plot.PlotRect.Min, GetStyleColorVec4(ImPlotCol_Selection));
+    
     // render query
     if (plot.Queried) {
         const ImVec4 col   = GetStyleColorVec4(ImPlotCol_Query);
