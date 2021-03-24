@@ -400,7 +400,7 @@ IMPLOT_API void EndPlot();
 //    ImPlot::PlotLine("line", &data[0].x, &data[0].y, 42, 0, sizeof(Vector2f)); // or sizeof(float)*2
 //
 // 2. Write a custom getter C function or C++ lambda and pass it and optionally your data to
-//    an ImPlot function post-fixed with a G (e.g. PlotScatterG). This has a slight performance 
+//    an ImPlot function post-fixed with a G (e.g. PlotScatterG). This has a slight performance
 //    cost, but probably not enough to worry about unless your data is very large. Examples:
 //
 //    ImPlotPoint MyDataGetter(void* data, int idx) {
@@ -741,10 +741,10 @@ IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
 //     2) Pushed an item style color using PushStyleColor().
 //     3) Set the next item style with a SetNextXXXStyle function.
 
-// Add a new colormap. The color data will be copied. The colormap can be used by pushing either the returned index or the 
-// string name with PushColormap. The colormap name must be unique and the size must be greater than 1. You will receive 
-// an assert otherwise! By default colormaps are considered to be qualitative (i.e. discrete). If you want to create a 
-// continuous colormap, set #qual=false. This will treat the colors you provide as keys, and ImPlot will build a linearly 
+// Add a new colormap. The color data will be copied. The colormap can be used by pushing either the returned index or the
+// string name with PushColormap. The colormap name must be unique and the size must be greater than 1. You will receive
+// an assert otherwise! By default colormaps are considered to be qualitative (i.e. discrete). If you want to create a
+// continuous colormap, set #qual=false. This will treat the colors you provide as keys, and ImPlot will build a linearly
 // interpolated lookup table. The memory footprint of this table will be exactly ((size-1)*255+1)*4 bytes.
 IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImVec4* cols, int size, bool qual=true);
 IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImU32*  cols, int size, bool qual=true);

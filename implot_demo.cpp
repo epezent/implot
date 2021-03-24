@@ -248,11 +248,6 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::BulletText("ImGuiBackendFlags_RendererHasVtxOffset: %s", (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) ? "True" : "False");
         ImGui::Unindent();
         ImGui::Unindent();
-#ifdef IMPLOT_DEMO_USE_DOUBLE
-        ImGui::BulletText("The demo data precision is: double");
-#else
-        ImGui::BulletText("The demo data precision is: float");
-#endif
         ImGui::Separator();
         ImGui::Text("USER GUIDE:");
         ShowUserGuide();
@@ -595,7 +590,7 @@ void ShowDemoWindow(bool* p_open) {
         static bool outliers   = true;
         static double mu       = 5;
         static double sigma    = 2;
-  
+
         ImGui::SetNextItemWidth(200);
         if (ImGui::RadioButton("Sqrt",bins==ImPlotBin_Sqrt))       { bins = ImPlotBin_Sqrt;    } ImGui::SameLine();
         if (ImGui::RadioButton("Sturges",bins==ImPlotBin_Sturges)) { bins = ImPlotBin_Sturges; } ImGui::SameLine();
@@ -759,19 +754,20 @@ void ShowDemoWindow(bool* p_open) {
         rdata1.Span = history;
         rdata2.Span = history;
 
-        static ImPlotAxisFlags rt_axis = ImPlotAxisFlags_NoTickLabels;
+        static ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
         ImPlot::SetNextPlotLimitsX(t - history, t, ImGuiCond_Always);
         ImPlot::SetNextPlotLimitsY(0,1);
-        if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis | ImPlotAxisFlags_LockMin)) {
-            ImPlot::PlotShaded("Data 1", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), 0, sdata1.Offset, 2 * sizeof(float));
-            ImPlot::PlotLine("Data 2", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2*sizeof(float));
+        if (ImPlot::BeginPlot("##Scrolling", NULL, NULL, ImVec2(-1,150), 0, flags, flags)) {
+            ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL,0.5f);
+            ImPlot::PlotShaded("Mouse X", &sdata1.Data[0].x, &sdata1.Data[0].y, sdata1.Data.size(), -INFINITY, sdata1.Offset, 2 * sizeof(float));
+            ImPlot::PlotLine("Mouse Y", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), sdata2.Offset, 2*sizeof(float));
             ImPlot::EndPlot();
         }
         ImPlot::SetNextPlotLimitsX(0, history, ImGuiCond_Always);
         ImPlot::SetNextPlotLimitsY(0,1);
-        if (ImPlot::BeginPlot("##Rolling", NULL, NULL, ImVec2(-1,150), 0, rt_axis, rt_axis)) {
-            ImPlot::PlotLine("Data 1", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 2 * sizeof(float));
-            ImPlot::PlotLine("Data 2", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(float));
+        if (ImPlot::BeginPlot("##Rolling", NULL, NULL, ImVec2(-1,150), 0, flags, flags)) {
+            ImPlot::PlotLine("Mouse X", &rdata1.Data[0].x, &rdata1.Data[0].y, rdata1.Data.size(), 0, 2 * sizeof(float));
+            ImPlot::PlotLine("Mouse Y", &rdata2.Data[0].x, &rdata2.Data[0].y, rdata2.Data.size(), 0, 2 * sizeof(float));
             ImPlot::EndPlot();
         }
     }
@@ -958,7 +954,7 @@ void ShowDemoWindow(bool* p_open) {
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
         static ImVector<ImPlotPoint> data;
-        static ImPlotLimits range, query;
+        static ImPlotLimits range, query, select;
 
         ImGui::BulletText("Ctrl + click in the plot area to draw points.");
         ImGui::BulletText("Middle click (or Ctrl + right click) and drag to create a query rect.");
@@ -993,12 +989,14 @@ void ShowDemoWindow(bool* p_open) {
                     ImPlot::PlotScatter("Average", &avg.x, &avg.y, 1);
                 }
             }
-            range = ImPlot::GetPlotLimits();
-            query = ImPlot::GetPlotQuery();
+            range  = ImPlot::GetPlotLimits();
+            query  = ImPlot::GetPlotQuery();
+            select = ImPlot::GetPlotSelection();
             ImPlot::EndPlot();
         }
-        ImGui::Text("The current plot limits are:  [%g,%g,%g,%g]", range.X.Min, range.X.Max, range.Y.Min, range.Y.Max);
-        ImGui::Text("The current query limits are: [%g,%g,%g,%g]", query.X.Min, query.X.Max, query.Y.Min, query.Y.Max);
+        ImGui::Text("Limits: [%g,%g,%g,%g]", range.X.Min, range.X.Max, range.Y.Min, range.Y.Max);
+        ImGui::Text("Query: [%g,%g,%g,%g]", query.X.Min, query.X.Max, query.Y.Min, query.Y.Max);
+        ImGui::Text("Selection: [%g,%g,%g,%g]", select.X.Min, select.X.Max, select.Y.Min, select.Y.Max);
 
         ImGui::Separator();
 

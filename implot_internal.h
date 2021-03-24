@@ -599,7 +599,9 @@ struct ImPlotAxis
         ColorMaj    = ColorMin = ColorTxt = 0;
     }
 
-    bool SetMin(double _min) {
+    bool SetMin(double _min, bool force=false) {
+        if (!force && IsLockedMin())
+            return false;
         _min = ImConstrainNan(ImConstrainInf(_min));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _min = ImConstrainLog(_min);
@@ -612,7 +614,9 @@ struct ImPlotAxis
         return true;
     };
 
-    bool SetMax(double _max) {
+    bool SetMax(double _max, bool force=false) {
+        if (!force && IsLockedMax())
+            return false;
         _max = ImConstrainNan(ImConstrainInf(_max));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _max = ImConstrainLog(_max);
@@ -672,11 +676,11 @@ struct ImPlotAxis
 
     inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                }
     inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImGuiCond_Always;                                }
-    
+
     inline bool IsLockedMin()       const { return !Present || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin); }
     inline bool IsLockedMax()       const { return !Present || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax); }
     inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                           }
-    
+
     inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                         }
     inline bool IsInputLockedMax()  const { return IsLockedMax() || IsAutoFitting();                                         }
     inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                         }
@@ -697,7 +701,6 @@ struct ImPlotItem
 
     ImPlotItem() {
         ID            = 0;
-        // Color         = ImPlot::NextColormapColor();
         NameOffset    = -1;
         Show          = true;
         SeenThisFrame = false;
@@ -769,8 +772,9 @@ struct ImPlotPlot
     ImPlotItem* GetLegendItem(int i);
     const char* GetLegendLabel(int i);
 
-    inline bool AnyYLocked() const    { return YAxis[0].IsInputLocked() || YAxis[1].Present ? YAxis[1].IsInputLocked() : false || YAxis[2].Present ? YAxis[2].IsInputLocked() : false; }
-    inline bool IsInputLocked() const { return XAxis.IsInputLocked() && YAxis[0].IsInputLocked() && YAxis[1].IsInputLocked() && YAxis[2].IsInputLocked();                              }
+    inline bool AnyYInputLocked() const { return YAxis[0].IsInputLocked() || (YAxis[1].Present ? YAxis[1].IsInputLocked() : false) || (YAxis[2].Present ? YAxis[2].IsInputLocked() : false); }
+    inline bool AllYInputLocked() const { return YAxis[0].IsInputLocked() && (YAxis[1].Present ? YAxis[1].IsInputLocked() : true ) && (YAxis[2].Present ? YAxis[2].IsInputLocked() : true ); }
+    inline bool IsInputLocked() const   { return XAxis.IsInputLocked() && YAxis[0].IsInputLocked() && YAxis[1].IsInputLocked() && YAxis[2].IsInputLocked();                                  }
 };
 
 // Temporary data storage for upcoming plot
@@ -1053,6 +1057,8 @@ static inline ImVec2 CalcTextSizeVertical(const char *text) {
 // Returns white or black text given background color
 static inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.5 ? IM_COL32_BLACK : IM_COL32_WHITE; }
 static inline ImU32 CalcTextColor(ImU32 bg)         { return CalcTextColor(ImGui::ColorConvertU32ToFloat4(bg)); }
+// Lights or darkens a color for hover
+static inline ImU32 CalcHoverColor(ImU32 col)       {  return ImMixU32(col, CalcTextColor(col), 32); }
 
 // Clamps a label position so that it fits a rect defined by Min/Max
 static inline ImVec2 ClampLabelPos(ImVec2 pos, const ImVec2& size, const ImVec2& Min, const ImVec2& Max) {
