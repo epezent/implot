@@ -51,8 +51,6 @@
 
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
 #define IMPLOT_Y_AXES    3
-// The number of times to subdivided grid divisions (best if a multiple of 1, 2, and 5)
-#define IMPLOT_SUB_DIV   10
 // Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
 #define IMPLOT_ZOOM_RATE 0.1f
 // Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
