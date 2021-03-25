@@ -528,6 +528,7 @@ struct ImPlotTick
 struct ImPlotTickCollection {
     ImVector<ImPlotTick> Ticks;
     ImGuiTextBuffer      TextBuffer;
+    float                TotalWidthMax;
     float                TotalWidth;
     float                TotalHeight;
     float                MaxWidth;
@@ -536,18 +537,19 @@ struct ImPlotTickCollection {
 
     ImPlotTickCollection() { Reset(); }
 
-    void Append(const ImPlotTick& tick) {
+    const ImPlotTick& Append(const ImPlotTick& tick) {
         if (tick.ShowLabel) {
-            TotalWidth  += tick.ShowLabel ? tick.LabelSize.x : 0;
-            TotalHeight += tick.ShowLabel ? tick.LabelSize.y : 0;
-            MaxWidth    =  tick.LabelSize.x > MaxWidth  ? tick.LabelSize.x : MaxWidth;
-            MaxHeight   =  tick.LabelSize.y > MaxHeight ? tick.LabelSize.y : MaxHeight;
+            TotalWidth    += tick.ShowLabel ? tick.LabelSize.x : 0;
+            TotalHeight   += tick.ShowLabel ? tick.LabelSize.y : 0;
+            MaxWidth      =  tick.LabelSize.x > MaxWidth  ? tick.LabelSize.x : MaxWidth;
+            MaxHeight     =  tick.LabelSize.y > MaxHeight ? tick.LabelSize.y : MaxHeight;
         }
         Ticks.push_back(tick);
         Size++;
+        return Ticks.back();
     }
 
-    void Append(double value, bool major, bool show_label, const char* fmt) {
+    const ImPlotTick& Append(double value, bool major, bool show_label, const char* fmt) {
         ImPlotTick tick(value, major, show_label);
         if (show_label && fmt != NULL) {
             char temp[32];
@@ -556,7 +558,7 @@ struct ImPlotTickCollection {
             TextBuffer.append(temp, temp + strlen(temp) + 1);
             tick.LabelSize = ImGui::CalcTextSize(TextBuffer.Buf.Data + tick.TextOffset);
         }
-        Append(tick);
+        return Append(tick);
     }
 
     const char* GetText(int idx) const {

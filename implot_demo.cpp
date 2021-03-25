@@ -1422,7 +1422,7 @@ void ShowDemoWindow(bool* p_open) {
     if (ImGui::CollapsingHeader("Custom Ticks##")) {
         static bool custom_fmt    = true;
         static bool custom_ticks  = false;
-        static bool custom_labels = false;
+        static bool custom_labels = true;
         ImGui::Checkbox("Show Custom Format", &custom_fmt);
         ImGui::SameLine();
         ImGui::Checkbox("Show Custom Ticks", &custom_ticks);

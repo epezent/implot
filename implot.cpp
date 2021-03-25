@@ -692,41 +692,46 @@ void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interacta
 void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, const char* fmt) {
     const int idx0          = ticks.Size;
     const int nMinor        = 10;
-    const float major_px    = ImGui::GetTextLineHeight() * nMinor * 1.25f;
-    const int nMajor        = ImMax(2, (int)IM_ROUND(pix / major_px));
+    const int nMajor        = ImMax(2, (int)IM_ROUND(pix / (orn == ImPlotOrientation_Horizontal ? 400.0f : 300.0f)));
     const double nice_range = NiceNum(range.Size() * 0.99, false);
     const double interval   = NiceNum(nice_range / (nMajor - 1), true);
     const double graphmin   = floor(range.Min / interval) * interval;
     const double graphmax   = ceil(range.Max / interval) * interval;
     bool first_major_set    = false;
     int  first_major_idx    = 0;
+
+    char dummy[32];
+    sprintf(dummy,fmt,-ImAbs(interval / nMinor));
+    ImVec2 dummy_size = ImGui::CalcTextSize(dummy);
+    ImVec2 total_size(0,0);
+
     for (double major = graphmin; major < graphmax + 0.5 * interval; major += interval) {
+        // is this zero? combat zero formatting issues
+        if (major-interval < 0 && major+interval > 0)
+            major = 0;
         if (range.Contains(major)) {
             if (!first_major_set) {
                 first_major_idx = ticks.Size;
                 first_major_set = true;
             }
             ticks.Append(major, true, true, fmt);
+            total_size += dummy_size;
         }
         for (int i = 1; i < nMinor; ++i) {
             double minor = major + i * interval / nMinor;
-            if (range.Contains(minor))
+            if (range.Contains(minor)) {
                 ticks.Append(minor, false, true, fmt);
+                total_size += dummy_size;
+            }
         }
     }
     // prune if necessary
-    if (orn == ImPlotOrientation_Horizontal && ticks.TotalWidth > pix * 0.75) {
-        // prune back
+    if ((orn == ImPlotOrientation_Horizontal && total_size.x > pix) || (orn == ImPlotOrientation_Vertical && total_size.y > pix)) {
         for (int i = first_major_idx-1; i >= idx0; i -= 2)
             ticks.Ticks[i].ShowLabel = false;
-        // prune forward
         for (int i = first_major_idx+1; i < ticks.Size; i += 2)
             ticks.Ticks[i].ShowLabel = false;
     }
-    else if (orn == ImPlotOrientation_Vertical && ticks.TotalHeight > pix * 0.75) {
-
-    }
-
 }
 
 void AddTicksLogarithmic(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, const char* fmt) {
