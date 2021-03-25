@@ -2770,7 +2770,7 @@ ImPlotLimits GetPlotQuery(ImPlotYAxis y_axis) {
 
 void SetPlotQuery(const ImPlotLimits& query, ImPlotYAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(y_axis_in >= -1 && y_axis_in < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
+    IM_ASSERT_USER_ERROR(y_axis >= -1 && y_axis < IMPLOT_Y_AXES, "y_axis needs to between -1 and IMPLOT_Y_AXES");
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
     ImPlotPlot& plot = *gp.CurrentPlot;
     y_axis = y_axis >= 0 ? y_axis : gp.CurrentPlot->CurrentYAxis;
