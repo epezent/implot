@@ -1420,8 +1420,11 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Custom Ticks##")) {
-        static bool custom_ticks  = true;
+        static bool custom_fmt    = true;
+        static bool custom_ticks  = false;
         static bool custom_labels = true;
+        ImGui::Checkbox("Show Custom Format", &custom_fmt);
+        ImGui::SameLine();
         ImGui::Checkbox("Show Custom Ticks", &custom_ticks);
         if (custom_ticks) {
             ImGui::SameLine();
@@ -1433,11 +1436,17 @@ void ShowDemoWindow(bool* p_open) {
         static const char*  ylabels[] = {"One","Three","Seven","Nine"};
         static double yticks_aux[] = {0.2,0.4,0.6};
         static const char* ylabels_aux[] = {"A","B","C","D","E","F"};
+        if (custom_fmt) {
+            ImPlot::SetNextPlotFormatX("%g ms");
+            ImPlot::SetNextPlotFormatY("%g Hz", ImPlotYAxis_1);
+            ImPlot::SetNextPlotFormatY("%g dB", ImPlotYAxis_2);
+            ImPlot::SetNextPlotFormatY("%g km", ImPlotYAxis_3);
+        }
         if (custom_ticks) {
             ImPlot::SetNextPlotTicksX(&pi,1,custom_labels ? pi_str : NULL, true);
-            ImPlot::SetNextPlotTicksY(yticks, 4, custom_labels ? ylabels : NULL);
-            ImPlot::SetNextPlotTicksY(yticks_aux, 3, custom_labels ? ylabels_aux : NULL, false, 1);
-            ImPlot::SetNextPlotTicksY(0, 1, 6, custom_labels ? ylabels_aux : NULL, false, 2);
+            ImPlot::SetNextPlotTicksY(yticks, 4, custom_labels ? ylabels : NULL, ImPlotYAxis_1);
+            ImPlot::SetNextPlotTicksY(yticks_aux, 3, custom_labels ? ylabels_aux : NULL, false, ImPlotYAxis_2);
+            ImPlot::SetNextPlotTicksY(0, 1, 6, custom_labels ? ylabels_aux : NULL, false, ImPlotYAxis_3);
         }
         ImPlot::SetNextPlotLimits(2.5,5,0,10);
         if (ImPlot::BeginPlot("Custom Ticks", NULL, NULL, ImVec2(-1,0), ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
@@ -1545,8 +1554,9 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SameLine(); ImGui::ColorEdit4("##Bull", &bullCol.x, ImGuiColorEditFlags_NoInputs);
         ImGui::SameLine(); ImGui::ColorEdit4("##Bear", &bearCol.x, ImGuiColorEditFlags_NoInputs);
         ImPlot::GetStyle().UseLocalTime = false;
+        ImPlot::SetNextPlotFormatY("$%.0f");
         ImPlot::SetNextPlotLimits(1546300800, 1571961600, 1250, 1600);
-        if (ImPlot::BeginPlot("Candlestick Chart","Day","USD",ImVec2(-1,0),0,ImPlotAxisFlags_Time)) {
+        if (ImPlot::BeginPlot("Candlestick Chart",NULL,NULL,ImVec2(-1,0),0,ImPlotAxisFlags_Time)) {
             MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
             ImPlot::EndPlot();
         }

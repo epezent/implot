@@ -51,14 +51,14 @@
 
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
 #define IMPLOT_Y_AXES    3
-// The number of times to subdivided grid divisions (best if a multiple of 1, 2, and 5)
-#define IMPLOT_SUB_DIV   10
 // Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
 #define IMPLOT_ZOOM_RATE 0.1f
 // Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
 #define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
 #define IMPLOT_MAX_TIME  32503680000
+// Default label format for axis labels
+#define IMPLOT_LABEL_FMT "%g"
 
 //-----------------------------------------------------------------------------
 // [SECTION] Macros
@@ -528,6 +528,7 @@ struct ImPlotTick
 struct ImPlotTickCollection {
     ImVector<ImPlotTick> Ticks;
     ImGuiTextBuffer      TextBuffer;
+    float                TotalWidthMax;
     float                TotalWidth;
     float                TotalHeight;
     float                MaxWidth;
@@ -536,22 +537,28 @@ struct ImPlotTickCollection {
 
     ImPlotTickCollection() { Reset(); }
 
-    void Append(const ImPlotTick& tick) {
+    const ImPlotTick& Append(const ImPlotTick& tick) {
         if (tick.ShowLabel) {
-            TotalWidth  += tick.ShowLabel ? tick.LabelSize.x : 0;
-            TotalHeight += tick.ShowLabel ? tick.LabelSize.y : 0;
-            MaxWidth    =  tick.LabelSize.x > MaxWidth  ? tick.LabelSize.x : MaxWidth;
-            MaxHeight   =  tick.LabelSize.y > MaxHeight ? tick.LabelSize.y : MaxHeight;
+            TotalWidth    += tick.ShowLabel ? tick.LabelSize.x : 0;
+            TotalHeight   += tick.ShowLabel ? tick.LabelSize.y : 0;
+            MaxWidth      =  tick.LabelSize.x > MaxWidth  ? tick.LabelSize.x : MaxWidth;
+            MaxHeight     =  tick.LabelSize.y > MaxHeight ? tick.LabelSize.y : MaxHeight;
         }
         Ticks.push_back(tick);
         Size++;
+        return Ticks.back();
     }
 
-    void Append(double value, bool major, bool show_label, void (*labeler)(ImPlotTick& tick, ImGuiTextBuffer& buf)) {
+    const ImPlotTick& Append(double value, bool major, bool show_label, const char* fmt) {
         ImPlotTick tick(value, major, show_label);
-        if (labeler)
-            labeler(tick, TextBuffer);
-        Append(tick);
+        if (show_label && fmt != NULL) {
+            char temp[32];
+            tick.TextOffset = TextBuffer.size();
+            snprintf(temp, 32, fmt, tick.PlotPos);
+            TextBuffer.append(temp, temp + strlen(temp) + 1);
+            tick.LabelSize = ImGui::CalcTextSize(TextBuffer.Buf.Data + tick.TextOffset);
+        }
+        return Append(tick);
     }
 
     const char* GetText(int idx) const {
@@ -788,6 +795,10 @@ struct ImPlotNextPlotData
     bool        HasYRange[IMPLOT_Y_AXES];
     bool        ShowDefaultTicksX;
     bool        ShowDefaultTicksY[IMPLOT_Y_AXES];
+    char        FmtX[16];
+    char        FmtY[IMPLOT_Y_AXES][16];
+    bool        HasFmtX;
+    bool        HasFmtY[IMPLOT_Y_AXES];
     bool        FitX;
     bool        FitY[IMPLOT_Y_AXES];
     double*     LinkedXmin;
@@ -800,11 +811,13 @@ struct ImPlotNextPlotData
     void Reset() {
         HasXRange         = false;
         ShowDefaultTicksX = true;
+        HasFmtX           = false;
         FitX              = false;
         LinkedXmin = LinkedXmax = NULL;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
             HasYRange[i]         = false;
             ShowDefaultTicksY[i] = true;
+            HasFmtY[i]           = false;
             FitY[i]              = false;
             LinkedYmin[i] = LinkedYmax[i] = NULL;
         }
@@ -993,6 +1006,10 @@ IMPLOT_API void PullLinkedAxis(ImPlotAxis& axis);
 // Shows an axis's context menu.
 IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_allowed = false);
 
+// Get format spec for axis
+static inline const char* GetFormatX()              { return GImPlot->NextPlotData.HasFmtX    ? GImPlot->NextPlotData.FmtX    : IMPLOT_LABEL_FMT; }
+static inline const char* GetFormatY(ImPlotYAxis y) { return GImPlot->NextPlotData.HasFmtY[y] ? GImPlot->NextPlotData.FmtY[y] : IMPLOT_LABEL_FMT; }
+
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils
 //-----------------------------------------------------------------------------
@@ -1010,21 +1027,17 @@ IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientatio
 // [SECTION] Tick Utils
 //-----------------------------------------------------------------------------
 
-// Label a tick with default formatting.
-IMPLOT_API void LabelTickDefault(ImPlotTick& tick, ImGuiTextBuffer& buffer);
-// Label a tick with scientific formating.
-IMPLOT_API void LabelTickScientific(ImPlotTick& tick, ImGuiTextBuffer& buffer);
 // Label a tick with time formatting.
 IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);
 
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
-IMPLOT_API void AddTicksDefault(const ImPlotRange& range, int nMajor, int nMinor, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, const char* fmt);
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
-IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, int nMajor, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, const char* fmt);
 // Populates a list of ImPlotTicks with time formatted ticks.
 IMPLOT_API void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
-IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks, const char* fmt);
 
 // Create a a string label for a an axis value
 IMPLOT_API int LabelAxisValue(const ImPlotAxis& axis, const ImPlotTickCollection& ticks, double value, char* buff, int size);
@@ -1057,7 +1070,7 @@ static inline ImVec2 CalcTextSizeVertical(const char *text) {
 // Returns white or black text given background color
 static inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.5 ? IM_COL32_BLACK : IM_COL32_WHITE; }
 static inline ImU32 CalcTextColor(ImU32 bg)         { return CalcTextColor(ImGui::ColorConvertU32ToFloat4(bg)); }
-// Lights or darkens a color for hover
+// Lightens or darkens a color for hover
 static inline ImU32 CalcHoverColor(ImU32 col)       {  return ImMixU32(col, CalcTextColor(col), 32); }
 
 // Clamps a label position so that it fits a rect defined by Min/Max
@@ -1091,6 +1104,8 @@ static inline int OrderOfMagnitude(double val) { return val == 0 ? 0 : (int)(flo
 static inline int OrderToPrecision(int order) { return order > 0 ? 0 : 1 - order; }
 // Returns a floating point precision to use given a value
 static inline int Precision(double val) { return OrderToPrecision(OrderOfMagnitude(val)); }
+// Round a value to a given precision
+static inline double RoundTo(double val, int prec) { double p = pow(10,(double)prec); return floor(val*p+0.5)/p; }
 
 // Returns the intersection point of two lines A and B (assumes they are not parallel!)
 static inline ImVec2 Intersection(const ImVec2& a1, const ImVec2& a2, const ImVec2& b1, const ImVec2& b2) {
@@ -1118,7 +1133,7 @@ static inline T OffsetAndStride(const T* data, int idx, int count, int offset, i
 
 // Calculate histogram bin counts and widths
 template <typename T>
-void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
+static inline void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
     switch (meth) {
         case ImPlotBin_Sqrt:
             bins_out  = (int)ceil(sqrt(count));
