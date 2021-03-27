@@ -66,11 +66,15 @@ ImGui::End();
 ![Usage](https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/example.PNG)
 
 
-Of course, there's much more you can do with ImPlot. Consult `implot_demo.cpp` for a comprehensive example of ImPlot's features.
+Of course, there's much more you can do with ImPlot... 
 
-## Interactive Demo
+## Demos
+
+A comprehensive example of ImPlot's features can be found in `implot_demo.h`. Add this file to your sources and call `ImPlot::ShowDemoWindow()` somewhere in your update loop. You are encouraged to use this file as a reference when needing to implement various plot types. The demo is always updated to show new plot types and features as they are added, so check back with each release!
 
 An online version of the demo is hosted [here](https://traineq.org/implot_demo/src/implot_demo.html). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implementation, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this!
+
+More sophisticated demos requiring lengthier code and/or third-party libraries can be found in a separate repository: [implot_demos](https://github.com/epezent/implot_demos). Here, you will find advanced signal processing and ImPlot usage in action. Please read the `Contributing` section of that repository if you have an idea for a new demo!
 
 ## Integration
 
