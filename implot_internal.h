@@ -987,12 +987,37 @@ static inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentY
 
 // Returns true if the user has requested data to be fit.
 static inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
-// Extends the current plot's axes so that it encompasses point p
-IMPLOT_API void FitPoint(const ImPlotPoint& p);
+// Extend the the extents of an axis on current plot so that it encompes v
+static inline void FitPointAxis(ImPlotAxis& axis, ImPlotRange& ext, double v) {
+    if (!ImNanOrInf(v) && !(ImHasFlag(axis.Flags, ImPlotAxisFlags_LogScale) && v <= 0)) {
+        ext.Min = v < ext.Min ? v : ext.Min;
+        ext.Max = v > ext.Max ? v : ext.Max;
+    }
+}
+// Extend the the extents of an axis on current plot so that it encompes v
+static inline void FitPointMultiAxis(ImPlotAxis& axis, ImPlotAxis& alt, ImPlotRange& ext, double v, double v_alt) {
+    if (ImHasFlag(axis.Flags, ImPlotAxisFlags_RangeFit) && !alt.Range.Contains(v_alt))
+        return;
+    if (!ImNanOrInf(v) && !(ImHasFlag(axis.Flags, ImPlotAxisFlags_LogScale) && v <= 0)) {
+        ext.Min = v < ext.Min ? v : ext.Min;
+        ext.Max = v > ext.Max ? v : ext.Max;
+    }
+}
 // Extends the current plot's axes so that it encompasses a vertical line at x
-IMPLOT_API void FitPointX(double x);
+static inline void FitPointX(double x) {
+    FitPointAxis(GImPlot->CurrentPlot->XAxis, GImPlot->ExtentsX, x);
+}
 // Extends the current plot's axes so that it encompasses a horizontal line at y
-IMPLOT_API void FitPointY(double y);
+static inline void FitPointY(double y) {
+    const ImPlotYAxis y_axis  = GImPlot->CurrentPlot->CurrentYAxis;
+    FitPointAxis(GImPlot->CurrentPlot->YAxis[y_axis], GImPlot->ExtentsY[y_axis], y);
+}
+// Extends the current plot's axes so that it encompasses point p
+static inline void FitPoint(const ImPlotPoint& p) {
+    const ImPlotYAxis y_axis  = GImPlot->CurrentPlot->CurrentYAxis;
+    FitPointMultiAxis(GImPlot->CurrentPlot->XAxis, GImPlot->CurrentPlot->YAxis[y_axis], GImPlot->ExtentsX, p.x, p.y);
+    FitPointMultiAxis(GImPlot->CurrentPlot->YAxis[y_axis], GImPlot->CurrentPlot->XAxis, GImPlot->ExtentsY[y_axis], p.y, p.x);
+}
 
 // Returns true if two ranges overlap
 static inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)

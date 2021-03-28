@@ -487,32 +487,6 @@ void BustPlotCache() {
     GImPlot->Plots.Clear();
 }
 
-void FitPoint(const ImPlotPoint& p) {
-    FitPointX(p.x);
-    FitPointY(p.y);
-}
-
-void FitPointX(double x) {
-    ImPlotContext& gp = *GImPlot;
-    ImPlotRange& ex_x = gp.ExtentsX;
-    const bool log_x  = ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale);
-    if (!ImNanOrInf(x) && !(log_x && x <= 0)) {
-        ex_x.Min = x < ex_x.Min ? x : ex_x.Min;
-        ex_x.Max = x > ex_x.Max ? x : ex_x.Max;
-    }
-}
-
-void FitPointY(double y) {
-    ImPlotContext& gp = *GImPlot;
-    const ImPlotYAxis y_axis  = gp.CurrentPlot->CurrentYAxis;
-    ImPlotRange& ex_y = gp.ExtentsY[y_axis];
-    const bool log_y  = ImHasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale);
-    if (!ImNanOrInf(y) && !(log_y && y <= 0)) {
-        ex_y.Min = y < ex_y.Min ? y : ex_y.Min;
-        ex_y.Max = y > ex_y.Max ? y : ex_y.Max;
-    }
-}
-
 void PushLinkedAxis(ImPlotAxis& axis) {
     if (axis.LinkedMin) { *axis.LinkedMin = axis.Range.Min; }
     if (axis.LinkedMax) { *axis.LinkedMax = axis.Range.Max; }
@@ -1301,6 +1275,36 @@ void UpdateAxisColors(int axis_flag, ImPlotAxis* axis) {
 // RENDERING
 //-----------------------------------------------------------------------------
 
+static inline void RenderGridLinesX(ImDrawList& DrawList, const ImPlotTickCollection& ticks, const ImRect& rect, ImU32 col_maj, ImU32 col_min, float size_maj, float size_min) {
+    const float density   = ticks.Size / rect.GetWidth();
+    ImVec4 col_min4  = ImGui::ColorConvertU32ToFloat4(col_min);
+    col_min4.w      *= ImClamp(ImRemap(density, 0.1f, 0.2f, 1.0f, 0.0f), 0.0f, 1.0f);
+    col_min = ImGui::ColorConvertFloat4ToU32(col_min4);
+    for (int t = 0; t < ticks.Size; t++) {
+        const ImPlotTick& xt = ticks.Ticks[t];
+        if (xt.Level == 0) {
+            if (xt.Major)
+                DrawList.AddLine(ImVec2(xt.PixelPos, rect.Min.y), ImVec2(xt.PixelPos, rect.Max.y), col_maj, size_maj);
+            else if (density < 0.2f)
+                DrawList.AddLine(ImVec2(xt.PixelPos, rect.Min.y), ImVec2(xt.PixelPos, rect.Max.y), col_min, size_min);
+        }
+    }
+}
+
+static inline void RenderGridLinesY(ImDrawList& DrawList, const ImPlotTickCollection& ticks, const ImRect& rect, ImU32 col_maj, ImU32 col_min, float size_maj, float size_min) {
+    const float density   = ticks.Size / rect.GetHeight();
+    ImVec4 col_min4  = ImGui::ColorConvertU32ToFloat4(col_min);
+    col_min4.w      *= ImClamp(ImRemap(density, 0.1f, 0.2f, 1.0f, 0.0f), 0.0f, 1.0f);
+    col_min = ImGui::ColorConvertFloat4ToU32(col_min4);
+    for (int t = 0; t < ticks.Size; t++) {
+        const ImPlotTick& yt = ticks.Ticks[t];
+        if (yt.Major)
+            DrawList.AddLine(ImVec2(rect.Min.x, yt.PixelPos), ImVec2(rect.Max.x, yt.PixelPos), col_maj, size_maj);
+        else if (density < 0.2f)
+            DrawList.AddLine(ImVec2(rect.Min.x, yt.PixelPos), ImVec2(rect.Max.x, yt.PixelPos), col_min, size_min);
+    }
+}
+
 static inline void RenderSelectionRect(ImDrawList& DrawList, const ImVec2& p_min, const ImVec2& p_max, const ImVec4& col) {
     const ImU32 col_bg = ImGui::GetColorU32(col * ImVec4(1,1,1,0.25f));
     const ImU32 col_bd = ImGui::GetColorU32(col);
@@ -1909,9 +1913,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     // grid bg
     DrawList.AddRectFilled(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBg));
 
-    // render axes
-    PushPlotClipRect();
-
     // transform ticks (TODO: Move this into ImPlotTickCollection)
     if (gp.RenderX) {
         for (int t = 0; t < gp.XTicks.Size; t++) {
@@ -1928,39 +1929,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
         }
     }
 
-    // render grid
-    if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoGridLines)) {
-        float density   = gp.XTicks.Size / plot.PlotRect.GetWidth();
-        ImVec4 col_min  = ImGui::ColorConvertU32ToFloat4(plot.XAxis.ColorMin);
-        col_min.w      *= ImClamp(ImRemap(density, 0.1f, 0.2f, 1.0f, 0.0f), 0.0f, 1.0f);
-        ImU32 col_min32 = ImGui::ColorConvertFloat4ToU32(col_min);
-        for (int t = 0; t < gp.XTicks.Size; t++) {
-            ImPlotTick& xt = gp.XTicks.Ticks[t];
-            if (xt.Level == 0) {
-                if (xt.Major)
-                    DrawList.AddLine(ImVec2(xt.PixelPos, plot.PlotRect.Min.y), ImVec2(xt.PixelPos, plot.PlotRect.Max.y), plot.XAxis.ColorMaj, gp.Style.MajorGridSize.x);
-                else if (density < 0.2f)
-                    DrawList.AddLine(ImVec2(xt.PixelPos, plot.PlotRect.Min.y), ImVec2(xt.PixelPos, plot.PlotRect.Max.y), col_min32, gp.Style.MinorGridSize.x);
-            }
-        }
-    }
-
+    // render grid (background)
+    PushPlotClipRect(gp.Style.PlotBorderSize == 0 ? 1.0f : 0.0f);
+    if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoGridLines) && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Foreground))
+        RenderGridLinesX(DrawList, gp.XTicks, plot.PlotRect, plot.XAxis.ColorMaj, plot.XAxis.ColorMin, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        if (plot.YAxis[i].Present && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoGridLines)) {
-            float density   = gp.YTicks[i].Size / plot.PlotRect.GetHeight();
-            ImVec4 col_min  = ImGui::ColorConvertU32ToFloat4(plot.YAxis[i].ColorMin);
-            col_min.w      *= ImClamp(ImRemap(density, 0.1f, 0.2f, 1.0f, 0.0f), 0.0f, 1.0f);
-            ImU32 col_min32 = ImGui::ColorConvertFloat4ToU32(col_min);
-            for (int t = 0; t < gp.YTicks[i].Size; t++) {
-                ImPlotTick& yt = gp.YTicks[i].Ticks[t];
-                if (yt.Major)
-                    DrawList.AddLine(ImVec2(plot.PlotRect.Min.x, yt.PixelPos), ImVec2(plot.PlotRect.Max.x, yt.PixelPos), plot.YAxis[i].ColorMaj, gp.Style.MajorGridSize.y);
-                else if (density < 0.2f)
-                    DrawList.AddLine(ImVec2(plot.PlotRect.Min.x, yt.PixelPos), ImVec2(plot.PlotRect.Max.x, yt.PixelPos), col_min32, gp.Style.MinorGridSize.y);
-            }
-        }
+        if (plot.YAxis[i].Present && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoGridLines) && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Foreground))
+            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis[i].ColorMaj,  plot.YAxis[i].ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
     }
-
     PopPlotClipRect();
 
     // render title
@@ -2262,7 +2238,17 @@ void EndPlot() {
 
     // FINAL RENDER -----------------------------------------------------------
 
-    // render ticks
+    // render grid (foreground)
+    PushPlotClipRect(gp.Style.PlotBorderSize == 0 ? 1.0f : 0.0f);
+    if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoGridLines) && ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Foreground))
+        RenderGridLinesX(DrawList, gp.XTicks, plot.PlotRect, plot.XAxis.ColorMaj, plot.XAxis.ColorMaj, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
+    for (int i = 0; i < IMPLOT_Y_AXES; i++) {
+        if (plot.YAxis[i].Present && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoGridLines) && ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_Foreground))
+            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis[i].ColorMaj,  plot.YAxis[i].ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
+    }
+    PopPlotClipRect();
+
+    // render x-ticks
     PushPlotClipRect();
     if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickMarks)) {
         for (int t = 0; t < gp.XTicks.Size; t++) {
@@ -2276,12 +2262,12 @@ void EndPlot() {
     }
     PopPlotClipRect();
 
+    // render y-ticks
     ImGui::PushClipRect(plot.PlotRect.Min, ImVec2(plot.FrameRect.Max.x, plot.PlotRect.Max.y), true);
     int axis_count = 0;
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
         if (!plot.YAxis[i].Present) { continue; }
         axis_count++;
-
         float x_start = gp.YAxisReference[i];
         if (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoTickMarks)) {
             float direction = (i == 0) ? 1.0f : -1.0f;
@@ -2295,7 +2281,6 @@ void EndPlot() {
                                  (!no_major && yt->Major) ? gp.Style.MajorTickSize.y : gp.Style.MinorTickSize.y);
             }
         }
-
         if (axis_count >= 3) {
             // Draw a bar next to the ticks to act as a visual separator.
             DrawList.AddLine(ImVec2(x_start, plot.PlotRect.Min.y), ImVec2(x_start, plot.PlotRect.Max.y), GetStyleColorU32(ImPlotCol_YAxisGrid3), 1);
@@ -2674,10 +2659,12 @@ ImDrawList* GetPlotDrawList() {
     return ImGui::GetWindowDrawList();
 }
 
-void PushPlotClipRect() {
+void PushPlotClipRect(float expand) {
     ImPlotContext& gp = *GImPlot;
+    ImRect rect = gp.CurrentPlot->PlotRect;
+    rect.Expand(expand);
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PushPlotClipRect() needs to be called between BeginPlot() and EndPlot()!");
-    ImGui::PushClipRect(gp.CurrentPlot->PlotRect.Min, gp.CurrentPlot->PlotRect.Max, true);
+    ImGui::PushClipRect(rect.Min, rect.Max, true);
 }
 
 void PopPlotClipRect() {
