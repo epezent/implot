@@ -854,6 +854,19 @@ struct ImPlotNextItemData {
     }
 };
 
+// Align plots group data
+struct ImPlotAlignmentData {
+    ImPlotOrientation Orientation;
+    float PadA;
+    float PadB;
+    float PadAMax;
+    float PadBMax;
+    ImPlotAlignmentData() {
+        Orientation = ImPlotOrientation_Vertical;
+        PadA = PadB = PadAMax = PadBMax = 0;
+    }
+};
+
 // Holds state information that must persist between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
     // Plot States
@@ -914,6 +927,10 @@ struct ImPlotContext {
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
+
+    // Align plots
+    ImPool<ImPlotAlignmentData> AlignPlotGroup;
+    ImPlotAlignmentData*        CurrentAlignPlotGroup;
 };
 
 //-----------------------------------------------------------------------------

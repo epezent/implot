@@ -1531,10 +1531,20 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     const bool show_x_label = x_label && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoLabel);
 
-    const float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
-    const float pad_bot = (plot.XAxis.IsLabeled() ? txt_height + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
+    float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
+    float pad_bot = (plot.XAxis.IsLabeled() ? txt_height + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
                         + (show_x_label ? txt_height + gp.Style.LabelPadding.y : 0);
 
+    // (1*) align plots group
+    if (gp.CurrentAlignPlotGroup) {
+        ImPlotAlignmentData &aligned = *gp.CurrentAlignPlotGroup;
+        if (ImHasFlag(aligned.Orientation, ImPlotOrientation_Horizontal)) {
+            if (aligned.PadAMax < pad_top) aligned.PadAMax = pad_top;
+            if (pad_top < aligned.PadA)    pad_top = aligned.PadA;
+            if (aligned.PadBMax < pad_bot) aligned.PadBMax = pad_bot;
+            if (pad_bot < aligned.PadB)    pad_bot = aligned.PadB;
+        }
+    } 
     const float plot_height = plot.CanvasRect.GetHeight() - pad_top - pad_bot;
 
     // (2) get y tick labels (needed for left/right pad)
@@ -1552,13 +1562,24 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     const bool show_y2_label = y2_label && !ImHasFlag(plot.YAxis[1].Flags, ImPlotAxisFlags_NoLabel);
     const bool show_y3_label = y3_label && !ImHasFlag(plot.YAxis[2].Flags, ImPlotAxisFlags_NoLabel);
 
-    const float pad_left    = (show_y1_label ? txt_height + gp.Style.LabelPadding.x : 0)
+    float pad_left    = (show_y1_label ? txt_height + gp.Style.LabelPadding.x : 0)
                             + (plot.YAxis[0].IsLabeled() ? gp.YTicks[0].MaxWidth + gp.Style.LabelPadding.x : 0);
-    const float pad_right   = ((plot.YAxis[1].Present && plot.YAxis[1].IsLabeled()) ? gp.YTicks[1].MaxWidth + gp.Style.LabelPadding.x : 0)
+    float pad_right   = ((plot.YAxis[1].Present && plot.YAxis[1].IsLabeled()) ? gp.YTicks[1].MaxWidth + gp.Style.LabelPadding.x : 0)
                             + ((plot.YAxis[1].Present && show_y2_label) ? txt_height + gp.Style.LabelPadding.x : 0)
                             + ((plot.YAxis[1].Present && plot.YAxis[2].Present)   ? gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y : 0)
                             + ((plot.YAxis[2].Present && plot.YAxis[2].IsLabeled()) ? gp.YTicks[2].MaxWidth + gp.Style.LabelPadding.x : 0)
                             + ((plot.YAxis[2].Present && show_y3_label) ? txt_height + gp.Style.LabelPadding.x : 0);
+
+    // (3*) align plots group
+    if (gp.CurrentAlignPlotGroup) {
+        ImPlotAlignmentData &aligned = *gp.CurrentAlignPlotGroup;
+        if (ImHasFlag(aligned.Orientation, ImPlotOrientation_Vertical)) {
+            if (aligned.PadAMax < pad_left) aligned.PadAMax = pad_left;
+            if (pad_left < aligned.PadA) pad_left = aligned.PadA;
+            if (aligned.PadBMax < pad_right) aligned.PadBMax = pad_right;
+            if (pad_right < aligned.PadB) pad_right = aligned.PadB;
+        }
+    }
 
     const float plot_width = plot.CanvasRect.GetWidth() - pad_left - pad_right;
 
@@ -2539,6 +2560,35 @@ void EndPlot() {
 //-----------------------------------------------------------------------------
 // MISC API
 //-----------------------------------------------------------------------------
+
+bool BeginAlignedPlots(const char* group_id, ImPlotOrientation orientation) {
+    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentAlignPlotGroup == NULL, "Mismatched BeginAlignedPlots()/EndAlignedPlot()!");
+    ImPlotContext& gp = *GImPlot;
+    ImGuiContext &G = *GImGui;
+    ImGuiWindow * Window = G.CurrentWindow;
+    if (Window->SkipItems)
+        return false;
+    const ImGuiID     ID = Window->GetID(group_id);
+    gp.CurrentAlignPlotGroup = gp.AlignPlotGroup.GetOrAddByKey(ID);
+    ImPlotAlignmentData &aligned = *gp.CurrentAlignPlotGroup;    
+    aligned.Orientation = orientation;
+    aligned.PadAMax     = 0.0f;
+    aligned.PadBMax     = 0.0f;
+    return true;
+}
+
+void EndAlignedPlots() {
+    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentAlignPlotGroup != NULL, "Mismatched BeginAlignedPlots()/EndAlignedPlot()!");
+    ImPlotContext& gp = *GImPlot;
+    if (gp.CurrentAlignPlotGroup) {
+        ImPlotAlignmentData &aligned = *gp.CurrentAlignPlotGroup;
+        aligned.PadA     = aligned.PadAMax;
+        aligned.PadB     = aligned.PadBMax;
+    }
+    gp.CurrentAlignPlotGroup = NULL;
+}
 
 ImPlotInputMap& GetInputMap() {
     return GImPlot->InputMap;

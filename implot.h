@@ -574,6 +574,17 @@ IMPLOT_API ImPlotLimits GetPlotQuery(ImPlotYAxis y_axis = IMPLOT_AUTO);
 IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImPlotYAxis y_axis = IMPLOT_AUTO);
 
 //-----------------------------------------------------------------------------
+// Algined Plots
+//-----------------------------------------------------------------------------
+
+// Align axis padding over multiple plots in a single row or column. If this function returns true, EndAlignedPlots() must be called. #group_id must be unique.
+IMPLOT_API bool BeginAlignedPlots(const char* group_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical);
+// Align axis padding over multiple plots in a 2D grid. If this function returns true, EndAlignedPlots() must be called. #group_id must be unique.
+IMPLOT_API bool BeginAlignedPlots(const char* group_id, int rows, int cols);
+// Only call EndAlignedPlots() if BeginAlignedPlots() returns true!
+IMPLOT_API void EndAlignedPlots();
+
+//-----------------------------------------------------------------------------
 // Plot Tools
 //-----------------------------------------------------------------------------
 

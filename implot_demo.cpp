@@ -982,6 +982,53 @@ void ShowDemoWindow(bool* p_open) {
         };
     }
     //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Align plot group")) {
+        static double xmin = 0, xmax = 1;
+        int data[2] = {0,1};
+        static int orientation = 0;
+        static float hzWidth = (ImGui::GetWindowSize().x / 3) - 20;
+        ImGui::Combo("Orientation", &orientation, "Vertical\0Horizontal\0");
+        if (ImPlot::BeginAlignedPlots("Align_Demo", (orientation == 0) ? ImPlotOrientation_Vertical : ImPlotOrientation_Horizontal)) {
+            static bool showA = true;
+            ImGui::Checkbox("A", &showA); ImGui::SameLine();
+            static bool showB = true;
+            ImGui::Checkbox("B", &showB); ImGui::SameLine();
+            static bool showC = false;
+            ImGui::Checkbox("C", &showC);
+            if (showA) {
+                ImPlot::SetNextPlotLimitsY(-1000, 1000, ImGuiCond_Once, 0);
+                ImPlot::LinkNextPlotLimits(&xmin, &xmax, NULL, NULL);
+                if (ImPlot::BeginPlot("Plot A", NULL, NULL, ImVec2((orientation == 0) ? -1 : hzWidth, 200))) {
+                    ImPlot::PlotLine("Line",data,2);
+                    ImPlot::EndPlot();
+                }
+            }
+            if (showB) {
+                if (orientation != 0) ImGui::SameLine();
+                ImPlot::LinkNextPlotLimits(&xmin, &xmax, NULL, NULL);
+                if (ImPlot::BeginPlot((orientation == 0) ? "Plot B" : "##Plot B", NULL, NULL, ImVec2((orientation == 0) ? -1 : hzWidth, 200), ImPlotFlags_YAxis2)) {
+                    ImPlot::PlotLine("Line",data,2);
+                    ImPlot::EndPlot();
+                }
+            }
+            if (showC) {
+                if (orientation != 0) ImGui::SameLine();
+                static int yAxis = 0;
+                ImPlot::LinkNextPlotLimits(&xmin, &xmax, NULL, NULL);
+                ImPlot::SetNextPlotLimitsY(-100000, 100000, ImGuiCond_Once, 0);
+                ImPlot::SetNextPlotLimitsY(-100000, 100000, ImGuiCond_Once, 1);
+                ImPlot::SetNextPlotLimitsY(-100000, 100000, ImGuiCond_Once, 2);
+                if (ImPlot::BeginPlot("Plot C", (orientation == 0) ? NULL : "X axis label", "Y axis label", ImVec2((orientation == 0) ? -1 : hzWidth, 200), ((yAxis > 0 ) ? ImPlotFlags_YAxis2 : 0) | ((yAxis > 1 ) ? ImPlotFlags_YAxis3 : 0))) {
+                    ImPlot::PlotLine("Line",data,2);
+                    ImPlot::EndPlot();
+                }
+                ImGui::SetNextItemWidth(150);
+                ImGui::Combo("Y axis", &yAxis, "Y1\0Y1, Y2\0Y1, Y2, Y3\0");
+            }
+            ImPlot::EndAlignedPlots();
+        }
+    }
+    //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
         static ImVector<ImPlotPoint> data;
         static ImPlotLimits range, query, select;
