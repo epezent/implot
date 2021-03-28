@@ -654,8 +654,9 @@ void ShowDemoWindow(bool* p_open) {
         static NormalDistribution<500000> dist1(1, 2);
         static NormalDistribution<500000> dist2(1, 1);
         double max_count = 0;
-        ImPlot::PushColormap("Twilight");
-        if (ImPlot::BeginPlot("##Hist2D",0,0,ImVec2(ImGui::GetContentRegionAvail().x-100-ImGui::GetStyle().ItemSpacing.x,0),0,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit)) {
+        ImPlotAxisFlags flags = ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_Foreground;
+        ImPlot::PushColormap("Hot");
+        if (ImPlot::BeginPlot("##Hist2D",0,0,ImVec2(ImGui::GetContentRegionAvail().x-100-ImGui::GetStyle().ItemSpacing.x,0),0,flags,flags)) {
             max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],density2,ImPlotLimits(-6,6,-6,6));
             ImPlot::EndPlot();
         }
@@ -950,6 +951,35 @@ void ShowDemoWindow(bool* p_open) {
             ImPlot::PlotLine("Circle",xs,ys,1000);
             ImPlot::EndPlot();
         }
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Auto-Fitting Data")) {
+
+        ImGui::BulletText("The Y-axis has been configured to auto-fit to only the data visible in X-axis range.");
+        ImGui::BulletText("Zoom and pan the X-axis. Disable Stems to see a difference in fit.");
+        ImGui::BulletText("If ImPlotAxisFlags_RangeFit is disabled, the axis will fit ALL data.");
+
+        static ImPlotAxisFlags xflags = ImPlotAxisFlags_None;
+        static ImPlotAxisFlags yflags = ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_RangeFit;
+
+        ImGui::TextUnformatted("X: "); ImGui::SameLine();
+        ImGui::CheckboxFlags("ImPlotAxisFlags_AutoFit##X", (unsigned int*)&xflags, ImPlotAxisFlags_AutoFit); ImGui::SameLine();
+        ImGui::CheckboxFlags("ImPlotAxisFlags_RangeFit##X", (unsigned int*)&xflags, ImPlotAxisFlags_RangeFit);
+
+        ImGui::TextUnformatted("Y: "); ImGui::SameLine();
+        ImGui::CheckboxFlags("ImPlotAxisFlags_AutoFit##Y", (unsigned int*)&yflags, ImPlotAxisFlags_AutoFit); ImGui::SameLine();
+        ImGui::CheckboxFlags("ImPlotAxisFlags_RangeFit##Y", (unsigned int*)&yflags, ImPlotAxisFlags_RangeFit);
+
+        static double data[101];
+        srand(0);
+        for (int i = 0; i < 101; ++i)
+            data[i] = 1 + sin(i/10.0f);
+
+        if (ImPlot::BeginPlot("##DataFitting","X","Y",ImVec2(-1,0),0,xflags,yflags)) {
+            ImPlot::PlotLine("Line",data,101);
+            ImPlot::PlotStems("Stems",data,101);
+            ImPlot::EndPlot();
+        };
     }
     //-------------------------------------------------------------------------
     if (ImGui::CollapsingHeader("Querying")) {
