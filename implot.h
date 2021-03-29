@@ -52,16 +52,17 @@
 struct ImPlotContext;          // ImPlot context (opaque struct, see implot_internal.h)
 
 // Enums/Flags
-typedef int ImPlotFlags;       // -> enum ImPlotFlags_
-typedef int ImPlotAxisFlags;   // -> enum ImPlotAxisFlags_
-typedef int ImPlotCol;         // -> enum ImPlotCol_
-typedef int ImPlotStyleVar;    // -> enum ImPlotStyleVar_
-typedef int ImPlotMarker;      // -> enum ImPlotMarker_
-typedef int ImPlotColormap;    // -> enum ImPlotColormap_
-typedef int ImPlotLocation;    // -> enum ImPlotLocation_
-typedef int ImPlotOrientation; // -> enum ImPlotOrientation_
-typedef int ImPlotYAxis;       // -> enum ImPlotYAxis_;
-typedef int ImPlotBin;         // -> enum ImPlotBin_
+typedef int ImPlotFlags;        // -> enum ImPlotFlags_
+typedef int ImPlotAxisFlags;    // -> enum ImPlotAxisFlags_
+typedef int ImPlotSubplotFlags; // -> enum ImPlotSubplotFlags_
+typedef int ImPlotCol;          // -> enum ImPlotCol_
+typedef int ImPlotStyleVar;     // -> enum ImPlotStyleVar_
+typedef int ImPlotMarker;       // -> enum ImPlotMarker_
+typedef int ImPlotColormap;     // -> enum ImPlotColormap_
+typedef int ImPlotLocation;     // -> enum ImPlotLocation_
+typedef int ImPlotOrientation;  // -> enum ImPlotOrientation_
+typedef int ImPlotYAxis;        // -> enum ImPlotYAxis_;
+typedef int ImPlotBin;          // -> enum ImPlotBin_
 
 // Options for plots.
 enum ImPlotFlags_ {
@@ -80,6 +81,14 @@ enum ImPlotFlags_ {
     ImPlotFlags_Crosshairs    = 1 << 11, // the default mouse cursor will be replaced with a crosshair when hovered
     ImPlotFlags_AntiAliased   = 1 << 12, // plot lines will be software anti-aliased (not recommended for high density plots, prefer MSAA)
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
+};
+
+// Options for subplots
+enum ImPlotSubplotFlags_ {
+    ImPlotSubplotFlags_None     = 0,      // default
+    ImPlotSubplotFlags_LinkRows = 1 << 0, // min/max limits of each plot y-axis on each row will be automatically linked
+    ImPlotSubplotFlags_LinkCols = 1 << 1, // min/max limits of each plot x-axis on each column will be automatically linked
+    ImPlotSubplotFlags_MultiBg  = 1 << 2, // a background frame will be rendered for each plot instead of a single frame
 };
 
 // Options for plot axes (X and Y).
@@ -379,6 +388,18 @@ IMPLOT_API bool BeginPlot(const char* title_id,
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot(). See example above.
 IMPLOT_API void EndPlot();
+
+//-----------------------------------------------------------------------------
+// Begin/EndSubplot
+//-----------------------------------------------------------------------------
+
+IMPLOT_API bool BeginSubplot(const char* id,
+                             int rows,
+                             int cols,
+                             const ImVec2& size,
+                             ImPlotSubplotFlags flags = ImPlotSubplotFlags_None);
+
+IMPLOT_API void EndSubplot();
 
 //-----------------------------------------------------------------------------
 // Plot Items

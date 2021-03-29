@@ -784,6 +784,16 @@ struct ImPlotPlot
     inline bool IsInputLocked() const   { return XAxis.IsInputLocked() && YAxis[0].IsInputLocked() && YAxis[1].IsInputLocked() && YAxis[2].IsInputLocked();                                  }
 };
 
+// Holds subplot data that must persist afer EndSubplot
+struct ImPlotSubplot {
+    ImGuiID            ID;
+    ImPlotSubplotFlags Flags;
+    int                Rows;
+    int                Cols;
+    int                CurrentIdx;
+    ImVec2             PlotFrameSize;
+};
+
 // Temporary data storage for upcoming plot
 struct ImPlotNextPlotData
 {
@@ -865,15 +875,18 @@ struct ImPlotAlignmentData {
         Orientation = ImPlotOrientation_Vertical;
         PadA = PadB = PadAMax = PadBMax = 0;
     }
+    void Reset() { PadA = PadB = PadAMax = PadBMax = 0; }
 };
 
 // Holds state information that must persist between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
     // Plot States
-    ImPool<ImPlotPlot> Plots;
-    ImPlotPlot*        CurrentPlot;
-    ImPlotItem*        CurrentItem;
-    ImPlotItem*        PreviousItem;
+    ImPool<ImPlotPlot>    Plots;
+    ImPool<ImPlotSubplot> Subplots;
+    ImPlotPlot*           CurrentPlot;
+    ImPlotSubplot*        CurrentSubplot;
+    ImPlotItem*           CurrentItem;
+    ImPlotItem*           PreviousItem;
 
     // Tick Marks and Labels
     ImPlotTickCollection CTicks;
@@ -929,8 +942,9 @@ struct ImPlotContext {
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
 
     // Align plots
-    ImPool<ImPlotAlignmentData> AlignPlotGroup;
-    ImPlotAlignmentData*        CurrentAlignPlotGroup;
+    ImPool<ImPlotAlignmentData> AlignmentData;
+    ImPlotAlignmentData*        CurrentAlignmentH;
+    ImPlotAlignmentData*        CurrentAlignmentV;
 };
 
 //-----------------------------------------------------------------------------
@@ -947,7 +961,11 @@ namespace ImPlot {
 // Initializes an ImPlotContext
 IMPLOT_API void Initialize(ImPlotContext* ctx);
 // Resets an ImPlot context for the next call to BeginPlot
-IMPLOT_API void Reset(ImPlotContext* ctx);
+IMPLOT_API void ResetCtxForNextPlot(ImPlotContext* ctx);
+// Restes an ImPlot context for the next call to BeginAlignedPlots
+IMPLOT_API void ResetCtxForNextAlignedPlots(ImPlotContext* ctx);
+// Resets an ImPlot context for the next call to BeginSubplot
+IMPLOT_API void ResetCtxForNextSubplot(ImPlotContext* ctx);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Input Utils
@@ -969,6 +987,13 @@ IMPLOT_API void BustPlotCache();
 
 // Shows a plot's context menu.
 IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot);
+
+//-----------------------------------------------------------------------------
+// [SECTION] Subplot Utils
+//-----------------------------------------------------------------------------
+
+// Advances subplot to next plot
+IMPLOT_API void NextSubplot();
 
 //-----------------------------------------------------------------------------
 // [SECTION] Item Utils
