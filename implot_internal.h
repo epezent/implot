@@ -696,6 +696,28 @@ struct ImPlotAxis
     inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                               }
 };
 
+// Align plots group data
+struct ImPlotAlignmentData {
+    ImPlotOrientation Orientation;
+    float PadA;
+    float PadB;
+    float PadAMax;
+    float PadBMax;
+    ImPlotAlignmentData() {
+        Orientation = ImPlotOrientation_Vertical;
+        PadA = PadB = PadAMax = PadBMax = 0;
+    }
+    void Begin() { PadAMax = PadBMax = 0; }
+    void Update(float& pad_a, float& pad_b) {
+        if (PadAMax < pad_a) PadAMax = pad_a;
+        if (pad_a < PadA)    pad_a   = PadA;
+        if (PadBMax < pad_b) PadBMax = pad_b;
+        if (pad_b < PadB)    pad_b   = PadB;
+    }
+    void End()   { PadA = PadAMax; PadB = PadBMax;      }
+    void Reset() { PadA = PadB = PadAMax = PadBMax = 0; }
+};
+
 // State information for Plot items
 struct ImPlotItem
 {
@@ -786,12 +808,19 @@ struct ImPlotPlot
 
 // Holds subplot data that must persist afer EndSubplot
 struct ImPlotSubplot {
-    ImGuiID            ID;
-    ImPlotSubplotFlags Flags;
-    int                Rows;
-    int                Cols;
-    int                CurrentIdx;
-    ImVec2             PlotFrameSize;
+    ImGuiID                       ID;
+    ImPlotSubplotFlags            Flags;
+    int                           Rows;
+    int                           Cols;
+    int                           CurrentIdx;
+    ImVec2                        PlotFrameSize;
+    ImVector<ImPlotAlignmentData> RowAlignmentData;
+    ImVector<ImPlotAlignmentData> ColAlignmentData;
+    ImVector<ImPlotRange>         RowLinkData;
+    ImVector<ImPlotRange>         ColLinkData;
+    ImPlotSubplot() {
+        Rows = Cols = CurrentIdx = 0;
+    }
 };
 
 // Temporary data storage for upcoming plot
@@ -862,20 +891,6 @@ struct ImPlotNextItemData {
         Marker        = IMPLOT_AUTO;
         HasHidden     = Hidden = false;
     }
-};
-
-// Align plots group data
-struct ImPlotAlignmentData {
-    ImPlotOrientation Orientation;
-    float PadA;
-    float PadB;
-    float PadAMax;
-    float PadBMax;
-    ImPlotAlignmentData() {
-        Orientation = ImPlotOrientation_Vertical;
-        PadA = PadB = PadAMax = PadBMax = 0;
-    }
-    void Reset() { PadA = PadB = PadAMax = PadBMax = 0; }
 };
 
 // Holds state information that must persist between calls to BeginPlot()/EndPlot()

@@ -469,6 +469,9 @@ void ResetCtxForNextPlot(ImPlotContext* ctx) {
     ctx->CurrentPlot  = NULL;
     ctx->CurrentItem  = NULL;
     ctx->PreviousItem = NULL;
+    // subplot
+    if (ctx->CurrentSubplot != NULL)  
+        NextSubplot();
 }
 
 void ResetCtxForNextAlignedPlots(ImPlotContext* ctx) {
@@ -477,7 +480,9 @@ void ResetCtxForNextAlignedPlots(ImPlotContext* ctx) {
 }
 
 void ResetCtxForNextSubplot(ImPlotContext* ctx) {
-    ctx->CurrentSubplot = NULL;
+    ctx->CurrentSubplot    = NULL;
+    ctx->CurrentAlignmentH = NULL;
+    ctx->CurrentAlignmentV = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -1387,7 +1392,12 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     // capture scroll with a child region
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoChild)) {
-        ImGui::BeginChild(title, ImVec2(size.x == 0 ? gp.Style.PlotDefaultSize.x : size.x, size.y == 0 ? gp.Style.PlotDefaultSize.y : size.y), false, ImGuiWindowFlags_NoScrollbar);
+        ImVec2 child_size;
+        if (gp.CurrentSubplot != NULL)
+            child_size = gp.CurrentSubplot->PlotFrameSize;
+        else
+            child_size = ImVec2(size.x == 0 ? gp.Style.PlotDefaultSize.x : size.x, size.y == 0 ? gp.Style.PlotDefaultSize.y : size.y);
+        ImGui::BeginChild(title, child_size, false, ImGuiWindowFlags_NoScrollbar);
         Window = ImGui::GetCurrentWindow();
         Window->ScrollMax.y = 1.0f;
         gp.ChildWindowMade = true;
@@ -1554,13 +1564,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
                         + (show_x_label ? txt_height + gp.Style.LabelPadding.y : 0);
 
     // (1*) align plots group
-    if (gp.CurrentAlignmentH) {
-        ImPlotAlignmentData &align = *gp.CurrentAlignmentH;
-        if (align.PadAMax < pad_top) align.PadAMax = pad_top;
-        if (pad_top < align.PadA)    pad_top = align.PadA;
-        if (align.PadBMax < pad_bot) align.PadBMax = pad_bot;
-        if (pad_bot < align.PadB)    pad_bot = align.PadB;
-    }
+    if (gp.CurrentAlignmentH) 
+        gp.CurrentAlignmentH->Update(pad_top,pad_bot);    
     
     const float plot_height = plot.CanvasRect.GetHeight() - pad_top - pad_bot;
 
@@ -1588,13 +1593,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
                             + ((plot.YAxis[2].Present && show_y3_label) ? txt_height + gp.Style.LabelPadding.x : 0);
 
     // (3*) align plots group
-    if (gp.CurrentAlignmentV) {
-        ImPlotAlignmentData &align = *gp.CurrentAlignmentV;
-        if (align.PadAMax < pad_left) align.PadAMax = pad_left;
-        if (pad_left < align.PadA) pad_left = align.PadA;
-        if (align.PadBMax < pad_right) align.PadBMax = pad_right;
-        if (pad_right < align.PadB) pad_right = align.PadB;    
-    }
+    if (gp.CurrentAlignmentV) 
+        gp.CurrentAlignmentV->Update(pad_left,pad_right);    
 
     const float plot_width = plot.CanvasRect.GetWidth() - pad_left - pad_right;
 
@@ -1979,7 +1979,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     if (title_size.x > 0.0f && !ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)) {
         ImU32 col = GetStyleColorU32(ImPlotCol_TitleText);
         const char* title_end = ImGui::FindRenderedTextEnd(title);
-        DrawList.AddText(ImVec2(plot.CanvasRect.GetCenter().x - title_size.x * 0.5f, plot.CanvasRect.Min.y),col,title,title_end);
+        DrawList.AddText(ImVec2(plot.PlotRect.GetCenter().x - title_size.x * 0.5f, plot.CanvasRect.Min.y),col,title,title_end);
     }
 
     // render axis labels
@@ -2551,10 +2551,6 @@ void EndPlot() {
     for (int i = 0; i < IMPLOT_Y_AXES; ++i)
         PushLinkedAxis(plot.YAxis[i]);
 
-    // SUBPLOT ----------------------------------------------------------------
-    if (gp.CurrentSubplot != NULL)  
-        NextSubplot();
-
     // CLEANUP ----------------------------------------------------------------
 
     // resset context locked flag
@@ -2581,11 +2577,32 @@ void EndPlot() {
 //-----------------------------------------------------------------------------
 
 void NextSubplot() {
-    ImPlotSubplot& subplot = *GImPlot->CurrentSubplot;
+    ImPlotContext& gp      = *GImPlot;
+    ImPlotSubplot& subplot = *gp.CurrentSubplot;
     subplot.CurrentIdx++;
-    IM_ASSERT_USER_ERROR(subplot.CurrentIdx < subplot.Rows*subplot.Cols, "You rendered more plots in the subplot than you said you would!");
-    if (subplot.CurrentIdx % subplot.Cols != 0) 
+    int r = subplot.CurrentIdx / subplot.Cols;
+    int c = subplot.CurrentIdx % subplot.Cols;
+    IM_ASSERT_USER_ERROR(subplot.CurrentIdx <= subplot.Rows*subplot.Cols, "You rendered more plots in the subplot than you said you would!");
+    if (subplot.CurrentIdx % subplot.Cols != 0) {
         ImGui::SameLine();    
+    }
+    const bool lr = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
+    const bool lc = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
+
+    if (subplot.CurrentIdx < subplot.Rows*subplot.Cols) {
+        gp.CurrentAlignmentH = &subplot.RowAlignmentData[r];
+        gp.CurrentAlignmentV = &subplot.ColAlignmentData[c];
+        LinkNextPlotLimits(lc ? &subplot.ColLinkData[c].Min : NULL,
+                           lc ? &subplot.ColLinkData[c].Max : NULL,
+                           lr ? &subplot.RowLinkData[r].Min : NULL,
+                           lr ? &subplot.RowLinkData[r].Max : NULL);
+    }
+    else {
+        gp.CurrentAlignmentH = NULL;
+        gp.CurrentAlignmentV = NULL;
+    }
+    ImGui::PopID();
+    ImGui::PushID(subplot.CurrentIdx);
 }
 
 bool BeginSubplot(const char* id, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags) {
@@ -2603,43 +2620,81 @@ bool BeginSubplot(const char* id, int rows, int cols, const ImVec2& size, ImPlot
     subplot.ID    = ID;
     subplot.Flags = flags;
     if (subplot.Rows != rows || subplot.Cols != cols) {
-        // reset alignment data
+        subplot.RowAlignmentData.resize(rows);
+        subplot.RowLinkData.resize(rows);
+        for (int r = 0; r < rows; ++r) {            
+            subplot.RowAlignmentData[r].Reset();  
+            subplot.RowLinkData[r] = ImPlotRange(0,1);   
+        }   
+        subplot.ColAlignmentData.resize(cols);
+        subplot.ColLinkData.resize(cols);
+        for (int c = 0; c < cols; ++c) {
+            subplot.ColAlignmentData[c].Reset();
+            subplot.ColLinkData[c] = ImPlotRange(0,1);
+        }
     }
     subplot.Rows = rows;
     subplot.Cols = cols;
     subplot.CurrentIdx = 0;
-
+    // beging alignments
+    for (int r = 0; r < subplot.Rows; ++r)
+        subplot.RowAlignmentData[r].Begin();
+    for (int c = 0; c < subplot.Cols; ++c)
+        subplot.ColAlignmentData[c].Begin();
+    // begin links
+    const bool lr = ImHasFlag(flags, ImPlotSubplotFlags_LinkRows);
+    const bool lc = ImHasFlag(flags, ImPlotSubplotFlags_LinkCols);
+    LinkNextPlotLimits(lc ? &subplot.ColLinkData[0].Min : NULL,
+                       lc ? &subplot.ColLinkData[0].Max : NULL,
+                       lr ? &subplot.RowLinkData[0].Min : NULL,
+                       lr ? &subplot.RowLinkData[0].Max : NULL);
+    // set initial alignment data
+    gp.CurrentAlignmentH = &subplot.RowAlignmentData[0];
+    gp.CurrentAlignmentV = &subplot.ColAlignmentData[0];
     // calc plot frame sizes
     const ImVec2 frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
     const ImRect rect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
     const ImVec2 spacing = ImGui::GetStyle().ItemSpacing;
-    subplot.PlotFrameSize.x = (size.x - (cols - 1) * spacing.x) / cols;
-    subplot.PlotFrameSize.y = (size.y - (rows - 1) * spacing.y) / rows;
+    subplot.PlotFrameSize.x = (frame_size.x - (cols - 1) * spacing.x) / cols;
+    subplot.PlotFrameSize.y = (frame_size.y - (rows - 1) * spacing.y) / rows;
 
     // render single background frame
-    if (!ImHasFlag(flags, ImPlotSubplotFlags_MultiBg)) {
+    if (!ImHasFlag(flags, ImPlotSubplotFlags_MultiFrame)) {
         ImGui::RenderFrame(rect.Min, rect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, ImGui::GetStyle().FrameRounding);
         // make next plots have no bg unless user pushes one
         PushStyleColor(ImPlotCol_FrameBg, IM_COL32_BLACK_TRANS);
+        // PushStyleVar(ImPlotStyleVar_PlotPadding, gp.Style.PlotPadding/2);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);
     }
     // push style vars for upcomming plots
     PushStyleVar(ImPlotStyleVar_PlotMinSize, ImVec2(0,0));
     // push ID
-    // ImGui::PushID(ID); // push subplot id
+    ImGui::PushID(ID); // push subplot id
+    ImGui::PushID(0);
     return true;
 }
 
 void EndSubplot() {
+
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot != NULL, "Mismatched BeginSubplot()/EndSubplot()!");
     ImPlotSubplot& subplot = *GImPlot->CurrentSubplot;
-    // pop frame color bg
-    if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_MultiBg))
+    // set alignments
+    for (int r = 0; r < subplot.Rows; ++r)
+        subplot.RowAlignmentData[r].End();
+    for (int c = 0; c < subplot.Cols; ++c)
+        subplot.ColAlignmentData[c].End();
+    // pop frame color bg/size
+    if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_MultiFrame)) {
         PopStyleColor();
+        // PopStyleVar();
+        ImGui::PopStyleVar();
+    }
     // pop style vars 
     PopStyleVar();
     // pop ID
-    // ImGui::PopID(); // pop subplot id
+    ImGui::PopID(); // pop subplit idx
+    ImGui::PopID(); // pop subplot id
     ResetCtxForNextSubplot(GImPlot);
 }
 
@@ -2664,8 +2719,7 @@ bool BeginAlignedPlots(const char* group_id, ImPlotOrientation orientation) {
     if (alignment->Orientation != orientation)
         alignment->Reset();
     alignment->Orientation = orientation;   
-    alignment->PadAMax = 0.0f;
-    alignment->PadBMax = 0.0f;
+    alignment->Begin();
     return true;
 }
 
@@ -2674,10 +2728,8 @@ void EndAlignedPlots() {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentAlignmentH != NULL || GImPlot->CurrentAlignmentV != NULL, "Mismatched BeginAlignedPlots()/EndAlignedPlots()!");
     ImPlotContext& gp = *GImPlot;
     ImPlotAlignmentData* alignment = gp.CurrentAlignmentH != NULL ? gp.CurrentAlignmentH : (gp.CurrentAlignmentV != NULL ? gp.CurrentAlignmentV : NULL);
-    if (alignment) {
-        alignment->PadA = alignment->PadAMax;
-        alignment->PadB = alignment->PadBMax;
-    }
+    if (alignment) 
+        alignment->End();
     ResetCtxForNextAlignedPlots(GImPlot);
 }
 
