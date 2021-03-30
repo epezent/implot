@@ -85,9 +85,9 @@ enum ImPlotFlags_ {
 
 // Options for subplots
 enum ImPlotSubplotFlags_ {
-    ImPlotSubplotFlags_None     = 0,      // default
-    ImPlotSubplotFlags_LinkRows = 1 << 0, // min/max limits of each plot y-axis on each row will be automatically linked
-    ImPlotSubplotFlags_LinkCols = 1 << 1, // min/max limits of each plot x-axis on each column will be automatically linked
+    ImPlotSubplotFlags_None        = 0,      // default
+    ImPlotSubplotFlags_LinkRows    = 1 << 0, // min/max limits of each plot y-axis on each row will be automatically linked
+    ImPlotSubplotFlags_LinkCols    = 1 << 1, // min/max limits of each plot x-axis on each column will be automatically linked
     ImPlotSubplotFlags_MultiFrame  = 1 << 2, // a background frame will be rendered for each plot instead of a single frame
 };
 
