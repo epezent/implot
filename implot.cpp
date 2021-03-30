@@ -1414,10 +1414,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     // Initialization ------------------------------------------------------------
 
     if (!plot.Initialized) {
-        if (!ImHasFlag(plot.XAxis.Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasXRange)
+        if (!ImHasFlag(plot.XAxis.Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasXRange && !gp.NextPlotData.LinkedXmin && !gp.NextPlotData.LinkedXmax)
             gp.FitThisFrame = gp.FitX = true;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
-            if (!ImHasFlag(plot.YAxis[i].Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasYRange[i])
+            if (!ImHasFlag(plot.YAxis[i].Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasYRange[i] && !gp.NextPlotData.LinkedYmin[i] && !gp.NextPlotData.LinkedYmax[i])
                 gp.FitThisFrame = gp.FitY[i] = true;
         }
     }
