@@ -335,6 +335,21 @@ void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char *te
     DrawList->PrimUnreserve(chars_skp*6, chars_skp*4);
 }
 
+void AddTextCentered(ImDrawList* DrawList, ImVec2 top_center, ImU32 col, const char* text_begin, const char* text_end) {
+    float txt_ht = ImGui::GetTextLineHeight();
+    const char* title_end = ImGui::FindRenderedTextEnd(text_begin, text_end);
+    ImVec2 text_size;
+    float  y = 0;
+    while (const char* tmp = (const char*)memchr(text_begin, '\n', title_end-text_begin)) {
+        text_size = ImGui::CalcTextSize(text_begin,tmp,true);
+        DrawList->AddText(ImVec2(top_center.x - text_size.x * 0.5f, top_center.y+y),col,text_begin,tmp);
+        text_begin = tmp + 1;
+        y += txt_ht;
+    }
+    text_size = ImGui::CalcTextSize(text_begin,title_end,true);
+    DrawList->AddText(ImVec2(top_center.x - text_size.x * 0.5f, top_center.y+y),col,text_begin,title_end);
+}
+
 double NiceNum(double x, bool round) {
     double f;  /* fractional part of x */
     double nf; /* nice, rounded fraction */
@@ -1559,7 +1574,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     const bool show_x_label = x_label && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoLabel);
 
-    float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
+    float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
     float pad_bot = (plot.XAxis.IsLabeled() ? txt_height + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
                         + (show_x_label ? txt_height + gp.Style.LabelPadding.y : 0);
 
@@ -1978,8 +1993,20 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     // render title
     if (title_size.x > 0.0f && !ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)) {
         ImU32 col = GetStyleColorU32(ImPlotCol_TitleText);
-        const char* title_end = ImGui::FindRenderedTextEnd(title);
-        DrawList.AddText(ImVec2(plot.PlotRect.GetCenter().x - title_size.x * 0.5f, plot.CanvasRect.Min.y),col,title,title_end);
+        AddTextCentered(&DrawList,ImVec2(plot.PlotRect.GetCenter().x, plot.CanvasRect.Min.y),col,title);
+
+        // const char* title_beg = title;
+        // const char* title_end = ImGui::FindRenderedTextEnd(title);
+        // ImVec2 text_size;
+        // float  y = 0;
+        // while (const char* tmp = (const char*)memchr(title_beg, '\n', title_end-title_beg)) {
+        //     text_size = ImGui::CalcTextSize(title_beg,tmp,true);
+        //     DrawList.AddText(ImVec2(plot.PlotRect.GetCenter().x - text_size.x * 0.5f, plot.CanvasRect.Min.y+y),col,title_beg,tmp);
+        //     title_beg = tmp + 1;
+        //     y += txt_height;
+        // }
+        // text_size = ImGui::CalcTextSize(title_beg,title_end,true);
+        // DrawList.AddText(ImVec2(plot.PlotRect.GetCenter().x - text_size.x * 0.5f, plot.CanvasRect.Min.y+y),col,title_beg,title_end);
     }
 
     // render axis labels
