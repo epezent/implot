@@ -3404,7 +3404,7 @@ ImU32  SampleColormapU32(float t, ImPlotColormap cmap) {
     ImPlotContext& gp = *GImPlot;
     cmap = cmap == IMPLOT_AUTO ? gp.Style.Colormap : cmap;
     IM_ASSERT_USER_ERROR(cmap >= 0 && cmap < gp.ColormapData.Count, "Invalid colormap index!");
-    return gp.ColormapData.LerpTable(gp.Style.Colormap,t);
+    return gp.ColormapData.LerpTable(cmap, t);
 }
 
 ImVec4 SampleColormap(float t, ImPlotColormap cmap) {
