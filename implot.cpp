@@ -1344,6 +1344,13 @@ static inline void RenderSelectionRect(ImDrawList& DrawList, const ImVec2& p_min
 }
 
 //-----------------------------------------------------------------------------
+// Utils
+//-----------------------------------------------------------------------------
+
+
+
+
+//-----------------------------------------------------------------------------
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
@@ -1496,7 +1503,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     UpdateAxisColors(ImPlotCol_YAxis2, &plot.YAxis[1]);
     UpdateAxisColors(ImPlotCol_YAxis3, &plot.YAxis[2]);
 
-    // BB, PADDING, HOVER -----------------------------------------------------------
+    // SIZING, BB, PADDING, HOVER -----------------------------------------------------------
 
     // frame size
     ImVec2 frame_size;
@@ -1521,7 +1528,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     if (G.HoveredIdPreviousFrame != 0 && G.HoveredIdPreviousFrame != ID)
         plot.FrameHovered = false;
     ImGui::SetItemAllowOverlap();
-    ImGui::RenderFrame(plot.FrameRect.Min, plot.FrameRect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, Style.FrameRounding);
 
     // canvas/axes bb
     plot.CanvasRect = ImRect(plot.FrameRect.Min + gp.Style.PlotPadding, plot.FrameRect.Max - gp.Style.PlotPadding);
@@ -1643,8 +1649,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     // y axis regions bb and hover
     plot.YAxis[0].HoverRect = ImRect(ImVec2(plot.AxesRect.Min.x, plot.PlotRect.Min.y), ImVec2(plot.PlotRect.Min.x, plot.PlotRect.Max.y));
     plot.YAxis[1].HoverRect = plot.YAxis[2].Present
-                      ? ImRect(plot.PlotRect.GetTR(), ImVec2(gp.YAxisReference[2], plot.PlotRect.Max.y))
-                      : ImRect(plot.PlotRect.GetTR(), ImVec2(plot.AxesRect.Max.x, plot.PlotRect.Max.y));
+                            ? ImRect(plot.PlotRect.GetTR(), ImVec2(gp.YAxisReference[2], plot.PlotRect.Max.y))
+                            : ImRect(plot.PlotRect.GetTR(), ImVec2(plot.AxesRect.Max.x, plot.PlotRect.Max.y));
 
     plot.YAxis[2].HoverRect = ImRect(ImVec2(gp.YAxisReference[2], plot.PlotRect.Min.y), ImVec2(plot.AxesRect.Max.x, plot.PlotRect.Max.y));
 
@@ -1960,6 +1966,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     }
 
     // RENDER -----------------------------------------------------------------
+
+    // render frame
+    ImGui::RenderFrame(plot.FrameRect.Min, plot.FrameRect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, Style.FrameRounding);
+
 
     // grid bg
     DrawList.AddRectFilled(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBg));
