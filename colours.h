@@ -1,7 +1,7 @@
 #pragma once
 
-// convenience macros for use of named colours in imgui
-// format is
+// convenience macros for using named colours in RGBA processes in imgui
+// format (where 255 or 0.00f is the alpha channel) is:-
 //ImU32 packedbyte = IM_COLRGBA(RGB_lavenderblush, 255);
 //ImVec4 floatColor = ImVec4(CF_firebrick4, 0.00f);
 
