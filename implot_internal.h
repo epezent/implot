@@ -53,10 +53,10 @@
 #define IMPLOT_Y_AXES    3
 // Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
 #define IMPLOT_ZOOM_RATE 0.1f
-// Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
-#define IMPLOT_MIN_TIME  0
-// Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
-#define IMPLOT_MAX_TIME  32503680000
+// Mimimum allowable timestamp value, default = 01/01/1900 @ 12:00am (UTC)
+#define IMPLOT_MIN_TIME  -2208988800.0
+// Maximum allowable timestamp value, default = 01/01/3000 @ 12:00am (UTC)
+#define IMPLOT_MAX_TIME  32503680000.0
 // Default label format for axis labels
 #define IMPLOT_LABEL_FMT "%g"
 
@@ -91,6 +91,28 @@ extern IMPLOT_API ImPlotContext* GImPlot; // Current implicit context pointer
 //-----------------------------------------------------------------------------
 // [SECTION] Generic Helpers
 //-----------------------------------------------------------------------------
+
+// Numeric limits for integral types
+template <typename T>
+struct ImNumericLimits { static const T Min; static const T Max; };
+
+template <> const short              ImNumericLimits<short>::Min              = SHRT_MIN;
+template <> const short              ImNumericLimits<short>::Max              = SHRT_MAX;
+template <> const int                ImNumericLimits<int>::Min                = INT_MIN;
+template <> const int                ImNumericLimits<int>::Max                = INT_MAX;
+template <> const long               ImNumericLimits<long>::Min               = LONG_MIN;
+template <> const long               ImNumericLimits<long>::Max               = LONG_MAX;
+template <> const long long          ImNumericLimits<long long>::Min          = LLONG_MIN;
+template <> const long long          ImNumericLimits<long long>::Max          = LLONG_MAX;
+
+template <> const unsigned short     ImNumericLimits<unsigned short>::Min     = 0;
+template <> const unsigned short     ImNumericLimits<unsigned short>::Max     = USHRT_MAX;
+template <> const unsigned int       ImNumericLimits<unsigned int>::Min       = 0;
+template <> const unsigned int       ImNumericLimits<unsigned int>::Max       = UINT_MAX;
+template <> const unsigned long      ImNumericLimits<unsigned long>::Min      = 0;
+template <> const unsigned long      ImNumericLimits<unsigned long>::Max      = ULONG_MAX;
+template <> const unsigned long long ImNumericLimits<unsigned long long>::Min = 0;
+template <> const unsigned long long ImNumericLimits<unsigned long long>::Max = ULLONG_MAX;
 
 // Computes the common (base-10) logarithm
 static inline float  ImLog10(float x)  { return log10f(x); }

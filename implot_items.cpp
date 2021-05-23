@@ -685,12 +685,6 @@ struct ShadedRenderer {
     static const int VtxConsumed = 5;
 };
 
-// Stupid way of calculating maximum index size of ImDrawIdx without integer overflow issues
-template <typename T>
-struct MaxIdx { static const unsigned int Value; };
-template <> const unsigned int MaxIdx<unsigned short>::Value = 65535;
-template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
-
 /// Renders primitive shapes in bulk as efficiently as possible.
 template <typename Renderer>
 inline void RenderPrimitives(const Renderer& renderer, ImDrawList& DrawList, const ImRect& cull_rect) {
@@ -700,7 +694,7 @@ inline void RenderPrimitives(const Renderer& renderer, ImDrawList& DrawList, con
     const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
     while (prims) {
         // find how many can be reserved up to end of current draw command's limit
-        unsigned int cnt = ImMin(prims, (MaxIdx<ImDrawIdx>::Value - DrawList._VtxCurrentIdx) / Renderer::VtxConsumed);
+        unsigned int cnt = ImMin(prims, (ImNumericLimits<ImDrawIdx>::Max - DrawList._VtxCurrentIdx) / Renderer::VtxConsumed);
         // make sure at least this many elements can be rendered to avoid situations where at the end of buffer this slow path is not taken all the time
         if (cnt >= ImMin(64u, prims)) {
             if (prims_culled >= cnt)
@@ -716,7 +710,7 @@ inline void RenderPrimitives(const Renderer& renderer, ImDrawList& DrawList, con
                 DrawList.PrimUnreserve(prims_culled * Renderer::IdxConsumed, prims_culled * Renderer::VtxConsumed);
                 prims_culled = 0;
             }
-            cnt = ImMin(prims, (MaxIdx<ImDrawIdx>::Value - 0/*DrawList._VtxCurrentIdx*/) / Renderer::VtxConsumed);
+            cnt = ImMin(prims, (ImNumericLimits<ImDrawIdx>::Max - 0/*DrawList._VtxCurrentIdx*/) / Renderer::VtxConsumed);
             DrawList.PrimReserve(cnt * Renderer::IdxConsumed, cnt * Renderer::VtxConsumed); // reserve new draw command
         }
         prims -= cnt;

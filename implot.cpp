@@ -827,8 +827,8 @@ ImPlotTime MkGmtTime(struct tm *ptm) {
 #else
     t.S = timegm(ptm);
 #endif
-    if (t.S < 0)
-        t.S = 0;
+    // if (t.S < 0)
+    //     t.S = 0;
     return t;
 }
 
@@ -847,8 +847,8 @@ tm* GetGmtTime(const ImPlotTime& t, tm* ptm)
 ImPlotTime MkLocTime(struct tm *ptm) {
     ImPlotTime t;
     t.S = mktime(ptm);
-    if (t.S < 0)
-        t.S = 0;
+    // if (t.S < 0)
+    //     t.S = 0;
     return t;
 }
 
@@ -881,8 +881,8 @@ ImPlotTime MakeTime(int year, int month, int day, int hour, int min, int sec, in
     tm& Tm = GImPlot->Tm;
 
     int yr = year - 1900;
-    if (yr < 0)
-        yr = 0;
+    // if (yr < 0)
+    //     yr = 0;
 
     sec  = sec + us / 1000000;
     us   = us % 1000000;
