@@ -94,13 +94,12 @@ You should be good to go!
 
 If you want to test ImPlot quickly, consider trying [mahi-gui](https://github.com/mahilab/mahi-gui), which bundles ImGui, ImPlot, and several other packages for you.
 
-## Special Notes
+## Extremely Important Note
 
-- If you experience data truncation and/or visual glitches, it is **HIGHLY** recommended that you EITHER:
-    1) Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices (the official OpenGL3 renderer supports this) and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be), OR...
-    2) Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your ImGui `imconfig.h` file.
-- By default, no anti-aliasing is done on line plots for performance gains. If you use 4x MSAA, then you likely won't even notice. However, you can enable software AA per-plot with the `ImPlotFlags_AntiAliased` flag, or globally with `ImPlot::GetStyle().AntiAliasedLines = true;`.
-- Like ImGui, it is recommended that you compile and link ImPlot as a *static* library or directly as a part of your sources. However, if you are compiling ImPlot and ImGui as separate DLLs, make sure you set the current *ImGui* context with `ImPlot::SetImGuiContext(ImGuiContext* ctx)`. This ensures that global ImGui variables are correctly shared across the DLL boundary.
+Dear ImGui uses **16-bit indexing by default**, so high-density ImPlot widgets like `ImPlot::PlotHeatmap()` may produce too many vertices into `ImDrawList`, which causes an assertion failure. This will result in data truncation and/or visual glitches. Therefore, it is **HIGHLY** recommended that you EITHER:
+
+- **Option 1:** Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your ImGui [`imconfig.h`](https://github.com/ocornut/imgui/blob/master/imconfig.h#L89) file.
+- **Option 2:** Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be).
 
 ## FAQ
 
@@ -147,7 +146,7 @@ A: No, and likely never will since ImGui only deals in 2D rendering.
 
 **Q: My plot lines look like crap!**
 
-A: See the note about anti-aliasing under **Special Notes** above.
+A: By default, no anti-aliasing is done on line plots for performance gains. If you use at least 4x MSAA, then you likely won't even notice. However, you can enable software AA per-plot with the `ImPlotFlags_AntiAliased` flag, or globally with `ImPlot::GetStyle().AntiAliasedLines = true;`.
 
 **Q: Does ImPlot provide analytic tools?**
 
@@ -156,6 +155,10 @@ A: Not exactly, but it does give you the ability to query plot sub-ranges, with 
 **Q: Can plots be exported/saved to image?**
 
 A: Not currently. Use your OS's screen capturing mechanisms if you need to capture a plot. ImPlot is not suitable for rendering publication quality plots; it is only intended to be used as a visualization tool. Post-process your data with MATLAB or matplotlib for these purposes.
+
+**Q: Can a compile ImPlot as a dynamic library?**
+
+A: Like ImGui, it is recommended that you compile and link ImPlot as a *static* library or directly as a part of your sources. However, if you are compiling ImPlot and ImGui as separate DLLs, make sure you set the current *ImGui* context with `ImPlot::SetImGuiContext(ImGuiContext* ctx)`. This ensures that global ImGui variables are correctly shared across the DLL boundary.
 
 **Q: Can ImPlot be used with other languages/bindings?**
 
