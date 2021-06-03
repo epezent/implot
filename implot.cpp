@@ -78,9 +78,14 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #define sprintf sprintf_s
 #endif
 
-// Support for pre-1.82 version. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
+// Support for pre-1.82 versions. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
 #if (IMGUI_VERSION_NUM < 18102) && !defined(ImDrawFlags_RoundCornersAll)
 #define ImDrawFlags_RoundCornersAll ImDrawCornerFlags_All
+#endif
+
+// Support for pre-1.84 versions. ImPool's GetSize() -> GetBufSize()
+#if (IMGUI_VERSION_NUM < 18303)
+#define GetBufSize GetSize          // A little bit ugly since 'GetBufSize' could technically be used elsewhere (but currently isn't). Could use a proxy define if needed.
 #endif
 
 // Global plot context
@@ -147,7 +152,6 @@ ImPlotStyle::ImPlotStyle() {
 }
 
 ImPlotItem* ImPlotPlot::GetLegendItem(int i) {
-    IM_ASSERT(Items.GetSize() > 0);
     return Items.GetByIndex(LegendData.Indices[i]);
 }
 
@@ -2391,7 +2395,7 @@ void EndPlot() {
 
     // reset legend hovers
     plot.LegendHovered = false;
-    for (int i = 0; i < plot.Items.GetSize(); ++i)
+    for (int i = 0; i < plot.Items.GetBufSize(); ++i)
         plot.Items.GetByIndex(i)->LegendHovered = false;
     // render legend
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.GetLegendCount() > 0) {
@@ -2523,7 +2527,7 @@ void EndPlot() {
 
 
     // reset the plot items for the next frame
-    for (int i = 0; i < plot.Items.GetSize(); ++i) {
+    for (int i = 0; i < plot.Items.GetBufSize(); ++i) {
         plot.Items.GetByIndex(i)->SeenThisFrame = false;
     }
 
@@ -3941,14 +3945,14 @@ void ShowMetricsWindow(bool* p_popen) {
         ImGui::Checkbox("Show Axes Rects", &show_axes_rects);
         ImGui::TreePop();
     }
-    const int n_plots = gp.Plots.GetSize();
+    const int n_plots = gp.Plots.GetBufSize();
     if (ImGui::TreeNode("Plots","Plots (%d)", n_plots)) {
         for (int p = 0; p < n_plots; ++p) {
             // plot
             ImPlotPlot* plot = gp.Plots.GetByIndex(p);
             ImGui::PushID(p);
             if (ImGui::TreeNode("Plot", "Plot [ID=%u]", plot->ID)) {
-                int n_items = plot->Items.GetSize();
+                int n_items = plot->Items.GetBufSize();
                 if (ImGui::TreeNode("Items", "Items (%d)", n_items)) {
                     for (int i = 0; i < n_items; ++i) {
                         ImPlotItem* item = plot->Items.GetByIndex(i);
