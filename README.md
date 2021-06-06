@@ -96,10 +96,10 @@ If you want to test ImPlot quickly, consider trying [mahi-gui](https://github.co
 
 ## Extremely Important Note
 
-Dear ImGui uses **16-bit indexing by default**, so high-density ImPlot widgets like `ImPlot::PlotHeatmap()` may produce too many vertices into `ImDrawList`, which causes an assertion failure. This will result in data truncation and/or visual glitches. Therefore, it is **HIGHLY** recommended that you EITHER:
+Dear ImGui uses **16-bit indexing by default**, so high-density ImPlot widgets like `ImPlot::PlotHeatmap()` may produce too many vertices into `ImDrawList`, which causes an assertion failure and will result in data truncation and/or visual glitches. Therefore, it is **HIGHLY** recommended that you EITHER:
 
 - **Option 1:** Enable 32-bit indices by uncommenting `#define ImDrawIdx unsigned int` in your ImGui [`imconfig.h`](https://github.com/ocornut/imgui/blob/master/imconfig.h#L89) file.
-- **Option 2:** Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer when using 16-bit indices and use an ImGui version with patch [imgui@f6120f8](https://github.com/ocornut/imgui/commit/f6120f8e16eefcdb37b63974e6915a3dd35414be).
+- **Option 2:** Handle the `ImGuiBackendFlags_RendererHasVtxOffset` flag in your renderer if you must use 16-bit indices. Many of the default ImGui rendering backends already support `ImGuiBackendFlags_RendererHasVtxOffset`. Refer to [this issue](https://github.com/ocornut/imgui/issues/2591) for more information.
 
 ## FAQ
 
