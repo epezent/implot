@@ -3389,7 +3389,7 @@ int GetColormapSize(ImPlotColormap cmap) {
     ImPlotContext& gp = *GImPlot;
     cmap = cmap == IMPLOT_AUTO ? gp.Style.Colormap : cmap;
     IM_ASSERT_USER_ERROR(cmap >= 0 && cmap < gp.ColormapData.Count, "Invalid colormap index!");
-    return gp.ColormapData.GetKeyCount(gp.Style.Colormap);
+    return gp.ColormapData.GetKeyCount(cmap);
 }
 
 ImU32 GetColormapColorU32(int idx, ImPlotColormap cmap) {
