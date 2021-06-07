@@ -891,9 +891,10 @@ inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& Dr
         RenderMarkerAsterisk
     };
     ImPlotContext& gp = *GImPlot;
+    const ImRect& rect = gp.CurrentPlot->PlotRect;
     for (int i = 0; i < getter.Count; ++i) {
         ImVec2 c = transformer(getter(i));
-        if (gp.CurrentPlot->PlotRect.Contains(c))
+        if (c.x >= rect.Min.x && c.y >= rect.Min.y && c.x <= rect.Max.x && c.y <= rect.Max.y)
             marker_table[marker](DrawList, c, size, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, weight);
     }
 }
