@@ -1453,8 +1453,15 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     if (ImHasFlag(plot.Flags, ImPlotFlags_Equal)) {
         double xar = plot.XAxis.GetAspect();
         double yar = plot.YAxis[0].GetAspect();
-        if (!ImAlmostEqual(xar,yar) && !plot.YAxis[0].IsInputLocked())
-            plot.XAxis.SetAspect(yar);
+        // edge case: user has set x range this frame, so fit y to x so that we honor their request for x range
+        // NB: because of feedback across several frames, the user's x request may not be perfectly honored
+        if (gp.NextPlotData.HasXRange) {
+            plot.YAxis[0].SetAspect(xar);
+        }
+        else {
+            if (!ImAlmostEqual(xar,yar) && !plot.YAxis[0].IsInputLocked())
+                plot.XAxis.SetAspect(yar);
+        }
     }
 
     // AXIS COLORS -----------------------------------------------------------------
