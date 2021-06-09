@@ -1730,6 +1730,10 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
         double percent = normalize ? (double)values[i] / sum : (double)values[i];
         a1 = a0 + 2 * IM_PI * percent;
         if (BeginItem(label_ids[i])) {
+            if (FitThisFrame()) {
+                FitPoint(ImPlotPoint(x-radius,y-radius));
+                FitPoint(ImPlotPoint(x+radius,y+radius));
+            }
             ImU32 col = GetCurrentItem()->Color;
             if (percent < 0.5) {
                 RenderPieSlice(DrawList, center, radius, a0, a1, col);
