@@ -221,6 +221,14 @@ void ShowDemoWindow(bool* p_open) {
     }
     //-------------------------------------------------------------------------
     ImGui::Text("ImPlot says hello. (%s)", IMPLOT_VERSION);
+    // display warning about 16-bit indices
+    static bool showWarning = sizeof(ImDrawIdx)*8 == 16 && (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) == false;
+    if (showWarning) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1,1,0,1));
+        ImGui::TextWrapped("WARNING: ImDrawIdx is 16-bit and ImGuiBackendFlags_RendererHasVtxOffset is false. Expect visual glitches and artifacts! See README for more information.");
+        ImGui::PopStyleColor();
+    }
+
     ImGui::Spacing();
 
     if (ImGui::CollapsingHeader("Help")) {
@@ -950,6 +958,33 @@ void ShowDemoWindow(bool* p_open) {
         if (ImPlot::BeginPlot("",0,0,ImVec2(-1,0),ImPlotFlags_Equal)) {
             ImPlot::PlotLine("Circle",xs,ys,1000);
             ImPlot::EndPlot();
+        }
+    }
+    //-------------------------------------------------------------------------
+    if (ImGui::CollapsingHeader("Subplots")) {
+        static ImPlotSubplotFlags flags = ImPlotSubplotFlags_None;
+        ImGui::CheckboxFlags("ImPlotSubplotFlags_LinkRows", (unsigned int*)&flags, ImPlotSubplotFlags_LinkRows);
+        ImGui::CheckboxFlags("ImPlotSubplotFlags_LinkCols", (unsigned int*)&flags, ImPlotSubplotFlags_LinkCols);
+        ImGui::CheckboxFlags("ImPlotSubplotFlags_LinkAllX", (unsigned int*)&flags, ImPlotSubplotFlags_LinkAllX);
+        ImGui::CheckboxFlags("ImPlotSubplotFlags_LinkAllY", (unsigned int*)&flags, ImPlotSubplotFlags_LinkAllY);
+        ImGui::CheckboxFlags("ImPlotSubplotFlags_Tight", (unsigned int*)&flags, ImPlotSubplotFlags_Tight);
+        ImGui::CheckboxFlags("ImPlotSubplotFlags_MultiFrame", (unsigned int*)&flags, ImPlotSubplotFlags_MultiFrame);
+        ImGui::CheckboxFlags("ImPlotSubplotFlags_NoAlign", (unsigned int*)&flags, ImPlotSubplotFlags_NoAlign);
+
+        static int rows = 2;
+        static int cols = 2;
+        ImGui::SliderInt("Rows",&rows,1,5);
+        ImGui::SliderInt("Cols",&cols,1,5);
+        if (ImPlot::BeginSubplots("Subplots", rows, cols, ImVec2(800,600), flags)) {
+            for (int i = 0; i < rows*cols; ++i) {
+                char buffer[16];
+                sprintf(buffer,"Subplot %d",i);
+                if (ImPlot::BeginPlot(buffer,"X","Y")) {
+                    
+                    ImPlot::EndPlot();
+                }
+            }
+            ImPlot::EndSubplots();
         }
     }
     //-------------------------------------------------------------------------

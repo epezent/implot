@@ -78,9 +78,14 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #define sprintf sprintf_s
 #endif
 
-// Support for pre-1.82 version. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
+// Support for pre-1.82 versions. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
 #if (IMGUI_VERSION_NUM < 18102) && !defined(ImDrawFlags_RoundCornersAll)
 #define ImDrawFlags_RoundCornersAll ImDrawCornerFlags_All
+#endif
+
+// Support for pre-1.84 versions. ImPool's GetSize() -> GetBufSize()
+#if (IMGUI_VERSION_NUM < 18303)
+#define GetBufSize GetSize          // A little bit ugly since 'GetBufSize' could technically be used elsewhere (but currently isn't). Could use a proxy define if needed.
 #endif
 
 // Global plot context
@@ -147,7 +152,6 @@ ImPlotStyle::ImPlotStyle() {
 }
 
 ImPlotItem* ImPlotPlot::GetLegendItem(int i) {
-    IM_ASSERT(Items.GetSize() > 0);
     return Items.GetByIndex(LegendData.Indices[i]);
 }
 
@@ -534,34 +538,36 @@ void PullLinkedAxis(ImPlotAxis& axis) {
 
 void UpdateTransformCache() {
     ImPlotContext& gp = *GImPlot;
+    ImPlotPlot& plot = *gp.CurrentPlot;
     // get pixels for transforms
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        gp.PixelRange[i] = ImRect(ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_Invert) ? gp.CurrentPlot->PlotRect.Max.x : gp.CurrentPlot->PlotRect.Min.x,
-                                  ImHasFlag(gp.CurrentPlot->YAxis[i].Flags, ImPlotAxisFlags_Invert) ? gp.CurrentPlot->PlotRect.Min.y : gp.CurrentPlot->PlotRect.Max.y,
-                                  ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_Invert) ? gp.CurrentPlot->PlotRect.Min.x : gp.CurrentPlot->PlotRect.Max.x,
-                                  ImHasFlag(gp.CurrentPlot->YAxis[i].Flags, ImPlotAxisFlags_Invert) ? gp.CurrentPlot->PlotRect.Max.y : gp.CurrentPlot->PlotRect.Min.y);
-        gp.My[i] = (gp.PixelRange[i].Max.y - gp.PixelRange[i].Min.y) / gp.CurrentPlot->YAxis[i].Range.Size();
+        gp.PixelRange[i] = ImRect(plot.XAxis.IsInverted() ? plot.PlotRect.Max.x : plot.PlotRect.Min.x,
+                                  plot.YAxis[i].IsInverted() ? plot.PlotRect.Min.y : plot.PlotRect.Max.y,
+                                  plot.XAxis.IsInverted() ? plot.PlotRect.Min.x : plot.PlotRect.Max.x,
+                                  plot.YAxis[i].IsInverted() ? plot.PlotRect.Max.y : plot.PlotRect.Min.y);
+        gp.My[i] = (gp.PixelRange[i].Max.y - gp.PixelRange[i].Min.y) / plot.YAxis[i].Range.Size();
     }
-    gp.LogDenX = ImLog10(gp.CurrentPlot->XAxis.Range.Max / gp.CurrentPlot->XAxis.Range.Min);
+    gp.LogDenX = plot.XAxis.IsLog() ? ImLog10(plot.XAxis.Range.Max / plot.XAxis.Range.Min) : 0;
     for (int i = 0; i < IMPLOT_Y_AXES; i++)
-        gp.LogDenY[i] = ImLog10(gp.CurrentPlot->YAxis[i].Range.Max / gp.CurrentPlot->YAxis[i].Range.Min);
-    gp.Mx = (gp.PixelRange[0].Max.x - gp.PixelRange[0].Min.x) / gp.CurrentPlot->XAxis.Range.Size();
+        gp.LogDenY[i] = plot.YAxis[i].IsLog() ? ImLog10(plot.YAxis[i].Range.Max / plot.YAxis[i].Range.Min) : 0;
+    gp.Mx = (gp.PixelRange[0].Max.x - gp.PixelRange[0].Min.x) / plot.XAxis.Range.Size();
 }
 
 ImPlotPoint PixelsToPlot(float x, float y, ImPlotYAxis y_axis_in) {
     ImPlotContext& gp = *GImPlot;
+    ImPlotPlot& plot = *gp.CurrentPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() needs to be called between BeginPlot() and EndPlot()!");
-    const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
+    const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : plot.CurrentYAxis;
     ImPlotPoint plt;
-    plt.x = (x - gp.PixelRange[y_axis].Min.x) / gp.Mx + gp.CurrentPlot->XAxis.Range.Min;
-    plt.y = (y - gp.PixelRange[y_axis].Min.y) / gp.My[y_axis] + gp.CurrentPlot->YAxis[y_axis].Range.Min;
-    if (ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale)) {
-        double t = (plt.x - gp.CurrentPlot->XAxis.Range.Min) / gp.CurrentPlot->XAxis.Range.Size();
-        plt.x = ImPow(10, t * gp.LogDenX) * gp.CurrentPlot->XAxis.Range.Min;
+    plt.x = (x - gp.PixelRange[y_axis].Min.x) / gp.Mx + plot.XAxis.Range.Min;
+    plt.y = (y - gp.PixelRange[y_axis].Min.y) / gp.My[y_axis] + plot.YAxis[y_axis].Range.Min;
+    if (ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_LogScale)) {
+        double t = (plt.x - plot.XAxis.Range.Min) / plot.XAxis.Range.Size();
+        plt.x = ImPow(10, t * gp.LogDenX) * plot.XAxis.Range.Min;
     }
-    if (ImHasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale)) {
-        double t = (plt.y - gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.CurrentPlot->YAxis[y_axis].Range.Size();
-        plt.y = ImPow(10, t * gp.LogDenY[y_axis]) * gp.CurrentPlot->YAxis[y_axis].Range.Min;
+    if (ImHasFlag(plot.YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale)) {
+        double t = (plt.y - plot.YAxis[y_axis].Range.Min) / plot.YAxis[y_axis].Range.Size();
+        plt.y = ImPow(10, t * gp.LogDenY[y_axis]) * plot.YAxis[y_axis].Range.Min;
     }
     return plt;
 }
@@ -570,26 +576,26 @@ ImPlotPoint PixelsToPlot(const ImVec2& pix, ImPlotYAxis y_axis) {
     return PixelsToPlot(pix.x, pix.y, y_axis);
 }
 
-// This function is convenient but should not be used to process a high volume of points. Use the Transformer structs below instead.
 ImVec2 PlotToPixels(double x, double y, ImPlotYAxis y_axis_in) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() needs to be called between BeginPlot() and EndPlot()!");
     const ImPlotYAxis y_axis = y_axis_in >= 0 ? y_axis_in : gp.CurrentPlot->CurrentYAxis;
     ImVec2 pix;
     if (ImHasFlag(gp.CurrentPlot->XAxis.Flags, ImPlotAxisFlags_LogScale)) {
+        x        = x <= 0.0 ? IMPLOT_LOG_ZERO : x;
         double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
-        x       = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
+        x        = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
     }
     if (ImHasFlag(gp.CurrentPlot->YAxis[y_axis].Flags, ImPlotAxisFlags_LogScale)) {
+        y        = y <= 0.0 ? IMPLOT_LOG_ZERO : y;
         double t = ImLog10(y / gp.CurrentPlot->YAxis[y_axis].Range.Min) / gp.LogDenY[y_axis];
-        y       = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, (float)t);
+        y        = ImLerp(gp.CurrentPlot->YAxis[y_axis].Range.Min, gp.CurrentPlot->YAxis[y_axis].Range.Max, (float)t);
     }
     pix.x = (float)(gp.PixelRange[y_axis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min));
     pix.y = (float)(gp.PixelRange[y_axis].Min.y + gp.My[y_axis] * (y - gp.CurrentPlot->YAxis[y_axis].Range.Min));
     return pix;
 }
 
-// This function is convenient but should not be used to process a high volume of points. Use the Transformer structs below instead.
 ImVec2 PlotToPixels(const ImPlotPoint& plt, ImPlotYAxis y_axis) {
     return PlotToPixels(plt.x, plt.y, y_axis);
 }
@@ -1457,10 +1463,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     // Initialization ------------------------------------------------------------
 
     if (!plot.Initialized) {
-        if (!ImHasFlag(plot.XAxis.Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasXRange)
+        if (!ImHasFlag(plot.XAxis.Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasXRange && !gp.NextPlotData.LinkedXmin && !gp.NextPlotData.LinkedXmax)
             gp.FitThisFrame = gp.FitX = true;
         for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
-            if (!ImHasFlag(plot.YAxis[i].Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasYRange[i])
+            if (!ImHasFlag(plot.YAxis[i].Flags,ImPlotAxisFlags_NoInitialFit) && !gp.NextPlotData.HasYRange[i] && !gp.NextPlotData.LinkedYmin[i] && !gp.NextPlotData.LinkedYmax[i])
                 gp.FitThisFrame = gp.FitY[i] = true;
         }
     }
@@ -1492,8 +1498,15 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     if (ImHasFlag(plot.Flags, ImPlotFlags_Equal)) {
         double xar = plot.XAxis.GetAspect();
         double yar = plot.YAxis[0].GetAspect();
-        if (!ImAlmostEqual(xar,yar) && !plot.YAxis[0].IsInputLocked())
-            plot.XAxis.SetAspect(yar);
+        // edge case: user has set x range this frame, so fit y to x so that we honor their request for x range
+        // NB: because of feedback across several frames, the user's x request may not be perfectly honored
+        if (gp.NextPlotData.HasXRange) {
+            plot.YAxis[0].SetAspect(xar);
+        }
+        else {
+            if (!ImAlmostEqual(xar,yar) && !plot.YAxis[0].IsInputLocked())
+                plot.XAxis.SetAspect(yar);
+        }
     }
 
     // AXIS COLORS -----------------------------------------------------------------
@@ -1581,8 +1594,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     const bool show_x_label = x_label && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoLabel);
 
     float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
-    float pad_bot = (plot.XAxis.IsLabeled() ? txt_height + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
-                        + (show_x_label ? txt_height + gp.Style.LabelPadding.y : 0);
+    float pad_bot = (plot.XAxis.IsLabeled() ? ImMax(txt_height, gp.XTicks.MaxHeight) + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
+                  + (show_x_label ? txt_height + gp.Style.LabelPadding.y : 0);
 
     // (1*) align plots group
     if (gp.CurrentAlignmentH) 
@@ -2464,7 +2477,7 @@ void EndPlot() {
 
     // reset legend hovers
     plot.LegendHovered = false;
-    for (int i = 0; i < plot.Items.GetSize(); ++i)
+    for (int i = 0; i < plot.Items.GetBufSize(); ++i)
         plot.Items.GetByIndex(i)->LegendHovered = false;
     // render legend
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.GetLegendCount() > 0) {
@@ -2596,7 +2609,7 @@ void EndPlot() {
 
 
     // reset the plot items for the next frame
-    for (int i = 0; i < plot.Items.GetSize(); ++i) {
+    for (int i = 0; i < plot.Items.GetBufSize(); ++i) {
         plot.Items.GetByIndex(i)->SeenThisFrame = false;
     }
 
@@ -2623,16 +2636,19 @@ void NextSubplot() {
     if (subplot.CurrentIdx % subplot.Cols != 0) {
         ImGui::SameLine();    
     }
+    const bool lx = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX);
+    const bool ly = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
     const bool lr = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
     const bool lc = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
-
     if (subplot.CurrentIdx < subplot.Rows*subplot.Cols) {
-        gp.CurrentAlignmentH = &subplot.RowAlignmentData[r];
-        gp.CurrentAlignmentV = &subplot.ColAlignmentData[c];
-        LinkNextPlotLimits(lc ? &subplot.ColLinkData[c].Min : NULL,
-                           lc ? &subplot.ColLinkData[c].Max : NULL,
-                           lr ? &subplot.RowLinkData[r].Min : NULL,
-                           lr ? &subplot.RowLinkData[r].Max : NULL);
+        if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign)) {
+            gp.CurrentAlignmentH = &subplot.RowAlignmentData[r];
+            gp.CurrentAlignmentV = &subplot.ColAlignmentData[c];
+        }
+        LinkNextPlotLimits(lx ? &subplot.ColLinkData[0].Min : lc ? &subplot.ColLinkData[c].Min : NULL,
+                           lx ? &subplot.ColLinkData[0].Max : lc ? &subplot.ColLinkData[c].Max : NULL,
+                           ly ? &subplot.RowLinkData[0].Min : lr ? &subplot.RowLinkData[r].Min : NULL,
+                           ly ? &subplot.RowLinkData[0].Max : lr ? &subplot.RowLinkData[r].Max : NULL);
     }
     else {
         gp.CurrentAlignmentH = NULL;
@@ -2642,7 +2658,7 @@ void NextSubplot() {
     ImGui::PushID(subplot.CurrentIdx);
 }
 
-bool BeginSubplot(const char* id, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags) {
+bool BeginSubplots(const char* id, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags) {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot == NULL, "Mismatched BeginSubplot()/EndSubplot()!");
     ImPlotContext& gp = *GImPlot;
@@ -2679,22 +2695,25 @@ bool BeginSubplot(const char* id, int rows, int cols, const ImVec2& size, ImPlot
     for (int c = 0; c < subplot.Cols; ++c)
         subplot.ColAlignmentData[c].Begin();
     // begin links
+    const bool lx = ImHasFlag(flags, ImPlotSubplotFlags_LinkAllX);
+    const bool ly = ImHasFlag(flags, ImPlotSubplotFlags_LinkAllY);
     const bool lr = ImHasFlag(flags, ImPlotSubplotFlags_LinkRows);
     const bool lc = ImHasFlag(flags, ImPlotSubplotFlags_LinkCols);
-    LinkNextPlotLimits(lc ? &subplot.ColLinkData[0].Min : NULL,
-                       lc ? &subplot.ColLinkData[0].Max : NULL,
-                       lr ? &subplot.RowLinkData[0].Min : NULL,
-                       lr ? &subplot.RowLinkData[0].Max : NULL);
+    LinkNextPlotLimits(lx || lc ? &subplot.ColLinkData[0].Min : NULL,
+                       lx || lc ? &subplot.ColLinkData[0].Max : NULL,
+                       ly || lr ? &subplot.RowLinkData[0].Min : NULL,
+                       ly || lr ? &subplot.RowLinkData[0].Max : NULL);
     // set initial alignment data
-    gp.CurrentAlignmentH = &subplot.RowAlignmentData[0];
-    gp.CurrentAlignmentV = &subplot.ColAlignmentData[0];
+    if (!ImHasFlag(flags, ImPlotSubplotFlags_NoAlign)) {
+        gp.CurrentAlignmentH = &subplot.RowAlignmentData[0];
+        gp.CurrentAlignmentV = &subplot.ColAlignmentData[0];
+    }
     // calc plot frame sizes
     const ImVec2 frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
     const ImRect rect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
     const ImVec2 spacing = ImGui::GetStyle().ItemSpacing;
     subplot.PlotFrameSize.x = (frame_size.x - (cols - 1) * spacing.x) / cols;
     subplot.PlotFrameSize.y = (frame_size.y - (rows - 1) * spacing.y) / rows;
-
     // render single background frame
     if (!ImHasFlag(flags, ImPlotSubplotFlags_MultiFrame)) {
         ImGui::RenderFrame(rect.Min, rect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, ImGui::GetStyle().FrameRounding);
@@ -2703,6 +2722,8 @@ bool BeginSubplot(const char* id, int rows, int cols, const ImVec2& size, ImPlot
         // PushStyleVar(ImPlotStyleVar_PlotPadding, gp.Style.PlotPadding/2);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);
     }
+    if (ImHasFlag(flags, ImPlotSubplotFlags_Tight))
+        PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
     // push style vars for upcomming plots
     PushStyleVar(ImPlotStyleVar_PlotMinSize, ImVec2(0,0));
     // push ID
@@ -2711,7 +2732,7 @@ bool BeginSubplot(const char* id, int rows, int cols, const ImVec2& size, ImPlot
     return true;
 }
 
-void EndSubplot() {
+void EndSubplots() {
 
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot != NULL, "Mismatched BeginSubplot()/EndSubplot()!");
@@ -2727,6 +2748,8 @@ void EndSubplot() {
         // PopStyleVar();
         ImGui::PopStyleVar();
     }
+    if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_Tight))
+        PopStyleVar();
     // pop style vars 
     PopStyleVar();
     // pop ID
@@ -3615,7 +3638,7 @@ int GetColormapSize(ImPlotColormap cmap) {
     ImPlotContext& gp = *GImPlot;
     cmap = cmap == IMPLOT_AUTO ? gp.Style.Colormap : cmap;
     IM_ASSERT_USER_ERROR(cmap >= 0 && cmap < gp.ColormapData.Count, "Invalid colormap index!");
-    return gp.ColormapData.GetKeyCount(gp.Style.Colormap);
+    return gp.ColormapData.GetKeyCount(cmap);
 }
 
 ImU32 GetColormapColorU32(int idx, ImPlotColormap cmap) {
@@ -3634,7 +3657,7 @@ ImU32  SampleColormapU32(float t, ImPlotColormap cmap) {
     ImPlotContext& gp = *GImPlot;
     cmap = cmap == IMPLOT_AUTO ? gp.Style.Colormap : cmap;
     IM_ASSERT_USER_ERROR(cmap >= 0 && cmap < gp.ColormapData.Count, "Invalid colormap index!");
-    return gp.ColormapData.LerpTable(gp.Style.Colormap,t);
+    return gp.ColormapData.LerpTable(cmap, t);
 }
 
 ImVec4 SampleColormap(float t, ImPlotColormap cmap) {
@@ -4171,14 +4194,14 @@ void ShowMetricsWindow(bool* p_popen) {
         ImGui::Checkbox("Show Axes Rects", &show_axes_rects);
         ImGui::TreePop();
     }
-    const int n_plots = gp.Plots.GetSize();
+    const int n_plots = gp.Plots.GetBufSize();
     if (ImGui::TreeNode("Plots","Plots (%d)", n_plots)) {
         for (int p = 0; p < n_plots; ++p) {
             // plot
             ImPlotPlot* plot = gp.Plots.GetByIndex(p);
             ImGui::PushID(p);
             if (ImGui::TreeNode("Plot", "Plot [ID=%u]", plot->ID)) {
-                int n_items = plot->Items.GetSize();
+                int n_items = plot->Items.GetBufSize();
                 if (ImGui::TreeNode("Items", "Items (%d)", n_items)) {
                     for (int i = 0; i < n_items; ++i) {
                         ImPlotItem* item = plot->Items.GetByIndex(i);

@@ -59,6 +59,8 @@
 #define IMPLOT_MAX_TIME  32503680000
 // Default label format for axis labels
 #define IMPLOT_LABEL_FMT "%g"
+// Plot values less than or equal to 0 will be replaced with this on log scale axes
+#define IMPLOT_LOG_ZERO DBL_MIN
 
 //-----------------------------------------------------------------------------
 // [SECTION] Macros
@@ -666,11 +668,11 @@ struct ImPlotAxis
     void Constrain() {
         Range.Min = ImConstrainNan(ImConstrainInf(Range.Min));
         Range.Max = ImConstrainNan(ImConstrainInf(Range.Max));
-        if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale)) {
+        if (IsLog()) {
             Range.Min = ImConstrainLog(Range.Min);
             Range.Max = ImConstrainLog(Range.Max);
         }
-        if (ImHasFlag(Flags, ImPlotAxisFlags_Time)) {
+        if (IsTime()) {
             Range.Min = ImConstrainTime(Range.Min);
             Range.Max = ImConstrainTime(Range.Max);
         }

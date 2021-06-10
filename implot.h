@@ -88,7 +88,11 @@ enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_None        = 0,      // default
     ImPlotSubplotFlags_LinkRows    = 1 << 0, // min/max limits of each plot y-axis on each row will be automatically linked
     ImPlotSubplotFlags_LinkCols    = 1 << 1, // min/max limits of each plot x-axis on each column will be automatically linked
-    ImPlotSubplotFlags_MultiFrame  = 1 << 2, // a background frame will be rendered for each plot instead of a single frame
+    ImPlotSubplotFlags_LinkAllX    = 1 << 2, // link all x-axes in every plot (overrides _LinkCols)
+    ImPlotSubplotFlags_LinkAllY    = 1 << 3, // link all y-axes in every plot (overrides _LinkRows)
+    ImPlotSubplotFlags_MultiFrame  = 1 << 4, // a background frame will be rendered for each plot instead of a single frame
+    ImPlotSubplotFlags_Tight       = 1 << 5, // tight layout, i.e. no margines between plots
+    ImPlotSubplotFlags_NoAlign     = 1 << 6  // subplot edges will not be aligned vertically or horizontally
 };
 
 // Options for plot axes (X and Y).
@@ -390,16 +394,16 @@ IMPLOT_API bool BeginPlot(const char* title_id,
 IMPLOT_API void EndPlot();
 
 //-----------------------------------------------------------------------------
-// Begin/EndSubplot
+// Begin/EndSubplots
 //-----------------------------------------------------------------------------
 
-IMPLOT_API bool BeginSubplot(const char* id,
+IMPLOT_API bool BeginSubplots(const char* id,
                              int rows,
                              int cols,
                              const ImVec2& size,
                              ImPlotSubplotFlags flags = ImPlotSubplotFlags_None);
 
-IMPLOT_API void EndSubplot();
+IMPLOT_API void EndSubplots();
 
 //-----------------------------------------------------------------------------
 // Plot Items

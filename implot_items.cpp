@@ -42,10 +42,16 @@
         }                                                                                          \
     }
 
-// Support for pre-1.82 version. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
+// Support for pre-1.82 versions. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
 #if (IMGUI_VERSION_NUM < 18102) && !defined(ImDrawFlags_RoundCornersAll)
 #define ImDrawFlags_RoundCornersAll ImDrawCornerFlags_All
 #endif
+
+// Support for pre-1.84 versions. ImPool's GetSize() -> GetBufSize()
+#if (IMGUI_VERSION_NUM < 18303)
+#define GetBufSize GetSize          // A little bit ugly since 'GetBufSize' could technically be used elsewhere (but currently isn't). Could use a proxy define if needed.
+#endif
+
 
 namespace ImPlot {
 
@@ -132,7 +138,7 @@ void HideNextItem(bool hidden, ImGuiCond cond) {
 
 void BustItemCache() {
     ImPlotContext& gp = *GImPlot;
-    for (int p = 0; p < gp.Plots.GetSize(); ++p) {
+    for (int p = 0; p < gp.Plots.GetBufSize(); ++p) {
         ImPlotPlot& plot = *gp.Plots.GetByIndex(p);
         plot.ColormapIdx = 0;
         plot.Items.Clear();
@@ -429,8 +435,9 @@ struct TransformerLogLin {
     TransformerLogLin() : YAxis(GetCurrentYAxis()) {}
     inline ImVec2 operator()(const ImPlotPoint& plt) const {
         ImPlotContext& gp = *GImPlot;
-        double t = ImLog10(plt.x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
-        double x = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
+        double x = plt.x <= 0.0 ? IMPLOT_LOG_ZERO : plt.x;
+        double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+               x = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
         return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
                        (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (plt.y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
@@ -442,8 +449,9 @@ struct TransformerLinLog {
     TransformerLinLog() : YAxis(GetCurrentYAxis()) {}
     inline ImVec2 operator()(const ImPlotPoint& plt) const {
         ImPlotContext& gp = *GImPlot;
-        double t = ImLog10(plt.y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
-        double y = ImLerp(gp.CurrentPlot->YAxis[YAxis].Range.Min, gp.CurrentPlot->YAxis[YAxis].Range.Max, (float)t);
+        double y = plt.y <= 0.0 ? IMPLOT_LOG_ZERO : plt.y;
+        double t = ImLog10(y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
+               y = ImLerp(gp.CurrentPlot->YAxis[YAxis].Range.Min, gp.CurrentPlot->YAxis[YAxis].Range.Max, (float)t);
         return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (plt.x - gp.CurrentPlot->XAxis.Range.Min)),
                        (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
@@ -455,10 +463,12 @@ struct TransformerLogLog {
     TransformerLogLog() : YAxis(GetCurrentYAxis()) {}
     inline ImVec2 operator()(const ImPlotPoint& plt) const {
         ImPlotContext& gp = *GImPlot;
-        double t = ImLog10(plt.x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
-        double x = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
-               t = ImLog10(plt.y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
-        double y = ImLerp(gp.CurrentPlot->YAxis[YAxis].Range.Min, gp.CurrentPlot->YAxis[YAxis].Range.Max, (float)t);
+        double x = plt.x <= 0.0 ? IMPLOT_LOG_ZERO : plt.x;
+        double y = plt.y <= 0.0 ? IMPLOT_LOG_ZERO : plt.y;
+        double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
+               x = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
+               t = ImLog10(y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
+               y = ImLerp(gp.CurrentPlot->YAxis[YAxis].Range.Min, gp.CurrentPlot->YAxis[YAxis].Range.Max, (float)t);
         return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
                        (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
     }
@@ -885,9 +895,10 @@ inline void RenderMarkers(Getter getter, Transformer transformer, ImDrawList& Dr
         RenderMarkerAsterisk
     };
     ImPlotContext& gp = *GImPlot;
+    const ImRect& rect = gp.CurrentPlot->PlotRect;
     for (int i = 0; i < getter.Count; ++i) {
         ImVec2 c = transformer(getter(i));
-        if (gp.CurrentPlot->PlotRect.Contains(c))
+        if (c.x >= rect.Min.x && c.y >= rect.Min.y && c.x <= rect.Max.x && c.y <= rect.Max.y)
             marker_table[marker](DrawList, c, size, rend_mk_line, col_mk_line, rend_mk_fill, col_mk_fill, weight);
     }
 }
@@ -1719,6 +1730,10 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
         double percent = normalize ? (double)values[i] / sum : (double)values[i];
         a1 = a0 + 2 * IM_PI * percent;
         if (BeginItem(label_ids[i])) {
+            if (FitThisFrame()) {
+                FitPoint(ImPlotPoint(x-radius,y-radius));
+                FitPoint(ImPlotPoint(x+radius,y+radius));
+            }
             ImU32 col = GetCurrentItem()->Color;
             if (percent < 0.5) {
                 RenderPieSlice(DrawList, center, radius, a0, a1, col);
