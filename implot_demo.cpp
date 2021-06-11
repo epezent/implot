@@ -977,9 +977,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::SliderInt("Cols",&cols,1,5);
         if (ImPlot::BeginSubplots("Subplots", rows, cols, ImVec2(800,600), flags)) {
             for (int i = 0; i < rows*cols; ++i) {
-                char buffer[16];
-                sprintf(buffer,"Subplot %d",i);
-                if (ImPlot::BeginPlot(buffer,"X","Y")) {
+                if (ImPlot::BeginPlot("")) {
                     
                     ImPlot::EndPlot();
                 }

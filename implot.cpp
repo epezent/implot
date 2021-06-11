@@ -1350,13 +1350,6 @@ static inline void RenderSelectionRect(ImDrawList& DrawList, const ImVec2& p_min
 }
 
 //-----------------------------------------------------------------------------
-// Utils
-//-----------------------------------------------------------------------------
-
-
-
-
-//-----------------------------------------------------------------------------
 // BeginPlot()
 //-----------------------------------------------------------------------------
 
@@ -2017,19 +2010,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     if (title_size.x > 0.0f && !ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)) {
         ImU32 col = GetStyleColorU32(ImPlotCol_TitleText);
         AddTextCentered(&DrawList,ImVec2(plot.PlotRect.GetCenter().x, plot.CanvasRect.Min.y),col,title);
-
-        // const char* title_beg = title;
-        // const char* title_end = ImGui::FindRenderedTextEnd(title);
-        // ImVec2 text_size;
-        // float  y = 0;
-        // while (const char* tmp = (const char*)memchr(title_beg, '\n', title_end-title_beg)) {
-        //     text_size = ImGui::CalcTextSize(title_beg,tmp,true);
-        //     DrawList.AddText(ImVec2(plot.PlotRect.GetCenter().x - text_size.x * 0.5f, plot.CanvasRect.Min.y+y),col,title_beg,tmp);
-        //     title_beg = tmp + 1;
-        //     y += txt_height;
-        // }
-        // text_size = ImGui::CalcTextSize(title_beg,title_end,true);
-        // DrawList.AddText(ImVec2(plot.PlotRect.GetCenter().x - text_size.x * 0.5f, plot.CanvasRect.Min.y+y),col,title_beg,title_end);
     }
 
     // render axis labels
@@ -2654,11 +2634,12 @@ void NextSubplot() {
         gp.CurrentAlignmentH = NULL;
         gp.CurrentAlignmentV = NULL;
     }
+    // if next plot is the last, pop items spacing
     ImGui::PopID();
     ImGui::PushID(subplot.CurrentIdx);
 }
 
-bool BeginSubplots(const char* id, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags) {
+bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags) {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot == NULL, "Mismatched BeginSubplot()/EndSubplot()!");
     ImPlotContext& gp = *GImPlot;
@@ -2666,12 +2647,19 @@ bool BeginSubplots(const char* id, int rows, int cols, const ImVec2& size, ImPlo
     ImGuiWindow * Window = G.CurrentWindow;
     if (Window->SkipItems)
         return false;
-    const ImGuiID ID = Window->GetID(id);
+    const ImGuiID ID = Window->GetID(title);
     gp.CurrentSubplot = gp.Subplots.GetOrAddByKey(ID);
     ImPlotSubplot& subplot = *gp.CurrentSubplot;
-    
     subplot.ID    = ID;
     subplot.Flags = flags;
+
+    ImVec2 title_size(0.0f, 0.0f);
+    const float txt_height = ImGui::GetTextLineHeight();
+    if (!ImHasFlag(flags, ImPlotSubplotFlags_NoTitle))
+         title_size = ImGui::CalcTextSize(title, NULL, true);    
+    const float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
+    
+
     if (subplot.Rows != rows || subplot.Cols != cols) {
         subplot.RowAlignmentData.resize(rows);
         subplot.RowLinkData.resize(rows);
