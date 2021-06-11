@@ -815,7 +815,9 @@ struct ImPlotSubplot {
     int                           Rows;
     int                           Cols;
     int                           CurrentIdx;
-    ImVec2                        PlotFrameSize;
+    ImRect                        FrameRect;
+    ImVec2                        Pos;
+    ImVec2                        CellSize;
     ImVector<ImPlotAlignmentData> RowAlignmentData;
     ImVector<ImPlotAlignmentData> ColAlignmentData;
     ImVector<ImPlotRange>         RowLinkData;

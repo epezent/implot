@@ -1415,7 +1415,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoChild)) {
         ImVec2 child_size;
         if (gp.CurrentSubplot != NULL)
-            child_size = gp.CurrentSubplot->PlotFrameSize;
+            child_size = gp.CurrentSubplot->CellSize;
         else
             child_size = ImVec2(size.x == 0 ? gp.Style.PlotDefaultSize.x : size.x, size.y == 0 ? gp.Style.PlotDefaultSize.y : size.y);
         ImGui::BeginChild(title, child_size, false, ImGuiWindowFlags_NoScrollbar);
@@ -1514,7 +1514,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     // frame size
     ImVec2 frame_size;
     if (gp.CurrentSubplot != NULL) {
-        frame_size = gp.CurrentSubplot->PlotFrameSize;
+        frame_size = gp.CurrentSubplot->CellSize;
     }
     else {
         frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
@@ -2612,15 +2612,13 @@ void NextSubplot() {
     subplot.CurrentIdx++;
     int r = subplot.CurrentIdx / subplot.Cols;
     int c = subplot.CurrentIdx % subplot.Cols;
-    IM_ASSERT_USER_ERROR(subplot.CurrentIdx <= subplot.Rows*subplot.Cols, "You rendered more plots in the subplot than you said you would!");
-    if (subplot.CurrentIdx % subplot.Cols != 0) {
-        ImGui::SameLine();    
-    }
-    const bool lx = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX);
-    const bool ly = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
-    const bool lr = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
-    const bool lc = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
+    IM_ASSERT_USER_ERROR(subplot.CurrentIdx <= subplot.Rows*subplot.Cols, "You rendered more plots in the subplot than you said you would!");   
     if (subplot.CurrentIdx < subplot.Rows*subplot.Cols) {
+        ImGui::GetCurrentWindow()->DC.CursorPos = subplot.Pos + ImVec2(subplot.CellSize.x * c,0) + ImVec2(0,subplot.CellSize.y*r);
+        const bool lx = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX);
+        const bool ly = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
+        const bool lr = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
+        const bool lc = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
         if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign)) {
             gp.CurrentAlignmentH = &subplot.RowAlignmentData[r];
             gp.CurrentAlignmentV = &subplot.ColAlignmentData[c];
@@ -2652,6 +2650,10 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     ImPlotSubplot& subplot = *gp.CurrentSubplot;
     subplot.ID    = ID;
     subplot.Flags = flags;
+
+    const ImVec2 half_pad = gp.Style.PlotPadding/2;
+
+    subplot.Pos = Window->DC.CursorPos + half_pad;
 
     ImVec2 title_size(0.0f, 0.0f);
     const float txt_height = ImGui::GetTextLineHeight();
@@ -2698,30 +2700,25 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     }
     // calc plot frame sizes
     const ImVec2 frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
-    const ImRect rect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
-    const ImVec2 spacing = ImGui::GetStyle().ItemSpacing;
-    subplot.PlotFrameSize.x = (frame_size.x - (cols - 1) * spacing.x) / cols;
-    subplot.PlotFrameSize.y = (frame_size.y - (rows - 1) * spacing.y) / rows;
+    subplot.FrameRect = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
+    subplot.CellSize.x = (frame_size.x - gp.Style.PlotPadding.x) / cols;
+    subplot.CellSize.y = (frame_size.y - gp.Style.PlotPadding.y) / rows;
     // render single background frame
-    if (!ImHasFlag(flags, ImPlotSubplotFlags_MultiFrame)) {
-        ImGui::RenderFrame(rect.Min, rect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, ImGui::GetStyle().FrameRounding);
-        // make next plots have no bg unless user pushes one
-        PushStyleColor(ImPlotCol_FrameBg, IM_COL32_BLACK_TRANS);
-        // PushStyleVar(ImPlotStyleVar_PlotPadding, gp.Style.PlotPadding/2);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);
-    }
-    if (ImHasFlag(flags, ImPlotSubplotFlags_Tight))
-        PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
-    // push style vars for upcomming plots
+    ImGui::RenderFrame(subplot.FrameRect.Min, subplot.FrameRect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, ImGui::GetStyle().FrameRounding);
+    // push styling
+    PushStyleColor(ImPlotCol_FrameBg, IM_COL32_BLACK_TRANS);
+    PushStyleVar(ImPlotStyleVar_PlotPadding, half_pad);
     PushStyleVar(ImPlotStyleVar_PlotMinSize, ImVec2(0,0));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);  
     // push ID
     ImGui::PushID(ID); // push subplot id
     ImGui::PushID(0);
+    // set cursor pos
+    Window->DC.CursorPos = subplot.Pos;
     return true;
 }
 
 void EndSubplots() {
-
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot != NULL, "Mismatched BeginSubplot()/EndSubplot()!");
     ImPlotSubplot& subplot = *GImPlot->CurrentSubplot;
@@ -2730,19 +2727,17 @@ void EndSubplots() {
         subplot.RowAlignmentData[r].End();
     for (int c = 0; c < subplot.Cols; ++c)
         subplot.ColAlignmentData[c].End();
-    // pop frame color bg/size
-    if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_MultiFrame)) {
-        PopStyleColor();
-        // PopStyleVar();
-        ImGui::PopStyleVar();
-    }
-    if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_Tight))
-        PopStyleVar();
-    // pop style vars 
+    // pop styling
+    PopStyleColor(); 
+    PopStyleVar();   
     PopStyleVar();
+    ImGui::PopStyleVar();
     // pop ID
     ImGui::PopID(); // pop subplit idx
     ImGui::PopID(); // pop subplot id
+    // set DC back correctly
+    GImGui->CurrentWindow->DC.CursorPos = subplot.FrameRect.Min;
+    ImGui::Dummy(subplot.FrameRect.GetSize());
     ResetCtxForNextSubplot(GImPlot);
 }
 

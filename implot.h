@@ -85,16 +85,15 @@ enum ImPlotFlags_ {
 
 // Options for subplots
 enum ImPlotSubplotFlags_ {
-    ImPlotSubplotFlags_None         = 0,      // default
-    ImPlotSubplotFlags_NoTitle      = 1 << 0,
-    ImPlotSubplotFlags_LinkRows     = 1 << 1, // min/max limits of each plot y-axis on each row will be automatically linked
-    ImPlotSubplotFlags_LinkCols     = 1 << 2, // min/max limits of each plot x-axis on each column will be automatically linked
-    ImPlotSubplotFlags_LinkAllX     = 1 << 3, // link all x-axes in every plot (overrides _LinkCols)
-    ImPlotSubplotFlags_LinkAllY     = 1 << 4, // link all y-axes in every plot (overrides _LinkRows)
-    ImPlotSubplotFlags_MultiFrame   = 1 << 5, // a background frame will be rendered for each plot instead of a single frame
-    ImPlotSubplotFlags_Tight        = 1 << 6, // tight layout, i.e. no margines between plots
-    ImPlotSubplotFlags_NoAlign      = 1 << 7,  // subplot edges will not be aligned vertically or horizontally
-    ImPlotSubplotFlags_SharedLegend = 1 << 8,
+    ImPlotSubplotFlags_None             = 0,      // default
+    ImPlotSubplotFlags_NoTitle          = 1 << 0,
+    ImPlotSubplotFlags_LinkRows         = 1 << 1, // min/max limits of each plot y-axis on each row will be automatically linked
+    ImPlotSubplotFlags_LinkCols         = 1 << 2, // min/max limits of each plot x-axis on each column will be automatically linked
+    ImPlotSubplotFlags_LinkAllX         = 1 << 3, // link all x-axes in every plot (overrides _LinkCols)
+    ImPlotSubplotFlags_LinkAllY         = 1 << 4, // link all y-axes in every plot (overrides _LinkRows)
+    ImPlotSubplotFlags_NoAlign          = 1 << 7,  // subplot edges will not be aligned vertically or horizontally
+    ImPlotSubplotFlags_SharedLegend     = 1 << 8,
+    ImPlotSubplotFlags_SharedCrosshairs = 1 << 9
 };
 
 // Options for plot axes (X and Y).

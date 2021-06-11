@@ -967,18 +967,17 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::CheckboxFlags("ImPlotSubplotFlags_LinkCols", (unsigned int*)&flags, ImPlotSubplotFlags_LinkCols);
         ImGui::CheckboxFlags("ImPlotSubplotFlags_LinkAllX", (unsigned int*)&flags, ImPlotSubplotFlags_LinkAllX);
         ImGui::CheckboxFlags("ImPlotSubplotFlags_LinkAllY", (unsigned int*)&flags, ImPlotSubplotFlags_LinkAllY);
-        ImGui::CheckboxFlags("ImPlotSubplotFlags_Tight", (unsigned int*)&flags, ImPlotSubplotFlags_Tight);
-        ImGui::CheckboxFlags("ImPlotSubplotFlags_MultiFrame", (unsigned int*)&flags, ImPlotSubplotFlags_MultiFrame);
         ImGui::CheckboxFlags("ImPlotSubplotFlags_NoAlign", (unsigned int*)&flags, ImPlotSubplotFlags_NoAlign);
 
         static int rows = 2;
         static int cols = 2;
         ImGui::SliderInt("Rows",&rows,1,5);
         ImGui::SliderInt("Cols",&cols,1,5);
-        if (ImPlot::BeginSubplots("Subplots", rows, cols, ImVec2(800,600), flags)) {
+        static MyImPlot::WaveData wd(1,1,10,0);
+        if (ImPlot::BeginSubplots("Subplots", rows, cols, ImVec2(600,450), flags)) {
             for (int i = 0; i < rows*cols; ++i) {
-                if (ImPlot::BeginPlot("")) {
-                    
+                if (ImPlot::BeginPlot("title","x-axis","y-axis",ImVec2(0,0),0,ImPlotAxisFlags_NoTickLabels,ImPlotAxisFlags_NoTickLabels)) {
+                    ImPlot::PlotLineG("data",MyImPlot::SineWave,&wd,1000);
                     ImPlot::EndPlot();
                 }
             }
