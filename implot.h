@@ -91,9 +91,9 @@ enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_LinkCols         = 1 << 2, // min/max limits of each plot x-axis on each column will be automatically linked
     ImPlotSubplotFlags_LinkAllX         = 1 << 3, // link all x-axes in every plot (overrides _LinkCols)
     ImPlotSubplotFlags_LinkAllY         = 1 << 4, // link all y-axes in every plot (overrides _LinkRows)
-    ImPlotSubplotFlags_NoAlign          = 1 << 7,  // subplot edges will not be aligned vertically or horizontally
-    ImPlotSubplotFlags_SharedLegend     = 1 << 8,
-    ImPlotSubplotFlags_SharedCrosshairs = 1 << 9
+    ImPlotSubplotFlags_NoAlign          = 1 << 5, // subplot edges will not be aligned vertically or horizontally
+    ImPlotSubplotFlags_SharedLegend     = 1 << 6, // all subplots will share a common legend
+    ImPlotSubplotFlags_SharedCrosshairs = 1 << 7, 
 };
 
 // Options for plot axes (X and Y).
@@ -398,11 +398,27 @@ IMPLOT_API void EndPlot();
 // Begin/EndSubplots
 //-----------------------------------------------------------------------------
 
+// Starts a subdivided plotting context. If the function returns true,
+// EndSubplots() MUST be called! Call BeginPlot/EndPlot [rows*cols] times.
+// Plots are added in row major order. Example:
+
+// if (BeginSubplots("My Subplot",2,3, ImVec2(800,600)) {
+//     for (int i = 0; i < 6; ++i) {
+//         if (BeginPlot(...)) {
+//             ...
+//             EndPlot();
+//         }
+//     }
+//     EndSubplots();
+// }
+
 IMPLOT_API bool BeginSubplots(const char* title_id,
                              int rows,
                              int cols,
                              const ImVec2& size,
-                             ImPlotSubplotFlags flags = ImPlotSubplotFlags_None);
+                             ImPlotSubplotFlags flags = ImPlotSubplotFlags_None,
+                             float* row_sizes = NULL,
+                             float* col_sizes = NULL);
 
 IMPLOT_API void EndSubplots();
 

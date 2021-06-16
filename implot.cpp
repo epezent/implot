@@ -1513,16 +1513,15 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     // frame size
     ImVec2 frame_size;
-    if (gp.CurrentSubplot != NULL) {
-        frame_size = gp.CurrentSubplot->CellSize;
-    }
-    else {
-        frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
-        if (frame_size.x < gp.Style.PlotMinSize.x && size.x < 0.0f)
-            frame_size.x = gp.Style.PlotMinSize.x;
-        if (frame_size.y < gp.Style.PlotMinSize.y && size.y < 0.0f)
-            frame_size.y = gp.Style.PlotMinSize.y;
-    }
+    if (gp.CurrentSubplot != NULL) 
+        frame_size = gp.CurrentSubplot->CellSize;    
+    else 
+        frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);    
+
+    if (frame_size.x < gp.Style.PlotMinSize.x && (size.x < 0.0f || gp.CurrentSubplot != NULL))
+        frame_size.x = gp.Style.PlotMinSize.x;
+    if (frame_size.y < gp.Style.PlotMinSize.y && (size.y < 0.0f || gp.CurrentSubplot != NULL))
+        frame_size.y = gp.Style.PlotMinSize.y;
 
     plot.FrameRect = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
     ImGui::ItemSize(plot.FrameRect);
@@ -2574,7 +2573,6 @@ void EndPlot() {
         ImGui::PopID();
     }
 
-
     // LINKED AXES ------------------------------------------------------------
 
     PushLinkedAxis(plot.XAxis);
@@ -2587,7 +2585,6 @@ void EndPlot() {
     if (plot.ContextLocked && IO.MouseReleased[gp.InputMap.BoxSelectButton])
         plot.ContextLocked = false;
 
-
     // reset the plot items for the next frame
     for (int i = 0; i < plot.Items.GetBufSize(); ++i) {
         plot.Items.GetByIndex(i)->SeenThisFrame = false;
@@ -2595,7 +2592,6 @@ void EndPlot() {
 
     // mark the plot as initialized, i.e. having made it through one frame completely
     plot.Initialized = true;
-
     // Pop ImGui::PushID at the end of BeginPlot
     ImGui::PopID();
     // Reset context for next plot
@@ -2609,24 +2605,36 @@ void EndPlot() {
 void NextSubplot() {
     ImPlotContext& gp      = *GImPlot;
     ImPlotSubplot& subplot = *gp.CurrentSubplot;
-    subplot.CurrentIdx++;
-    int r = subplot.CurrentIdx / subplot.Cols;
-    int c = subplot.CurrentIdx % subplot.Cols;
+    int row = subplot.CurrentIdx / subplot.Cols;
+    int col = subplot.CurrentIdx % subplot.Cols;
     IM_ASSERT_USER_ERROR(subplot.CurrentIdx <= subplot.Rows*subplot.Cols, "You rendered more plots in the subplot than you said you would!");   
     if (subplot.CurrentIdx < subplot.Rows*subplot.Cols) {
-        ImGui::GetCurrentWindow()->DC.CursorPos = subplot.Pos + ImVec2(subplot.CellSize.x * c,0) + ImVec2(0,subplot.CellSize.y*r);
+        // set cursor pos
+        float xoff = 0;
+        float yoff = 0;
+        for (int c = 0; c < col; ++c)
+            xoff += subplot.ColSizes[c];
+        for (int r = 0; r < row; ++r)
+            yoff += subplot.RowSizes[r];
+        const ImVec2 grid_size = subplot.GridRect.GetSize();
+        ImGui::GetCurrentWindow()->DC.CursorPos = subplot.GridRect.Min + ImVec2(xoff*grid_size.x,yoff*grid_size.y); 
+        // set cell size
+        subplot.CellSize.x = subplot.GridRect.GetWidth()  * subplot.ColSizes[col];
+        subplot.CellSize.y = subplot.GridRect.GetHeight() * subplot.RowSizes[row];
+        // setup links
         const bool lx = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX);
         const bool ly = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
         const bool lr = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
         const bool lc = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
+        LinkNextPlotLimits(lx ? &subplot.ColLinkData[0].Min : lc ? &subplot.ColLinkData[col].Min : NULL,
+                           lx ? &subplot.ColLinkData[0].Max : lc ? &subplot.ColLinkData[col].Max : NULL,
+                           ly ? &subplot.RowLinkData[0].Min : lr ? &subplot.RowLinkData[row].Min : NULL,
+                           ly ? &subplot.RowLinkData[0].Max : lr ? &subplot.RowLinkData[row].Max : NULL);
+        // setup alignment
         if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign)) {
-            gp.CurrentAlignmentH = &subplot.RowAlignmentData[r];
-            gp.CurrentAlignmentV = &subplot.ColAlignmentData[c];
+            gp.CurrentAlignmentH = &subplot.RowAlignmentData[row];
+            gp.CurrentAlignmentV = &subplot.ColAlignmentData[col];
         }
-        LinkNextPlotLimits(lx ? &subplot.ColLinkData[0].Min : lc ? &subplot.ColLinkData[c].Min : NULL,
-                           lx ? &subplot.ColLinkData[0].Max : lc ? &subplot.ColLinkData[c].Max : NULL,
-                           ly ? &subplot.RowLinkData[0].Min : lr ? &subplot.RowLinkData[r].Min : NULL,
-                           ly ? &subplot.RowLinkData[0].Max : lr ? &subplot.RowLinkData[r].Max : NULL);
     }
     else {
         gp.CurrentAlignmentH = NULL;
@@ -2635,9 +2643,11 @@ void NextSubplot() {
     // if next plot is the last, pop items spacing
     ImGui::PopID();
     ImGui::PushID(subplot.CurrentIdx);
+    // increment idx
+    subplot.CurrentIdx++;
 }
 
-bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags) {
+bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags, float* row_sizes, float* col_sizes) {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot == NULL, "Mismatched BeginSubplot()/EndSubplot()!");
     ImPlotContext& gp = *GImPlot;
@@ -2650,71 +2660,150 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     ImPlotSubplot& subplot = *gp.CurrentSubplot;
     subplot.ID    = ID;
     subplot.Flags = flags;
+    // check for change in rows and cols
+    if (subplot.Rows != rows || subplot.Cols != cols) {
+        subplot.RowAlignmentData.resize(rows);
+        subplot.RowLinkData.resize(rows);
+        subplot.RowSizes.resize(rows);
+        for (int r = 0; r < rows; ++r) {            
+            subplot.RowAlignmentData[r].Reset();  
+            subplot.RowLinkData[r] = ImPlotRange(0,1);   
+            subplot.RowSizes[r] = 1.0f / rows;
+        }   
+        subplot.ColAlignmentData.resize(cols);
+        subplot.ColLinkData.resize(cols);
+        subplot.ColSizes.resize(cols);
+        for (int c = 0; c < cols; ++c) {
+            subplot.ColAlignmentData[c].Reset();
+            subplot.ColLinkData[c] = ImPlotRange(0,1);
+            subplot.ColSizes[c] = 1.0f / cols;
+        }
+    }
+    // check incoming size requests (TODO: validate)
+    if (row_sizes != NULL) {
+        for (int r = 0; r < rows; ++r)           
+            subplot.RowSizes[r] = row_sizes[r];
+    }
+    if (col_sizes != NULL) {
+        for (int c = 0; c < cols; ++c)           
+            subplot.ColSizes[c] = col_sizes[c];
+    }
+    subplot.Rows = rows;
+    subplot.Cols = cols;
 
-    const ImVec2 half_pad = gp.Style.PlotPadding/2;
-
-    subplot.Pos = Window->DC.CursorPos + half_pad;
-
+    // calc plot frame sizes
     ImVec2 title_size(0.0f, 0.0f);
     const float txt_height = ImGui::GetTextLineHeight();
     if (!ImHasFlag(flags, ImPlotSubplotFlags_NoTitle))
          title_size = ImGui::CalcTextSize(title, NULL, true);    
     const float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
-    
+    const ImVec2 half_pad = gp.Style.PlotPadding/2;
+    const ImVec2 frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
+    subplot.FrameRect = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
+    subplot.FrameHovered = subplot.FrameRect.Contains(ImGui::GetMousePos());
 
-    if (subplot.Rows != rows || subplot.Cols != cols) {
-        subplot.RowAlignmentData.resize(rows);
-        subplot.RowLinkData.resize(rows);
-        for (int r = 0; r < rows; ++r) {            
-            subplot.RowAlignmentData[r].Reset();  
-            subplot.RowLinkData[r] = ImPlotRange(0,1);   
-        }   
-        subplot.ColAlignmentData.resize(cols);
-        subplot.ColLinkData.resize(cols);
-        for (int c = 0; c < cols; ++c) {
-            subplot.ColAlignmentData[c].Reset();
-            subplot.ColLinkData[c] = ImPlotRange(0,1);
+    subplot.GridRect.Min = subplot.FrameRect.Min + half_pad + ImVec2(0,pad_top);
+    subplot.GridRect.Max = subplot.FrameRect.Max - half_pad;
+    // calculate first cell size
+    subplot.CellSize.x = subplot.GridRect.GetWidth() * subplot.ColSizes[0];
+    subplot.CellSize.y = subplot.GridRect.GetHeight() * subplot.RowSizes[0];
+    // render single background frame
+    ImGui::RenderFrame(subplot.FrameRect.Min, subplot.FrameRect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, ImGui::GetStyle().FrameRounding);
+    // render title
+    if (title_size.x > 0.0f && !ImHasFlag(subplot.Flags, ImPlotFlags_NoTitle)) {
+        const ImU32 col = GetStyleColorU32(ImPlotCol_TitleText);
+        AddTextCentered(ImGui::GetWindowDrawList(),ImVec2(subplot.FrameRect.GetCenter().x, subplot.FrameRect.Min.y + gp.Style.PlotPadding.y),col,title);
+    }
+    // render separators
+    if (subplot.FrameHovered) {
+        ImDrawList& draw_list = *ImGui::GetWindowDrawList();
+        const ImU32 nrm_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_Separator]);
+        const ImU32 hov_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorHovered]);
+        const ImU32 act_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorActive]);
+        float xpos = subplot.GridRect.Min.x;
+        float ypos = subplot.GridRect.Min.y;
+        const ImVec2 mouse = ImGui::GetIO().MousePos;
+        int separator = 0;
+        bool pass = false;
+        for (int r = 0; r < subplot.Rows-1; ++r) {
+            bool active = subplot.ActiveSeparator == separator;
+            ypos += subplot.RowSizes[r] * subplot.GridRect.GetHeight();
+            if ((subplot.ActiveSeparator == -1 || active) && !pass) {
+                if ((mouse.y > ypos-5 && mouse.y < ypos+5 && subplot.GridRect.Contains(mouse)) || active) {
+                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                        subplot.ActiveSeparator = separator;
+                        active = true;
+                        subplot.TempSizes[0] = subplot.RowSizes[r];
+                        subplot.TempSizes[1] = subplot.RowSizes[r+1];
+                    }
+                    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+                        subplot.ActiveSeparator = -1;
+                        active = false;
+                    }
+                    if (active) {
+                        float dp = ImGui::GetMouseDragDelta(0).y  / subplot.GridRect.GetHeight();
+                        if (subplot.TempSizes[0] + dp > 0.1f && subplot.TempSizes[1] - dp > 0.1f) {
+                            subplot.RowSizes[r]   = subplot.TempSizes[0] + dp;
+                            subplot.RowSizes[r+1] = subplot.TempSizes[1] - dp;
+                        }
+                    }
+                    draw_list.AddLine(ImVec2(subplot.GridRect.Min.x,ypos),ImVec2(subplot.GridRect.Max.x,ypos),active ? act_col : hov_col,2.0f);
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+                    pass = true;
+                }
+    
+            }
+            separator++;
+        }
+        for (int c = 0; c < subplot.Cols-1; ++c) {
+            bool active = subplot.ActiveSeparator == separator;
+            xpos += subplot.ColSizes[c] * subplot.GridRect.GetWidth();
+            if ((subplot.ActiveSeparator == -1 || active) && !pass) {
+                if ((mouse.x > xpos-5 && mouse.x < xpos+5 && subplot.GridRect.Contains(mouse)) || active) {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                        subplot.ActiveSeparator = separator;
+                        active = true;
+                        subplot.TempSizes[0] = subplot.ColSizes[c];
+                        subplot.TempSizes[1] = subplot.ColSizes[c+1];
+                    }
+                    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+                        subplot.ActiveSeparator = -1;
+                        active = false;
+                    }
+                    if (active) {
+                        float dp = ImGui::GetMouseDragDelta(0).x / subplot.GridRect.GetWidth();
+                        if (subplot.TempSizes[0] + dp > 0.1f && subplot.TempSizes[1] - dp > 0.1f) {
+                            subplot.ColSizes[c]   = subplot.TempSizes[0] + dp;
+                            subplot.ColSizes[c+1] = subplot.TempSizes[1] - dp;
+                        }
+                    }
+                    draw_list.AddLine(ImVec2(xpos,subplot.GridRect.Min.y),ImVec2(xpos,subplot.GridRect.Max.y),active ? act_col : hov_col,2.0f);
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+                    pass = true;
+                }
+            }
+            separator++;
         }
     }
-    subplot.Rows = rows;
-    subplot.Cols = cols;
+    // push styling
+    PushStyleColor(ImPlotCol_FrameBg, IM_COL32_BLACK_TRANS);
+    PushStyleVar(ImPlotStyleVar_PlotPadding, half_pad);
+    // PushStyleVar(ImPlotStyleVar_PlotMinSize, ImVec2(0,0));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);  
+    // push ID
+    ImGui::PushID(ID); 
+    // push subplot id
     subplot.CurrentIdx = 0;
-    // beging alignments
+    ImGui::PushID(subplot.CurrentIdx);
+    // set initial cursor pos
+    Window->DC.CursorPos = subplot.GridRect.Min;
+    // begin alignrmnts
     for (int r = 0; r < subplot.Rows; ++r)
         subplot.RowAlignmentData[r].Begin();
     for (int c = 0; c < subplot.Cols; ++c)
         subplot.ColAlignmentData[c].Begin();
-    // begin links
-    const bool lx = ImHasFlag(flags, ImPlotSubplotFlags_LinkAllX);
-    const bool ly = ImHasFlag(flags, ImPlotSubplotFlags_LinkAllY);
-    const bool lr = ImHasFlag(flags, ImPlotSubplotFlags_LinkRows);
-    const bool lc = ImHasFlag(flags, ImPlotSubplotFlags_LinkCols);
-    LinkNextPlotLimits(lx || lc ? &subplot.ColLinkData[0].Min : NULL,
-                       lx || lc ? &subplot.ColLinkData[0].Max : NULL,
-                       ly || lr ? &subplot.RowLinkData[0].Min : NULL,
-                       ly || lr ? &subplot.RowLinkData[0].Max : NULL);
-    // set initial alignment data
-    if (!ImHasFlag(flags, ImPlotSubplotFlags_NoAlign)) {
-        gp.CurrentAlignmentH = &subplot.RowAlignmentData[0];
-        gp.CurrentAlignmentV = &subplot.ColAlignmentData[0];
-    }
-    // calc plot frame sizes
-    const ImVec2 frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
-    subplot.FrameRect = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
-    subplot.CellSize.x = (frame_size.x - gp.Style.PlotPadding.x) / cols;
-    subplot.CellSize.y = (frame_size.y - gp.Style.PlotPadding.y) / rows;
-    // render single background frame
-    ImGui::RenderFrame(subplot.FrameRect.Min, subplot.FrameRect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, ImGui::GetStyle().FrameRounding);
-    // push styling
-    PushStyleColor(ImPlotCol_FrameBg, IM_COL32_BLACK_TRANS);
-    PushStyleVar(ImPlotStyleVar_PlotPadding, half_pad);
-    PushStyleVar(ImPlotStyleVar_PlotMinSize, ImVec2(0,0));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);  
-    // push ID
-    ImGui::PushID(ID); // push subplot id
-    ImGui::PushID(0);
-    // set cursor pos
-    Window->DC.CursorPos = subplot.Pos;
+    // Setup first subplot
+    NextSubplot();
     return true;
 }
 
@@ -2729,11 +2818,12 @@ void EndSubplots() {
         subplot.ColAlignmentData[c].End();
     // pop styling
     PopStyleColor(); 
-    PopStyleVar();   
+    // PopStyleVar();   
     PopStyleVar();
     ImGui::PopStyleVar();
     // pop ID
     ImGui::PopID(); // pop subplit idx
+    // render grid
     ImGui::PopID(); // pop subplot id
     // set DC back correctly
     GImGui->CurrentWindow->DC.CursorPos = subplot.FrameRect.Min;
@@ -4135,7 +4225,7 @@ void ShowUserGuide() {
     ImGui::BulletText("Click legend label icons to show/hide plot items.");
 }
 
-void ShowAxisMetrics(ImPlotAxis* axis, bool show_axis_rects) {
+void ShowAxisMetrics(ImPlotAxis* axis) {
     ImGui::Bullet(); ImGui::Text("Flags:      %d", axis->Flags);
     ImGui::Bullet(); ImGui::Text("Range:      [%f,%f]",axis->Range.Min, axis->Range.Max);
     ImGui::Bullet(); ImGui::Text("Pixels:     %f", axis->Pixels);
@@ -4147,16 +4237,16 @@ void ShowAxisMetrics(ImPlotAxis* axis, bool show_axis_rects) {
     ImGui::Bullet(); ImGui::Text("HasRange:   %s", axis->HasRange ? "true" : "false");
     ImGui::Bullet(); ImGui::Text("LinkedMin:  %p", (void*)axis->LinkedMin);
     ImGui::Bullet(); ImGui::Text("LinkedMax:  %p", (void*)axis->LinkedMax);
-    if (show_axis_rects) {
-        ImDrawList& fg = *ImGui::GetForegroundDrawList();
-        fg.AddRect(axis->HoverRect.Min, axis->HoverRect.Max, IM_COL32(0,255,0,255));
-    }
 }
 
 void ShowMetricsWindow(bool* p_popen) {
 
     static bool show_plot_rects = false;
     static bool show_axes_rects = false;
+    static bool show_canvas_rects = false;
+    static bool show_frame_rects = false;
+    static bool show_subplot_frame_rects = false;
+    static bool show_subplot_grid_rects = false;
 
     ImDrawList& fg = *ImGui::GetForegroundDrawList();
 
@@ -4173,11 +4263,43 @@ void ShowMetricsWindow(bool* p_popen) {
         ImGui::SameLine();
         if (ImGui::Button("Bust Item Cache"))
             BustItemCache();
-        ImGui::Checkbox("Show Plot Rects", &show_plot_rects);
-        ImGui::Checkbox("Show Axes Rects", &show_axes_rects);
+        ImGui::Checkbox("Show Frame Rects", &show_frame_rects);
+        ImGui::Checkbox("Show Canvas Rects",&show_canvas_rects);
+        ImGui::Checkbox("Show Plot Rects",  &show_plot_rects);
+        ImGui::Checkbox("Show Axes Rects",  &show_axes_rects);
+        ImGui::Checkbox("Show Subplot Frame Rects",  &show_subplot_frame_rects);
+        ImGui::Checkbox("Show Subplot Grid Rects",  &show_subplot_grid_rects);
+
         ImGui::TreePop();
     }
     const int n_plots = gp.Plots.GetBufSize();
+    const int n_subplots = gp.Subplots.GetBufSize();
+    // render rects
+    for (int p = 0; p < n_plots; ++p) {
+        ImPlotPlot* plot = gp.Plots.GetByIndex(p);
+        if (show_frame_rects)
+            fg.AddRect(plot->FrameRect.Min, plot->FrameRect.Max, IM_COL32(255,0,255,255));
+        if (show_canvas_rects)
+            fg.AddRect(plot->CanvasRect.Min, plot->CanvasRect.Max, IM_COL32(0,255,255,255));
+        if (show_plot_rects)
+            fg.AddRect(plot->PlotRect.Min, plot->PlotRect.Max, IM_COL32(255,255,0,255));
+        if (show_axes_rects) {
+            fg.AddRect(plot->XAxis.HoverRect.Min, plot->XAxis.HoverRect.Max, IM_COL32(0,255,0,255));
+            fg.AddRect(plot->YAxis[0].HoverRect.Min, plot->YAxis[0].HoverRect.Max, IM_COL32(0,255,0,255));
+            if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis2)) 
+                fg.AddRect(plot->YAxis[1].HoverRect.Min, plot->YAxis[1].HoverRect.Max, IM_COL32(0,255,0,255));                
+            if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis3)) 
+                fg.AddRect(plot->YAxis[3].HoverRect.Min, plot->YAxis[2].HoverRect.Max, IM_COL32(0,255,0,255));                
+        }
+    }
+    for (int p = 0; p < n_subplots; ++p) {
+        ImPlotSubplot* subplot = gp.Subplots.GetByIndex(p);
+        if (show_subplot_frame_rects)
+            fg.AddRect(subplot->FrameRect.Min, subplot->FrameRect.Max, IM_COL32(255,0,0,255));
+        if (show_subplot_grid_rects)
+            fg.AddRect(subplot->GridRect.Min, subplot->GridRect.Max, IM_COL32(0,0,255,255));
+    }
+
     if (ImGui::TreeNode("Plots","Plots (%d)", n_plots)) {
         for (int p = 0; p < n_plots; ++p) {
             // plot
@@ -4206,19 +4328,19 @@ void ShowMetricsWindow(bool* p_popen) {
                     ImGui::TreePop();
                 }
                 if (ImGui::TreeNode("X-Axis")) {
-                    ShowAxisMetrics(&plot->XAxis, show_axes_rects);
+                    ShowAxisMetrics(&plot->XAxis);
                     ImGui::TreePop();
                 }
                 if (ImGui::TreeNode("Y-Axis")) {
-                    ShowAxisMetrics(&plot->YAxis[0], show_axes_rects);
+                    ShowAxisMetrics(&plot->YAxis[0]);
                     ImGui::TreePop();
                 }
                 if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis2) && ImGui::TreeNode("Y-Axis 2")) {
-                    ShowAxisMetrics(&plot->YAxis[1], show_axes_rects);
+                    ShowAxisMetrics(&plot->YAxis[1]);
                     ImGui::TreePop();
                 }
                 if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis3) && ImGui::TreeNode("Y-Axis 3")) {
-                    ShowAxisMetrics(&plot->YAxis[2], show_axes_rects);
+                    ShowAxisMetrics(&plot->YAxis[2]);
                     ImGui::TreePop();
                 }
                 ImGui::Bullet(); ImGui::Text("Flags: %d", plot->Flags);
@@ -4231,9 +4353,7 @@ void ShowMetricsWindow(bool* p_popen) {
                 ImGui::Bullet(); ImGui::Text("PlotHovered: %s", plot->PlotHovered ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("LegendHovered: %s", plot->LegendHovered ? "true" : "false");
                 ImGui::TreePop();
-                if (show_plot_rects)
-                    fg.AddRect(plot->PlotRect.Min, plot->PlotRect.Max, IM_COL32(255,255,0,255));
-            }
+            }            
             ImGui::PopID();
         }
         ImGui::TreePop();

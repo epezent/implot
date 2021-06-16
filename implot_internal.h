@@ -816,14 +816,20 @@ struct ImPlotSubplot {
     int                           Cols;
     int                           CurrentIdx;
     ImRect                        FrameRect;
-    ImVec2                        Pos;
+    ImRect                        GridRect;
     ImVec2                        CellSize;
     ImVector<ImPlotAlignmentData> RowAlignmentData;
     ImVector<ImPlotAlignmentData> ColAlignmentData;
+    ImVector<float>               RowSizes;
+    ImVector<float>               ColSizes;
     ImVector<ImPlotRange>         RowLinkData;
     ImVector<ImPlotRange>         ColLinkData;
+    int                           ActiveSeparator;
+    float                         TempSizes[2];
+    bool                          FrameHovered;
     ImPlotSubplot() {
         Rows = Cols = CurrentIdx = 0;
+        ActiveSeparator = -1;
     }
 };
 
