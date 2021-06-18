@@ -64,7 +64,7 @@ typedef int ImPlotOrientation;  // -> enum ImPlotOrientation_
 typedef int ImPlotYAxis;        // -> enum ImPlotYAxis_;
 typedef int ImPlotBin;          // -> enum ImPlotBin_
 
-// Options for plots.
+// Options for plots (see BeginPlot).
 enum ImPlotFlags_ {
     ImPlotFlags_None          = 0,       // default
     ImPlotFlags_NoTitle       = 1 << 0,  // the plot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MyPlot")
@@ -83,21 +83,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
 };
 
-// Options for subplots
-enum ImPlotSubplotFlags_ {
-    ImPlotSubplotFlags_None        = 0,      // default
-    ImPlotSubplotFlags_NoTitle     = 1 << 0, // the subplot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MySubplot")
-    ImPlotSubplotFlags_NoLegend    = 1 << 1, // the legend will not be displayed if 
-    ImPlotSubplotFlags_NoSplitters = 1 << 2, // resize splitters between subplot cells will be not be provided
-    ImPlotSubplotFlags_NoAlign     = 1 << 3, // subplot edges will not be aligned vertically or horizontally
-    ImPlotSubplotFlags_ShareItems  = 1 << 4, // items across all subplots will be shared and rendered into a single legend entry
-    ImPlotSubplotFlags_LinkRows    = 1 << 5, // min/max limits of each plot y-axis on each row will be automatically linked
-    ImPlotSubplotFlags_LinkCols    = 1 << 6, // min/max limits of each plot x-axis on each column will be automatically linked
-    ImPlotSubplotFlags_LinkAllX    = 1 << 7, // link all x-axes in every plot (overrides _LinkCols)
-    ImPlotSubplotFlags_LinkAllY    = 1 << 8, // link all y-axes in every plot (overrides _LinkRows)
-};
-
-// Options for plot axes (X and Y).
+// Options for plot axes (see BeginPlot).
 enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_None          = 0,       // default
     ImPlotAxisFlags_NoLabel       = 1 << 0,  // the axis label will not be displayed (axis labels also hidden if the supplied string name is NULL)
@@ -115,6 +101,22 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_LockMax       = 1 << 12, // the axis maximum value will be locked when panning/zooming
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
     ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels
+};
+
+// Options for subplots (see BeginSubplot).
+enum ImPlotSubplotFlags_ {
+    ImPlotSubplotFlags_None        = 0,       // default
+    ImPlotSubplotFlags_NoTitle     = 1 << 0,  // the subplot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MySubplot")
+    ImPlotSubplotFlags_NoLegend    = 1 << 1,  // the legend will not be displayed (only applicable if ImPlotSubplotFlags_ShareItems is enabled)
+    ImPlotSubplotFlags_NoSplitters = 1 << 2,  // resize splitters between subplot cells will be not be provided
+    ImPlotSubplotFlags_NoAlign     = 1 << 3,  // subplot edges will not be aligned vertically or horizontally
+    ImPlotSubplotFlags_ShareItems  = 1 << 4,  // items across all subplots will be shared and rendered into a single legend entry
+    ImPlotSubplotFlags_LinkRows    = 1 << 5,  // link the y-axis limits of all plots in each row (does not apply auxiliary y-axes)
+    ImPlotSubplotFlags_LinkCols    = 1 << 6,  // link the x-axis limits of all plots in each column
+    ImPlotSubplotFlags_LinkAllX    = 1 << 7,  // link the x-axis limits in every plot in the subplot
+    ImPlotSubplotFlags_LinkAllY    = 1 << 8,  // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
+    ImPlotSubplotFlags_EqualRows   = 1 << 9,  // heights of plots in rows will be visually equalized (ignores incoming row sizes and disables horizontal splitters)
+    ImPlotSubplotFlags_EqualCols   = 1 << 10, // widths of plots in columns will be visually equalized (ignores incoming col sizes and disables vertical splitters)
 };
 
 // Plot styling colors.
@@ -400,27 +402,51 @@ IMPLOT_API void EndPlot();
 //-----------------------------------------------------------------------------
 
 // Starts a subdivided plotting context. If the function returns true,
-// EndSubplots() MUST be called! Call BeginPlot/EndPlot [rows*cols] times.
-// Plots are added in row major order. Example:
-
-// if (BeginSubplots("My Subplot",2,3, ImVec2(800,600)) {
+// EndSubplots() MUST be called! Call BeginPlot/EndPlot AT MOST [rows*cols] 
+// times in  between the begining and end of the subplot context. Plots are 
+// added in row major order. 
+//
+// Example:
+//
+// if (BeginSubplots("My Subplot",2,3,ImVec2(800,400)) {
 //     for (int i = 0; i < 6; ++i) {
 //         if (BeginPlot(...)) {
+//             ImPlot::PlotLine(...);
 //             ...
 //             EndPlot();
 //         }
 //     }
 //     EndSubplots();
 // }
+//
+// Procudes:
+// 
+// [0][1][2]
+// [3][4][5]
+//
+// Important notes:
+//
+// - #title_id must be unique to the current ImGui ID scope. If you need to avoid ID
+//   collisions or don't want to display a title in the plot, use double hashes
+//   (e.g. "MyPlot##HiddenIdText" or "##NoTitle").
+// - #rows and #cols must be greater than 0.
+// - #size is the size of the entire grid of subplots, not the individual plots
+// - #row_ratios and #col_ratios must have AT LEAST #rows and #cols elements, 
+//   respectively. These are the sizes of the rows and columns expressed in ratios.
+//   If the user adjusts the dimensions, the arrays are updated with new ratios.
+// - The #size parameter of _BeginPlot_ (see above) is ignored when used inside
+//   of a subplot context since each subplot is sized automatically.
 
 IMPLOT_API bool BeginSubplots(const char* title_id,
                              int rows,
                              int cols,
                              const ImVec2& size,
                              ImPlotSubplotFlags flags = ImPlotSubplotFlags_None,
-                             float* row_sizes = NULL,
-                             float* col_sizes = NULL);
+                             float* row_ratios        = NULL,
+                             float* col_ratios        = NULL);
 
+// Only call EndSubplots() if BeginSubplots() returns true! Typically called at the end
+// of an if statement conditioned on BeginPlot(). See example above.
 IMPLOT_API void EndSubplots();
 
 //-----------------------------------------------------------------------------

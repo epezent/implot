@@ -2660,6 +2660,7 @@ void NextSubplot() {
 }
 
 bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags, float* row_sizes, float* col_sizes) {
+    IM_ASSERT_USER_ERROR(rows > 0 && cols > 0, "You can't provide a negative value for rows or cols!");
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot == NULL, "Mismatched BeginSubplot()/EndSubplot()!");
     ImPlotContext& gp = *GImPlot;
@@ -2691,14 +2692,17 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
             subplot.ColSizes[c] = 1.0f / cols;
         }
     }
-    // check incoming size requests (TODO: validate)
+    // check incoming size requests
+    float row_sum = 0, col_sum = 0;
     if (row_sizes != NULL) {
+        row_sum = ImSum(row_sizes, rows);
         for (int r = 0; r < rows; ++r)           
-            subplot.RowSizes[r] = row_sizes[r];
+            subplot.RowSizes[r] = row_sizes[r] / row_sum;
     }
     if (col_sizes != NULL) {
+        col_sum = ImSum(col_sizes, cols);
         for (int c = 0; c < cols; ++c)           
-            subplot.ColSizes[c] = col_sizes[c];
+            subplot.ColSizes[c] = col_sizes[c] / col_sum;
     }
     subplot.Rows = rows;
     subplot.Cols = cols;
@@ -2822,6 +2826,16 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
             }
             separator++;
         }
+    }
+
+    // set outgoing sizes
+    if (row_sizes != NULL) {
+        for (int r = 0; r < rows; ++r)           
+            row_sizes[r] = subplot.RowSizes[r] * row_sum;
+    }
+    if (col_sizes != NULL) {
+        for (int c = 0; c < cols; ++c)           
+            col_sizes[c] = subplot.ColSizes[c] * col_sum;
     }
 
     // set flags

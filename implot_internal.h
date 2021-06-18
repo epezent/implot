@@ -139,6 +139,14 @@ static inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_
     }
     *min_out = Min; *max_out = Max;
 }
+// Finds the sim of an array
+template <typename T>
+static inline T ImSum(const T* values, int count) {
+    T sum  = 0;
+    for (int i = 0; i < count; ++i)
+        sum += values[i];
+    return sum;
+}
 // Finds the mean of an array
 template <typename T>
 static inline double ImMean(const T* values, int count) {
