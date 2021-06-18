@@ -749,42 +749,60 @@ struct ImPlotLegendData
     void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
 };
 
+// Holds Items and Legend data
+struct ImPlotItemCollection 
+{
+    ImPlotLegendData   LegendData;
+    ImPool<ImPlotItem> ItemPool;
+    int                ColormapIdx;
+
+    ImPlotItemCollection() { ColormapIdx = 0; }
+
+    int         GetItemCount() const           { return ItemPool.GetBufSize();                                     }
+    ImPlotItem* GetItem(ImGuiID id)            { return ItemPool.GetByKey(id);                                     }
+    ImPlotItem* GetOrAddItem(ImGuiID id)       { return ItemPool.GetOrAddByKey(id);                                }
+    ImPlotItem* GetItemByIndex(int i)          { return ItemPool.GetByIndex(i);                                    }
+    int         GetItemIndex(ImPlotItem* item) { return ItemPool.GetIndex(item);                                   }
+    int         GetLegendCount() const         { return LegendData.Indices.size();                                 }
+    ImPlotItem* GetLegendItem(int i)           { return ItemPool.GetByIndex(LegendData.Indices[i]);                }
+    const char* GetLegendLabel(int i)          { return LegendData.Labels.Buf.Data + GetLegendItem(i)->NameOffset; }
+    void        Reset()                        { ItemPool.Clear(); LegendData.Reset(); ColormapIdx = 0;            }
+};
+
 // Holds Plot state information that must persist after EndPlot
 struct ImPlotPlot
 {
-    ImGuiID            ID;
-    ImPlotFlags        Flags;
-    ImPlotFlags        PreviousFlags;
-    ImPlotAxis         XAxis;
-    ImPlotAxis         YAxis[IMPLOT_Y_AXES];
-    ImPlotLegendData   LegendData;
-    ImPool<ImPlotItem> Items;
-    ImVec2             SelectStart;
-    ImRect             SelectRect;
-    ImVec2             QueryStart;
-    ImRect             QueryRect;
-    bool               Initialized;
-    bool               Selecting;
-    bool               Selected;
-    bool               ContextLocked;
-    bool               Querying;
-    bool               Queried;
-    bool               DraggingQuery;
-    bool               LegendHovered;
-    bool               LegendOutside;
-    bool               LegendFlipSideNextFrame;
-    bool               FrameHovered;
-    bool               PlotHovered;
-    int                ColormapIdx;
-    int                CurrentYAxis;
-    ImPlotLocation     MousePosLocation;
-    ImPlotLocation     LegendLocation;
-    ImPlotOrientation  LegendOrientation;
-    ImRect             FrameRect;
-    ImRect             CanvasRect;
-    ImRect             PlotRect;
-    ImRect             AxesRect;
-    ImRect             LegendRect;
+    ImGuiID              ID;
+    ImPlotFlags          Flags;
+    ImPlotFlags          PreviousFlags;
+    ImPlotAxis           XAxis;
+    ImPlotAxis           YAxis[IMPLOT_Y_AXES];
+    ImPlotItemCollection Items;
+    ImVec2               SelectStart;
+    ImRect               SelectRect;
+    ImVec2               QueryStart;
+    ImRect               QueryRect;
+    bool                 Initialized;
+    bool                 Selecting;
+    bool                 Selected;
+    bool                 ContextLocked;
+    bool                 Querying;
+    bool                 Queried;
+    bool                 DraggingQuery;
+    bool                 LegendHovered;
+    bool                 LegendOutside;
+    bool                 LegendFlipSideNextFrame;
+    bool                 FrameHovered;
+    bool                 PlotHovered;
+    int                  CurrentYAxis;
+    ImPlotLocation       MousePosLocation;
+    ImPlotLocation       LegendLocation;
+    ImPlotOrientation    LegendOrientation;
+    ImRect               FrameRect;
+    ImRect               CanvasRect;
+    ImRect               PlotRect;
+    ImRect               AxesRect;
+    ImRect               LegendRect;
 
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
@@ -793,15 +811,11 @@ struct ImPlotPlot
             YAxis[i].Orientation = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
         Initialized       = Selecting = Selected = ContextLocked = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
-        ColormapIdx       = CurrentYAxis = 0;
+        CurrentYAxis       = 0;
         LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
         LegendOrientation = ImPlotOrientation_Vertical;
         MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
     }
-
-    int         GetLegendCount() const   { return LegendData.Indices.size(); }
-    ImPlotItem* GetLegendItem(int i);
-    const char* GetLegendLabel(int i);
 
     inline bool AnyYInputLocked() const { return YAxis[0].IsInputLocked() || (YAxis[1].Present ? YAxis[1].IsInputLocked() : false) || (YAxis[2].Present ? YAxis[2].IsInputLocked() : false); }
     inline bool AllYInputLocked() const { return YAxis[0].IsInputLocked() && (YAxis[1].Present ? YAxis[1].IsInputLocked() : true ) && (YAxis[2].Present ? YAxis[2].IsInputLocked() : true ); }
@@ -812,11 +826,13 @@ struct ImPlotPlot
 struct ImPlotSubplot {
     ImGuiID                       ID;
     ImPlotSubplotFlags            Flags;
+    ImPlotItemCollection          Items;
     int                           Rows;
     int                           Cols;
     int                           CurrentIdx;
     ImRect                        FrameRect;
     ImRect                        GridRect;
+    ImRect                        LegendRect;
     ImVec2                        CellSize;
     ImVector<ImPlotAlignmentData> RowAlignmentData;
     ImVector<ImPlotAlignmentData> ColAlignmentData;
@@ -827,9 +843,16 @@ struct ImPlotSubplot {
     int                           ActiveSeparator;
     float                         TempSizes[2];
     bool                          FrameHovered;
+    bool                          LegendHovered;
+    ImPlotLocation                LegendLocation;
+    ImPlotOrientation             LegendOrientation;
+    
     ImPlotSubplot() {
         Rows = Cols = CurrentIdx = 0;
         ActiveSeparator = -1;
+        FrameHovered      = LegendHovered = false;
+        LegendLocation    = ImPlotLocation_North;
+        LegendOrientation = ImPlotOrientation_Horizontal;
     }
 };
 
@@ -941,6 +964,10 @@ struct ImPlotContext {
     bool RenderX;
     bool RenderY[IMPLOT_Y_AXES];
 
+    // Subplot Flags
+    bool SubplotCaptureInput;
+    bool SubplotCaptureItems;
+
     // Axis Locking Flags
     bool ChildWindowMade;
 
@@ -958,7 +985,6 @@ struct ImPlotContext {
     ImVector<double>   Temp1, Temp2;
 
     // Misc
-    int                VisibleItemCount;
     int                DigitalPlotItemCnt;
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
@@ -1011,7 +1037,7 @@ IMPLOT_API ImPlotPlot* GetCurrentPlot();
 IMPLOT_API void BustPlotCache();
 
 // Shows a plot's context menu.
-IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot);
+IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot, bool has_legend);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Subplot Utils
@@ -1109,9 +1135,9 @@ static inline const char* GetFormatY(ImPlotYAxis y) { return GImPlot->NextPlotDa
 // Gets the position of an inner rect that is located inside of an outer rect according to an ImPlotLocation and padding amount.
 IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlotLocation location, const ImVec2& pad = ImVec2(0,0));
 // Calculates the bounding box size of a legend
-IMPLOT_API ImVec2 CalcLegendSize(ImPlotPlot& plot, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
+IMPLOT_API ImVec2 CalcLegendSize(ImPlotItemCollection& items, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
 // Renders legend entries into a bounding box
-IMPLOT_API void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
+IMPLOT_API void ShowLegendEntries(ImPlotItemCollection& items, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
 // Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
 IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
 

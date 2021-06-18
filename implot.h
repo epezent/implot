@@ -85,15 +85,16 @@ enum ImPlotFlags_ {
 
 // Options for subplots
 enum ImPlotSubplotFlags_ {
-    ImPlotSubplotFlags_None             = 0,      // default
-    ImPlotSubplotFlags_NoTitle          = 1 << 0,
-    ImPlotSubplotFlags_LinkRows         = 1 << 1, // min/max limits of each plot y-axis on each row will be automatically linked
-    ImPlotSubplotFlags_LinkCols         = 1 << 2, // min/max limits of each plot x-axis on each column will be automatically linked
-    ImPlotSubplotFlags_LinkAllX         = 1 << 3, // link all x-axes in every plot (overrides _LinkCols)
-    ImPlotSubplotFlags_LinkAllY         = 1 << 4, // link all y-axes in every plot (overrides _LinkRows)
-    ImPlotSubplotFlags_NoAlign          = 1 << 5, // subplot edges will not be aligned vertically or horizontally
-    ImPlotSubplotFlags_SharedLegend     = 1 << 6, // all subplots will share a common legend
-    ImPlotSubplotFlags_SharedCrosshairs = 1 << 7, 
+    ImPlotSubplotFlags_None        = 0,      // default
+    ImPlotSubplotFlags_NoTitle     = 1 << 0, // the subplot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MySubplot")
+    ImPlotSubplotFlags_NoLegend    = 1 << 1, // the legend will not be displayed if 
+    ImPlotSubplotFlags_NoSplitters = 1 << 2, // resize splitters between subplot cells will be not be provided
+    ImPlotSubplotFlags_NoAlign     = 1 << 3, // subplot edges will not be aligned vertically or horizontally
+    ImPlotSubplotFlags_ShareItems  = 1 << 4, // items across all subplots will be shared and rendered into a single legend entry
+    ImPlotSubplotFlags_LinkRows    = 1 << 5, // min/max limits of each plot y-axis on each row will be automatically linked
+    ImPlotSubplotFlags_LinkCols    = 1 << 6, // min/max limits of each plot x-axis on each column will be automatically linked
+    ImPlotSubplotFlags_LinkAllX    = 1 << 7, // link all x-axes in every plot (overrides _LinkCols)
+    ImPlotSubplotFlags_LinkAllY    = 1 << 8, // link all y-axes in every plot (overrides _LinkRows)
 };
 
 // Options for plot axes (X and Y).
@@ -315,7 +316,7 @@ struct ImPlotStyle {
     ImVec2  AnnotationPadding;       // = 2,2     text padding around annotation labels
     ImVec2  FitPadding;              // = 0,0     additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
     ImVec2  PlotDefaultSize;         // = 400,300 default size used when ImVec2(0,0) is passed to BeginPlot
-    ImVec2  PlotMinSize;             // = 300,225 minimum size plot frame can be when shrunk
+    ImVec2  PlotMinSize;             // = 200,150 minimum size plot frame can be when shrunk
     // style colors
     ImVec4  Colors[ImPlotCol_COUNT]; // Array of styling colors. Indexable with ImPlotCol_ enums.
     // colormap

@@ -61,32 +61,32 @@ namespace ImPlot {
 
 ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created) {
     ImPlotContext& gp = *GImPlot;
-    ImGuiID id = ImGui::GetID(label_id);
+    ImPlotItemCollection& Items = gp.SubplotCaptureItems ? gp.CurrentSubplot->Items : gp.CurrentPlot->Items;
+
+    ImGuiID id = ImGui::GetID(label_id); // pre subplots
     if (just_created != NULL)
-        *just_created = gp.CurrentPlot->Items.GetByKey(id) == NULL;
-    ImPlotItem* item = gp.CurrentPlot->Items.GetOrAddByKey(id);
+        *just_created = Items.GetItem(id) == NULL;
+    ImPlotItem* item = Items.GetOrAddItem(id);
     if (item->SeenThisFrame)
         return item;
     item->SeenThisFrame = true;
-    int idx = gp.CurrentPlot->Items.GetIndex(item);
+    int idx = Items.GetItemIndex(item);
     item->ID = id;
     if (ImGui::FindRenderedTextEnd(label_id, NULL) != label_id) {
-        gp.CurrentPlot->LegendData.Indices.push_back(idx);
-        item->NameOffset = gp.CurrentPlot->LegendData.Labels.size();
-        gp.CurrentPlot->LegendData.Labels.append(label_id, label_id + strlen(label_id) + 1);
+        Items.LegendData.Indices.push_back(idx);
+        item->NameOffset = Items.LegendData.Labels.size();
+        Items.LegendData.Labels.append(label_id, label_id + strlen(label_id) + 1);
     }
     else {
         item->Show = true;
     }
-    if (item->Show)
-        gp.VisibleItemCount++;
     return item;
 }
 
 ImPlotItem* GetItem(const char* label_id) {
     ImPlotContext& gp = *GImPlot;
     ImGuiID id = ImGui::GetID(label_id);
-    return gp.CurrentPlot->Items.GetByKey(id);
+    return gp.SubplotCaptureItems ? gp.CurrentSubplot->Items.GetItem(id) : gp.CurrentPlot->Items.GetItem(id);
 }
 
 ImPlotItem* GetCurrentItem() {
@@ -140,9 +140,11 @@ void BustItemCache() {
     ImPlotContext& gp = *GImPlot;
     for (int p = 0; p < gp.Plots.GetBufSize(); ++p) {
         ImPlotPlot& plot = *gp.Plots.GetByIndex(p);
-        plot.ColormapIdx = 0;
-        plot.Items.Clear();
-        plot.LegendData.Reset();
+        plot.Items.Reset();
+    }
+    for (int p = 0; p < gp.Subplots.GetBufSize(); ++p) {
+        ImPlotSubplot& plot = *gp.Subplots.GetByIndex(p);
+        plot.Items.Reset();
     }
 }
 
@@ -155,9 +157,7 @@ void BustColorCache(const char* plot_title_id) {
         ImPlotPlot* plot = gp.Plots.GetByKey(ImGui::GetCurrentWindow()->GetID(plot_title_id));
         if (plot == NULL)
             return;
-        plot->ColormapIdx = 0;
-        plot->Items.Clear();
-        plot->LegendData.Reset();
+        plot->Items.Reset();
     }
 }
 
