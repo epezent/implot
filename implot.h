@@ -108,13 +108,14 @@ enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_None        = 0,       // default
     ImPlotSubplotFlags_NoTitle     = 1 << 0,  // the subplot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MySubplot")
     ImPlotSubplotFlags_NoLegend    = 1 << 1,  // the legend will not be displayed (only applicable if ImPlotSubplotFlags_ShareItems is enabled)
-    ImPlotSubplotFlags_NoSplitters = 1 << 2,  // resize splitters between subplot cells will be not be provided
-    ImPlotSubplotFlags_NoAlign     = 1 << 3,  // subplot edges will not be aligned vertically or horizontally
-    ImPlotSubplotFlags_ShareItems  = 1 << 4,  // items across all subplots will be shared and rendered into a single legend entry
-    ImPlotSubplotFlags_LinkRows    = 1 << 5,  // link the y-axis limits of all plots in each row (does not apply auxiliary y-axes)
-    ImPlotSubplotFlags_LinkCols    = 1 << 6,  // link the x-axis limits of all plots in each column
-    ImPlotSubplotFlags_LinkAllX    = 1 << 7,  // link the x-axis limits in every plot in the subplot
-    ImPlotSubplotFlags_LinkAllY    = 1 << 8   // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
+    ImPlotSubplotFlags_NoMenus     = 1 << 2,  // the user will not be able to open context menus with right-click
+    ImPlotSubplotFlags_NoSplitters = 1 << 3,  // resize splitters between subplot cells will be not be provided
+    ImPlotSubplotFlags_NoAlign     = 1 << 4,  // subplot edges will not be aligned vertically or horizontally
+    ImPlotSubplotFlags_ShareItems  = 1 << 5,  // items across all subplots will be shared and rendered into a single legend entry
+    ImPlotSubplotFlags_LinkRows    = 1 << 6,  // link the y-axis limits of all plots in each row (does not apply auxiliary y-axes)
+    ImPlotSubplotFlags_LinkCols    = 1 << 7,  // link the x-axis limits of all plots in each column
+    ImPlotSubplotFlags_LinkAllX    = 1 << 8,  // link the x-axis limits in every plot in the subplot
+    ImPlotSubplotFlags_LinkAllY    = 1 << 9   // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
 };
 
 // Plot styling colors.

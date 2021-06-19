@@ -634,7 +634,7 @@ ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& s
     return legend_size;
 }
 
-void ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orn, ImDrawList& DrawList) {
+bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hovered, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orn, ImDrawList& DrawList) {
     ImGuiIO& IO = ImGui::GetIO();
     // vars
     const float txt_ht      = ImGui::GetTextLineHeight();
@@ -644,6 +644,7 @@ void ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool int
     ImU32  col_txt_dis      = ImAlphaU32(col_txt, 0.25f);
     // render each legend item
     float sum_label_width = 0;
+    bool any_item_hovered = false;
     for (int i = 0; i < items.GetLegendCount(); ++i) {
         ImPlotItem* item        = items.GetLegendItem(i);
         const char* label       = items.GetLegendLabel(i);
@@ -660,16 +661,17 @@ void ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool int
         label_bb.Max = top_left + ImVec2(label_width + icon_size, icon_size);
         ImU32 col_hl_txt;
         ImU32 col_item = ImAlphaU32(item->Color,1);
-        if (interactable && (icon_bb.Contains(IO.MousePos) || label_bb.Contains(IO.MousePos))) {
+        if (hovered && (icon_bb.Contains(IO.MousePos) || label_bb.Contains(IO.MousePos))) {
             item->LegendHovered = true;
             col_hl_txt = ImMixU32(col_txt, col_item, 64);
+            any_item_hovered = true;
         }
         else {
             // item->LegendHovered = false;
             col_hl_txt = ImGui::GetColorU32(col_txt);
         }
         ImU32 iconColor;
-        if (interactable && icon_bb.Contains(IO.MousePos)) {
+        if (hovered && icon_bb.Contains(IO.MousePos)) {
             ImU32 col_alpha = ImAlphaU32(col_item,0.5f);
             iconColor     = item->Show ? col_alpha : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.5f);
             if (IO.MouseClicked[0])
@@ -683,6 +685,7 @@ void ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool int
         if (label != text_display_end)
             DrawList.AddText(top_left + ImVec2(icon_size, 0), item->Show ? col_hl_txt  : col_txt_dis, label, text_display_end);
     }
+    return hovered && !any_item_hovered;
 }
 
 //-----------------------------------------------------------------------------
@@ -1662,7 +1665,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     ImGuiContext &G      = *GImGui;
     ImGuiWindow * Window = G.CurrentWindow;
-    if (Window->SkipItems) {
+    if (Window->SkipItems && !gp.CurrentSubplot) {
         ResetCtxForNextPlot(GImPlot);
         return false;
     }
@@ -1821,7 +1824,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     plot.FrameRect = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
     ImGui::ItemSize(plot.FrameRect);
-    if (!ImGui::ItemAdd(plot.FrameRect, ID, &plot.FrameRect)) {
+    if (!ImGui::ItemAdd(plot.FrameRect, ID, &plot.FrameRect) && !gp.CurrentSubplot) {
         ResetCtxForNextPlot(GImPlot);
         return false;
     }
@@ -2536,8 +2539,17 @@ void EndPlot() {
         ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
         DrawList.AddRectFilled(plot.Items.Legend.Rect.Min, plot.Items.Legend.Rect.Max, col_bg);
         DrawList.AddRect(plot.Items.Legend.Rect.Min, plot.Items.Legend.Rect.Max, col_bd);
-        ShowLegendEntries(plot.Items, plot.Items.Legend.Rect, plot.Items.Legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.Items.Legend.Orientation, DrawList);
+        bool legend_contextable = ShowLegendEntries(plot.Items, plot.Items.Legend.Rect, plot.Items.Legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.Items.Legend.Orientation, DrawList);
+        // main ctx menu
+        if (legend_contextable && !ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && IO.MouseReleased[gp.InputMap.ContextMenuButton] && !plot.ContextLocked)
+            ImGui::OpenPopup("##LegendContext");
         ImGui::PopClipRect();
+        if (ImGui::BeginPopup("##LegendContext")) {
+            ImGui::Text("Legend"); ImGui::Separator();
+            if (ShowLegendContextMenu(plot.Items.Legend, !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend)))
+                ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
+            ImGui::EndPopup();
+        }
     }
     else {
         plot.Items.Legend.Rect = ImRect();
@@ -2724,6 +2736,8 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     ImPlotSubplot& subplot = *gp.CurrentSubplot;
     subplot.ID    = ID;
     subplot.Items.ID = ID;
+    // push ID
+    ImGui::PushID(ID); 
 
     if (just_created) 
         subplot.Flags = flags;    
@@ -2835,7 +2849,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
                         subplot.RowRatios[r]   = p;
                         subplot.RowRatios[r+1] = p;                        
                     }
-                    else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                         subplot.ActiveSeparator = separator;
                         active = true;
                         subplot.TempSizes[0] = subplot.RowRatios[r];
@@ -2897,6 +2911,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) || !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
         subplot.ActiveSeparator = -1;
     }
+  
 
     // set outgoing sizes
     if (row_sizes != NULL) {
@@ -2916,8 +2931,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     PushStyleVar(ImPlotStyleVar_PlotPadding, half_pad);
     PushStyleVar(ImPlotStyleVar_PlotMinSize, ImVec2(0,0));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);  
-    // push ID
-    ImGui::PushID(ID); 
+
     // push subplot id
     subplot.CurrentIdx = 0;
     ImGui::PushID(subplot.CurrentIdx);
@@ -2967,8 +2981,16 @@ void EndSubplots() {
         ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
         DrawList.AddRectFilled(subplot.Items.Legend.Rect.Min, subplot.Items.Legend.Rect.Max, col_bg);
         DrawList.AddRect(subplot.Items.Legend.Rect.Min, subplot.Items.Legend.Rect.Max, col_bd);
-        ShowLegendEntries(subplot.Items, subplot.Items.Legend.Rect, subplot.Items.Legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, subplot.Items.Legend.Orientation, DrawList);
+        bool legend_contextable =ShowLegendEntries(subplot.Items, subplot.Items.Legend.Rect, subplot.Items.Legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, subplot.Items.Legend.Orientation, DrawList);
+        if (legend_contextable && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoMenus) && ImGui::GetIO().MouseReleased[gp.InputMap.ContextMenuButton])
+            ImGui::OpenPopup("##LegendContext");
         ImGui::PopClipRect();
+        if (ImGui::BeginPopup("##LegendContext")) {
+            ImGui::Text("Legend"); ImGui::Separator();
+            if (ShowLegendContextMenu(subplot.Items.Legend, !ImHasFlag(subplot.Flags, ImPlotFlags_NoLegend)))
+                ImFlipFlag(subplot.Flags, ImPlotFlags_NoLegend);
+            ImGui::EndPopup();
+        }    
     }
     else {
         subplot.Items.Legend.Rect = ImRect();
