@@ -756,15 +756,17 @@ struct ImPlotLegendData
     ImGuiTextBuffer   Labels;
     bool              Hovered;
     bool              Outside;
+    bool              CanGoOutside;
     bool              FlipSideNextFrame;
     ImPlotLocation    Location;
     ImPlotOrientation Orientation;
     ImRect            Rect;
 
     ImPlotLegendData() {
-        Hovered     = Outside = FlipSideNextFrame = false;
-        Location    = ImPlotLocation_North | ImPlotLocation_West;
-        Orientation = ImPlotOrientation_Vertical;
+        CanGoOutside = true;
+        Hovered      = Outside = FlipSideNextFrame = false;
+        Location     = ImPlotLocation_North | ImPlotLocation_West;
+        Orientation  = ImPlotOrientation_Vertical;
     }
 
     void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
@@ -840,6 +842,7 @@ struct ImPlotPlot
 struct ImPlotSubplot {
     ImGuiID                       ID;
     ImPlotSubplotFlags            Flags;
+    ImPlotSubplotFlags            PreviousFlags;
     ImPlotItemGroup               Items;
     int                           Rows;
     int                           Cols;
@@ -858,11 +861,12 @@ struct ImPlotSubplot {
     bool                          FrameHovered;
     
     ImPlotSubplot() {
-        Rows = Cols = CurrentIdx = 0;
-        ActiveSeparator          = -1;
-        FrameHovered             = false;
-        Items.Legend.Location    = ImPlotLocation_North;
-        Items.Legend.Orientation = ImPlotOrientation_Horizontal;
+        Rows = Cols = CurrentIdx  = 0;
+        ActiveSeparator           = -1;
+        FrameHovered              = false;
+        Items.Legend.Location     = ImPlotLocation_North;
+        Items.Legend.Orientation  = ImPlotOrientation_Horizontal;
+        Items.Legend.CanGoOutside = false;
     }
 };
 
@@ -1052,8 +1056,11 @@ IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend);
 // [SECTION] Subplot Utils
 //-----------------------------------------------------------------------------
 
-// Advances subplot to next plot
+// Advances to next subplot
 IMPLOT_API void NextSubplot();
+
+// Shows a subplot's context menu.
+IMPLOT_API void ShowSubplotsContextMenu(ImPlotSubplot& subplot);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Item Utils
@@ -1149,6 +1156,9 @@ IMPLOT_API ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, cons
 IMPLOT_API void ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
 // Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
 IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
+
+// Shows an legends's context menu.
+IMPLOT_API bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Tick Utils

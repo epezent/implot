@@ -142,8 +142,8 @@ void BustItemCache() {
         plot.Items.Reset();
     }
     for (int p = 0; p < gp.Subplots.GetBufSize(); ++p) {
-        ImPlotSubplot& plot = *gp.Subplots.GetByIndex(p);
-        plot.Items.Reset();
+        ImPlotSubplot& subplot = *gp.Subplots.GetByIndex(p);
+        subplot.Items.Reset();
     }
 }
 
@@ -153,10 +153,15 @@ void BustColorCache(const char* plot_title_id) {
         BustItemCache();
     }
     else {
-        ImPlotPlot* plot = gp.Plots.GetByKey(ImGui::GetCurrentWindow()->GetID(plot_title_id));
-        if (plot == NULL)
-            return;
-        plot->Items.Reset();
+        ImGuiID id = ImGui::GetCurrentWindow()->GetID(plot_title_id);
+        ImPlotPlot* plot = gp.Plots.GetByKey(id);
+        if (plot != NULL)
+            plot->Items.Reset();
+        else {
+            ImPlotSubplot* subplot = gp.Subplots.GetByKey(id);
+            if (subplot != NULL)
+                subplot->Items.Reset();
+        }
     }
 }
 

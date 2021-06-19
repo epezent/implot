@@ -2221,6 +2221,64 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_all
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
 }
 
+bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible) {
+    const float s = ImGui::GetFrameHeight();
+    bool ret = false;
+    if (ImGui::Checkbox("Show",&visible))
+        ret = true;
+    if (legend.CanGoOutside)
+        ImGui::Checkbox("Outside", &legend.Outside);
+    if (ImGui::RadioButton("H", legend.Orientation == ImPlotOrientation_Horizontal))
+        legend.Orientation = ImPlotOrientation_Horizontal;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("V", legend.Orientation == ImPlotOrientation_Vertical))
+        legend.Orientation = ImPlotOrientation_Vertical;
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2,2));
+    if (ImGui::Button("NW",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_NorthWest; } ImGui::SameLine();
+    if (ImGui::Button("N", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_North;     } ImGui::SameLine();
+    if (ImGui::Button("NE",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_NorthEast; }
+    if (ImGui::Button("W", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_West;      } ImGui::SameLine();
+    if (ImGui::InvisibleButton("C", ImVec2(1.5f*s,s))) {     } ImGui::SameLine();
+    if (ImGui::Button("E", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_East;      }
+    if (ImGui::Button("SW",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_SouthWest; } ImGui::SameLine();
+    if (ImGui::Button("S", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_South;     } ImGui::SameLine();
+    if (ImGui::Button("SE",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_SouthEast; }
+    ImGui::PopStyleVar();
+    return ret;
+}
+
+void ShowSubplotsContextMenu(ImPlotSubplot& subplot) {
+    if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)) {
+        if ((ImGui::BeginMenu("Legend"))) {
+            if (ShowLegendContextMenu(subplot.Items.Legend, !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend)))
+                ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend);
+            ImGui::EndMenu();
+        }
+    }
+    if ((ImGui::BeginMenu("Linking"))) {
+        if (ImGui::MenuItem("Link Rows",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
+        if (ImGui::MenuItem("Link Cols",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
+        if (ImGui::MenuItem("Link All X",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX);
+        if (ImGui::MenuItem("Link All Y",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
+        ImGui::EndMenu();
+    }
+    if ((ImGui::BeginMenu("Settings"))) {
+        if (ImGui::MenuItem("Title",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle);
+        if (ImGui::MenuItem("Splitters",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters);
+        if (ImGui::MenuItem("Align",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign);
+        if (ImGui::MenuItem("Share Items",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems);
+        ImGui::EndMenu();
+    }
+}
+
 void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend) {
     const bool equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
     if (ImGui::BeginMenu("X-Axis")) {
@@ -2251,6 +2309,13 @@ void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend) {
     }
 
     ImGui::Separator();
+    if (owns_legend) {
+        if ((ImGui::BeginMenu("Legend"))) {
+            if (ShowLegendContextMenu(plot.Items.Legend, !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend)))
+                ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
+            ImGui::EndMenu();
+        }
+    }
     if ((ImGui::BeginMenu("Settings"))) {
         if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
             ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
@@ -2266,34 +2331,13 @@ void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend) {
             ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
         if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
             ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
-        if (owns_legend) {
-            if ((ImGui::BeginMenu("Legend"))) {
-                const float s = ImGui::GetFrameHeight();
-                if (ImGui::RadioButton("H", plot.Items.Legend.Orientation == ImPlotOrientation_Horizontal))
-                    plot.Items.Legend.Orientation = ImPlotOrientation_Horizontal;
-                ImGui::SameLine();
-                if (ImGui::RadioButton("V", plot.Items.Legend.Orientation == ImPlotOrientation_Vertical))
-                    plot.Items.Legend.Orientation = ImPlotOrientation_Vertical;
-                ImGui::Checkbox("Outside", &plot.Items.Legend.Outside);
-                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(1,1));
-                if (ImGui::Button("##NW",ImVec2(1.5f*s,s))) { plot.Items.Legend.Location = ImPlotLocation_NorthWest; } ImGui::SameLine();
-                if (ImGui::Button("##N", ImVec2(1.5f*s,s))) { plot.Items.Legend.Location = ImPlotLocation_North;     } ImGui::SameLine();
-                if (ImGui::Button("##NE",ImVec2(1.5f*s,s))) { plot.Items.Legend.Location = ImPlotLocation_NorthEast; }
-                if (ImGui::Button("##W", ImVec2(1.5f*s,s))) { plot.Items.Legend.Location = ImPlotLocation_West;      } ImGui::SameLine();
-                if (ImGui::Button("##C", ImVec2(1.5f*s,s))) { plot.Items.Legend.Location = ImPlotLocation_Center;    } ImGui::SameLine();
-                if (ImGui::Button("##E", ImVec2(1.5f*s,s))) { plot.Items.Legend.Location = ImPlotLocation_East;      }
-                if (ImGui::Button("##SW",ImVec2(1.5f*s,s))) { plot.Items.Legend.Location = ImPlotLocation_SouthWest; } ImGui::SameLine();
-                if (ImGui::Button("##S", ImVec2(1.5f*s,s))) { plot.Items.Legend.Location = ImPlotLocation_South;     } ImGui::SameLine();
-                if (ImGui::Button("##SE",ImVec2(1.5f*s,s))) { plot.Items.Legend.Location = ImPlotLocation_SouthEast; }
-                ImGui::PopStyleVar();
-                ImGui::EndMenu();
-            }
-        }
         ImGui::EndMenu();
     }
-    if (owns_legend) {
-        if (ImGui::MenuItem("Legend",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend))) {
-            ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
+    if (GImPlot->CurrentSubplot != NULL) {
+        ImGui::Separator();
+        if ((ImGui::BeginMenu("Subplots"))) {
+            ShowSubplotsContextMenu(*GImPlot->CurrentSubplot);
+            ImGui::EndMenu();
         }
     }
 }
@@ -2675,11 +2719,18 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     if (Window->SkipItems)
         return false;
     const ImGuiID ID = Window->GetID(title);
+    bool just_created = gp.Subplots.GetByKey(ID) == NULL;
     gp.CurrentSubplot = gp.Subplots.GetOrAddByKey(ID);
     ImPlotSubplot& subplot = *gp.CurrentSubplot;
     subplot.ID    = ID;
     subplot.Items.ID = ID;
-    subplot.Flags = flags;
+
+    if (just_created) 
+        subplot.Flags = flags;    
+    else if (flags != subplot.PreviousFlags)
+        subplot.Flags = flags;
+    subplot.PreviousFlags = flags;  
+
     // check for change in rows and cols
     if (subplot.Rows != rows || subplot.Cols != cols) {
         subplot.RowAlignmentData.resize(rows);
@@ -2756,8 +2807,15 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
         AddTextCentered(ImGui::GetWindowDrawList(),ImVec2(subplot.GridRect.GetCenter().x, subplot.GridRect.Min.y - pad_top + half_pad.y),col,title);
     }
 
-    // render separators
-    if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters) && subplot.FrameHovered) {
+    // is it ok to show splitter? yes, this is ridiculous ;)
+    const bool ok_to_split  = !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters) && 
+                              (subplot.FrameHovered || subplot.ActiveSeparator != -1)   &&
+                              !ImGui::IsPopupOpen(1, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
+                              (subplot.ActiveSeparator != -1 || (!ImGui::IsMouseDragging(ImGuiMouseButton_Left) && 
+                                                                 !ImGui::IsMouseDragging(ImGuiMouseButton_Right) &&
+                                                                 !ImGui::IsMouseDragging(ImGuiMouseButton_Middle)));
+    // render splitters
+    if (ok_to_split) {
         ImDrawList& DrawList = *ImGui::GetWindowDrawList();
         const ImU32 nrm_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_Separator]);
         const ImU32 hov_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorHovered]);
@@ -2835,6 +2893,9 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
             }
             separator++;
         }
+    }
+    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) || !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+        subplot.ActiveSeparator = -1;
     }
 
     // set outgoing sizes
