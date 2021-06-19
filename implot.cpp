@@ -2757,7 +2757,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     }
 
     // render separators
-    if (subplot.FrameHovered) {
+    if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters) && subplot.FrameHovered) {
         ImDrawList& DrawList = *ImGui::GetWindowDrawList();
         const ImU32 nrm_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_Separator]);
         const ImU32 hov_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorHovered]);
@@ -2853,6 +2853,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     // push styling
     PushStyleColor(ImPlotCol_FrameBg, IM_COL32_BLACK_TRANS);
     PushStyleVar(ImPlotStyleVar_PlotPadding, half_pad);
+    PushStyleVar(ImPlotStyleVar_PlotMinSize, ImVec2(0,0));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);  
     // push ID
     ImGui::PushID(ID); 
@@ -2885,6 +2886,7 @@ void EndSubplots() {
         subplot.ColAlignmentData[c].End();
     // pop styling
     PopStyleColor(); 
+    PopStyleVar();
     PopStyleVar();
     ImGui::PopStyleVar();
     // legend
