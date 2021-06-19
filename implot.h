@@ -114,9 +114,7 @@ enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_LinkRows    = 1 << 5,  // link the y-axis limits of all plots in each row (does not apply auxiliary y-axes)
     ImPlotSubplotFlags_LinkCols    = 1 << 6,  // link the x-axis limits of all plots in each column
     ImPlotSubplotFlags_LinkAllX    = 1 << 7,  // link the x-axis limits in every plot in the subplot
-    ImPlotSubplotFlags_LinkAllY    = 1 << 8,  // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
-    ImPlotSubplotFlags_EqualRows   = 1 << 9,  // heights of plots in rows will be visually equalized (ignores incoming row sizes and disables horizontal splitters)
-    ImPlotSubplotFlags_EqualCols   = 1 << 10, // widths of plots in columns will be visually equalized (ignores incoming col sizes and disables vertical splitters)
+    ImPlotSubplotFlags_LinkAllY    = 1 << 8   // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
 };
 
 // Plot styling colors.
@@ -646,10 +644,12 @@ IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImPlotYAxis y_axis = IMP
 // Algined Plots
 //-----------------------------------------------------------------------------
 
+// Consider using Begin/EndSubplots first. They are more feature rich and 
+// accomplish the same behaviour by default. The functions below offer lower 
+// level control of plot alignment. 
+
 // Align axis padding over multiple plots in a single row or column. If this function returns true, EndAlignedPlots() must be called. #group_id must be unique.
 IMPLOT_API bool BeginAlignedPlots(const char* group_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical);
-// Align axis padding over multiple plots in a 2D grid. If this function returns true, EndAlignedPlots() must be called. #group_id must be unique.
-IMPLOT_API bool BeginAlignedPlots(const char* group_id, int rows, int cols);
 // Only call EndAlignedPlots() if BeginAlignedPlots() returns true!
 IMPLOT_API void EndAlignedPlots();
 
@@ -684,7 +684,7 @@ IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label 
 
 // The following functions MUST be called BETWEEN Begin/EndPlot!
 
-// Set the location of the current plot's legend (default = North|West).
+// Set the location of the current plot's (or subplot's) legend.
 IMPLOT_API void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation = ImPlotOrientation_Vertical, bool outside = false);
 // Set the location of the current plot's mouse position text (default = South|East).
 IMPLOT_API void SetMousePosLocation(ImPlotLocation location);

@@ -61,7 +61,7 @@ namespace ImPlot {
 
 ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created) {
     ImPlotContext& gp = *GImPlot;
-    ImPlotItemCollection& Items = gp.SubplotCaptureItems ? gp.CurrentSubplot->Items : gp.CurrentPlot->Items;
+    ImPlotItemGroup& Items = gp.SubplotCaptureItems ? gp.CurrentSubplot->Items : gp.CurrentPlot->Items;
 
     ImGuiID id = ImGui::GetID(label_id); // pre subplots
     if (just_created != NULL)
@@ -73,9 +73,9 @@ ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created) {
     int idx = Items.GetItemIndex(item);
     item->ID = id;
     if (ImGui::FindRenderedTextEnd(label_id, NULL) != label_id) {
-        Items.LegendData.Indices.push_back(idx);
-        item->NameOffset = Items.LegendData.Labels.size();
-        Items.LegendData.Labels.append(label_id, label_id + strlen(label_id) + 1);
+        Items.Legend.Indices.push_back(idx);
+        item->NameOffset = Items.Legend.Labels.size();
+        Items.Legend.Labels.append(label_id, label_id + strlen(label_id) + 1);
     }
     else {
         item->Show = true;
