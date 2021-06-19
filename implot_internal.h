@@ -773,6 +773,7 @@ struct ImPlotLegendData
 // Holds Items and Legend data
 struct ImPlotItemGroup 
 {
+    ImGuiID            ID;
     ImPlotLegendData   Legend;
     ImPool<ImPlotItem> ItemPool;
     int                ColormapIdx;
@@ -839,7 +840,7 @@ struct ImPlotPlot
 struct ImPlotSubplot {
     ImGuiID                       ID;
     ImPlotSubplotFlags            Flags;
-    ImPlotItemGroup          Items;
+    ImPlotItemGroup               Items;
     int                           Rows;
     int                           Cols;
     int                           CurrentIdx;
@@ -942,6 +943,7 @@ struct ImPlotContext {
     ImPool<ImPlotSubplot> Subplots;
     ImPlotPlot*           CurrentPlot;
     ImPlotSubplot*        CurrentSubplot;
+    ImPlotItemGroup*      CurrentItems;
     ImPlotItem*           CurrentItem;
     ImPlotItem*           PreviousItem;
 
@@ -973,9 +975,6 @@ struct ImPlotContext {
     bool RenderX;
     bool RenderY[IMPLOT_Y_AXES];
 
-    // Subplot Flags
-    bool SubplotCaptureInput;
-    bool SubplotCaptureItems;
 
     // Axis Locking Flags
     bool ChildWindowMade;
@@ -994,6 +993,7 @@ struct ImPlotContext {
     ImVector<double>   Temp1, Temp2;
 
     // Misc
+    bool               DisableUserInput;
     int                DigitalPlotItemCnt;
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
@@ -1046,7 +1046,7 @@ IMPLOT_API ImPlotPlot* GetCurrentPlot();
 IMPLOT_API void BustPlotCache();
 
 // Shows a plot's context menu.
-IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot, bool has_legend);
+IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Subplot Utils

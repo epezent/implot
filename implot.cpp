@@ -489,8 +489,7 @@ void ResetCtxForNextSubplot(ImPlotContext* ctx) {
     ctx->CurrentSubplot      = NULL;
     ctx->CurrentAlignmentH   = NULL;
     ctx->CurrentAlignmentV   = NULL;
-    ctx->SubplotCaptureInput = false;
-    ctx->SubplotCaptureItems = false;
+    ctx->DisableUserInput    = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -1672,10 +1671,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     const ImGuiStyle &Style    = G.Style;
     const ImGuiIO &   IO       = ImGui::GetIO();
 
-    bool just_created  = gp.Plots.GetByKey(ID) == NULL;
-    gp.CurrentPlot     = gp.Plots.GetOrAddByKey(ID);
-    gp.CurrentPlot->ID = ID;
-    ImPlotPlot &plot   = *gp.CurrentPlot;
+    bool just_created        = gp.Plots.GetByKey(ID) == NULL;
+    gp.CurrentPlot           = gp.Plots.GetOrAddByKey(ID);
+    gp.CurrentPlot->ID       = ID;
+    gp.CurrentPlot->Items.ID = ID;
+    ImPlotPlot &plot         = *gp.CurrentPlot;
 
     plot.CurrentYAxis = 0;
 
@@ -1966,7 +1966,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
         plot.YAxis[i].Pixels = plot.PlotRect.GetHeight();
 
     // INPUT ------------------------------------------------------------------
-    if (!gp.SubplotCaptureInput) {
+    if (!gp.DisableUserInput) {
         HandlePlotInput(plot);
     }
 
@@ -2064,13 +2064,16 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
         }
     }
     ImGui::PopClipRect();
-    // clear legend
+    // clear legend (TODO: put elsewhere)
     plot.Items.Legend.Reset();
-    // push plot ID into stack
-    if (gp.SubplotCaptureItems)
-        ImGui::PushOverrideID(gp.CurrentSubplot->ID);
-    else
+    // setup items (or dont)
+    if (gp.CurrentItems != NULL) {
+        ImGui::PushOverrideID(gp.CurrentItems->ID);
+    }
+    else {
+        gp.CurrentItems = &plot.Items;
         ImGui::PushID(ID);
+    }
     return true;
 }
 
@@ -2218,7 +2221,7 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_all
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
 }
 
-void ShowPlotContextMenu(ImPlotPlot& plot, bool has_legend) {
+void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend) {
     const bool equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
     if (ImGui::BeginMenu("X-Axis")) {
         ImGui::PushID("X");
@@ -2263,7 +2266,7 @@ void ShowPlotContextMenu(ImPlotPlot& plot, bool has_legend) {
             ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
         if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
             ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
-        if (has_legend) {
+        if (owns_legend) {
             if ((ImGui::BeginMenu("Legend"))) {
                 const float s = ImGui::GetFrameHeight();
                 if (ImGui::RadioButton("H", plot.Items.Legend.Orientation == ImPlotOrientation_Horizontal))
@@ -2288,7 +2291,7 @@ void ShowPlotContextMenu(ImPlotPlot& plot, bool has_legend) {
         }
         ImGui::EndMenu();
     }
-    if (has_legend) {
+    if (owns_legend) {
         if (ImGui::MenuItem("Legend",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend))) {
             ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
         }
@@ -2555,7 +2558,7 @@ void EndPlot() {
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && plot.PlotHovered && IO.MouseReleased[gp.InputMap.ContextMenuButton] && !plot.Items.Legend.Hovered && !plot.ContextLocked)
         ImGui::OpenPopup("##PlotContext");
     if (ImGui::BeginPopup("##PlotContext")) {
-        ShowPlotContextMenu(plot, !gp.SubplotCaptureItems);
+        ShowPlotContextMenu(plot, gp.CurrentItems == &plot.Items);
         ImGui::EndPopup();
     }
     // x-axis ctx menu
@@ -2597,6 +2600,9 @@ void EndPlot() {
     if (plot.ContextLocked && IO.MouseReleased[gp.InputMap.BoxSelectButton])
         plot.ContextLocked = false;
 
+    // remove items
+    if (gp.CurrentItems == &plot.Items)   
+        gp.CurrentItems = NULL;
     // reset the plot items for the next frame
     for (int i = 0; i < plot.Items.GetItemCount(); ++i) {
         plot.Items.GetItemByIndex(i)->SeenThisFrame = false;
@@ -2662,7 +2668,7 @@ void NextSubplot() {
 bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags, float* row_sizes, float* col_sizes) {
     IM_ASSERT_USER_ERROR(rows > 0 && cols > 0, "You can't provide a negative value for rows or cols!");
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot == NULL, "Mismatched BeginSubplot()/EndSubplot()!");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot == NULL, "Mismatched BeginSubplots()/EndSubplots()!");
     ImPlotContext& gp = *GImPlot;
     ImGuiContext &G = *GImGui;
     ImGuiWindow * Window = G.CurrentWindow;
@@ -2672,6 +2678,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     gp.CurrentSubplot = gp.Subplots.GetOrAddByKey(ID);
     ImPlotSubplot& subplot = *gp.CurrentSubplot;
     subplot.ID    = ID;
+    subplot.Items.ID = ID;
     subplot.Flags = flags;
     // check for change in rows and cols
     if (subplot.Rows != rows || subplot.Cols != cols) {
@@ -2721,8 +2728,10 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     subplot.FrameHovered = subplot.FrameRect.Contains(ImGui::GetMousePos()) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
 
     // outside legend adjustments
-    gp.SubplotCaptureItems = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems);
-    if (gp.SubplotCaptureItems && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend) && subplot.Items.GetLegendCount() > 0) {
+    const bool share_items = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems);
+    if (share_items)
+        gp.CurrentItems = &subplot.Items;
+    if (share_items && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend) && subplot.Items.GetLegendCount() > 0) {
         const ImVec2 legend_size = CalcLegendSize(subplot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, subplot.Items.Legend.Orientation);
         const bool west = ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_West) && !ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_East);
         const bool east = ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_East) && !ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_West);
@@ -2839,7 +2848,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     }
 
     // set flags
-    gp.SubplotCaptureInput = subplot.ActiveSeparator != -1;
+    gp.DisableUserInput = subplot.ActiveSeparator != -1;
  
     // push styling
     PushStyleColor(ImPlotCol_FrameBg, IM_COL32_BLACK_TRANS);
@@ -2866,7 +2875,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
 
 void EndSubplots() {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot != NULL, "Mismatched BeginSubplot()/EndSubplot()!");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentSubplot != NULL, "Mismatched BeginSubplots()/EndSubplots()!");
     ImPlotContext& gp = *GImPlot;
     ImPlotSubplot& subplot = *GImPlot->CurrentSubplot;
     // set alignments
@@ -2883,13 +2892,13 @@ void EndSubplots() {
     for (int i = 0; i < subplot.Items.GetItemCount(); ++i)
         subplot.Items.GetItemByIndex(i)->LegendHovered = false;
     // render legend
+    const bool share_items = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems);
     ImDrawList& DrawList = *ImGui::GetWindowDrawList();
-    if (GImPlot->SubplotCaptureItems && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend) && subplot.Items.GetLegendCount() > 0) {
+    if (share_items && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend) && subplot.Items.GetLegendCount() > 0) {
         const ImVec2 legend_size = CalcLegendSize(subplot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, subplot.Items.Legend.Orientation);
         const ImVec2 legend_pos  = GetLocationPos(subplot.FrameRect, legend_size, subplot.Items.Legend.Location, gp.Style.PlotPadding);
         subplot.Items.Legend.Rect = ImRect(legend_pos, legend_pos + legend_size);
         subplot.Items.Legend.Hovered = subplot.FrameHovered && subplot.Items.Legend.Rect.Contains(ImGui::GetIO().MousePos);
-
         ImGui::PushClipRect(subplot.FrameRect.Min, subplot.FrameRect.Max, true);
         ImU32  col_bg      = GetStyleColorU32(ImPlotCol_LegendBg);
         ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
@@ -2901,6 +2910,13 @@ void EndSubplots() {
     else {
         subplot.Items.Legend.Rect = ImRect();
     }
+    // remove items
+    if (gp.CurrentItems == &subplot.Items)   
+        gp.CurrentItems = NULL;
+    // reset the plot items for the next frame (TODO: put this elswhere)
+    for (int i = 0; i < subplot.Items.GetItemCount(); ++i) {
+        subplot.Items.GetItemByIndex(i)->SeenThisFrame = false;
+    }
     // pop ID
     ImGui::PopID(); // pop subplit idx
     // render grid
@@ -2909,10 +2925,7 @@ void EndSubplots() {
     GImGui->CurrentWindow->DC.CursorPos = subplot.FrameRect.Min;
     ImGui::Dummy(subplot.FrameRect.GetSize());
     ResetCtxForNextSubplot(GImPlot);
-    // reset the plot items for the next frame
-    for (int i = 0; i < subplot.Items.GetItemCount(); ++i) {
-        subplot.Items.GetItemByIndex(i)->SeenThisFrame = false;
-    }
+
 }
 
 //-----------------------------------------------------------------------------
@@ -3780,20 +3793,11 @@ void PopColormap(int count) {
 
 ImU32 NextColormapColorU32() {
     ImPlotContext& gp = *GImPlot;
-    if (gp.SubplotCaptureItems) {
-        IM_ASSERT_USER_ERROR(gp.CurrentSubplot != NULL, "NextColormapColor() needs to be called between BeginSubplot() and EndSubplot()!");
-        int idx = gp.CurrentSubplot->Items.ColormapIdx % gp.ColormapData.GetKeyCount(gp.Style.Colormap);
-        ImU32 col  = gp.ColormapData.GetKeyColor(gp.Style.Colormap, idx);
-        gp.CurrentSubplot->Items.ColormapIdx++;
-        return col;
-    }
-    else {
-        IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "NextColormapColor() needs to be called between BeginPlot() and EndPlot()!");
-        int idx = gp.CurrentPlot->Items.ColormapIdx % gp.ColormapData.GetKeyCount(gp.Style.Colormap);
-        ImU32 col  = gp.ColormapData.GetKeyColor(gp.Style.Colormap, idx);
-        gp.CurrentPlot->Items.ColormapIdx++;
-        return col;
-    }
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "NextColormapColor() needs to be called between BeginPlot() and EndPlot()!");
+    int idx = gp.CurrentItems->ColormapIdx % gp.ColormapData.GetKeyCount(gp.Style.Colormap);
+    ImU32 col  = gp.ColormapData.GetKeyColor(gp.Style.Colormap, idx);
+    gp.CurrentItems->ColormapIdx++;
+    return col;    
 }
 
 ImVec4 NextColormapColor() {
