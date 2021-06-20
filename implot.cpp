@@ -88,6 +88,16 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #define GetBufSize GetSize          // A little bit ugly since 'GetBufSize' could technically be used elsewhere (but currently isn't). Could use a proxy define if needed.
 #endif
 
+#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
+namespace ImPlot {
+namespace Backends {
+
+void OpenGL3_BustPlotCache();
+
+}
+}
+#endif
+
 // Global plot context
 ImPlotContext* GImPlot = NULL;
 
@@ -435,7 +445,6 @@ void Initialize(ImPlotContext* ctx) {
     IMPLOT_APPEND_CMAP(PiYG, false);
     IMPLOT_APPEND_CMAP(Spectral, false);
     IMPLOT_APPEND_CMAP(Greys, false);
-
 }
 
 void Reset(ImPlotContext* ctx) {
@@ -489,6 +498,9 @@ ImPlotPlot* GetCurrentPlot() {
 
 void BustPlotCache() {
     GImPlot->Plots.Clear();
+#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
+    Backends::OpenGL3_BustPlotCache();
+#endif
 }
 
 void PushLinkedAxis(ImPlotAxis& axis) {

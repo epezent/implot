@@ -46,7 +46,7 @@
 namespace ImPlot {
 namespace Backends {
 
-void OpenGL3_AddColormap(int* texID, const ImU32* keys, int count, bool qual);
+void OpenGL3_AddColormap(const ImU32* keys, int count, bool qual);
 
 }
 }
@@ -368,9 +368,6 @@ struct ImPlotColormapData {
     ImVector<bool>  Quals;
     ImGuiStorage    Map;
     int             Count;
-#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
-    ImVector<int>   TextureIDs;
-#endif
 
     ImPlotColormapData() { Count = 0; }
 
@@ -390,8 +387,7 @@ struct ImPlotColormapData {
         Map.SetInt(id,idx);
         _AppendTable(idx);
 #ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
-        TextureIDs.push_back(0);
-        ImPlot::Backends::OpenGL3_AddColormap(&TextureIDs[idx], keys, count, qual);
+        ImPlot::Backends::OpenGL3_AddColormap(keys, count, qual);
 #endif
         return idx;
     }

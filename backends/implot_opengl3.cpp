@@ -54,6 +54,7 @@ struct OpenGLContextData
 	GLuint g_AttribLocationImGuiProjection = 0; ///< Attribute location for the projection matrix uniform (ImGui default shader)
 
 	ImVector<HeatmapData> HeatmapDataList;      ///< Array of heatmap data
+	ImVector<GLuint> ColormapIDs;               ///< Texture IDs of the colormap textures
 	ImGuiStorage PlotIDs;                       ///< PlotID <-> Heatmap array index table
 };
 
@@ -178,17 +179,19 @@ static void SetTextureData(int plotID, const void* data, GLsizei rows, GLsizei c
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, cols, rows, 0, GL_RED, type, data);
 }
 
-void OpenGL3_AddColormap(int* texID, const ImU32* keys, int count, bool qual)
+void OpenGL3_AddColormap(const ImU32* keys, int count, bool qual)
 {
-	GLuint* colormapID = (GLuint*)texID;
-	glGenTextures(1, colormapID);
-	glBindTexture(GL_TEXTURE_1D, *colormapID);
+	GLuint texID;
+	glGenTextures(1, &texID);
+	glBindTexture(GL_TEXTURE_1D, texID);
 	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, count, 0, GL_RGBA, GL_UNSIGNED_BYTE, keys);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, qual ? GL_NEAREST : GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, qual ? GL_NEAREST : GL_LINEAR);
 	glBindTexture(GL_TEXTURE_1D, 0);
+
+	Context.ColormapIDs.push_back(texID);
 }
 
 static GLuint CreateHeatmapTexture()
@@ -249,7 +252,6 @@ void OpenGL3_SetHeatmapData(int plotID, const ImU64* values, int rows, int cols)
 
 void OpenGL3_RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max, float scale_min, float scale_max, ImPlotColormap colormap)
 {
-	ImPlotContext& gp = *GImPlot;
 	int idx = Context.PlotIDs.GetInt(plotID, -1);
 
 	if(idx < 0)
@@ -257,7 +259,7 @@ void OpenGL3_RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bound
 		// New entry
 		HeatmapData data;
 		data.HeatmapTexID = CreateHeatmapTexture();
-		data.ColormapTexID = gp.ColormapData.TextureIDs[colormap];
+		data.ColormapTexID = Context.ColormapIDs[colormap];
 		data.MinValue = scale_min;
 		data.MaxValue = scale_max;
 
@@ -267,7 +269,7 @@ void OpenGL3_RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bound
 	else
 	{
 		HeatmapData& data = Context.HeatmapDataList[idx];
-		data.ColormapTexID = gp.ColormapData.TextureIDs[colormap];
+		data.ColormapTexID = Context.ColormapIDs[colormap];
 		data.MinValue = scale_min;
 		data.MaxValue = scale_max;
 	}
@@ -284,6 +286,9 @@ void OpenGL3_RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bound
 
 void OpenGL3_BustPlotCache()
 {
+	for(const HeatmapData& data : Context.HeatmapDataList)
+		glDeleteTextures(1, &data.HeatmapTexID);
+
 	Context.HeatmapDataList.clear();
 	Context.PlotIDs.Clear();
 }
