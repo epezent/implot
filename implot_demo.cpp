@@ -552,7 +552,7 @@ void ShowDemo_Heatmaps() {
 
 }
 
-void ShowDemo_Histograms() {
+void ShowDemo_Histogram() {
     static int  bins       = 50;
     static bool cumulative = false;
     static bool density    = true;
@@ -612,7 +612,9 @@ void ShowDemo_Histograms() {
             ImPlot::PlotLine("Theoretical",x,y,100);
         ImPlot::EndPlot();
     }
+}
 
+void ShowDemo_Histogram2D() {
     static int count     = 500000;
     static int xybins[2] = {200,200};
     static bool density2 = false;
@@ -625,6 +627,7 @@ void ShowDemo_Histograms() {
     double max_count = 0;
     ImPlotAxisFlags flags = ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_Foreground;
     ImPlot::PushColormap("Hot");
+    ImPlot::SetNextPlotLimits(-6,6,-6,6);
     if (ImPlot::BeginPlot("##Hist2D",0,0,ImVec2(ImGui::GetContentRegionAvail().x-100-ImGui::GetStyle().ItemSpacing.x,0),0,flags,flags)) {
         max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],density2,ImPlotLimits(-6,6,-6,6));
         ImPlot::EndPlot();
@@ -1036,16 +1039,27 @@ void ShowDemo_SubplotAxisLinking() {
 void ShowDemo_Querying() {
     static ImVector<ImPlotPoint> data;
     static ImPlotLimits range, query, select;
+    static bool init = true;
+    if (init) {
+        for (int i = 0; i < 50; ++i)
+        {
+            double x = RandomRange(0.0, 1.0);
+            double y = RandomRange(0.0, 1.0);
+            data.push_back(ImPlotPoint(x,y));
+        }
+        init = false;
+    }
 
-    ImGui::BulletText("Ctrl + click in the plot area to draw points.");
     ImGui::BulletText("Middle click (or Ctrl + right click) and drag to create a query rect.");
     ImGui::Indent();
         ImGui::BulletText("Hold Alt to expand query horizontally.");
         ImGui::BulletText("Hold Shift to expand query vertically.");
         ImGui::BulletText("The query rect can be dragged after it's created.");
     ImGui::Unindent();
+    ImGui::BulletText("Ctrl + click in the plot area to draw points.");
 
-    if (ImPlot::BeginPlot("##Drawing", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Query, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
+    ImPlot::SetNextPlotLimits(0,1,0,1);
+    if (ImPlot::BeginPlot("##Centroid", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Query)) {
         if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) {
             ImPlotPoint pt = ImPlot::GetPlotMousePos();
             data.push_back(pt);
@@ -1067,7 +1081,7 @@ void ShowDemo_Querying() {
                 avg.x = avg.x / cnt;
                 avg.y = avg.y / cnt;
                 ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
-                ImPlot::PlotScatter("Average", &avg.x, &avg.y, 1);
+                ImPlot::PlotScatter("Centroid", &avg.x, &avg.y, 1);
             }
         }
         range  = ImPlot::GetPlotLimits();
@@ -1078,10 +1092,9 @@ void ShowDemo_Querying() {
     ImGui::Text("Limits: [%g,%g,%g,%g]", range.X.Min, range.X.Max, range.Y.Min, range.Y.Max);
     ImGui::Text("Query: [%g,%g,%g,%g]", query.X.Min, query.X.Max, query.Y.Min, query.Y.Max);
     ImGui::Text("Selection: [%g,%g,%g,%g]", select.X.Min, select.X.Max, select.Y.Min, select.Y.Max);
+}
 
-    ImGui::Separator();
-
-    // mimic's soulthread's imgui_plot demo
+void ShowDemo_Views() {
     static float x_data[512];
     static float y_data1[512];
     static float y_data2[512];
@@ -1734,8 +1747,10 @@ void ShowDemoWindow(bool* p_open) {
                 ShowDemo_PieCharts();
             if (ImGui::CollapsingHeader("Heatmaps"))
                 ShowDemo_Heatmaps();
-            if (ImGui::CollapsingHeader("Histograms"))
-                ShowDemo_Histograms();
+            if (ImGui::CollapsingHeader("Histogram"))
+                ShowDemo_Histogram();
+            if (ImGui::CollapsingHeader("Histogram 2D"))
+                ShowDemo_Histogram2D();
             if (ImGui::CollapsingHeader("Digital Plots"))
                 ShowDemo_DigitalPlots();
             if (ImGui::CollapsingHeader("Images"))
@@ -1777,10 +1792,12 @@ void ShowDemoWindow(bool* p_open) {
                 ShowDemo_OffsetAndStride();
             if (ImGui::CollapsingHeader("Querying"))
                 ShowDemo_Querying();
+            if (ImGui::CollapsingHeader("Views"))
+                ShowDemo_Views();
             if (ImGui::CollapsingHeader("Drag Lines"))
                 ShowDemo_DragLines();
             if (ImGui::CollapsingHeader("Drag Points"))
-                ShowDemo_DragLines();
+                ShowDemo_DragPoints();
             if (ImGui::CollapsingHeader("Annotations"))
                 ShowDemo_Annotations();
             if (ImGui::CollapsingHeader("Drag and Drop"))

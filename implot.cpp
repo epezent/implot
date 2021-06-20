@@ -1828,9 +1828,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
         ResetCtxForNextPlot(GImPlot);
         return false;
     }
-    plot.FrameHovered = ImGui::ItemHoverable(plot.FrameRect, ID);
-    if (G.HoveredIdPreviousFrame != 0 && G.HoveredIdPreviousFrame != ID)
-        plot.FrameHovered = false;
+    // NB: ImGuiButtonFlags_AllowItemOverlap and SetItemAllowOverlap() required for DragLine and DragPoint
+    ImGui::ButtonBehavior(plot.FrameRect,plot.ID,&plot.FrameHovered,&plot.FrameHeld,ImGuiButtonFlags_AllowItemOverlap);
     ImGui::SetItemAllowOverlap();
 
     // canvas/axes bb
@@ -2843,7 +2842,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
             bool active = subplot.ActiveSeparator == separator;
             ypos += subplot.RowRatios[r] * subplot.GridRect.GetHeight();
             if ((subplot.ActiveSeparator == -1 || active) && !pass) {
-                if ((mouse.y > ypos-5 && mouse.y < ypos+5 && subplot.GridRect.Contains(mouse)) || active) {
+                if ((mouse.y > ypos-4 && mouse.y < ypos+4 && subplot.GridRect.Contains(mouse)) || active) {
                     if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         float p = (subplot.RowRatios[r] + subplot.RowRatios[r+1])/2;
                         subplot.RowRatios[r]   = p;
@@ -2866,7 +2865,9 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
                             subplot.RowRatios[r+1] = subplot.TempSizes[1] - dp;
                         }
                     }
-                    DrawList.AddLine(ImVec2(subplot.GridRect.Min.x,ypos),ImVec2(subplot.GridRect.Max.x,ypos),active ? act_col : hov_col,2.0f);
+                    DrawList.AddLine(ImVec2(IM_ROUND(subplot.GridRect.Min.x),IM_ROUND(ypos)),
+                                     ImVec2(IM_ROUND(subplot.GridRect.Max.x),IM_ROUND(ypos)),
+                                     active ? act_col : hov_col, 1.0f);
                     ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
                     pass = true;
                 }
@@ -2877,7 +2878,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
             bool active = subplot.ActiveSeparator == separator;
             xpos += subplot.ColRatios[c] * subplot.GridRect.GetWidth();
             if ((subplot.ActiveSeparator == -1 || active) && !pass) {
-                if ((mouse.x > xpos-5 && mouse.x < xpos+5 && subplot.GridRect.Contains(mouse)) || active) {
+                if ((mouse.x > xpos-4 && mouse.x < xpos+4 && subplot.GridRect.Contains(mouse)) || active) {
                     if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
                         float p = (subplot.ColRatios[c] + subplot.ColRatios[c+1])/2;
                         subplot.ColRatios[c]   = p;
@@ -2900,7 +2901,10 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
                             subplot.ColRatios[c+1] = subplot.TempSizes[1] - dp;
                         }
                     }
-                    DrawList.AddLine(ImVec2(xpos,subplot.GridRect.Min.y),ImVec2(xpos,subplot.GridRect.Max.y),active ? act_col : hov_col,2.0f);
+                    
+                    DrawList.AddLine(ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Min.y)),
+                                     ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Max.y)),
+                                    active ? act_col : hov_col,1.0f);
                     ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
                     pass = true;
                 }

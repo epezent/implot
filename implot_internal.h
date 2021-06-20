@@ -814,6 +814,7 @@ struct ImPlotPlot
     bool            Queried;
     bool            DraggingQuery;
     bool            FrameHovered;
+    bool            FrameHeld;
     bool            PlotHovered;
     int             CurrentYAxis;
     ImPlotLocation  MousePosLocation;
