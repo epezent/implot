@@ -53,6 +53,26 @@
 #endif
 
 
+#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
+namespace ImPlot {
+namespace Backends {
+    void OpenGL3_SetHeatmapData(int texID, const ImS8* values, int rows, int cols);
+    void OpenGL3_SetHeatmapData(int texID, const ImU8* values, int rows, int cols);
+    void OpenGL3_SetHeatmapData(int texID, const ImS16* values, int rows, int cols);
+    void OpenGL3_SetHeatmapData(int texID, const ImU16* values, int rows, int cols);
+    void OpenGL3_SetHeatmapData(int texID, const ImS32* values, int rows, int cols);
+    void OpenGL3_SetHeatmapData(int texID, const ImU32* values, int rows, int cols);
+    void OpenGL3_SetHeatmapData(int texID, const ImS64* values, int rows, int cols);
+    void OpenGL3_SetHeatmapData(int texID, const ImU64* values, int rows, int cols);
+    void OpenGL3_SetHeatmapData(int texID, const float* values, int rows, int cols);
+    void OpenGL3_SetHeatmapData(int texID, const double* values, int rows, int cols);
+
+    void OpenGL3_RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max, float scale_min, float scale_max, ImPlotColormap colormap);
+}
+}
+#endif
+
+
 namespace ImPlot {
 
 //-----------------------------------------------------------------------------
@@ -1890,13 +1910,22 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     }
     const double yref = reverse_y ? bounds_max.y : bounds_min.y;
     const double ydir = reverse_y ? -1 : 1;
+#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
+    // NOTE: Order is important!
+    ImVec2 bmin = transformer(bounds_min);
+    ImVec2 bmax = transformer(bounds_max);
+
+    Backends::OpenGL3_RenderHeatmap(gp.CurrentPlot->ID, DrawList, bmin, bmax, scale_min, scale_max, gp.Style.Colormap);
+    Backends::OpenGL3_SetHeatmapData(gp.CurrentPlot->ID, values, rows, cols);
+#else
     GetterHeatmap<T> getter(values, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
     switch (GetCurrentScale()) {
         case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLin>(getter, TransformerLinLin()), DrawList, gp.CurrentPlot->PlotRect); break;
-        case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLin>(getter, TransformerLogLin()), DrawList, gp.CurrentPlot->PlotRect); break;;
-        case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLog>(getter, TransformerLinLog()), DrawList, gp.CurrentPlot->PlotRect); break;;
-        case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLog>(getter, TransformerLogLog()), DrawList, gp.CurrentPlot->PlotRect); break;;
+        case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLin>(getter, TransformerLogLin()), DrawList, gp.CurrentPlot->PlotRect); break;
+        case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLog>(getter, TransformerLinLog()), DrawList, gp.CurrentPlot->PlotRect); break;
+        case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLog>(getter, TransformerLogLog()), DrawList, gp.CurrentPlot->PlotRect); break;
     }
+#endif
     if (fmt != NULL) {
         const double w = (bounds_max.x - bounds_min.x) / cols;
         const double h = (bounds_max.y - bounds_min.y) / rows;

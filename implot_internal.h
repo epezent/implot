@@ -42,6 +42,16 @@
 #error Must include implot.h before implot_internal.h
 #endif
 
+#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
+namespace ImPlot {
+namespace Backends {
+
+void OpenGL3_AddColormap(int* texID, const ImU32* keys, int count, bool qual);
+
+}
+}
+#endif
+
 //-----------------------------------------------------------------------------
 // [SECTION] Constants
 //-----------------------------------------------------------------------------
@@ -358,6 +368,9 @@ struct ImPlotColormapData {
     ImVector<bool>  Quals;
     ImGuiStorage    Map;
     int             Count;
+#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
+    ImVector<int>   TextureIDs;
+#endif
 
     ImPlotColormapData() { Count = 0; }
 
@@ -376,6 +389,10 @@ struct ImPlotColormapData {
         int idx = Count++;
         Map.SetInt(id,idx);
         _AppendTable(idx);
+#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
+        TextureIDs.push_back(0);
+        ImPlot::Backends::OpenGL3_AddColormap(&TextureIDs[idx], keys, count, qual);
+#endif
         return idx;
     }
 
