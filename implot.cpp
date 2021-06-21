@@ -31,43 +31,43 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2021/03/08 (0.9) - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support. LerpColormap was changed to SampleColormap.
-                     ShowColormapScale was changed to ColormapScale and requires additional arguments.
-- 2021/03/07 (0.9) - The signature of ShowColormapScale was modified to accept a ImVec2 size.
-- 2021/02/28 (0.9) - BeginLegendDragDropSource was changed to BeginDragDropSourceItem with a number of other drag and drop improvements.
-- 2021/01/18 (0.9) - The default behavior for opening context menus was change from double right-click to single right-click. ImPlotInputMap and related functions were moved
-                     to implot_internal.h due to its immaturity.
-- 2020/10/16 (0.8) - ImPlotStyleVar_InfoPadding was changed to ImPlotStyleVar_MousePosPadding
-- 2020/09/10 (0.8) - The single array versions of PlotLine, PlotScatter, PlotStems, and PlotShaded were given additional arguments for x-scale and x0.
-- 2020/09/07 (0.8) - Plotting functions which accept a custom getter function pointer have been post-fixed with a G (e.g. PlotLineG)
-- 2020/09/06 (0.7) - Several flags under ImPlotFlags and ImPlotAxisFlags were inverted (e.g. ImPlotFlags_Legend -> ImPlotFlags_NoLegend) so that the default flagset
-                     is simply 0. This more closely matches ImGui's style and makes it easier to enable non-default but commonly used flags (e.g. ImPlotAxisFlags_Time).
-- 2020/08/28 (0.5) - ImPlotMarker_ can no longer be combined with bitwise OR, |. This features caused unecessary slow-down, and almost no one used it.
-- 2020/08/25 (0.5) - ImPlotAxisFlags_Scientific was removed. Logarithmic axes automatically uses scientific notation.
-- 2020/08/17 (0.5) - PlotText was changed so that text is centered horizontally and vertically about the desired point.
-- 2020/08/16 (0.5) - An ImPlotContext must be explicitly created and destroyed now with `CreateContext` and `DestroyContext`. Previously, the context was statically initialized in this source file.
-- 2020/06/13 (0.4) - The flags `ImPlotAxisFlag_Adaptive` and `ImPlotFlags_Cull` were removed. Both are now done internally by default.
-- 2020/06/03 (0.3) - The signature and behavior of PlotPieChart was changed so that data with sum less than 1 can optionally be normalized. The label format can now be specified as well.
-- 2020/06/01 (0.3) - SetPalette was changed to `SetColormap` for consistency with other plotting libraries. `RestorePalette` was removed. Use `SetColormap(ImPlotColormap_Default)`.
-- 2020/05/31 (0.3) - Plot functions taking custom ImVec2* getters were removed. Use the ImPlotPoint* getter versions instead.
-- 2020/05/29 (0.3) - The signature of ImPlotLimits::Contains was changed to take two doubles instead of ImVec2
-- 2020/05/16 (0.2) - All plotting functions were reverted to being prefixed with "Plot" to maintain a consistent VerbNoun style. `Plot` was split into `PlotLine`
-                     and `PlotScatter` (however, `PlotLine` can still be used to plot scatter points as `Plot` did before.). `Bar` is not `PlotBars`, to indicate
-                     that multiple bars will be plotted.
-- 2020/05/13 (0.2) - `ImMarker` was change to `ImPlotMarker` and `ImAxisFlags` was changed to `ImPlotAxisFlags`.
-- 2020/05/11 (0.2) - `ImPlotFlags_Selection` was changed to `ImPlotFlags_BoxSelect`
-- 2020/05/11 (0.2) - The namespace ImGui:: was replaced with ImPlot::. As a result, the following additional changes were made:
-                     - Functions that were prefixed or decorated with the word "Plot" have been truncated. E.g., `ImGui::PlotBars` is now just `ImPlot::Bar`.
-                       It should be fairly obvious what was what.
-                     - Some functions have been given names that would have otherwise collided with the ImGui namespace. This has been done to maintain a consistent
-                       style with ImGui. E.g., 'ImGui::PushPlotStyleVar` is now 'ImPlot::PushStyleVar'.
-- 2020/05/10 (0.2) - The following function/struct names were changes:
-                    - ImPlotRange       -> ImPlotLimits
-                    - GetPlotRange()    -> GetPlotLimits()
-                    - SetNextPlotRange  -> SetNextPlotLimits
-                    - SetNextPlotRangeX -> SetNextPlotLimitsX
-                    - SetNextPlotRangeY -> SetNextPlotLimitsY
-- 2020/05/10 (0.2) - Plot queries are pixel based by default. Query rects that maintain relative plot position have been removed. This was done to support multi-y-axis.
+- 2021/03/08 (0.9)  - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support. LerpColormap was changed to SampleColormap.
+                      ShowColormapScale was changed to ColormapScale and requires additional arguments.
+- 2021/03/07 (0.9)  - The signature of ShowColormapScale was modified to accept a ImVec2 size.
+- 2021/02/28 (0.9)  - BeginLegendDragDropSource was changed to BeginDragDropSourceItem with a number of other drag and drop improvements.
+- 2021/01/18 (0.9)  - The default behavior for opening context menus was change from double right-click to single right-click. ImPlotInputMap and related functions were moved
+                      to implot_internal.h due to its immaturity.
+- 2020/10/16 (0.8)  - ImPlotStyleVar_InfoPadding was changed to ImPlotStyleVar_MousePosPadding
+- 2020/09/10 (0.8)  - The single array versions of PlotLine, PlotScatter, PlotStems, and PlotShaded were given additional arguments for x-scale and x0.
+- 2020/09/07 (0.8)  - Plotting functions which accept a custom getter function pointer have been post-fixed with a G (e.g. PlotLineG)
+- 2020/09/06 (0.7)  - Several flags under ImPlotFlags and ImPlotAxisFlags were inverted (e.g. ImPlotFlags_Legend -> ImPlotFlags_NoLegend) so that the default flagset
+                      is simply 0. This more closely matches ImGui's style and makes it easier to enable non-default but commonly used flags (e.g. ImPlotAxisFlags_Time).
+- 2020/08/28 (0.5)  - ImPlotMarker_ can no longer be combined with bitwise OR, |. This features caused unecessary slow-down, and almost no one used it.
+- 2020/08/25 (0.5)  - ImPlotAxisFlags_Scientific was removed. Logarithmic axes automatically uses scientific notation.
+- 2020/08/17 (0.5)  - PlotText was changed so that text is centered horizontally and vertically about the desired point.
+- 2020/08/16 (0.5)  - An ImPlotContext must be explicitly created and destroyed now with `CreateContext` and `DestroyContext`. Previously, the context was statically initialized in this source file.
+- 2020/06/13 (0.4)  - The flags `ImPlotAxisFlag_Adaptive` and `ImPlotFlags_Cull` were removed. Both are now done internally by default.
+- 2020/06/03 (0.3)  - The signature and behavior of PlotPieChart was changed so that data with sum less than 1 can optionally be normalized. The label format can now be specified as well.
+- 2020/06/01 (0.3)  - SetPalette was changed to `SetColormap` for consistency with other plotting libraries. `RestorePalette` was removed. Use `SetColormap(ImPlotColormap_Default)`.
+- 2020/05/31 (0.3)  - Plot functions taking custom ImVec2* getters were removed. Use the ImPlotPoint* getter versions instead.
+- 2020/05/29 (0.3)  - The signature of ImPlotLimits::Contains was changed to take two doubles instead of ImVec2
+- 2020/05/16 (0.2)  - All plotting functions were reverted to being prefixed with "Plot" to maintain a consistent VerbNoun style. `Plot` was split into `PlotLine`
+                      and `PlotScatter` (however, `PlotLine` can still be used to plot scatter points as `Plot` did before.). `Bar` is not `PlotBars`, to indicate
+                      that multiple bars will be plotted.
+- 2020/05/13 (0.2)  - `ImMarker` was change to `ImPlotMarker` and `ImAxisFlags` was changed to `ImPlotAxisFlags`.
+- 2020/05/11 (0.2)  - `ImPlotFlags_Selection` was changed to `ImPlotFlags_BoxSelect`
+- 2020/05/11 (0.2)  - The namespace ImGui:: was replaced with ImPlot::. As a result, the following additional changes were made:
+                      - Functions that were prefixed or decorated with the word "Plot" have been truncated. E.g., `ImGui::PlotBars` is now just `ImPlot::Bar`.
+                        It should be fairly obvious what was what.
+                      - Some functions have been given names that would have otherwise collided with the ImGui namespace. This has been done to maintain a consistent
+                        style with ImGui. E.g., 'ImGui::PushPlotStyleVar` is now 'ImPlot::PushStyleVar'.
+- 2020/05/10 (0.2)  - The following function/struct names were changes:
+                     - ImPlotRange       -> ImPlotLimits
+                     - GetPlotRange()    -> GetPlotLimits()
+                     - SetNextPlotRange  -> SetNextPlotLimits
+                     - SetNextPlotRangeX -> SetNextPlotLimitsX
+                     - SetNextPlotRangeY -> SetNextPlotLimitsY
+- 2020/05/10 (0.2)  - Plot queries are pixel based by default. Query rects that maintain relative plot position have been removed. This was done to support multi-y-axis.
 
 */
 
@@ -489,7 +489,6 @@ void ResetCtxForNextSubplot(ImPlotContext* ctx) {
     ctx->CurrentSubplot      = NULL;
     ctx->CurrentAlignmentH   = NULL;
     ctx->CurrentAlignmentV   = NULL;
-    ctx->DisableUserInput    = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -659,31 +658,35 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
         ImRect label_bb;
         label_bb.Min = top_left;
         label_bb.Max = top_left + ImVec2(label_width + icon_size, icon_size);
-        ImU32 col_hl_txt;
+        ImU32 col_txt_hl;
         ImU32 col_item = ImAlphaU32(item->Color,1);
-        if (hovered && (icon_bb.Contains(IO.MousePos) || label_bb.Contains(IO.MousePos))) {
+        
+        bool icon_hov = false;
+        bool icon_hld = false;
+        bool icon_clk = ImGui::ButtonBehavior(icon_bb, item->ID, &icon_hov, &icon_hld);
+        if (icon_clk)
+            item->Show = !item->Show;
+
+        if (icon_hov || label_bb.Contains(IO.MousePos)) {
             item->LegendHovered = true;
-            col_hl_txt = ImMixU32(col_txt, col_item, 64);
+            col_txt_hl = ImMixU32(col_txt, col_item, 64);
             any_item_hovered = true;
         }
         else {
-            // item->LegendHovered = false;
-            col_hl_txt = ImGui::GetColorU32(col_txt);
+            col_txt_hl = ImGui::GetColorU32(col_txt);
         }
-        ImU32 iconColor;
-        if (hovered && icon_bb.Contains(IO.MousePos)) {
-            ImU32 col_alpha = ImAlphaU32(col_item,0.5f);
-            iconColor     = item->Show ? col_alpha : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.5f);
-            if (IO.MouseClicked[0])
-                item->Show = !item->Show;
-        }
-        else {
-            iconColor = item->Show ? col_item : col_txt_dis;
-        }
-        DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, iconColor, 1);
+        ImU32 col_icon;
+        if (icon_hld) 
+            col_icon = item->Show ? ImAlphaU32(col_item,0.5f) : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.5f);  
+        else if (icon_hov) 
+            col_icon = item->Show ? ImAlphaU32(col_item,0.75f) : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.75f);      
+        else 
+            col_icon = item->Show ? col_item : col_txt_dis;      
+
+        DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, col_icon, 1);
         const char* text_display_end = ImGui::FindRenderedTextEnd(label, NULL);
         if (label != text_display_end)
-            DrawList.AddText(top_left + ImVec2(icon_size, 0), item->Show ? col_hl_txt  : col_txt_dis, label, text_display_end);
+            DrawList.AddText(top_left + ImVec2(icon_size, 0), item->Show ? col_txt_hl  : col_txt_dis, label, text_display_end);
     }
     return hovered && !any_item_hovered;
 }
@@ -1968,9 +1971,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
         plot.YAxis[i].Pixels = plot.PlotRect.GetHeight();
 
     // INPUT ------------------------------------------------------------------
-    if (!gp.DisableUserInput) {
-        HandlePlotInput(plot);
-    }
+    HandlePlotInput(plot);
+    
 
     UpdateTransformCache();
 
@@ -1991,14 +1993,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     if (gp.RenderX) {
         for (int t = 0; t < gp.XTicks.Size; t++) {
             ImPlotTick *xt = &gp.XTicks.Ticks[t];
-            xt->PixelPos = PlotToPixels(xt->PlotPos, 0, 0).x;
+            xt->PixelPos = IM_ROUND(PlotToPixels(xt->PlotPos, 0, 0).x);
         }
     }
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
         if (gp.RenderY[i]) {
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
                 ImPlotTick *yt = &gp.YTicks[i].Ticks[t];
-                yt->PixelPos = PlotToPixels(0, yt->PlotPos, i).y;
+                yt->PixelPos = IM_ROUND(PlotToPixels(0, yt->PlotPos, i).y);
             }
         }
     }
@@ -2250,13 +2252,6 @@ bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible) {
 }
 
 void ShowSubplotsContextMenu(ImPlotSubplot& subplot) {
-    if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)) {
-        if ((ImGui::BeginMenu("Legend"))) {
-            if (ShowLegendContextMenu(subplot.Items.Legend, !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend)))
-                ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend);
-            ImGui::EndMenu();
-        }
-    }
     if ((ImGui::BeginMenu("Linking"))) {
         if (ImGui::MenuItem("Link Rows",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows)))
             ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
@@ -2267,6 +2262,13 @@ void ShowSubplotsContextMenu(ImPlotSubplot& subplot) {
         if (ImGui::MenuItem("Link All Y",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY)))
             ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
         ImGui::EndMenu();
+    }
+    if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)) {
+        if ((ImGui::BeginMenu("Legend"))) {
+            if (ShowLegendContextMenu(subplot.Items.Legend, !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend)))
+                ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend);
+            ImGui::EndMenu();
+        }
     }
     if ((ImGui::BeginMenu("Settings"))) {
         if (ImGui::MenuItem("Title",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle)))
@@ -2675,6 +2677,10 @@ void EndPlot() {
 // BEGIN/END SUBPLOT
 //-----------------------------------------------------------------------------
 
+static const float SUBPLOT_BORDER_SIZE             = 1.0f;   
+static const float SUBPLOT_SPLITTER_HALF_THICKNESS = 4.0f;   
+static const float SUBPLOT_SPLITTER_FEEDBACK_TIMER = 0.06f;
+
 void NextSubplot() {
     ImPlotContext& gp      = *GImPlot;
     ImPlotSubplot& subplot = *gp.CurrentSubplot;
@@ -2690,10 +2696,13 @@ void NextSubplot() {
         for (int r = 0; r < row; ++r)
             yoff += subplot.RowRatios[r];
         const ImVec2 grid_size = subplot.GridRect.GetSize();
-        ImGui::GetCurrentWindow()->DC.CursorPos = subplot.GridRect.Min + ImVec2(xoff*grid_size.x,yoff*grid_size.y); 
+        ImVec2 cpos      = subplot.GridRect.Min + ImVec2(xoff*grid_size.x,yoff*grid_size.y);
+        cpos.x = IM_ROUND(cpos.x);
+        cpos.y = IM_ROUND(cpos.y);
+        ImGui::GetCurrentWindow()->DC.CursorPos =  cpos;
         // set cell size
-        subplot.CellSize.x = subplot.GridRect.GetWidth()  * subplot.ColRatios[col];
-        subplot.CellSize.y = subplot.GridRect.GetHeight() * subplot.RowRatios[row];
+        subplot.CellSize.x = IM_ROUND(subplot.GridRect.GetWidth()  * subplot.ColRatios[col]);
+        subplot.CellSize.y = IM_ROUND(subplot.GridRect.GetHeight() * subplot.RowRatios[row]);
         // setup links
         const bool lx = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX);
         const bool ly = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
@@ -2781,7 +2790,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     // calc plot frame sizes
     ImVec2 title_size(0.0f, 0.0f);
     const float txt_height = ImGui::GetTextLineHeight();
-    if (!ImHasFlag(flags, ImPlotSubplotFlags_NoTitle))
+    if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle))
          title_size = ImGui::CalcTextSize(title, NULL, true);    
     const float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
     const ImVec2 half_pad = gp.Style.PlotPadding/2;
@@ -2820,15 +2829,8 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
         AddTextCentered(ImGui::GetWindowDrawList(),ImVec2(subplot.GridRect.GetCenter().x, subplot.GridRect.Min.y - pad_top + half_pad.y),col,title);
     }
 
-    // is it ok to show splitter? yes, this is ridiculous ;)
-    const bool ok_to_split  = !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters) && 
-                              (subplot.FrameHovered || subplot.ActiveSeparator != -1)   &&
-                              !ImGui::IsPopupOpen(1, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel) &&
-                              (subplot.ActiveSeparator != -1 || (!ImGui::IsMouseDragging(ImGuiMouseButton_Left) && 
-                                                                 !ImGui::IsMouseDragging(ImGuiMouseButton_Right) &&
-                                                                 !ImGui::IsMouseDragging(ImGuiMouseButton_Middle)));
     // render splitters
-    if (ok_to_split) {
+    if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters)) {
         ImDrawList& DrawList = *ImGui::GetWindowDrawList();
         const ImU32 nrm_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_Separator]);
         const ImU32 hov_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorHovered]);
@@ -2836,86 +2838,69 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
         float xpos = subplot.GridRect.Min.x;
         float ypos = subplot.GridRect.Min.y;
         const ImVec2 mouse = ImGui::GetIO().MousePos;
-        int separator = 0;
-        bool pass = false;
+        int separator = 1;
+        // bool pass = false;
         for (int r = 0; r < subplot.Rows-1; ++r) {
-            bool active = subplot.ActiveSeparator == separator;
             ypos += subplot.RowRatios[r] * subplot.GridRect.GetHeight();
-            if ((subplot.ActiveSeparator == -1 || active) && !pass) {
-                if ((mouse.y > ypos-4 && mouse.y < ypos+4 && subplot.GridRect.Contains(mouse)) || active) {
-                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        float p = (subplot.RowRatios[r] + subplot.RowRatios[r+1])/2;
-                        subplot.RowRatios[r]   = p;
-                        subplot.RowRatios[r+1] = p;                        
-                    }
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                        subplot.ActiveSeparator = separator;
-                        active = true;
-                        subplot.TempSizes[0] = subplot.RowRatios[r];
-                        subplot.TempSizes[1] = subplot.RowRatios[r+1];
-                    }
-                    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-                        subplot.ActiveSeparator = -1;
-                        active = false;
-                    }
-                    if (active) {
-                        float dp = ImGui::GetMouseDragDelta(0).y  / subplot.GridRect.GetHeight();
-                        if (subplot.TempSizes[0] + dp > 0.1f && subplot.TempSizes[1] - dp > 0.1f) {
-                            subplot.RowRatios[r]   = subplot.TempSizes[0] + dp;
-                            subplot.RowRatios[r+1] = subplot.TempSizes[1] - dp;
-                        }
-                    }
-                    DrawList.AddLine(ImVec2(IM_ROUND(subplot.GridRect.Min.x),IM_ROUND(ypos)),
-                                     ImVec2(IM_ROUND(subplot.GridRect.Max.x),IM_ROUND(ypos)),
-                                     active ? act_col : hov_col, 1.0f);
-                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-                    pass = true;
+            const ImGuiID sep_id = subplot.ID + separator;
+            ImGui::KeepAliveID(sep_id);
+            const ImRect sep_bb = ImRect(subplot.GridRect.Min.x, ypos-SUBPLOT_SPLITTER_HALF_THICKNESS, subplot.GridRect.Max.x, ypos+SUBPLOT_SPLITTER_HALF_THICKNESS);
+            bool sep_hov = false, sep_hld = false;
+            const bool sep_clk = ImGui::ButtonBehavior(sep_bb, sep_id, &sep_hov, &sep_hld, ImGuiButtonFlags_FlattenChildren | ImGuiButtonFlags_AllowItemOverlap | ImGuiButtonFlags_PressedOnClick | ImGuiButtonFlags_PressedOnDoubleClick);
+            if ((sep_hov && G.HoveredIdTimer > SUBPLOT_SPLITTER_FEEDBACK_TIMER) || sep_hld) {
+                if (sep_clk && ImGui::IsMouseDoubleClicked(0)) {
+                    float p = (subplot.RowRatios[r] + subplot.RowRatios[r+1])/2;
+                    subplot.RowRatios[r] = subplot.RowRatios[r+1] = p;
                 }
-            }
+                if (sep_clk) {
+                    subplot.TempSizes[0] = subplot.RowRatios[r];
+                    subplot.TempSizes[1] = subplot.RowRatios[r+1];
+                }
+                if (sep_hld) {
+                    float dp = ImGui::GetMouseDragDelta(0).y  / subplot.GridRect.GetHeight();
+                    if (subplot.TempSizes[0] + dp > 0.1f && subplot.TempSizes[1] - dp > 0.1f) {
+                        subplot.RowRatios[r]   = subplot.TempSizes[0] + dp;
+                        subplot.RowRatios[r+1] = subplot.TempSizes[1] - dp;
+                    }
+                }
+                DrawList.AddLine(ImVec2(IM_ROUND(subplot.GridRect.Min.x),IM_ROUND(ypos)),
+                                 ImVec2(IM_ROUND(subplot.GridRect.Max.x),IM_ROUND(ypos)),
+                                 sep_hld ? act_col : hov_col, SUBPLOT_BORDER_SIZE);
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+            } 
             separator++;
         }
         for (int c = 0; c < subplot.Cols-1; ++c) {
-            bool active = subplot.ActiveSeparator == separator;
             xpos += subplot.ColRatios[c] * subplot.GridRect.GetWidth();
-            if ((subplot.ActiveSeparator == -1 || active) && !pass) {
-                if ((mouse.x > xpos-4 && mouse.x < xpos+4 && subplot.GridRect.Contains(mouse)) || active) {
-                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                        float p = (subplot.ColRatios[c] + subplot.ColRatios[c+1])/2;
-                        subplot.ColRatios[c]   = p;
-                        subplot.ColRatios[c+1] = p;                        
-                    }
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                        subplot.ActiveSeparator = separator;
-                        active = true;
-                        subplot.TempSizes[0] = subplot.ColRatios[c];
-                        subplot.TempSizes[1] = subplot.ColRatios[c+1];
-                    }
-                    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-                        subplot.ActiveSeparator = -1;
-                        active = false;
-                    }
-                    if (active) {
-                        float dp = ImGui::GetMouseDragDelta(0).x / subplot.GridRect.GetWidth();
-                        if (subplot.TempSizes[0] + dp > 0.1f && subplot.TempSizes[1] - dp > 0.1f) {
-                            subplot.ColRatios[c]   = subplot.TempSizes[0] + dp;
-                            subplot.ColRatios[c+1] = subplot.TempSizes[1] - dp;
-                        }
-                    }
-                    
-                    DrawList.AddLine(ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Min.y)),
-                                     ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Max.y)),
-                                    active ? act_col : hov_col,1.0f);
-                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-                    pass = true;
+            const ImGuiID sep_id = subplot.ID + separator;
+            ImGui::KeepAliveID(sep_id);
+            const ImRect sep_bb = ImRect(xpos-SUBPLOT_SPLITTER_HALF_THICKNESS, subplot.GridRect.Min.y, xpos+SUBPLOT_SPLITTER_HALF_THICKNESS, subplot.GridRect.Max.y);
+            bool sep_hov = false, sep_hld = false;
+            const bool sep_clk = ImGui::ButtonBehavior(sep_bb, sep_id, &sep_hov, &sep_hld, ImGuiButtonFlags_FlattenChildren | ImGuiButtonFlags_AllowItemOverlap | ImGuiButtonFlags_PressedOnClick | ImGuiButtonFlags_PressedOnDoubleClick);
+            if ((sep_hov && G.HoveredIdTimer > SUBPLOT_SPLITTER_FEEDBACK_TIMER) || sep_hld) {
+                if (sep_clk && ImGui::IsMouseDoubleClicked(0)) {
+                    float p = (subplot.ColRatios[c] + subplot.ColRatios[c+1])/2;
+                    subplot.ColRatios[c] = subplot.ColRatios[c+1] = p;
                 }
-            }
+                if (sep_clk) {
+                    subplot.TempSizes[0] = subplot.ColRatios[c];
+                    subplot.TempSizes[1] = subplot.ColRatios[c+1];
+                }
+                if (sep_hld) {
+                    float dp = ImGui::GetMouseDragDelta(0).x / subplot.GridRect.GetWidth();
+                    if (subplot.TempSizes[0] + dp > 0.1f && subplot.TempSizes[1] - dp > 0.1f) {
+                        subplot.ColRatios[c]   = subplot.TempSizes[0] + dp;
+                        subplot.ColRatios[c+1] = subplot.TempSizes[1] - dp;
+                    }
+                }
+                DrawList.AddLine(ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Min.y)),
+                                 ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Max.y)),
+                                 sep_hld ? act_col : hov_col, SUBPLOT_BORDER_SIZE);
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+            } 
             separator++;
         }
-    }
-    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) || !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-        subplot.ActiveSeparator = -1;
-    }
-  
+    }  
 
     // set outgoing sizes
     if (row_sizes != NULL) {
@@ -2927,9 +2912,6 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
             col_sizes[c] = subplot.ColRatios[c] * col_sum;
     }
 
-    // set flags
-    gp.DisableUserInput = subplot.ActiveSeparator != -1;
- 
     // push styling
     PushStyleColor(ImPlotCol_FrameBg, IM_COL32_BLACK_TRANS);
     PushStyleVar(ImPlotStyleVar_PlotPadding, half_pad);
@@ -4490,13 +4472,13 @@ void ShowMetricsWindow(bool* p_popen) {
             // plot
             ImPlotPlot* plot = gp.Plots.GetByIndex(p);
             ImGui::PushID(p);
-            if (ImGui::TreeNode("Plot", "Plot [ID=%u]", plot->ID)) {
+            if (ImGui::TreeNode("Plot", "Plot [ID=0x%08X]", plot->ID)) {
                 int n_items = plot->Items.GetItemCount();
                 if (ImGui::TreeNode("Items", "Items (%d)", n_items)) {
                     for (int i = 0; i < n_items; ++i) {
                         ImPlotItem* item = plot->Items.GetItemByIndex(i);
                         ImGui::PushID(i);
-                        if (ImGui::TreeNode("Item", "Item [ID=%u]", item->ID)) {
+                        if (ImGui::TreeNode("Item", "Item [ID=0x%08X]", item->ID)) {
                             ImGui::Bullet(); ImGui::Checkbox("Show", &item->Show);
                             ImGui::Bullet();
                             ImVec4 temp = ImGui::ColorConvertU32ToFloat4(item->Color);
@@ -4528,7 +4510,7 @@ void ShowMetricsWindow(bool* p_popen) {
                     ShowAxisMetrics(&plot->YAxis[2]);
                     ImGui::TreePop();
                 }
-                ImGui::Bullet(); ImGui::Text("Flags: %d", plot->Flags);
+                ImGui::Bullet(); ImGui::Text("Flags: 0x%08X", plot->Flags);
                 ImGui::Bullet(); ImGui::Text("Initialized: %s", plot->Initialized ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("Selecting: %s", plot->Selecting ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("Selected: %s", plot->Selected ? "true" : "false");
@@ -4549,13 +4531,13 @@ void ShowMetricsWindow(bool* p_popen) {
             // plot
             ImPlotSubplot* plot = gp.Subplots.GetByIndex(p);
             ImGui::PushID(p);
-            if (ImGui::TreeNode("Plot", "Plot [ID=%u]", plot->ID)) {
+            if (ImGui::TreeNode("Subplot", "Subplot [ID=%0x%08X]", plot->ID)) {
                 int n_items = plot->Items.GetItemCount();
                 if (ImGui::TreeNode("Items", "Items (%d)", n_items)) {
                     for (int i = 0; i < n_items; ++i) {
                         ImPlotItem* item = plot->Items.GetItemByIndex(i);
                         ImGui::PushID(i);
-                        if (ImGui::TreeNode("Item", "Item [ID=%u]", item->ID)) {
+                        if (ImGui::TreeNode("Item", "Item [ID=%0x%08X]", item->ID)) {
                             ImGui::Bullet(); ImGui::Checkbox("Show", &item->Show);
                             ImGui::Bullet();
                             ImVec4 temp = ImGui::ColorConvertU32ToFloat4(item->Color);
@@ -4571,9 +4553,9 @@ void ShowMetricsWindow(bool* p_popen) {
                     }
                     ImGui::TreePop();
                 }
-                ImGui::Bullet(); ImGui::Text("Flags: %d", plot->Flags);
+                ImGui::Bullet(); ImGui::Text("Flags: 0x%08X", plot->Flags);
                 ImGui::Bullet(); ImGui::Text("FrameHovered: %s", plot->FrameHovered ? "true" : "false");
-                // ImGui::Bullet(); ImGui::Text("LegendHovered: %s", plot->LegendHovered ? "true" : "false");
+                ImGui::Bullet(); ImGui::Text("LegendHovered: %s", plot->Items.Legend.Hovered ? "true" : "false");
                 ImGui::TreePop();
             }            
             ImGui::PopID();

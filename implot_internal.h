@@ -857,13 +857,11 @@ struct ImPlotSubplot {
     ImVector<float>               ColRatios;
     ImVector<ImPlotRange>         RowLinkData;
     ImVector<ImPlotRange>         ColLinkData;
-    int                           ActiveSeparator;
     float                         TempSizes[2];
     bool                          FrameHovered;
     
     ImPlotSubplot() {
         Rows = Cols = CurrentIdx  = 0;
-        ActiveSeparator           = -1;
         FrameHovered              = false;
         Items.Legend.Location     = ImPlotLocation_North;
         Items.Legend.Orientation  = ImPlotOrientation_Horizontal;
@@ -998,7 +996,6 @@ struct ImPlotContext {
     ImVector<double>   Temp1, Temp2;
 
     // Misc
-    bool               DisableUserInput;
     int                DigitalPlotItemCnt;
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
