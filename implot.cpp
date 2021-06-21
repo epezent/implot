@@ -661,6 +661,9 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
         ImU32 col_txt_hl;
         ImU32 col_item = ImAlphaU32(item->Color,1);
         
+        // ImGui::ItemAdd(icon_bb, item->ID, &icon_bb);
+        // ImGui::KeepAliveID(item->ID);
+
         bool icon_hov = false;
         bool icon_hld = false;
         bool icon_clk = ImGui::ButtonBehavior(icon_bb, item->ID, &icon_hov, &icon_hld);
@@ -3467,6 +3470,7 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
 #define IMPLOT_ID_LEG 10030911
 #define IMPLOT_ID_XAX 10030912
 #define IMPLOT_ID_YAX 10030913
+#define IMPLOT_ID_ITM 10030914
 
 bool BeginDragDropTargetEx(int id, const ImRect& rect) {
     ImGuiContext& G  = *GImGui;
@@ -3490,8 +3494,7 @@ bool BeginDragDropTargetY(ImPlotYAxis axis) {
 }
 
 bool BeginDragDropTargetLegend() {
-    return !ImHasFlag(GImPlot->CurrentPlot->Flags,ImPlotFlags_NoLegend) &&
-            BeginDragDropTargetEx(IMPLOT_ID_LEG, GImPlot->CurrentPlot->Items.Legend.Rect);
+    return BeginDragDropTargetEx(IMPLOT_ID_LEG, GImPlot->CurrentItems->Legend.Rect);
 }
 
 void EndDragDropTarget() {
@@ -3545,8 +3548,10 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
                 tooltip_window->HiddenFramesCanSkipItems = 1;
             }
         }
+
         return true;
     }
+
     return false;
 }
 
@@ -3579,11 +3584,12 @@ bool BeginDragDropSourceY(ImPlotYAxis axis, ImGuiKeyModFlags key_mods, ImGuiDrag
 
 bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginDragDropSourceItem() needs to be called between BeginPlot() and EndPlot()!");
-    ImGuiID source_id = ImGui::GetID(label_id);
-    ImPlotItem* item = gp.CurrentPlot->Items.GetItem(source_id);
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginDragDropSourceItem() needs to be called within a plotting context!");
+    ImGuiID item_id = ImGui::GetID(label_id);
+    ImPlotItem* item = gp.CurrentItems->GetItem(item_id);
     bool is_hovered = item && item->LegendHovered;
-    return BeginDragDropSourceEx(source_id, is_hovered, flags, ImGuiKeyModFlags_None);
+    ImGuiID id = ImGui::GetIDWithSeed("dnd",NULL,item->ID); // total hack
+    return BeginDragDropSourceEx(id, is_hovered, flags, ImGuiKeyModFlags_None);
 }
 
 void EndDragDropSource() {
@@ -3619,11 +3625,11 @@ void ColormapIcon(ImPlotColormap cmap) {
 
 void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, bool outside) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetLegendLocation() needs to be called between BeginPlot() and EndPlot()!");
-    gp.CurrentPlot->Items.Legend.Location         = location;
-    gp.CurrentPlot->Items.Legend.Orientation      = orientation;
-    if (gp.CurrentPlot->Items.Legend.Outside != outside)
-        gp.CurrentPlot->Items.Legend.FlipSideNextFrame = true;
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "SetLegendLocation() needs to be called within a plotting context!");
+    gp.CurrentItems->Legend.Location  = location;
+    gp.CurrentItems->Legend.Orientation = orientation;
+    if (gp.CurrentItems->Legend.Outside != outside)
+        gp.CurrentItems->Legend.FlipSideNextFrame = true;
 }
 
 void SetMousePosLocation(ImPlotLocation location) {
@@ -3634,21 +3640,21 @@ void SetMousePosLocation(ImPlotLocation location) {
 
 bool IsLegendEntryHovered(const char* label_id) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotItemHighlight() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "IsPlotItemHighlight() needs to be called within a plotting context!!");
     ImGuiID id = ImGui::GetID(label_id);
-    ImPlotItem* item = gp.CurrentPlot->Items.GetItem(id);
+    ImPlotItem* item = gp.CurrentItems->GetItem(id);
     return item && item->LegendHovered;
 }
 
 bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginLegendPopup() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "BeginLegendPopup() needs to be called within a plotting context!!");
     ImGuiWindow* window = GImGui->CurrentWindow;
     if (window->SkipItems)
         return false;
     ImGuiID id = ImGui::GetID(label_id);
     if (ImGui::IsMouseReleased(mouse_button)) {
-        ImPlotItem* item = gp.CurrentPlot->Items.GetItem(id);
+        ImPlotItem* item = gp.CurrentItems->GetItem(id);
         if (item && item->LegendHovered)
             ImGui::OpenPopupEx(id);
     }

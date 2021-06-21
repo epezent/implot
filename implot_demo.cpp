@@ -1251,7 +1251,7 @@ void ShowDemo_DragAndDrop() {
     ImGui::BulletText("Drag/drop items between plots.");
     ImGui::Indent();
     ImGui::BulletText("Plot 1 Targets: Plot, Y-Axes, Legend");
-    ImGui::BulletText("Plot 1 Sources: Legend Items");
+    ImGui::BulletText("Plot 1 Sources: Legend Item Labels");
     ImGui::BulletText("Plot 2 Targets: Plot, X-Axis, Y-Axis");
     ImGui::BulletText("Plot 2 Sources: Plot, X-Axis, Y-Axis (hold Ctrl)");
     ImGui::Unindent();

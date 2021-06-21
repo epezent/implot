@@ -445,7 +445,7 @@ IMPLOT_API bool BeginSubplots(const char* title_id,
                              float* col_ratios        = NULL);
 
 // Only call EndSubplots() if BeginSubplots() returns true! Typically called at the end
-// of an if statement conditioned on BeginPlot(). See example above.
+// of an if statement conditioned on BeginSublots(). See example above.
 IMPLOT_API void EndSubplots();
 
 //-----------------------------------------------------------------------------
