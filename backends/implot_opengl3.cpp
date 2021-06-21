@@ -56,6 +56,10 @@ struct OpenGLContextData
 	ImVector<HeatmapData> HeatmapDataList;      ///< Array of heatmap data
 	ImVector<GLuint> ColormapIDs;               ///< Texture IDs of the colormap textures
 	ImGuiStorage PlotIDs;                       ///< PlotID <-> Heatmap array index table
+
+	ImVector<float> temp1;
+	ImVector<ImS32> temp2;
+	ImVector<ImU32> temp3;
 };
 
 static OpenGLContextData Context;
@@ -216,38 +220,35 @@ void OpenGL3_SetHeatmapData(int plotID, const float* values, int rows, int cols)
 
 void OpenGL3_SetHeatmapData(int plotID, const double* values, int rows, int cols)
 {
-	float* values2 = new float[rows*cols];
+	if(Context.temp1.Size < rows * cols)
+		Context.temp1.resize(rows * cols);
 
 	for(int i = 0; i < rows*cols; i++)
-		values2[i] = (float)values[i];
+		Context.temp1[i] = (float)values[i];
 
-	SetTextureData(plotID, values2, rows, cols, GL_FLOAT);
-
-	delete[] values2;
+	SetTextureData(plotID, Context.temp1.Data, rows, cols, GL_FLOAT);
 }
 
 void OpenGL3_SetHeatmapData(int plotID, const ImS64* values, int rows, int cols)
 {
-	ImS32* values2 = new ImS32[rows*cols];
+	if(Context.temp2.Size < rows * cols)
+		Context.temp2.resize(rows * cols);
 
 	for(int i = 0; i < rows*cols; i++)
-		values2[i] = (ImS32)values[i];
+		Context.temp2[i] = (ImS32)values[i];
 
-	SetTextureData(plotID, values2, rows, cols, GL_INT);
-
-	delete[] values2;
+	SetTextureData(plotID, Context.temp2.Data, rows, cols, GL_INT);
 }
 
 void OpenGL3_SetHeatmapData(int plotID, const ImU64* values, int rows, int cols)
 {
-	ImU32* values2 = new ImU32[rows*cols];
+	if(Context.temp3.Size < rows * cols)
+		Context.temp3.resize(rows * cols);
 
 	for(int i = 0; i < rows*cols; i++)
-		values2[i] = (ImU32)values[i];
+		Context.temp3[i] = (ImU32)values[i];
 
-	SetTextureData(plotID, values2, rows, cols, GL_UNSIGNED_INT);
-
-	delete[] values2;
+	SetTextureData(plotID, Context.temp3.Data, rows, cols, GL_UNSIGNED_INT);
 }
 
 void OpenGL3_RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max, float scale_min, float scale_max, ImPlotColormap colormap)
