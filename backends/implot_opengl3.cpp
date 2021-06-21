@@ -279,7 +279,7 @@ void OpenGL3_RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bound
 
 	DrawList.AddCallback(RenderCallback, (void*)(intptr_t)plotID);
 	DrawList.PrimReserve(6, 4);
-	DrawList.PrimRectUV(bounds_min, bounds_max, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), 0);
+	DrawList.PrimRectUV(bounds_min, bounds_max, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f), 0);
 	DrawList.AddCallback(UnbindTexture, nullptr);
 	DrawList.AddCallback(ImDrawCallback_ResetRenderState, nullptr);
 }
