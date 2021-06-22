@@ -2,6 +2,7 @@
 
 #include "../implot.h"
 #include "../implot_internal.h"
+#include "implot_gpu.h"
 
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
@@ -32,7 +33,7 @@ using namespace gl;
 #endif
 
 namespace ImPlot {
-namespace Backends {
+namespace Backend {
 
 struct HeatmapData
 {
@@ -42,7 +43,7 @@ struct HeatmapData
 	float MaxValue;
 };
 
-struct OpenGLContextData
+struct ContextData
 {
 	GLuint g_ShaderProgram = 0;                 ///< Shader ID for the heatmap shader
 	GLuint g_AttribLocationHeatmapSampler = 0;  ///< Attribute location for the heatmap texture
@@ -62,10 +63,29 @@ struct OpenGLContextData
 	ImVector<ImU32> temp3;
 };
 
-static OpenGLContextData Context;
+void* CreateContext()
+{
+	return new ContextData;
+}
+
+void DestroyContext()
+{
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+
+	for(const HeatmapData& data : Context.HeatmapDataList)
+		glDeleteTextures(1, &data.HeatmapTexID);
+
+	for(GLuint texID : Context.ColormapIDs)
+		glDeleteTextures(1, &texID);
+
+	Context.HeatmapDataList.clear();
+	Context.PlotIDs.Clear();
+}
 
 static void CreateShader(const ImDrawList*, const ImDrawCmd*)
 {
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+
 	GLuint CurrentShader;
 	glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&CurrentShader);
 
@@ -73,14 +93,12 @@ static void CreateShader(const ImDrawList*, const ImDrawCmd*)
 
 	GLuint g_AttribLocationVtxPos   = (GLuint)glGetAttribLocation(CurrentShader, "Position");
 	GLuint g_AttribLocationVtxUV    = (GLuint)glGetAttribLocation(CurrentShader, "UV");
-	GLuint g_AttribLocationVtxColor = (GLuint)glGetAttribLocation(CurrentShader, "Color");
 
 	const GLchar* VertexShaderCode_t =
 		"#version 330 core\n"
 		"precision mediump float;\n"
 		"layout (location = %d) in vec2 Position;\n"
 		"layout (location = %d) in vec2 UV;\n"
-		"layout (location = %d) in vec4 Color;\n"
 		"\n"
 		"uniform mat4 ProjMtx;\n"
 		"out vec2 Frag_UV;\n"
@@ -110,7 +128,7 @@ static void CreateShader(const ImDrawList*, const ImDrawCmd*)
 		"}\n";
 
 	GLchar* VertexShaderCode = new GLchar[512];
-	snprintf(VertexShaderCode, 512, VertexShaderCode_t, g_AttribLocationVtxPos, g_AttribLocationVtxUV, g_AttribLocationVtxColor);
+	snprintf(VertexShaderCode, 512, VertexShaderCode_t, g_AttribLocationVtxPos, g_AttribLocationVtxUV);
 
 	GLuint g_VertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(g_VertexShader, 1, &VertexShaderCode, nullptr);
@@ -145,6 +163,8 @@ static void CreateShader(const ImDrawList*, const ImDrawCmd*)
 
 static void RenderCallback(const ImDrawList*, const ImDrawCmd* cmd)
 {
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+
 	int plotID = (int)(intptr_t)cmd->UserCallbackData;
 	int plotIdx = Context.PlotIDs.GetInt(plotID, -1);
 	HeatmapData& data = Context.HeatmapDataList[plotIdx];
@@ -175,6 +195,8 @@ static void UnbindTexture(const ImDrawList*, const ImDrawCmd*)
 
 static void SetTextureData(int plotID, const void* data, GLsizei rows, GLsizei cols, GLenum type)
 {
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+
 	int idx = Context.PlotIDs.GetInt(plotID, -1);
 	GLuint texID = Context.HeatmapDataList[idx].HeatmapTexID;
 
@@ -183,7 +205,7 @@ static void SetTextureData(int plotID, const void* data, GLsizei rows, GLsizei c
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, cols, rows, 0, GL_RED, type, data);
 }
 
-void OpenGL3_AddColormap(const ImU32* keys, int count, bool qual)
+void AddColormap(const ImU32* keys, int count, bool qual)
 {
 	GLuint texID;
 	glGenTextures(1, &texID);
@@ -195,6 +217,7 @@ void OpenGL3_AddColormap(const ImU32* keys, int count, bool qual)
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, qual ? GL_NEAREST : GL_LINEAR);
 	glBindTexture(GL_TEXTURE_1D, 0);
 
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx); // PETA AQUI (GImPlot es NULL)
 	Context.ColormapIDs.push_back(texID);
 }
 
@@ -210,16 +233,18 @@ static GLuint CreateHeatmapTexture()
 	return textureID;
 }
 
-void OpenGL3_SetHeatmapData(int plotID, const ImS8* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_BYTE); }
-void OpenGL3_SetHeatmapData(int plotID, const ImU8* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_UNSIGNED_BYTE); }
-void OpenGL3_SetHeatmapData(int plotID, const ImS16* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_SHORT); }
-void OpenGL3_SetHeatmapData(int plotID, const ImU16* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_UNSIGNED_SHORT); }
-void OpenGL3_SetHeatmapData(int plotID, const ImS32* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_INT); }
-void OpenGL3_SetHeatmapData(int plotID, const ImU32* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_UNSIGNED_INT); }
-void OpenGL3_SetHeatmapData(int plotID, const float* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_FLOAT); }
+void SetHeatmapData(int plotID, const ImS8* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_BYTE); }
+void SetHeatmapData(int plotID, const ImU8* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_UNSIGNED_BYTE); }
+void SetHeatmapData(int plotID, const ImS16* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_SHORT); }
+void SetHeatmapData(int plotID, const ImU16* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_UNSIGNED_SHORT); }
+void SetHeatmapData(int plotID, const ImS32* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_INT); }
+void SetHeatmapData(int plotID, const ImU32* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_UNSIGNED_INT); }
+void SetHeatmapData(int plotID, const float* values, int rows, int cols) { SetTextureData(plotID, values, rows, cols, GL_FLOAT); }
 
-void OpenGL3_SetHeatmapData(int plotID, const double* values, int rows, int cols)
+void SetHeatmapData(int plotID, const double* values, int rows, int cols)
 {
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+
 	if(Context.temp1.Size < rows * cols)
 		Context.temp1.resize(rows * cols);
 
@@ -229,8 +254,10 @@ void OpenGL3_SetHeatmapData(int plotID, const double* values, int rows, int cols
 	SetTextureData(plotID, Context.temp1.Data, rows, cols, GL_FLOAT);
 }
 
-void OpenGL3_SetHeatmapData(int plotID, const ImS64* values, int rows, int cols)
+void SetHeatmapData(int plotID, const ImS64* values, int rows, int cols)
 {
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+
 	if(Context.temp2.Size < rows * cols)
 		Context.temp2.resize(rows * cols);
 
@@ -240,8 +267,10 @@ void OpenGL3_SetHeatmapData(int plotID, const ImS64* values, int rows, int cols)
 	SetTextureData(plotID, Context.temp2.Data, rows, cols, GL_INT);
 }
 
-void OpenGL3_SetHeatmapData(int plotID, const ImU64* values, int rows, int cols)
+void SetHeatmapData(int plotID, const ImU64* values, int rows, int cols)
 {
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+
 	if(Context.temp3.Size < rows * cols)
 		Context.temp3.resize(rows * cols);
 
@@ -251,8 +280,9 @@ void OpenGL3_SetHeatmapData(int plotID, const ImU64* values, int rows, int cols)
 	SetTextureData(plotID, Context.temp3.Data, rows, cols, GL_UNSIGNED_INT);
 }
 
-void OpenGL3_RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max, float scale_min, float scale_max, ImPlotColormap colormap)
+void RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max, float scale_min, float scale_max, ImPlotColormap colormap)
 {
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
 	int idx = Context.PlotIDs.GetInt(plotID, -1);
 
 	if(idx < 0)
@@ -285,14 +315,18 @@ void OpenGL3_RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bound
 	DrawList.AddCallback(ImDrawCallback_ResetRenderState, nullptr);
 }
 
-void OpenGL3_BustPlotCache()
+void BustPlotCache()
 {
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+
 	for(const HeatmapData& data : Context.HeatmapDataList)
 		glDeleteTextures(1, &data.HeatmapTexID);
 
 	Context.HeatmapDataList.clear();
 	Context.PlotIDs.Clear();
 }
+
+void BustItemCache() {}
 
 }
 }

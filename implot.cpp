@@ -88,16 +88,6 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #define GetBufSize GetSize          // A little bit ugly since 'GetBufSize' could technically be used elsewhere (but currently isn't). Could use a proxy define if needed.
 #endif
 
-#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
-namespace ImPlot {
-namespace Backends {
-
-void OpenGL3_BustPlotCache();
-
-}
-}
-#endif
-
 // Global plot context
 ImPlotContext* GImPlot = NULL;
 
@@ -384,13 +374,15 @@ void SetImGuiContext(ImGuiContext* ctx) {
 
 ImPlotContext* CreateContext() {
     ImPlotContext* ctx = IM_NEW(ImPlotContext)();
-    Initialize(ctx);
     if (GImPlot == NULL)
         SetCurrentContext(ctx);
+    ctx->backendCtx = Backend::CreateContext();
+    Initialize(ctx);
     return ctx;
 }
 
 void DestroyContext(ImPlotContext* ctx) {
+    Backend::DestroyContext();
     if (ctx == NULL)
         ctx = GImPlot;
     if (GImPlot == ctx)
@@ -498,9 +490,7 @@ ImPlotPlot* GetCurrentPlot() {
 
 void BustPlotCache() {
     GImPlot->Plots.Clear();
-#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
-    Backends::OpenGL3_BustPlotCache();
-#endif
+    Backend::BustPlotCache();
 }
 
 void PushLinkedAxis(ImPlotAxis& axis) {

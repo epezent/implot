@@ -37,19 +37,10 @@
 
 #include <time.h>
 #include "imgui_internal.h"
+#include "backends/implot_gpu.h"
 
 #ifndef IMPLOT_VERSION
 #error Must include implot.h before implot_internal.h
-#endif
-
-#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
-namespace ImPlot {
-namespace Backends {
-
-void OpenGL3_AddColormap(const ImU32* keys, int count, bool qual);
-
-}
-}
 #endif
 
 //-----------------------------------------------------------------------------
@@ -386,9 +377,7 @@ struct ImPlotColormapData {
         int idx = Count++;
         Map.SetInt(id,idx);
         _AppendTable(idx);
-#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
-        ImPlot::Backends::OpenGL3_AddColormap(keys, count, qual);
-#endif
+        ImPlot::Backend::AddColormap(keys, count, qual);
         return idx;
     }
 
@@ -929,6 +918,9 @@ struct ImPlotContext {
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
+
+    // Backend
+    void* backendCtx;
 };
 
 //-----------------------------------------------------------------------------
