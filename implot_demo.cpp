@@ -965,7 +965,7 @@ ImPlotPoint SinewaveGetter(void* data, int i) {
 void ShowDemo_SubplotsSizing() {
 
     static ImPlotSubplotFlags flags = ImPlotSubplotFlags_None;
-    ImGui::CheckboxFlags("ImPlotSubplotFlags_NoSplitters", (unsigned int*)&flags, ImPlotSubplotFlags_NoSplitters); 
+    ImGui::CheckboxFlags("ImPlotSubplotFlags_NoResize", (unsigned int*)&flags, ImPlotSubplotFlags_NoResize); 
     ImGui::CheckboxFlags("ImPlotSubplotFlags_NoTitle", (unsigned int*)&flags, ImPlotSubplotFlags_NoTitle);
 
     static int rows = 3;
@@ -1004,13 +1004,13 @@ void ShowDemo_SubplotItemSharing() {
             if (ImPlot::BeginPlot("")) {
                 char buffer[8];
                 float fc = 0.01f;
-                float fi = 0.01f * (i+1);
+                float fi = 0.01f * (i+2);
                 sprintf(buffer, "data%d", i);
                 ImPlot::PlotLineG("common",SinewaveGetter,&fc,1000);
                 ImPlot::PlotLineG(buffer,SinewaveGetter,&fi,1000);
                 ImPlot::EndPlot();
             }
-        }            
+        }   
         ImPlot::EndSubplots();
     }
 }
@@ -1760,7 +1760,7 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Subplots")) {
-            if (ImGui::CollapsingHeader("Grid Sizing"))
+            if (ImGui::CollapsingHeader("Sizing"))
                 ShowDemo_SubplotsSizing();
             if (ImGui::CollapsingHeader("Item Sharing"))
                 ShowDemo_SubplotItemSharing();

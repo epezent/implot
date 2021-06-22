@@ -756,14 +756,14 @@ struct ImPlotLegendData
     ImGuiTextBuffer   Labels;
     bool              Hovered;
     bool              Outside;
-    bool              CanGoOutside;
+    bool              CanGoInside;
     bool              FlipSideNextFrame;
     ImPlotLocation    Location;
     ImPlotOrientation Orientation;
     ImRect            Rect;
 
     ImPlotLegendData() {
-        CanGoOutside = true;
+        CanGoInside = true;
         Hovered      = Outside = FlipSideNextFrame = false;
         Location     = ImPlotLocation_North | ImPlotLocation_West;
         Orientation  = ImPlotOrientation_Vertical;
@@ -782,15 +782,17 @@ struct ImPlotItemGroup
 
     ImPlotItemGroup() { ColormapIdx = 0; }
 
-    int         GetItemCount() const           { return ItemPool.GetBufSize();                                 }
-    ImPlotItem* GetItem(ImGuiID id)            { return ItemPool.GetByKey(id);                                 }
-    ImPlotItem* GetOrAddItem(ImGuiID id)       { return ItemPool.GetOrAddByKey(id);                            }
-    ImPlotItem* GetItemByIndex(int i)          { return ItemPool.GetByIndex(i);                                }
-    int         GetItemIndex(ImPlotItem* item) { return ItemPool.GetIndex(item);                               }
-    int         GetLegendCount() const         { return Legend.Indices.size();                                 }
-    ImPlotItem* GetLegendItem(int i)           { return ItemPool.GetByIndex(Legend.Indices[i]);                }
-    const char* GetLegendLabel(int i)          { return Legend.Labels.Buf.Data + GetLegendItem(i)->NameOffset; }
-    void        Reset()                        { ItemPool.Clear(); Legend.Reset(); ColormapIdx = 0;            }
+    int         GetItemCount() const             { return ItemPool.GetBufSize();                                 }
+    ImGuiID     GetItemID(const char*  label_id) { return ImGui::GetIDWithSeed(label_id, NULL, ID);              }
+    ImPlotItem* GetItem(ImGuiID id)              { return ItemPool.GetByKey(id);                                 }
+    ImPlotItem* GetItem(const char* label_id)    { return GetItem(GetItemID(label_id));                          }
+    ImPlotItem* GetOrAddItem(ImGuiID id)         { return ItemPool.GetOrAddByKey(id);                            }
+    ImPlotItem* GetItemByIndex(int i)            { return ItemPool.GetByIndex(i);                                }
+    int         GetItemIndex(ImPlotItem* item)   { return ItemPool.GetIndex(item);                               }
+    int         GetLegendCount() const           { return Legend.Indices.size();                                 }
+    ImPlotItem* GetLegendItem(int i)             { return ItemPool.GetByIndex(Legend.Indices[i]);                }
+    const char* GetLegendLabel(int i)            { return Legend.Labels.Buf.Data + GetLegendItem(i)->NameOffset; }
+    void        Reset()                          { ItemPool.Clear(); Legend.Reset(); ColormapIdx = 0;            }
 };
 
 // Holds Plot state information that must persist after EndPlot
@@ -865,7 +867,7 @@ struct ImPlotSubplot {
         FrameHovered              = false;
         Items.Legend.Location     = ImPlotLocation_North;
         Items.Legend.Orientation  = ImPlotOrientation_Horizontal;
-        Items.Legend.CanGoOutside = false;
+        Items.Legend.CanGoInside  = false;
     }
 };
 
@@ -1048,7 +1050,7 @@ IMPLOT_API ImPlotPlot* GetCurrentPlot();
 IMPLOT_API void BustPlotCache();
 
 // Shows a plot's context menu.
-IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend);
+IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Subplot Utils

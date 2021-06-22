@@ -2074,13 +2074,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     // clear legend (TODO: put elsewhere)
     plot.Items.Legend.Reset();
     // setup items (or dont)
-    if (gp.CurrentItems != NULL) {
-        ImGui::PushOverrideID(gp.CurrentItems->ID);
-    }
-    else {
-        gp.CurrentItems = &plot.Items;
-        ImGui::PushID(ID);
-    }
+    if (gp.CurrentItems == NULL) 
+        gp.CurrentItems = &plot.Items;    
+    // push ID to see item hashes
+    ImGui::PushOverrideID(gp.CurrentItems->ID);
+
     return true;
 }
 
@@ -2233,7 +2231,7 @@ bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible) {
     bool ret = false;
     if (ImGui::Checkbox("Show",&visible))
         ret = true;
-    if (legend.CanGoOutside)
+    if (legend.CanGoInside)
         ImGui::Checkbox("Outside", &legend.Outside);
     if (ImGui::RadioButton("H", legend.Orientation == ImPlotOrientation_Horizontal))
         legend.Orientation = ImPlotOrientation_Horizontal;
@@ -2266,18 +2264,18 @@ void ShowSubplotsContextMenu(ImPlotSubplot& subplot) {
             ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
         ImGui::EndMenu();
     }
-    if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)) {
-        if ((ImGui::BeginMenu("Legend"))) {
-            if (ShowLegendContextMenu(subplot.Items.Legend, !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend)))
-                ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend);
-            ImGui::EndMenu();
-        }
-    }
+    // if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)) {
+    //     if ((ImGui::BeginMenu("Legend"))) {
+    //         if (ShowLegendContextMenu(subplot.Items.Legend, !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend)))
+    //             ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend);
+    //         ImGui::EndMenu();
+    //     }
+    // }
     if ((ImGui::BeginMenu("Settings"))) {
         if (ImGui::MenuItem("Title",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle)))
             ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle);
-        if (ImGui::MenuItem("Splitters",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters)))
-            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters);
+        if (ImGui::MenuItem("Resizable",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoResize)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoResize);
         if (ImGui::MenuItem("Align",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign)))
             ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign);
         if (ImGui::MenuItem("Share Items",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)))
@@ -2286,7 +2284,8 @@ void ShowSubplotsContextMenu(ImPlotSubplot& subplot) {
     }
 }
 
-void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend) {
+void ShowPlotContextMenu(ImPlotPlot& plot) {
+    const bool owns_legend = GImPlot->CurrentItems == &plot.Items;
     const bool equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
     if (ImGui::BeginMenu("X-Axis")) {
         ImGui::PushID("X");
@@ -2316,13 +2315,17 @@ void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend) {
     }
 
     ImGui::Separator();
-    if (owns_legend) {
-        if ((ImGui::BeginMenu("Legend"))) {
+    if ((ImGui::BeginMenu("Legend"))) {
+        if (owns_legend) {
             if (ShowLegendContextMenu(plot.Items.Legend, !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend)))
                 ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
-            ImGui::EndMenu();
         }
-    }
+        else if (GImPlot->CurrentSubplot != NULL) {
+            if (ShowLegendContextMenu(GImPlot->CurrentSubplot->Items.Legend, !ImHasFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend)))
+                ImFlipFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend);
+        }
+        ImGui::EndMenu();
+    }    
     if ((ImGui::BeginMenu("Settings"))) {
         if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
             ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
@@ -2340,7 +2343,7 @@ void ShowPlotContextMenu(ImPlotPlot& plot, bool owns_legend) {
             ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
         ImGui::EndMenu();
     }
-    if (GImPlot->CurrentSubplot != NULL) {
+    if (GImPlot->CurrentSubplot != NULL && !ImHasFlag(GImPlot->CurrentPlot->Flags, ImPlotSubplotFlags_NoMenus)) {
         ImGui::Separator();
         if ((ImGui::BeginMenu("Subplots"))) {
             ShowSubplotsContextMenu(*GImPlot->CurrentSubplot);
@@ -2618,7 +2621,7 @@ void EndPlot() {
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && plot.PlotHovered && IO.MouseReleased[gp.InputMap.ContextMenuButton] && !plot.Items.Legend.Hovered && !plot.ContextLocked)
         ImGui::OpenPopup("##PlotContext");
     if (ImGui::BeginPopup("##PlotContext")) {
-        ShowPlotContextMenu(plot, gp.CurrentItems == &plot.Items);
+        ShowPlotContextMenu(plot);
         ImGui::EndPopup();
     }
     // x-axis ctx menu
@@ -2833,7 +2836,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     }
 
     // render splitters
-    if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoSplitters)) {
+    if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoResize)) {
         ImDrawList& DrawList = *ImGui::GetWindowDrawList();
         const ImU32 nrm_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_Separator]);
         const ImU32 hov_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorHovered]);
@@ -3584,12 +3587,12 @@ bool BeginDragDropSourceY(ImPlotYAxis axis, ImGuiKeyModFlags key_mods, ImGuiDrag
 
 bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "BeginDragDropSourceItem() needs to be called within a plotting context!");
-    ImGuiID item_id = ImGui::GetID(label_id);
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "BeginDragDropSourceItem() needs to be called within an itemized context!");
+    ImGuiID item_id = ImGui::GetIDWithSeed(label_id, NULL, gp.CurrentItems->ID);
     ImPlotItem* item = gp.CurrentItems->GetItem(item_id);
     bool is_hovered = item && item->LegendHovered;
-    ImGuiID id = ImGui::GetIDWithSeed("dnd",NULL,item->ID); // total hack
-    return BeginDragDropSourceEx(id, is_hovered, flags, ImGuiKeyModFlags_None);
+    ImGuiID temp_id = ImGui::GetIDWithSeed("dnd",NULL,item->ID); // total hack
+    return BeginDragDropSourceEx(temp_id, is_hovered, flags, ImGuiKeyModFlags_None);
 }
 
 void EndDragDropSource() {
@@ -3625,7 +3628,7 @@ void ColormapIcon(ImPlotColormap cmap) {
 
 void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, bool outside) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "SetLegendLocation() needs to be called within a plotting context!");
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "SetLegendLocation() needs to be called within an itemized context!");
     gp.CurrentItems->Legend.Location  = location;
     gp.CurrentItems->Legend.Orientation = orientation;
     if (gp.CurrentItems->Legend.Outside != outside)
@@ -3640,19 +3643,19 @@ void SetMousePosLocation(ImPlotLocation location) {
 
 bool IsLegendEntryHovered(const char* label_id) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "IsPlotItemHighlight() needs to be called within a plotting context!!");
-    ImGuiID id = ImGui::GetID(label_id);
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "IsPlotItemHighlight() needs to be called within an itemized context!");
+    ImGuiID id = ImGui::GetIDWithSeed(label_id, NULL, gp.CurrentItems->ID);
     ImPlotItem* item = gp.CurrentItems->GetItem(id);
     return item && item->LegendHovered;
 }
 
 bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "BeginLegendPopup() needs to be called within a plotting context!!");
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "BeginLegendPopup() needs to be called within an itemized context!");
     ImGuiWindow* window = GImGui->CurrentWindow;
     if (window->SkipItems)
         return false;
-    ImGuiID id = ImGui::GetID(label_id);
+    ImGuiID id = ImGui::GetIDWithSeed(label_id, NULL, gp.CurrentItems->ID);
     if (ImGui::IsMouseReleased(mouse_button)) {
         ImPlotItem* item = gp.CurrentItems->GetItem(id);
         if (item && item->LegendHovered)
@@ -4537,13 +4540,13 @@ void ShowMetricsWindow(bool* p_popen) {
             // plot
             ImPlotSubplot* plot = gp.Subplots.GetByIndex(p);
             ImGui::PushID(p);
-            if (ImGui::TreeNode("Subplot", "Subplot [ID=%0x%08X]", plot->ID)) {
+            if (ImGui::TreeNode("Subplot", "Subplot [ID=0x%08X]", plot->ID)) {
                 int n_items = plot->Items.GetItemCount();
                 if (ImGui::TreeNode("Items", "Items (%d)", n_items)) {
                     for (int i = 0; i < n_items; ++i) {
                         ImPlotItem* item = plot->Items.GetItemByIndex(i);
                         ImGui::PushID(i);
-                        if (ImGui::TreeNode("Item", "Item [ID=%0x%08X]", item->ID)) {
+                        if (ImGui::TreeNode("Item", "Item [ID=0x%08X]", item->ID)) {
                             ImGui::Bullet(); ImGui::Checkbox("Show", &item->Show);
                             ImGui::Bullet();
                             ImVec4 temp = ImGui::ColorConvertU32ToFloat4(item->Color);

@@ -109,7 +109,7 @@ enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_NoTitle     = 1 << 0,  // the subplot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MySubplot")
     ImPlotSubplotFlags_NoLegend    = 1 << 1,  // the legend will not be displayed (only applicable if ImPlotSubplotFlags_ShareItems is enabled)
     ImPlotSubplotFlags_NoMenus     = 1 << 2,  // the user will not be able to open context menus with right-click
-    ImPlotSubplotFlags_NoSplitters = 1 << 3,  // resize splitters between subplot cells will be not be provided
+    ImPlotSubplotFlags_NoResize    = 1 << 3,  // resize splitters between subplot cells will be not be provided
     ImPlotSubplotFlags_NoAlign     = 1 << 4,  // subplot edges will not be aligned vertically or horizontally
     ImPlotSubplotFlags_ShareItems  = 1 << 5,  // items across all subplots will be shared and rendered into a single legend entry
     ImPlotSubplotFlags_LinkRows    = 1 << 6,  // link the y-axis limits of all plots in each row (does not apply auxiliary y-axes)
@@ -403,7 +403,7 @@ IMPLOT_API void EndPlot();
 // Starts a subdivided plotting context. If the function returns true,
 // EndSubplots() MUST be called! Call BeginPlot/EndPlot AT MOST [rows*cols] 
 // times in  between the begining and end of the subplot context. Plots are 
-// added in row major order. 
+// added in row major order.
 //
 // Example:
 //
@@ -433,8 +433,17 @@ IMPLOT_API void EndPlot();
 // - #row_ratios and #col_ratios must have AT LEAST #rows and #cols elements, 
 //   respectively. These are the sizes of the rows and columns expressed in ratios.
 //   If the user adjusts the dimensions, the arrays are updated with new ratios.
-// - The #size parameter of _BeginPlot_ (see above) is ignored when used inside
-//   of a subplot context since each subplot is sized automatically.
+//
+// Important notes regarding BeginPlot from inside of BeginSubplots:
+//
+// - The #title_id parameter of _BeginPlot_ (see above) does NOT have to be 
+//   unique when called inside of a subplot context. Subplot IDs are hashed
+//   for your convenience so you don't have call PushID or generate unique title
+//   strings. Simply pass an empty string to BeginPlot unless you want to title
+//   each subplot.
+// - The #size parameter of _BeginPlot_ (see above) is ignored when inside of a 
+//   subplot context. The actual size of the subplot will be based on the
+//   #size value you pass to _BeginSubplots_ and #row/#col_ratios if provided.
 
 IMPLOT_API bool BeginSubplots(const char* title_id,
                              int rows,

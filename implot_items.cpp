@@ -62,7 +62,7 @@ namespace ImPlot {
 ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created) {
     ImPlotContext& gp = *GImPlot;
     ImPlotItemGroup& Items = *gp.CurrentItems;
-    ImGuiID id = ImGui::GetID(label_id); // pre subplots
+    ImGuiID id = Items.GetItemID(label_id);
     if (just_created != NULL)
         *just_created = Items.GetItem(id) == NULL;
     ImPlotItem* item = Items.GetOrAddItem(id);
@@ -84,8 +84,7 @@ ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created) {
 
 ImPlotItem* GetItem(const char* label_id) {
     ImPlotContext& gp = *GImPlot;
-    ImGuiID id = ImGui::GetID(label_id);
-    return gp.CurrentItems->GetItem(id);
+    return gp.CurrentItems->GetItem(label_id);
 }
 
 ImPlotItem* GetCurrentItem() {
