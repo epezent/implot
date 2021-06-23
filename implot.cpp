@@ -474,10 +474,7 @@ void ResetCtxForNextPlot(ImPlotContext* ctx) {
     // nullify plot
     ctx->CurrentPlot  = NULL;
     ctx->CurrentItem  = NULL;
-    ctx->PreviousItem = NULL;
-    // subplot
-    if (ctx->CurrentSubplot != NULL)  
-        NextSubplot();
+    ctx->PreviousItem = NULL; 
 }
 
 void ResetCtxForNextAlignedPlots(ImPlotContext* ctx) {
@@ -2055,7 +2052,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
             ImPlotTick *xt = &gp.XTicks.Ticks[t];
             if (xt->ShowLabel && xt->PixelPos >= plot.PlotRect.Min.x - 1 && xt->PixelPos <= plot.PlotRect.Max.x + 1)
                 DrawList.AddText(ImVec2(xt->PixelPos - xt->LabelSize.x * 0.5f, plot.PlotRect.Max.y + gp.Style.LabelPadding.y + xt->Level * (txt_height + gp.Style.LabelPadding.y)),
-                xt->Major ? plot.XAxis.ColorTxt : plot.XAxis.ColorTxt, gp.XTicks.GetText(t));
+                                 plot.XAxis.ColorTxt, gp.XTicks.GetText(t));
         }
     }
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
@@ -2065,7 +2062,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
                 ImPlotTick *yt = &gp.YTicks[i].Ticks[t];
                 if (yt->ShowLabel && yt->PixelPos >= plot.PlotRect.Min.y - 1 && yt->PixelPos <= plot.PlotRect.Max.y + 1) {
                     ImVec2 start(x_start, yt->PixelPos - 0.5f * yt->LabelSize.y);
-                    DrawList.AddText(start, yt->Major ? plot.YAxis[i].ColorTxt : plot.YAxis[i].ColorTxt, gp.YTicks[i].GetText(t));
+                    DrawList.AddText(start, plot.YAxis[i].ColorTxt, gp.YTicks[i].GetText(t));
                 }
             }
         }
@@ -2677,6 +2674,10 @@ void EndPlot() {
     ImGui::PopID();
     // Reset context for next plot
     ResetCtxForNextPlot(GImPlot);
+
+    // setup next subplot
+    if (gp.CurrentSubplot != NULL)  
+        NextSubplot();
 }
 
 //-----------------------------------------------------------------------------

@@ -1026,6 +1026,7 @@ void ShowDemo_SubplotAxisLinking() {
     static int cols = 2;
     if (ImPlot::BeginSubplots("##AxisLinking", rows, cols, ImVec2(-1,400), flags)) {
         for (int i = 0; i < rows*cols; ++i) {
+            ImPlot::SetNextPlotLimits(0,1000,-1,1);
             if (ImPlot::BeginPlot("")) {
                 float fc = 0.01f;
                 ImPlot::PlotLineG("common",SinewaveGetter,&fc,1000);
