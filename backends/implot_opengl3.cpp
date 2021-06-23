@@ -35,40 +35,39 @@ using namespace gl;
 namespace ImPlot {
 namespace Backend {
 
-struct Shader
+struct HeatmapShader
 {
-	GLuint ID = 0;                              ///< Shader ID for the heatmap shader
+	GLuint ID = 0;                       ///< Shader ID for the heatmap shader
 
-	GLuint g_AttribLocationHeatmapSampler = 0;  ///< Attribute location for the heatmap texture
-	GLuint g_AttribLocationColormapSampler = 0; ///< Attribute location for the colormap texture
-	GLuint g_AttribLocationProjection = 0;      ///< Attribute location for the projection matrix uniform
-	GLuint g_AttribLocationMinValue = 0;        ///< Attribute location for the minimum value uniform
-	GLuint g_AttribLocationMaxValue = 0;        ///< Attribute location for the maximum value uniform
+	GLuint AttribLocationProjection = 0; ///< Attribute location for the projection matrix uniform
+	GLuint AttribLocationMinValue = 0;   ///< Attribute location for the minimum value uniform
+	GLuint AttribLocationMaxValue = 0;   ///< Attribute location for the maximum value uniform
 };
 
 struct HeatmapData
 {
-	Shader* ShaderProgram;
-	GLuint HeatmapTexID;
-	GLuint ColormapTexID;
-	float MinValue;
-	float MaxValue;
+	HeatmapShader* ShaderProgram; ///< Shader to be used by this heatmap (either ShaderInt or ShaderFloat)
+	GLuint HeatmapTexID;          ///< Texture ID of the heatmap 2D texture
+	GLuint ColormapTexID;         ///< Texture ID of the colormap 1D texture
+	float MinValue;               ///< Minimum value of the colormap
+	float MaxValue;               ///< Maximum value of the colormap
 };
 
 struct ContextData
 {
-	Shader ShaderInt;                           ///< Shader for integer heatmaps
-	Shader ShaderFloat;                         ///< Shader for floating-point heatmaps
+	HeatmapShader ShaderInt;                  ///< Shader for integer heatmaps
+	HeatmapShader ShaderFloat;                ///< Shader for floating-point heatmaps
 
-	GLuint g_AttribLocationImGuiProjection = 0; ///< Attribute location for the projection matrix uniform (ImGui default shader)
+	GLuint AttribLocationImGuiProjection = 0; ///< Attribute location for the projection matrix uniform (ImGui default shader)
+	GLuint ImGuiShader = 0;                   ///< Shader ID of ImGui's default shader
 
-	ImVector<HeatmapData> HeatmapDataList;      ///< Array of heatmap data
-	ImVector<GLuint> ColormapIDs;               ///< Texture IDs of the colormap textures
-	ImGuiStorage PlotIDs;                       ///< PlotID <-> Heatmap array index table
+	ImVector<HeatmapData> HeatmapDataList;    ///< Array of heatmap data
+	ImVector<GLuint> ColormapIDs;             ///< Texture IDs of the colormap textures
+	ImGuiStorage PlotIDs;                     ///< PlotID <-> Heatmap array index table
 
-	ImVector<float> temp1;
-	ImVector<ImS32> temp2;
-	ImVector<ImU32> temp3;
+	ImVector<float> temp1;                    ///< Temporary data
+	ImVector<ImS32> temp2;                    ///< Temporary data
+	ImVector<ImU32> temp3;                    ///< Temporary data
 };
 
 void* CreateContext()
@@ -93,7 +92,7 @@ void DestroyContext()
 	Context.PlotIDs.Clear();
 }
 
-#define VERTEX_SHADER_CODE                                           \
+#define HEATMAP_VERTEX_SHADER_CODE                                   \
 	"#version 330 core\n"                                            \
 	"precision mediump float;\n"                                     \
 	"layout (location = %d) in vec2 Position;\n"                     \
@@ -108,7 +107,7 @@ void DestroyContext()
 	"	gl_Position = ProjMtx * vec4(Position.xy, 0.0f, 1.0f);\n"    \
 	"}\n"
 
-#define FRAGMENT_SHADER_CODE                                         \
+#define HEATMAP_FRAGMENT_SHADER_CODE                                 \
 	"#version 330 core\n"                                            \
 	"precision mediump float;\n"                                     \
 	"\n"                                                             \
@@ -127,59 +126,55 @@ void DestroyContext()
 	"	Out_Color = texture(colormap, clamp(offset, 0.0f, 1.0f));\n" \
 	"}\n"
 
-static void CompileShader(Shader& ShaderProgram, GLchar* VertexShaderCode, GLchar* FragmentShaderCode)
+static void CompileShader(HeatmapShader& ShaderProgram, GLchar* VertexShaderCode, GLchar* FragmentShaderCode)
 {
-	GLuint g_VertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(g_VertexShader, 1, &VertexShaderCode, nullptr);
-	glCompileShader(g_VertexShader);
+	GLuint VertexShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(VertexShader, 1, &VertexShaderCode, nullptr);
+	glCompileShader(VertexShader);
 
-	GLuint g_FragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(g_FragmentShader, 1, &FragmentShaderCode, nullptr);
-	glCompileShader(g_FragmentShader);
+	GLuint FragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(FragmentShader, 1, &FragmentShaderCode, nullptr);
+	glCompileShader(FragmentShader);
 
 	ShaderProgram.ID = glCreateProgram();
-	glAttachShader(ShaderProgram.ID, g_VertexShader);
-	glAttachShader(ShaderProgram.ID, g_FragmentShader);
+	glAttachShader(ShaderProgram.ID, VertexShader);
+	glAttachShader(ShaderProgram.ID, FragmentShader);
 	glLinkProgram(ShaderProgram.ID);
 
-	glDetachShader(ShaderProgram.ID, g_VertexShader);
-	glDetachShader(ShaderProgram.ID, g_FragmentShader);
-	glDeleteShader(g_VertexShader);
-	glDeleteShader(g_FragmentShader);
+	glDetachShader(ShaderProgram.ID, VertexShader);
+	glDetachShader(ShaderProgram.ID, FragmentShader);
+	glDeleteShader(VertexShader);
+	glDeleteShader(FragmentShader);
 
-	ShaderProgram.g_AttribLocationHeatmapSampler  = glGetUniformLocation(ShaderProgram.ID, "heatmap");
-	ShaderProgram.g_AttribLocationColormapSampler = glGetUniformLocation(ShaderProgram.ID, "colormap");
-	ShaderProgram.g_AttribLocationProjection      = glGetUniformLocation(ShaderProgram.ID, "ProjMtx");
-	ShaderProgram.g_AttribLocationMinValue        = glGetUniformLocation(ShaderProgram.ID, "min_val");
-	ShaderProgram.g_AttribLocationMaxValue        = glGetUniformLocation(ShaderProgram.ID, "max_val");
+	ShaderProgram.AttribLocationProjection = glGetUniformLocation(ShaderProgram.ID, "ProjMtx");
+	ShaderProgram.AttribLocationMinValue   = glGetUniformLocation(ShaderProgram.ID, "min_val");
+	ShaderProgram.AttribLocationMaxValue   = glGetUniformLocation(ShaderProgram.ID, "max_val");
 
 	glUseProgram(ShaderProgram.ID);
-	glUniform1i(ShaderProgram.g_AttribLocationHeatmapSampler, 0); // Set texture slot of heatmap texture
-	glUniform1i(ShaderProgram.g_AttribLocationColormapSampler, 1); // Set texture slot of colormap texture
+	glUniform1i(glGetUniformLocation(ShaderProgram.ID, "heatmap"), 0); // Set texture slot of heatmap texture
+	glUniform1i(glGetUniformLocation(ShaderProgram.ID, "colormap"), 1); // Set texture slot of colormap texture
 }
 
-static void CreateShader(const ImDrawList*, const ImDrawCmd*)
+static void CreateHeatmapShader(const ImDrawList*, const ImDrawCmd*)
 {
     ContextData& Context = *((ContextData*)GImPlot->backendCtx);
 
-	GLuint CurrentShader;
-	glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&CurrentShader);
+	glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&Context.ImGuiShader);
 
-	Context.g_AttribLocationImGuiProjection = glGetUniformLocation(CurrentShader, "ProjMtx");
-
-	GLuint g_AttribLocationVtxPos = (GLuint)glGetAttribLocation(CurrentShader, "Position");
-	GLuint g_AttribLocationVtxUV  = (GLuint)glGetAttribLocation(CurrentShader, "UV");
+	Context.AttribLocationImGuiProjection = glGetUniformLocation(Context.ImGuiShader, "ProjMtx");
+	GLuint AttribLocationVtxPos = (GLuint)glGetAttribLocation(Context.ImGuiShader, "Position");
+	GLuint AttribLocationVtxUV  = (GLuint)glGetAttribLocation(Context.ImGuiShader, "UV");
 
 	GLchar* VertexShaderCode = new GLchar[512];
 	GLchar* FragmentShaderCode = new GLchar[512];
 
-	snprintf(VertexShaderCode, 512, VERTEX_SHADER_CODE, g_AttribLocationVtxPos, g_AttribLocationVtxUV);
-	snprintf(FragmentShaderCode, 512, FRAGMENT_SHADER_CODE, ' ');
+	snprintf(VertexShaderCode, 512, HEATMAP_VERTEX_SHADER_CODE, AttribLocationVtxPos, AttribLocationVtxUV);
+	snprintf(FragmentShaderCode, 512, HEATMAP_FRAGMENT_SHADER_CODE, ' ');
 
 	CompileShader(Context.ShaderFloat, VertexShaderCode, FragmentShaderCode);
 
-	snprintf(VertexShaderCode, 512, VERTEX_SHADER_CODE, g_AttribLocationVtxPos, g_AttribLocationVtxUV);
-	snprintf(FragmentShaderCode, 512, FRAGMENT_SHADER_CODE, 'i');
+	snprintf(VertexShaderCode, 512, HEATMAP_VERTEX_SHADER_CODE, AttribLocationVtxPos, AttribLocationVtxUV);
+	snprintf(FragmentShaderCode, 512, HEATMAP_FRAGMENT_SHADER_CODE, 'i');
 
 	CompileShader(Context.ShaderInt, VertexShaderCode, FragmentShaderCode);
 	glUseProgram(0);
@@ -196,12 +191,9 @@ static void RenderCallback(const ImDrawList*, const ImDrawCmd* cmd)
 	int plotIdx = Context.PlotIDs.GetInt(plotID, -1);
 	HeatmapData& data = Context.HeatmapDataList[plotIdx];
 
-	GLuint CurrentShader;
-	glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&CurrentShader);
-
 	// Get projection matrix of current shader
 	float OrthoProjection[4][4];
-	glGetUniformfv(CurrentShader, Context.g_AttribLocationImGuiProjection, &OrthoProjection[0][0]);
+	glGetUniformfv(Context.ImGuiShader, Context.AttribLocationImGuiProjection, &OrthoProjection[0][0]);
 
 	// Enable our shader
 	glUseProgram(data.ShaderProgram->ID);
@@ -209,15 +201,18 @@ static void RenderCallback(const ImDrawList*, const ImDrawCmd* cmd)
 	glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, data.HeatmapTexID); // Set texture ID of data
 	glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_1D, data.ColormapTexID); // Set texture ID of colormap
 
-	glUniformMatrix4fv(data.ShaderProgram->g_AttribLocationProjection, 1, GL_FALSE, &OrthoProjection[0][0]);
-	glUniform1f(data.ShaderProgram->g_AttribLocationMinValue, data.MinValue); // Set minimum range
-	glUniform1f(data.ShaderProgram->g_AttribLocationMaxValue, data.MaxValue); // Set maximum range
+	glUniformMatrix4fv(data.ShaderProgram->AttribLocationProjection, 1, GL_FALSE, &OrthoProjection[0][0]);
+	glUniform1f(data.ShaderProgram->AttribLocationMinValue, data.MinValue); // Set minimum range
+	glUniform1f(data.ShaderProgram->AttribLocationMaxValue, data.MaxValue); // Set maximum range
 }
 
-static void UnbindTexture(const ImDrawList*, const ImDrawCmd*)
+static void ResetState(const ImDrawList*, const ImDrawCmd*)
 {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+	glUseProgram(Context.ImGuiShader);
 }
 
 static void SetTextureData(int plotID, const void* data, GLsizei rows, GLsizei cols, GLint internalFormat, GLenum format, GLenum type)
@@ -235,9 +230,9 @@ static void SetTextureData(int plotID, const void* data, GLsizei rows, GLsizei c
 
 void AddColormap(const ImU32* keys, int count, bool qual)
 {
-	GLuint texID;
-	glGenTextures(1, &texID);
-	glBindTexture(GL_TEXTURE_1D, texID);
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_1D, textureID);
 	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, count, 0, GL_RGBA, GL_UNSIGNED_BYTE, keys);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -245,8 +240,8 @@ void AddColormap(const ImU32* keys, int count, bool qual)
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, qual ? GL_NEAREST : GL_LINEAR);
 	glBindTexture(GL_TEXTURE_1D, 0);
 
-    ContextData& Context = *((ContextData*)GImPlot->backendCtx); // PETA AQUI (GImPlot es NULL)
-	Context.ColormapIDs.push_back(texID);
+    ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+	Context.ColormapIDs.push_back(textureID);
 }
 
 static GLuint CreateHeatmapTexture()
@@ -311,36 +306,28 @@ void SetHeatmapData(int plotID, const ImU64* values, int rows, int cols)
 void RenderHeatmap(int plotID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max, float scale_min, float scale_max, ImPlotColormap colormap)
 {
     ContextData& Context = *((ContextData*)GImPlot->backendCtx);
-	int idx = Context.PlotIDs.GetInt(plotID, -1);
+	int idx = Context.PlotIDs.GetInt(plotID, Context.HeatmapDataList.Size);
 
-	if(idx < 0)
+	if(idx == Context.HeatmapDataList.Size)
 	{
 		// New entry
-		HeatmapData data;
-		data.HeatmapTexID = CreateHeatmapTexture();
-		data.ColormapTexID = Context.ColormapIDs[colormap];
-		data.MinValue = scale_min;
-		data.MaxValue = scale_max;
-
 		Context.PlotIDs.SetInt(plotID, Context.HeatmapDataList.Size);
-		Context.HeatmapDataList.push_back(data);
-	}
-	else
-	{
-		HeatmapData& data = Context.HeatmapDataList[idx];
-		data.ColormapTexID = Context.ColormapIDs[colormap];
-		data.MinValue = scale_min;
-		data.MaxValue = scale_max;
+		Context.HeatmapDataList.push_back(HeatmapData());
+		Context.HeatmapDataList[idx].HeatmapTexID = CreateHeatmapTexture();
 	}
 
-	if(Context.ShaderInt.ID == 0)
-		DrawList.AddCallback(CreateShader, nullptr);
+	HeatmapData& data = Context.HeatmapDataList[idx];
+	data.ColormapTexID = Context.ColormapIDs[colormap];
+	data.MinValue = scale_min;
+	data.MaxValue = scale_max;
+
+	if(Context.ShaderInt.ID == 0 || Context.ShaderFloat.ID == 0)
+		DrawList.AddCallback(CreateHeatmapShader, nullptr);
 
 	DrawList.AddCallback(RenderCallback, (void*)(intptr_t)plotID);
 	DrawList.PrimReserve(6, 4);
 	DrawList.PrimRectUV(bounds_min, bounds_max, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f), 0);
-	DrawList.AddCallback(UnbindTexture, nullptr);
-	DrawList.AddCallback(ImDrawCallback_ResetRenderState, nullptr);
+	DrawList.AddCallback(ResetState, nullptr);
 }
 
 void BustPlotCache()

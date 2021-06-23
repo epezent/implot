@@ -35,6 +35,10 @@
 namespace ImPlot {
 namespace Backend {
 
+//-----------------------------------------------------------------------------
+// [SECTION] Misc backend functions
+//-----------------------------------------------------------------------------
+
 /**
  * @brief Struct to hold backend-related context data
  *
@@ -62,6 +66,16 @@ IMPLOT_API void* CreateContext();
  */
 IMPLOT_API void DestroyContext();
 
+/** @brief Bust plot cache. Called from @ref ImPlot::BustPlotCache() */
+IMPLOT_API void BustPlotCache();
+
+/** @brief Bust item cache. Called from @ref ImPlot::BustItemCache() */
+IMPLOT_API void BustItemCache();
+
+//-----------------------------------------------------------------------------
+// [SECTION] Colormap functions
+//-----------------------------------------------------------------------------
+
 /**
  * @brief Add a colormap
  *
@@ -73,6 +87,10 @@ IMPLOT_API void DestroyContext();
  *               not (`true`)
  */
 IMPLOT_API void AddColormap(const ImU32* keys, int count, bool qual);
+
+//-----------------------------------------------------------------------------
+// [SECTION] Heatmap functions
+//-----------------------------------------------------------------------------
 
 /**
  * @brief Set heatmap data
@@ -135,12 +153,6 @@ IMPLOT_API void SetHeatmapData(int plotID, const ImU64*  values, int rows, int c
 IMPLOT_API void RenderHeatmap(
 	int plotID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max,
 	float scale_min, float scale_max, ImPlotColormap colormap);
-
-/** @brief Bust plot cache. Called from @ref ImPlot::BustPlotCache() */
-IMPLOT_API void BustPlotCache();
-
-/** @brief Bust item cache. Called from @ref ImPlot::BustItemCache() */
-IMPLOT_API void BustItemCache();
 
 }
 }
