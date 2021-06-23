@@ -37,7 +37,7 @@
 
 #include <time.h>
 #include "imgui_internal.h"
-#include "backends/implot_gpu.h"
+#include "backends/implot_backend.h"
 
 #ifndef IMPLOT_VERSION
 #error Must include implot.h before implot_internal.h

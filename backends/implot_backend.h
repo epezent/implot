@@ -26,6 +26,12 @@
 
 #include "../implot.h"
 
+#ifdef IMPLOT_BACKEND_ENABLE_OPENGL3
+	#define IMPLOT_BACKEND_ENABLED
+	#define IMPLOT_BACKEND_HAS_HEATMAP
+	#define IMPLOT_BACKEND_HAS_COLORMAP
+#endif
+
 namespace ImPlot {
 namespace Backend {
 
@@ -136,17 +142,25 @@ IMPLOT_API void BustPlotCache();
 /** @brief Bust item cache. Called from @ref ImPlot::BustItemCache() */
 IMPLOT_API void BustItemCache();
 
+}
+}
 
-#if !defined(IMPLOT_ENABLE_OPENGL3_ACCELERATION)
+namespace ImPlot {
+namespace Backend {
 
-// Dummy implementation for backend functions
+#ifndef IMPLOT_BACKEND_ENABLED
+
 inline void* CreateContext() { return nullptr; }
 inline void DestroyContext() {}
 
-inline void AddColormap(const ImU32*, int, bool) {}
-
 inline void BustPlotCache() {}
 inline void BustItemCache() {}
+
+#endif
+
+#ifndef IMPLOT_BACKEND_HAS_COLORMAP
+
+inline void AddColormap(const ImU32*, int, bool) {}
 
 #endif
 

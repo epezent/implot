@@ -1,8 +1,8 @@
-#ifdef IMPLOT_ENABLE_OPENGL3_ACCELERATION
+#ifdef IMPLOT_BACKEND_ENABLE_OPENGL3
 
 #include "../implot.h"
 #include "../implot_internal.h"
-#include "implot_gpu.h"
+#include "implot_backend.h"
 
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
