@@ -190,5 +190,19 @@ IMPLOT_API void RenderHeatmap(
 	int itemID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max,
 	float scale_min, float scale_max, ImPlotColormap colormap);
 
+/**
+ * @brief Set logarithmic axis
+ *
+ * Sets whether the X and Y axis are logarithmic or not, and their bounds. This
+ * function only has to be called if either the axis change state or if the bounds
+ * change.
+ *
+ * @param x_is_log    Whether the X axis is logarithmic or not
+ * @param y_is_log    Whether the Y axis is logarithmic or not
+ * @param bounds_min  Minimum bounds (for X & Y) of the heatmap
+ * @param bounds_min  Maximum bounds (for X & Y) of the heatmap
+ */
+void SetAxisLog(int itemID, bool x_is_log, bool y_is_log, const ImVec2& bounds_min, const ImVec2& bounds_max);
+
 }
 }

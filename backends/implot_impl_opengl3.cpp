@@ -43,6 +43,9 @@ struct HeatmapShader
 	GLuint AttribLocationProjection = 0; ///< Attribute location for the projection matrix uniform
 	GLuint AttribLocationMinValue = 0;   ///< Attribute location for the minimum value uniform
 	GLuint AttribLocationMaxValue = 0;   ///< Attribute location for the maximum value uniform
+	GLuint AttribLocationAxisLog = 0;    ///< Attribute location for the logarithmic axes uniform
+	GLuint AttribLocationMinBounds = 0;  ///< Attribute location for the minimum bounds uniform
+	GLuint AttribLocationMaxBounds = 0;  ///< Attribute location for the maximum bounds uniform
 };
 
 struct HeatmapData
@@ -50,8 +53,12 @@ struct HeatmapData
 	HeatmapShader* ShaderProgram; ///< Shader to be used by this heatmap (either ShaderInt or ShaderFloat)
 	GLuint HeatmapTexID;          ///< Texture ID of the heatmap 2D texture
 	GLuint ColormapTexID;         ///< Texture ID of the colormap 1D texture
+	ImVec2 MinBounds;             ///< Minimum bounds of the heatmap
+	ImVec2 MaxBounds;             ///< Maximum bounds of the heatmap
 	float MinValue;               ///< Minimum value of the colormap
 	float MaxValue;               ///< Maximum value of the colormap
+	bool AxisLogX;                ///< Whether the X axis is logarithmic or not
+	bool AxisLogY;                ///< Whether the Y axis is logarithmic or not
 };
 
 struct ContextData
@@ -108,23 +115,38 @@ void DestroyContext()
 	"	gl_Position = ProjMtx * vec4(Position.xy, 0.0f, 1.0f);\n"    \
 	"}\n"
 
-#define HEATMAP_FRAGMENT_SHADER_CODE                                 \
-	"#version 330 core\n"                                            \
-	"precision mediump float;\n"                                     \
-	"\n"                                                             \
-	"in vec2 Frag_UV;\n"                                             \
-	"out vec4 Out_Color;\n"                                          \
-	"\n"                                                             \
-	"uniform sampler1D colormap;\n"                                  \
-	"uniform %csampler2D heatmap;\n"                                 \
-	"uniform float min_val;\n"                                       \
-	"uniform float max_val;\n"                                       \
-	"\n"                                                             \
-	"void main()\n"                                                  \
-	"{\n"                                                            \
-	"   float value = float(texture(heatmap, Frag_UV).r);\n"         \
-	"	float offset = (value - min_val) / (max_val - min_val);\n"   \
-	"	Out_Color = texture(colormap, clamp(offset, 0.0f, 1.0f));\n" \
+#define HEATMAP_FRAGMENT_SHADER_CODE                                  \
+	"#version 330 core\n"                                             \
+	"precision mediump float;\n"                                      \
+	"\n"                                                              \
+	"in vec2 Frag_UV;\n"                                              \
+	"out vec4 Out_Color;\n"                                           \
+	"\n"                                                              \
+	"uniform sampler1D colormap;\n"                                   \
+	"uniform %csampler2D heatmap;\n"                                  \
+	"uniform float min_val;\n"                                        \
+	"uniform float max_val;\n"                                        \
+	"\n"                                                              \
+	"uniform vec2 bounds_min;\n"                                      \
+	"uniform vec2 bounds_max;\n"                                      \
+	"uniform bvec2 ax_log;\n"                                         \
+	"\n"                                                              \
+	"float log_den(float x, float min_rng, float max_rng)\n"          \
+	"{\n"                                                             \
+	"    float minrl = log(min_rng);\n"                               \
+	"    float maxrl = log(max_rng);\n"                               \
+	"\n"                                                              \
+	"    return (exp((maxrl - minrl) * x + minrl) - min_rng) / (max_rng - min_rng);" \
+	"}\n"                                                             \
+	"\n"                                                              \
+	"void main()\n"                                                   \
+	"{\n"                                                             \
+	"    float uv_x = ax_log.x ? log_den(Frag_UV.x, bounds_min.x, bounds_max.x) : Frag_UV.x;\n" \
+	"    float uv_y = ax_log.y ? log_den(Frag_UV.y, bounds_min.y, bounds_max.y) : Frag_UV.y;\n" \
+	"\n"                                                               \
+	"    float value = float(texture(heatmap, vec2(uv_x, uv_y)).r);\n" \
+	"	 float offset = (value - min_val) / (max_val - min_val);\n"    \
+	"	 Out_Color = texture(colormap, clamp(offset, 0.0f, 1.0f));\n"  \
 	"}\n"
 
 static void CompileShader(HeatmapShader& ShaderProgram, GLchar* VertexShaderCode, GLchar* FragmentShaderCode)
@@ -150,6 +172,9 @@ static void CompileShader(HeatmapShader& ShaderProgram, GLchar* VertexShaderCode
 	ShaderProgram.AttribLocationProjection = glGetUniformLocation(ShaderProgram.ID, "ProjMtx");
 	ShaderProgram.AttribLocationMinValue   = glGetUniformLocation(ShaderProgram.ID, "min_val");
 	ShaderProgram.AttribLocationMaxValue   = glGetUniformLocation(ShaderProgram.ID, "max_val");
+	ShaderProgram.AttribLocationMinBounds  = glGetUniformLocation(ShaderProgram.ID, "bounds_min");
+	ShaderProgram.AttribLocationMaxBounds  = glGetUniformLocation(ShaderProgram.ID, "bounds_max");
+	ShaderProgram.AttribLocationAxisLog    = glGetUniformLocation(ShaderProgram.ID, "ax_log");
 
 	glUseProgram(ShaderProgram.ID);
 	glUniform1i(glGetUniformLocation(ShaderProgram.ID, "heatmap"), 0); // Set texture slot of heatmap texture
@@ -166,16 +191,16 @@ static void CreateHeatmapShader(const ImDrawList*, const ImDrawCmd*)
 	GLuint AttribLocationVtxPos = (GLuint)glGetAttribLocation(Context.ImGuiShader, "Position");
 	GLuint AttribLocationVtxUV  = (GLuint)glGetAttribLocation(Context.ImGuiShader, "UV");
 
-	GLchar* VertexShaderCode = new GLchar[512];
-	GLchar* FragmentShaderCode = new GLchar[512];
+	GLchar* VertexShaderCode = new GLchar[1000];
+	GLchar* FragmentShaderCode = new GLchar[1000];
 
-	snprintf(VertexShaderCode, 512, HEATMAP_VERTEX_SHADER_CODE, AttribLocationVtxPos, AttribLocationVtxUV);
-	snprintf(FragmentShaderCode, 512, HEATMAP_FRAGMENT_SHADER_CODE, ' ');
+	snprintf(VertexShaderCode, 1000, HEATMAP_VERTEX_SHADER_CODE, AttribLocationVtxPos, AttribLocationVtxUV);
+	snprintf(FragmentShaderCode, 1000, HEATMAP_FRAGMENT_SHADER_CODE, ' ');
 
 	CompileShader(Context.ShaderFloat, VertexShaderCode, FragmentShaderCode);
 
-	snprintf(VertexShaderCode, 512, HEATMAP_VERTEX_SHADER_CODE, AttribLocationVtxPos, AttribLocationVtxUV);
-	snprintf(FragmentShaderCode, 512, HEATMAP_FRAGMENT_SHADER_CODE, 'i');
+	snprintf(VertexShaderCode, 1000, HEATMAP_VERTEX_SHADER_CODE, AttribLocationVtxPos, AttribLocationVtxUV);
+	snprintf(FragmentShaderCode, 1000, HEATMAP_FRAGMENT_SHADER_CODE, 'i');
 
 	CompileShader(Context.ShaderInt, VertexShaderCode, FragmentShaderCode);
 	glUseProgram(0);
@@ -205,6 +230,9 @@ static void RenderCallback(const ImDrawList*, const ImDrawCmd* cmd)
 	glUniformMatrix4fv(data.ShaderProgram->AttribLocationProjection, 1, GL_FALSE, &OrthoProjection[0][0]);
 	glUniform1f(data.ShaderProgram->AttribLocationMinValue, data.MinValue); // Set minimum range
 	glUniform1f(data.ShaderProgram->AttribLocationMaxValue, data.MaxValue); // Set maximum range
+	glUniform2i(data.ShaderProgram->AttribLocationAxisLog, data.AxisLogX, data.AxisLogY); // Logarithmic axis
+	glUniform2f(data.ShaderProgram->AttribLocationMinBounds, data.MinBounds.x, data.MinBounds.y); // Set minimum bounds
+	glUniform2f(data.ShaderProgram->AttribLocationMaxBounds, data.MaxBounds.x, data.MaxBounds.y); // Set maximum bounds
 }
 
 static void ResetState(const ImDrawList*, const ImDrawCmd*)
@@ -302,6 +330,18 @@ void SetHeatmapData(int itemID, const ImU64* values, int rows, int cols)
 		Context.temp3[i] = (ImU32)values[i];
 
 	SetTextureData(itemID, Context.temp3.Data, rows, cols, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT);
+}
+
+void SetAxisLog(int itemID, bool x_is_log, bool y_is_log, const ImVec2& bounds_min, const ImVec2& bounds_max)
+{
+	ContextData& Context = *((ContextData*)GImPlot->backendCtx);
+	int idx = Context.ItemIDs.GetInt(itemID, -1);
+	HeatmapData& data = Context.HeatmapDataList[idx];
+
+	data.AxisLogX = x_is_log;
+	data.AxisLogY =y_is_log;
+	data.MinBounds = bounds_min;
+	data.MaxBounds = bounds_max;
 }
 
 void RenderHeatmap(int itemID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max, float scale_min, float scale_max, ImPlotColormap colormap)

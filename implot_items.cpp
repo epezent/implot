@@ -1896,17 +1896,18 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     ImVec2 bmin = transformer(bounds_min);
     ImVec2 bmax = transformer(bounds_max);
 
+    ImPlotScale scale = GetCurrentScale();
+
     // NOTE: Order is important!
     Backend::RenderHeatmap(gp.CurrentItem->ID, DrawList, bmin, bmax, scale_min, scale_max, gp.Style.Colormap);
+    Backend::SetAxisLog(gp.CurrentItem->ID,
+        scale == ImPlotScale_LogLin || scale == ImPlotScale_LogLog,
+        scale == ImPlotScale_LinLog || scale == ImPlotScale_LogLog,
+        ImVec2(bounds_min.x, bounds_min.y), ImVec2(bounds_max.x, bounds_max.y));
     Backend::SetHeatmapData(gp.CurrentItem->ID, values, rows, cols);
 #else
     GetterHeatmap<T> getter(values, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
-    switch (GetCurrentScale()) {
-        case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLin>(getter, TransformerLinLin()), DrawList, gp.CurrentPlot->PlotRect); break;
-        case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLin>(getter, TransformerLogLin()), DrawList, gp.CurrentPlot->PlotRect); break;
-        case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLog>(getter, TransformerLinLog()), DrawList, gp.CurrentPlot->PlotRect); break;
-        case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLog>(getter, TransformerLogLog()), DrawList, gp.CurrentPlot->PlotRect); break;
-    }
+    RenderPrimitives(RectRenderer<GetterHeatmap<T>, Transformer>(getter, transformer), DrawList, gp.CurrentPlot->PlotRect);
 #endif
     if (fmt != NULL) {
         const double w = (bounds_max.x - bounds_min.x) / cols;
