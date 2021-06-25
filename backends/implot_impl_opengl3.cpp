@@ -53,8 +53,8 @@ struct HeatmapData
 	HeatmapShader* ShaderProgram; ///< Shader to be used by this heatmap (either ShaderInt or ShaderFloat)
 	GLuint HeatmapTexID;          ///< Texture ID of the heatmap 2D texture
 	GLuint ColormapTexID;         ///< Texture ID of the colormap 1D texture
-	ImVec2 MinBounds;             ///< Minimum bounds of the heatmap
-	ImVec2 MaxBounds;             ///< Maximum bounds of the heatmap
+	ImPlotPoint MinBounds;        ///< Minimum bounds of the heatmap
+	ImPlotPoint MaxBounds;        ///< Maximum bounds of the heatmap
 	float MinValue;               ///< Minimum value of the colormap
 	float MaxValue;               ///< Maximum value of the colormap
 	bool AxisLogX;                ///< Whether the X axis is logarithmic or not
@@ -332,19 +332,19 @@ void SetHeatmapData(int itemID, const ImU64* values, int rows, int cols)
 	SetTextureData(itemID, Context.temp3.Data, rows, cols, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT);
 }
 
-void SetAxisLog(int itemID, bool x_is_log, bool y_is_log, const ImVec2& bounds_min, const ImVec2& bounds_max)
+void SetAxisLog(int itemID, bool x_is_log, bool y_is_log, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max)
 {
 	ContextData& Context = *((ContextData*)GImPlot->backendCtx);
 	int idx = Context.ItemIDs.GetInt(itemID, -1);
 	HeatmapData& data = Context.HeatmapDataList[idx];
 
 	data.AxisLogX = x_is_log;
-	data.AxisLogY =y_is_log;
+	data.AxisLogY = y_is_log;
 	data.MinBounds = bounds_min;
 	data.MaxBounds = bounds_max;
 }
 
-void RenderHeatmap(int itemID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max, float scale_min, float scale_max, ImPlotColormap colormap)
+void RenderHeatmap(int itemID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max, float scale_min, float scale_max, ImPlotColormap colormap, bool reverse_y)
 {
 	ContextData& Context = *((ContextData*)GImPlot->backendCtx);
 	int idx = Context.ItemIDs.GetInt(itemID, Context.HeatmapDataList.Size);
@@ -367,7 +367,7 @@ void RenderHeatmap(int itemID, ImDrawList& DrawList, const ImVec2& bounds_min, c
 
 	DrawList.AddCallback(RenderCallback, (void*)(intptr_t)itemID);
 	DrawList.PrimReserve(6, 4);
-	DrawList.PrimRectUV(bounds_min, bounds_max, ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f), 0);
+	DrawList.PrimRectUV(bounds_min, bounds_max, ImVec2(0.0f, reverse_y ? 1.0f : 0.0f), ImVec2(1.0f, reverse_y ? 0.0f : 1.0f), 0);
 	DrawList.AddCallback(ResetState, nullptr);
 }
 
