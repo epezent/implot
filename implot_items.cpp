@@ -1899,11 +1899,11 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     ImPlotScale scale = GetCurrentScale();
 
     // NOTE: Order is important!
-    Backend::RenderHeatmap(gp.CurrentItem->ID, DrawList, bmin, bmax, scale_min, scale_max, gp.Style.Colormap);
+    Backend::RenderHeatmap(gp.CurrentItem->ID, DrawList, bmin, bmax, (float)scale_min, (float)scale_max, gp.Style.Colormap);
     Backend::SetAxisLog(gp.CurrentItem->ID,
         scale == ImPlotScale_LogLin || scale == ImPlotScale_LogLog,
         scale == ImPlotScale_LinLog || scale == ImPlotScale_LogLog,
-        ImVec2(bounds_min.x, bounds_min.y), ImVec2(bounds_max.x, bounds_max.y));
+        ImVec2((float)bounds_min.x, (float)bounds_min.y), ImVec2((float)bounds_max.x, (float)bounds_max.y));
     Backend::SetHeatmapData(gp.CurrentItem->ID, values, rows, cols);
 #else
     GetterHeatmap<T> getter(values, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
