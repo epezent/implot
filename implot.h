@@ -115,7 +115,8 @@ enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_LinkRows    = 1 << 6,  // link the y-axis limits of all plots in each row (does not apply auxiliary y-axes)
     ImPlotSubplotFlags_LinkCols    = 1 << 7,  // link the x-axis limits of all plots in each column
     ImPlotSubplotFlags_LinkAllX    = 1 << 8,  // link the x-axis limits in every plot in the subplot
-    ImPlotSubplotFlags_LinkAllY    = 1 << 9   // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
+    ImPlotSubplotFlags_LinkAllY    = 1 << 9 , // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
+    ImPlotSubplotFlags_ColMajor    = 1 << 10  // subplots are added in column major order instead of the default row major order
 };
 
 // Plot styling colors.

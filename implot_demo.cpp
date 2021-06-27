@@ -993,21 +993,38 @@ void ShowDemo_SubplotsSizing() {
 }
 
 void ShowDemo_SubplotItemSharing() {
-
     static ImPlotSubplotFlags flags = ImPlotSubplotFlags_ShareItems;
     ImGui::CheckboxFlags("ImPlotSubplotFlags_ShareItems", (unsigned int*)&flags, ImPlotSubplotFlags_ShareItems);
-
+    ImGui::CheckboxFlags("ImPlotSubplotFlags_ColMajor", (unsigned int*)&flags, ImPlotSubplotFlags_ColMajor); 
     static int rows = 2;
-    static int cols = 2;
+    static int cols = 3;
+    static int id[] = {0,1,2,3,4,5};
+    static int curj = -1;
     if (ImPlot::BeginSubplots("##ItemSharing", rows, cols, ImVec2(-1,400), flags)) {
         for (int i = 0; i < rows*cols; ++i) {
             if (ImPlot::BeginPlot("")) {
-                char buffer[8];
                 float fc = 0.01f;
-                float fi = 0.01f * (i+2);
-                sprintf(buffer, "data%d", i);
                 ImPlot::PlotLineG("common",SinewaveGetter,&fc,1000);
-                ImPlot::PlotLineG(buffer,SinewaveGetter,&fi,1000);
+                for (int j = 0; j < 6; ++j) {
+                    if (id[j] == i) {
+                        char label[8];
+                        float fj = 0.01f * (j+2);
+                        sprintf(label, "data%d", j);
+                        ImPlot::PlotLineG(label,SinewaveGetter,&fj,1000);
+                        if (ImPlot::BeginDragDropSourceItem(label)) {
+                            curj = j;
+                            ImGui::SetDragDropPayload("MY_DND",NULL,0);
+                            ImPlot::ItemIcon(GetLastItemColor()); ImGui::SameLine();
+                            ImGui::TextUnformatted(label);
+                            ImPlot::EndDragDropSource();
+                        }
+                    }
+                }
+                if (ImPlot::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) 
+                        id[curj] = i;                    
+                    ImPlot::EndDragDropTarget();
+                }
                 ImPlot::EndPlot();
             }
         }   

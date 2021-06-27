@@ -783,7 +783,7 @@ struct ImPlotItemGroup
     ImPlotItemGroup() { ColormapIdx = 0; }
 
     int         GetItemCount() const             { return ItemPool.GetBufSize();                                 }
-    ImGuiID     GetItemID(const char*  label_id) { return ImGui::GetIDWithSeed(label_id, NULL, ID);              }
+    ImGuiID     GetItemID(const char*  label_id) { return ImGui::GetID(label_id); /* GetIDWithSeed ? */          } 
     ImPlotItem* GetItem(ImGuiID id)              { return ItemPool.GetByKey(id);                                 }
     ImPlotItem* GetItem(const char* label_id)    { return GetItem(GetItemID(label_id));                          }
     ImPlotItem* GetOrAddItem(ImGuiID id)         { return ItemPool.GetOrAddByKey(id);                            }
@@ -1057,7 +1057,7 @@ IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot);
 //-----------------------------------------------------------------------------
 
 // Advances to next subplot
-IMPLOT_API void NextSubplot();
+IMPLOT_API void SubplotNextCell();
 
 // Shows a subplot's context menu.
 IMPLOT_API void ShowSubplotsContextMenu(ImPlotSubplot& subplot);
