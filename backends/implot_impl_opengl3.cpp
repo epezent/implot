@@ -111,8 +111,8 @@ void DestroyContext()
 	"\n"                                                             \
 	"void main()\n"                                                  \
 	"{\n"                                                            \
-	"	Frag_UV = UV;\n"                                             \
-	"	gl_Position = ProjMtx * vec4(Position.xy, 0.0f, 1.0f);\n"    \
+	"    Frag_UV = UV;\n"                                            \
+	"    gl_Position = ProjMtx * vec4(Position.xy, 0.0f, 1.0f);\n"   \
 	"}\n"
 
 #define HEATMAP_FRAGMENT_SHADER_CODE                                  \
@@ -141,12 +141,14 @@ void DestroyContext()
 	"\n"                                                              \
 	"void main()\n"                                                   \
 	"{\n"                                                             \
+	"    float min_tex_offs = 0.5 / float(textureSize(colormap, 0));\n" \
 	"    float uv_x = ax_log.x ? log_den(Frag_UV.x, bounds_min.x, bounds_max.x) : Frag_UV.x;\n" \
 	"    float uv_y = ax_log.y ? log_den(Frag_UV.y, bounds_min.y, bounds_max.y) : Frag_UV.y;\n" \
 	"\n"                                                               \
 	"    float value = float(texture(heatmap, vec2(uv_x, uv_y)).r);\n" \
-	"	 float offset = (value - min_val) / (max_val - min_val);\n"    \
-	"	 Out_Color = texture(colormap, clamp(offset, 0.0f, 1.0f));\n"  \
+	"    float offset = (value - min_val) / (max_val - min_val);\n"    \
+	"          offset = mix(min_tex_offs, 1.0 - min_tex_offs, clamp(offset, 0.0f, 1.0f));\n" \
+	"    Out_Color = texture(colormap, offset);\n"                     \
 	"}\n"
 
 static void CompileShader(HeatmapShader& ShaderProgram, GLchar* VertexShaderCode, GLchar* FragmentShaderCode)
@@ -262,7 +264,7 @@ void AddColormap(const ImU32* keys, int count, bool qual)
 	GLuint textureID;
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_1D, textureID);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, count, 0, GL_RGBA, GL_UNSIGNED_BYTE, keys);
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB, count, 0, GL_RGBA, GL_UNSIGNED_BYTE, keys);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, qual ? GL_NEAREST : GL_LINEAR);
