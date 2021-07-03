@@ -24,6 +24,7 @@
 
 #include "implot.h"
 #include "implot_internal.h"
+#include "backends/implot_backend.h"
 
 #ifdef _MSC_VER
 #define sprintf sprintf_s
@@ -138,6 +139,7 @@ void HideNextItem(bool hidden, ImGuiCond cond) {
 
 void BustItemCache() {
     ImPlotContext& gp = *GImPlot;
+    Backend::BustItemCache();
     for (int p = 0; p < gp.Plots.GetBufSize(); ++p) {
         ImPlotPlot& plot = *gp.Plots.GetByIndex(p);
         plot.ColormapIdx = 0;
@@ -1890,13 +1892,22 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     }
     const double yref = reverse_y ? bounds_max.y : bounds_min.y;
     const double ydir = reverse_y ? -1 : 1;
+#ifdef IMPLOT_BACKEND_HAS_HEATMAP
+    ImVec2 bmin = transformer(bounds_min);
+    ImVec2 bmax = transformer(bounds_max);
+    ImPlotScale scale = GetCurrentScale();
+
+    // NOTE: Order is important!
+    Backend::RenderHeatmap(gp.CurrentItem->ID, DrawList, bmin, bmax, scale_min, scale_max, gp.Style.Colormap, reverse_y);
+    Backend::SetAxisLog(gp.CurrentItem->ID,
+        scale == ImPlotScale_LogLin || scale == ImPlotScale_LogLog,
+        scale == ImPlotScale_LinLog || scale == ImPlotScale_LogLog,
+        bounds_min, bounds_max);
+    Backend::SetHeatmapData(gp.CurrentItem->ID, values, rows, cols);
+#else
     GetterHeatmap<T> getter(values, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
-    switch (GetCurrentScale()) {
-        case ImPlotScale_LinLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLin>(getter, TransformerLinLin()), DrawList, gp.CurrentPlot->PlotRect); break;
-        case ImPlotScale_LogLin: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLin>(getter, TransformerLogLin()), DrawList, gp.CurrentPlot->PlotRect); break;;
-        case ImPlotScale_LinLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLinLog>(getter, TransformerLinLog()), DrawList, gp.CurrentPlot->PlotRect); break;;
-        case ImPlotScale_LogLog: RenderPrimitives(RectRenderer<GetterHeatmap<T>, TransformerLogLog>(getter, TransformerLogLog()), DrawList, gp.CurrentPlot->PlotRect); break;;
-    }
+    RenderPrimitives(RectRenderer<GetterHeatmap<T>, Transformer>(getter, transformer), DrawList, gp.CurrentPlot->PlotRect);
+#endif
     if (fmt != NULL) {
         const double w = (bounds_max.x - bounds_min.x) / cols;
         const double h = (bounds_max.y - bounds_min.y) / rows;

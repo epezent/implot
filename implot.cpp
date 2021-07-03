@@ -374,13 +374,15 @@ void SetImGuiContext(ImGuiContext* ctx) {
 
 ImPlotContext* CreateContext() {
     ImPlotContext* ctx = IM_NEW(ImPlotContext)();
-    Initialize(ctx);
     if (GImPlot == NULL)
         SetCurrentContext(ctx);
+    ctx->backendCtx = Backend::CreateContext();
+    Initialize(ctx);
     return ctx;
 }
 
 void DestroyContext(ImPlotContext* ctx) {
+    Backend::DestroyContext();
     if (ctx == NULL)
         ctx = GImPlot;
     if (GImPlot == ctx)
@@ -435,7 +437,6 @@ void Initialize(ImPlotContext* ctx) {
     IMPLOT_APPEND_CMAP(PiYG, false);
     IMPLOT_APPEND_CMAP(Spectral, false);
     IMPLOT_APPEND_CMAP(Greys, false);
-
 }
 
 void Reset(ImPlotContext* ctx) {
@@ -489,6 +490,7 @@ ImPlotPlot* GetCurrentPlot() {
 
 void BustPlotCache() {
     GImPlot->Plots.Clear();
+    Backend::BustPlotCache();
 }
 
 void PushLinkedAxis(ImPlotAxis& axis) {

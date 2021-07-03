@@ -37,6 +37,7 @@
 
 #include <time.h>
 #include "imgui_internal.h"
+#include "backends/implot_backend.h"
 
 #ifndef IMPLOT_VERSION
 #error Must include implot.h before implot_internal.h
@@ -376,6 +377,7 @@ struct ImPlotColormapData {
         int idx = Count++;
         Map.SetInt(id,idx);
         _AppendTable(idx);
+        ImPlot::Backend::AddColormap(keys, count, qual);
         return idx;
     }
 
@@ -916,6 +918,9 @@ struct ImPlotContext {
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
+
+    // Backend
+    void* backendCtx;
 };
 
 //-----------------------------------------------------------------------------
