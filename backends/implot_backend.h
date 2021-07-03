@@ -25,24 +25,48 @@
 #pragma once
 
 #if defined(IMPLOT_BACKEND_ENABLE_OPENGL3)
-	#include "implot_impl_opengl3.h"
+    #define IMPLOT_BACKEND_ENABLED
+    #define IMPLOT_BACKEND_HAS_HEATMAP
+    #define IMPLOT_BACKEND_HAS_COLORMAP
 #elif defined(IMPLOT_BACKEND_ENABLE_METAL)
-	#include "implot_impl_metal.h"
 #endif
 
 namespace ImPlot {
 namespace Backend {
 
-#ifndef IMPLOT_BACKEND_ENABLED
-	inline void* CreateContext() { return nullptr; }
-	inline void DestroyContext() {}
-
-	inline void BustPlotCache() {}
-	inline void BustItemCache() {}
+#ifdef IMPLOT_BACKEND_ENABLED
+    void* CreateContext();
+    void DestroyContext();
+    void BustPlotCache();
+    void BustItemCache();
+#else
+    inline void* CreateContext() { return nullptr; }
+    inline void DestroyContext() {}
+    inline void BustPlotCache() {}
+    inline void BustItemCache() {}
 #endif
 
-#ifndef IMPLOT_BACKEND_HAS_COLORMAP
-	inline void AddColormap(const ImU32*, int, bool) {}
+#ifdef IMPLOT_BACKEND_HAS_COLORMAP
+    void AddColormap(const ImU32*, int, bool);
+#else
+    inline void AddColormap(const ImU32*, int, bool) {}
+#endif
+
+#ifdef IMPLOT_BACKEND_HAS_HEATMAP
+    void SetHeatmapData(int itemID, const ImS16*  values, int rows, int cols);
+    void SetHeatmapData(int itemID, const ImS32*  values, int rows, int cols);
+    void SetHeatmapData(int itemID, const ImS64*  values, int rows, int cols);
+    void SetHeatmapData(int itemID, const ImS8*   values, int rows, int cols);
+    void SetHeatmapData(int itemID, const ImU16*  values, int rows, int cols);
+    void SetHeatmapData(int itemID, const ImU32*  values, int rows, int cols);
+    void SetHeatmapData(int itemID, const ImU64*  values, int rows, int cols);
+    void SetHeatmapData(int itemID, const ImU8*   values, int rows, int cols);
+    void SetHeatmapData(int itemID, const double* values, int rows, int cols);
+    void SetHeatmapData(int itemID, const float*  values, int rows, int cols);
+    void RenderHeatmap(
+        int itemID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max,
+        float scale_min, float scale_max, ImPlotColormap colormap, bool reverse_y);
+    void SetAxisLog(int itemID, bool x_is_log, bool y_is_log, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max);
 #endif
 
 }
