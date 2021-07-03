@@ -4067,6 +4067,12 @@ void ShowMetricsWindow(bool* p_popen) {
         }
         ImGui::TreePop();
     }
+#ifdef IMPLOT_BACKEND_ENABLED
+    if (ImGui::TreeNode("Backend")) {
+        ImPlot::Backend::ShowBackendMetrics();
+        ImGui::TreePop();
+    }
+#endif
     ImGui::End();
 }
 

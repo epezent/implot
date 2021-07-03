@@ -37,11 +37,13 @@ namespace Backend {
 #ifdef IMPLOT_BACKEND_ENABLED
     void* CreateContext();
     void DestroyContext();
+    void ShowBackendMetrics();
     void BustPlotCache();
     void BustItemCache();
 #else
     inline void* CreateContext() { return nullptr; }
     inline void DestroyContext() {}
+    inline void ShowBackendMetrics() {}
     inline void BustPlotCache() {}
     inline void BustItemCache() {}
 #endif
