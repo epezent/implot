@@ -56,6 +56,26 @@
 
 namespace ImPlot {
 
+// Calculates maximum index size of ImDrawIdx without integer overflow issues
+template <typename T>
+struct MaxIdx { static const unsigned int Value; };
+template <> const unsigned int MaxIdx<unsigned short>::Value = 65535;
+template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
+
+// Gets ImGuiDataType for T
+template <typename T>
+struct ImGuiDataTypeGetter { static const ImGuiDataType Value; };
+template <> const ImGuiDataType ImGuiDataTypeGetter<float>::Value  = ImGuiDataType_Float;
+template <> const ImGuiDataType ImGuiDataTypeGetter<double>::Value = ImGuiDataType_Double;
+template <> const ImGuiDataType ImGuiDataTypeGetter<ImU8>::Value   = ImGuiDataType_U8;
+template <> const ImGuiDataType ImGuiDataTypeGetter<ImS8>::Value   = ImGuiDataType_S8;
+template <> const ImGuiDataType ImGuiDataTypeGetter<ImU16>::Value  = ImGuiDataType_U16;
+template <> const ImGuiDataType ImGuiDataTypeGetter<ImS16>::Value  = ImGuiDataType_S16;
+template <> const ImGuiDataType ImGuiDataTypeGetter<ImU32>::Value  = ImGuiDataType_U32;
+template <> const ImGuiDataType ImGuiDataTypeGetter<ImS32>::Value  = ImGuiDataType_S32;
+template <> const ImGuiDataType ImGuiDataTypeGetter<ImU64>::Value  = ImGuiDataType_U64;
+template <> const ImGuiDataType ImGuiDataTypeGetter<ImS64>::Value  = ImGuiDataType_S64;
+
 //-----------------------------------------------------------------------------
 // Item Utils
 //-----------------------------------------------------------------------------
@@ -696,12 +716,6 @@ struct ShadedRenderer {
     static const int IdxConsumed = 6;
     static const int VtxConsumed = 5;
 };
-
-// Stupid way of calculating maximum index size of ImDrawIdx without integer overflow issues
-template <typename T>
-struct MaxIdx { static const unsigned int Value; };
-template <> const unsigned int MaxIdx<unsigned short>::Value = 65535;
-template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
 
 /// Renders primitive shapes in bulk as efficiently as possible.
 template <typename Renderer>
