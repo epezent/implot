@@ -1,5 +1,3 @@
-#ifdef IMPLOT_BACKEND_ENABLE_OPENGL3
-
 #include "../implot.h"
 #include "../implot_internal.h"
 #include "implot_backend.h"
@@ -388,5 +386,3 @@ void BustItemCache() {}
 
 }
 }
-
-#endif
