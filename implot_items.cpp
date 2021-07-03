@@ -1893,22 +1893,25 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     const double yref = reverse_y ? bounds_max.y : bounds_min.y;
     const double ydir = reverse_y ? -1 : 1;
 #ifdef IMPLOT_BACKEND_HAS_HEATMAP
-    ImVec2 bmin = transformer(bounds_min);
-    ImVec2 bmax = transformer(bounds_max);
+    if (GImPlot->Style.UseGpuAacceleration) {
+        ImVec2 bmin = transformer(bounds_min);
+        ImVec2 bmax = transformer(bounds_max);
+        ImPlotScale scale = GetCurrentScale();
 
-    ImPlotScale scale = GetCurrentScale();
-
-    // NOTE: Order is important!
-    Backend::RenderHeatmap(gp.CurrentItem->ID, DrawList, bmin, bmax, (float)scale_min, (float)scale_max, gp.Style.Colormap);
-    Backend::SetAxisLog(gp.CurrentItem->ID,
-        scale == ImPlotScale_LogLin || scale == ImPlotScale_LogLog,
-        scale == ImPlotScale_LinLog || scale == ImPlotScale_LogLog,
-        ImVec2((float)bounds_min.x, (float)bounds_min.y), ImVec2((float)bounds_max.x, (float)bounds_max.y));
-    Backend::SetHeatmapData(gp.CurrentItem->ID, values, rows, cols);
-#else
-    GetterHeatmap<T> getter(values, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
-    RenderPrimitives(RectRenderer<GetterHeatmap<T>, Transformer>(getter, transformer), DrawList, gp.CurrentPlot->PlotRect);
+        // NOTE: Order is important!
+        Backend::RenderHeatmap(gp.CurrentItem->ID, DrawList, bmin, bmax, (float)scale_min, (float)scale_max, gp.Style.Colormap, reverse_y);
+        Backend::SetAxisLog(gp.CurrentItem->ID,
+            scale == ImPlotScale_LogLin || scale == ImPlotScale_LogLog,
+            scale == ImPlotScale_LinLog || scale == ImPlotScale_LogLog,
+            bounds_min, bounds_max);
+        Backend::SetHeatmapData(gp.CurrentItem->ID, values, rows, cols);
+    }
+    else
 #endif
+    {
+        GetterHeatmap<T> getter(values, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
+        RenderPrimitives(RectRenderer<GetterHeatmap<T>, Transformer>(getter, transformer), DrawList, gp.CurrentPlot->PlotRect);
+    }
     if (fmt != NULL) {
         const double w = (bounds_max.x - bounds_min.x) / cols;
         const double h = (bounds_max.y - bounds_min.y) / rows;

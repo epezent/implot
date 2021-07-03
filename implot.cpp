@@ -145,10 +145,16 @@ ImPlotStyle::ImPlotStyle() {
 
     Colormap = ImPlotColormap_Deep;
 
-    AntiAliasedLines = false;
     UseLocalTime     = false;
     Use24HourClock   = false;
     UseISO8601       = false;
+
+    AntiAliasedLines = false;
+#ifdef IMPLOT_BACKEND_ENABLED
+    UseGpuAacceleration = true;
+#else
+    UseGpuAacceleration = false;
+#endif
 }
 
 ImPlotItem* ImPlotPlot::GetLegendItem(int i) {
@@ -3678,6 +3684,9 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             float indent = ImGui::CalcItemWidth() - ImGui::GetFrameHeight();
             ImGui::Indent(ImGui::CalcItemWidth() - ImGui::GetFrameHeight());
             ImGui::Checkbox("AntiAliasedLines", &style.AntiAliasedLines);
+#ifdef IMPLOT_BACKEND_ENABLED
+            ImGui::Checkbox("UseGpuAacceleration", &style.UseGpuAacceleration);
+#endif
             ImGui::Unindent(indent);
             ImGui::Text("Plot Styling");
             ImGui::SliderFloat("PlotBorderSize", &style.PlotBorderSize, 0.0f, 2.0f, "%.0f");

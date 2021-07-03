@@ -188,7 +188,7 @@ IMPLOT_API void SetHeatmapData(int itemID, const ImU64*  values, int rows, int c
  */
 IMPLOT_API void RenderHeatmap(
 	int itemID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max,
-	float scale_min, float scale_max, ImPlotColormap colormap);
+	float scale_min, float scale_max, ImPlotColormap colormap, bool reverse_y);
 
 /**
  * @brief Set logarithmic axis
@@ -202,7 +202,7 @@ IMPLOT_API void RenderHeatmap(
  * @param bounds_min  Minimum bounds (for X & Y) of the heatmap
  * @param bounds_min  Maximum bounds (for X & Y) of the heatmap
  */
-void SetAxisLog(int itemID, bool x_is_log, bool y_is_log, const ImVec2& bounds_min, const ImVec2& bounds_max);
+void SetAxisLog(int itemID, bool x_is_log, bool y_is_log, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max);
 
 }
 }
