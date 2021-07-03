@@ -233,8 +233,8 @@ static void RenderCallback(const ImDrawList*, const ImDrawCmd* cmd)
 	glUniform1f(data.ShaderProgram->AttribLocationMinValue, data.MinValue); // Set minimum range
 	glUniform1f(data.ShaderProgram->AttribLocationMaxValue, data.MaxValue); // Set maximum range
 	glUniform2i(data.ShaderProgram->AttribLocationAxisLog, data.AxisLogX, data.AxisLogY); // Logarithmic axis
-	glUniform2f(data.ShaderProgram->AttribLocationMinBounds, data.MinBounds.x, data.MinBounds.y); // Set minimum bounds
-	glUniform2f(data.ShaderProgram->AttribLocationMaxBounds, data.MaxBounds.x, data.MaxBounds.y); // Set maximum bounds
+	glUniform2f(data.ShaderProgram->AttribLocationMinBounds, (float)data.MinBounds.x, (float)data.MinBounds.y); // Set minimum bounds
+	glUniform2f(data.ShaderProgram->AttribLocationMaxBounds, (float)data.MaxBounds.x, (float)data.MaxBounds.y); // Set maximum bounds
 }
 
 static void ResetState(const ImDrawList*, const ImDrawCmd*)
