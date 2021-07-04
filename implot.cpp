@@ -998,6 +998,7 @@ int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt, b
     const int ms   = t.Us / 1000;
     const int sec  = Tm.tm_sec;
     const int min  = Tm.tm_min;
+    //GUISTAC: make this parametric
     if (use_24_hr_clk) {
         const int hr   = Tm.tm_hour;
         switch(fmt) {
@@ -1105,6 +1106,18 @@ static const ImPlotDateTimeFmt TimeFormatLevel0[ImPlotTimeUnit_COUNT] = {
     ImPlotDateTimeFmt(ImPlotDateFmt_Yr,    ImPlotTimeFmt_None)
 };
 
+//GUISTAC: make this parametric
+static const ImPlotDateTimeFmt TimeFormatLevelSingle[ImPlotTimeUnit_COUNT] = {
+    ImPlotDateTimeFmt(ImPlotDateFmt_None,  ImPlotTimeFmt_Us),
+    ImPlotDateTimeFmt(ImPlotDateFmt_None,  ImPlotTimeFmt_SMs),
+    ImPlotDateTimeFmt(ImPlotDateFmt_None,  ImPlotTimeFmt_S),
+    ImPlotDateTimeFmt(ImPlotDateFmt_None,  ImPlotTimeFmt_HrMin),
+    ImPlotDateTimeFmt(ImPlotDateFmt_None,  ImPlotTimeFmt_Hr),
+    ImPlotDateTimeFmt(ImPlotDateFmt_None,  ImPlotTimeFmt_Hr),
+    ImPlotDateTimeFmt(ImPlotDateFmt_None,  ImPlotTimeFmt_Hr),
+    ImPlotDateTimeFmt(ImPlotDateFmt_None,  ImPlotTimeFmt_Hr)
+};
+
 static const ImPlotDateTimeFmt TimeFormatLevel1[ImPlotTimeUnit_COUNT] = {
     ImPlotDateTimeFmt(ImPlotDateFmt_None,    ImPlotTimeFmt_HrMin),
     ImPlotDateTimeFmt(ImPlotDateFmt_None,    ImPlotTimeFmt_HrMinS),
@@ -1151,7 +1164,7 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
     const ImPlotTimeUnit unit0 = GetUnitForRange(range.Size() / (plot_width / 100)); // level = 0 (top)
     const ImPlotTimeUnit unit1 = unit0 + 1;                                          // level = 1 (bottom)
     // get time format specs
-    const ImPlotDateTimeFmt fmt0 = GetDateTimeFmt(TimeFormatLevel0, unit0);
+    const ImPlotDateTimeFmt fmt0 = GetDateTimeFmt(TimeFormatLevelSingle, unit0);
     const ImPlotDateTimeFmt fmt1 = GetDateTimeFmt(TimeFormatLevel1, unit1);
     const ImPlotDateTimeFmt fmtf = GetDateTimeFmt(TimeFormatLevel1First, unit1);
     // min max times
@@ -1184,6 +1197,8 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                 tick_min.Level = 0;
                 LabelTickTime(tick_min,ticks.TextBuffer,t1,fmt0);
                 ticks.Append(tick_min);
+                //GUISTAC: Make this parametric
+                /*
                 // major level 1 tick
                 ImPlotTick tick_maj(t1.ToDouble(),true,true);
                 tick_maj.Level = 1;
@@ -1193,6 +1208,7 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                     tick_maj.ShowLabel = false;
                 last_major = this_major;
                 ticks.Append(tick_maj);
+                */
             }
             // add minor ticks up until next major
             if (minor_per_major > 1 && (t_min <= t2 && t1 <= t_max)) {
@@ -1204,6 +1220,8 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                         tick.Level =  0;
                         LabelTickTime(tick,ticks.TextBuffer,t12,fmt0);
                         ticks.Append(tick);
+                        //GUISTAC: Make this parametric
+                        /*
                         if (last_major == NULL && px_to_t2 >= fmt0_width && px_to_t2 >= (fmt1_width + fmtf_width) / 2) {
                             ImPlotTick tick_maj(t12.ToDouble(),true,true);
                             tick_maj.Level = 1;
@@ -1211,6 +1229,7 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                             last_major = ticks.TextBuffer.Buf.Data + tick_maj.TextOffset;
                             ticks.Append(tick_maj);
                         }
+                        */
                     }
                     t12 = AddTime(t12, unit0, step);
                 }
@@ -1545,7 +1564,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     const bool show_x_label = x_label && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoLabel);
 
     const float pad_top = title_size.x > 0.0f ? txt_height + gp.Style.LabelPadding.y : 0;
-    const float pad_bot = (plot.XAxis.IsLabeled() ? ImMax(txt_height, gp.XTicks.MaxHeight) + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
+    //GUISTAC: make this change parametric
+    const float pad_bot = (plot.XAxis.IsLabeled() ? ImMax(txt_height, gp.XTicks.MaxHeight) + gp.Style.LabelPadding.y + /*(plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0)*/ 0 : 0)
                         + (show_x_label ? txt_height + gp.Style.LabelPadding.y : 0);
 
     const float plot_height = plot.CanvasRect.GetHeight() - pad_top - pad_bot;
