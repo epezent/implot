@@ -66,8 +66,11 @@ namespace Backend {
     void SetHeatmapData(int itemID, const double* values, int rows, int cols);
     void SetHeatmapData(int itemID, const float*  values, int rows, int cols);
     void RenderHeatmap(
-        int itemID, ImDrawList& DrawList, const ImVec2& bounds_min, const ImVec2& bounds_max,
-        float scale_min, float scale_max, ImPlotColormap colormap, bool reverse_y);
+        int itemID, const void* data, ImGuiDataType data_type, int rows, int cols,
+        float scale_min, float scale_max, const ImVec2& coords_min,
+        const ImVec2& coords_max, const ImPlotPoint& bounds_min,
+        const ImPlotPoint& bounds_max, /*ImPlotScale*/int scale, bool reverse_y,
+        ImPlotColormap cmap, ImDrawList& DrawList);
     void SetAxisLog(int itemID, bool x_is_log, bool y_is_log, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max);
 #endif
 
