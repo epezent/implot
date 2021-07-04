@@ -1910,15 +1910,11 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     if (GImPlot->Style.UseGpuAacceleration) {
         ImVec2 bmin = transformer(bounds_min);
         ImVec2 bmax = transformer(bounds_max);
-        ImPlotScale scale = GetCurrentScale();
 
-        // NOTE: Order is important!
-        Backend::RenderHeatmap(gp.CurrentItem->ID, DrawList, bmin, bmax, (float)scale_min, (float)scale_max, gp.Style.Colormap, reverse_y);
-        Backend::SetAxisLog(gp.CurrentItem->ID,
-            scale == ImPlotScale_LogLin || scale == ImPlotScale_LogLog,
-            scale == ImPlotScale_LinLog || scale == ImPlotScale_LogLog,
-            bounds_min, bounds_max);
-        Backend::SetHeatmapData(gp.CurrentItem->ID, values, rows, cols);
+        Backend::RenderHeatmap(
+            gp.CurrentItem->ID, values, ImGuiDataTypeGetter<T>::Value, rows, cols,
+            (float)scale_min, (float)scale_max, bmin, bmax, bounds_min, bounds_max,
+            GetCurrentScale(), reverse_y, gp.Style.Colormap, DrawList);
     }
     else
 #endif
