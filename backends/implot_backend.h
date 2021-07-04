@@ -55,24 +55,23 @@ namespace Backend {
 #endif
 
 #ifdef IMPLOT_BACKEND_HAS_HEATMAP
-    void SetHeatmapData(int itemID, const ImS16*  values, int rows, int cols);
-    void SetHeatmapData(int itemID, const ImS32*  values, int rows, int cols);
-    void SetHeatmapData(int itemID, const ImS64*  values, int rows, int cols);
-    void SetHeatmapData(int itemID, const ImS8*   values, int rows, int cols);
-    void SetHeatmapData(int itemID, const ImU16*  values, int rows, int cols);
-    void SetHeatmapData(int itemID, const ImU32*  values, int rows, int cols);
-    void SetHeatmapData(int itemID, const ImU64*  values, int rows, int cols);
-    void SetHeatmapData(int itemID, const ImU8*   values, int rows, int cols);
-    void SetHeatmapData(int itemID, const double* values, int rows, int cols);
-    void SetHeatmapData(int itemID, const float*  values, int rows, int cols);
     void RenderHeatmap(
-        int itemID, const void* data, ImGuiDataType data_type, int rows, int cols,
-        float scale_min, float scale_max, const ImVec2& coords_min,
-        const ImVec2& coords_max, const ImPlotPoint& bounds_min,
-        const ImPlotPoint& bounds_max, /*ImPlotScale*/int scale, bool reverse_y,
-        ImPlotColormap cmap, ImDrawList& DrawList);
-    void SetAxisLog(int itemID, bool x_is_log, bool y_is_log, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max);
+        int itemID,
+        const void* data,
+        ImGuiDataType data_type,
+        int rows,
+        int cols,
+        float scale_min,
+        float scale_max,
+        const ImVec2& coords_min,
+        const ImVec2& coords_max,
+        const ImPlotPoint& bounds_min,
+        const ImPlotPoint& bounds_max,
+        int scale,
+        bool reverse_y,
+        ImPlotColormap cmap,
+        ImDrawList& DrawList);
 #endif
 
-}
-}
+} // namespace Backend
+} // namespace ImPlot
