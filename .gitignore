@@ -1,0 +1,14 @@
+#=== Directories =======
+
+.vs/
+bin/
+bin-int/
+
+#=== Files ==============
+
+*.user
+*.sln
+*.vcxproj
+*.filters
+*.ini
+*.json
