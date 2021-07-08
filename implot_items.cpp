@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.10 WIP
+// ImPlot v0.11 WIP
 
 #include "implot.h"
 #include "implot_internal.h"
