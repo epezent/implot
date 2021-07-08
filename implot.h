@@ -38,7 +38,7 @@
 #endif
 
 // ImPlot version string
-#define IMPLOT_VERSION "0.10 WIP"
+#define IMPLOT_VERSION "0.11 WIP"
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
