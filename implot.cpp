@@ -474,7 +474,7 @@ void ResetCtxForNextPlot(ImPlotContext* ctx) {
     // nullify plot
     ctx->CurrentPlot  = NULL;
     ctx->CurrentItem  = NULL;
-    ctx->PreviousItem = NULL; 
+    ctx->PreviousItem = NULL;
 }
 
 void ResetCtxForNextAlignedPlots(ImPlotContext* ctx) {
@@ -657,7 +657,7 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
         label_bb.Max = top_left + ImVec2(label_width + icon_size, icon_size);
         ImU32 col_txt_hl;
         ImU32 col_item = ImAlphaU32(item->Color,1);
-        
+
         // ImGui::ItemAdd(icon_bb, item->ID, &icon_bb);
         // ImGui::KeepAliveID(item->ID);
 
@@ -676,12 +676,12 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
             col_txt_hl = ImGui::GetColorU32(col_txt);
         }
         ImU32 col_icon;
-        if (icon_hld) 
-            col_icon = item->Show ? ImAlphaU32(col_item,0.5f) : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.5f);  
-        else if (icon_hov) 
-            col_icon = item->Show ? ImAlphaU32(col_item,0.75f) : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.75f);      
-        else 
-            col_icon = item->Show ? col_item : col_txt_dis;      
+        if (icon_hld)
+            col_icon = item->Show ? ImAlphaU32(col_item,0.5f) : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.5f);
+        else if (icon_hov)
+            col_icon = item->Show ? ImAlphaU32(col_item,0.75f) : ImGui::GetColorU32(ImGuiCol_TextDisabled, 0.75f);
+        else
+            col_icon = item->Show ? col_item : col_txt_dis;
 
         DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, col_icon, 1);
         const char* text_display_end = ImGui::FindRenderedTextEnd(label, NULL);
@@ -1893,7 +1893,7 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
                 ImFlipFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend);
         }
         ImGui::EndMenu();
-    }    
+    }
     if ((ImGui::BeginMenu("Settings"))) {
         if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
             ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
@@ -2090,10 +2090,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     // frame size
     ImVec2 frame_size;
-    if (gp.CurrentSubplot != NULL) 
-        frame_size = gp.CurrentSubplot->CellSize;    
-    else 
-        frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);    
+    if (gp.CurrentSubplot != NULL)
+        frame_size = gp.CurrentSubplot->CellSize;
+    else
+        frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
 
     if (frame_size.x < gp.Style.PlotMinSize.x && (size.x < 0.0f || gp.CurrentSubplot != NULL))
         frame_size.x = gp.Style.PlotMinSize.x;
@@ -2166,9 +2166,9 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
                   + (show_x_label ? txt_height + gp.Style.LabelPadding.y : 0);
 
     // (1*) align plots group
-    if (gp.CurrentAlignmentH) 
-        gp.CurrentAlignmentH->Update(pad_top,pad_bot);    
-    
+    if (gp.CurrentAlignmentH)
+        gp.CurrentAlignmentH->Update(pad_top,pad_bot);
+
     const float plot_height = plot.CanvasRect.GetHeight() - pad_top - pad_bot;
 
     // (2) get y tick labels (needed for left/right pad)
@@ -2195,8 +2195,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
                             + ((plot.YAxis[2].Present && show_y3_label) ? txt_height + gp.Style.LabelPadding.x : 0);
 
     // (3*) align plots group
-    if (gp.CurrentAlignmentV) 
-        gp.CurrentAlignmentV->Update(pad_left,pad_right);    
+    if (gp.CurrentAlignmentV)
+        gp.CurrentAlignmentV->Update(pad_left,pad_right);
 
     const float plot_width = plot.CanvasRect.GetWidth() - pad_left - pad_right;
 
@@ -2247,7 +2247,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     // INPUT ------------------------------------------------------------------
     HandlePlotInput(plot);
-    
+
 
     UpdateTransformCache();
 
@@ -2346,8 +2346,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     // clear legend (TODO: put elsewhere)
     plot.Items.Legend.Reset();
     // setup items (or dont)
-    if (gp.CurrentItems == NULL) 
-        gp.CurrentItems = &plot.Items;    
+    if (gp.CurrentItems == NULL)
+        gp.CurrentItems = &plot.Items;
     // push ID to see item hashes
     ImGui::PushOverrideID(gp.CurrentItems->ID);
     return true;
@@ -2665,7 +2665,7 @@ void EndPlot() {
         plot.ContextLocked = false;
 
     // remove items
-    if (gp.CurrentItems == &plot.Items)   
+    if (gp.CurrentItems == &plot.Items)
         gp.CurrentItems = NULL;
     // reset the plot items for the next frame
     for (int i = 0; i < plot.Items.GetItemCount(); ++i) {
@@ -2682,7 +2682,7 @@ void EndPlot() {
     // setup next subplot
     if (gp.CurrentSubplot != NULL) {
         ImGui::PopID();
-        SubplotNextCell();        
+        SubplotNextCell();
     }
 }
 
@@ -2690,8 +2690,8 @@ void EndPlot() {
 // BEGIN/END SUBPLOT
 //-----------------------------------------------------------------------------
 
-static const float SUBPLOT_BORDER_SIZE             = 1.0f;   
-static const float SUBPLOT_SPLITTER_HALF_THICKNESS = 4.0f;   
+static const float SUBPLOT_BORDER_SIZE             = 1.0f;
+static const float SUBPLOT_SPLITTER_HALF_THICKNESS = 4.0f;
 static const float SUBPLOT_SPLITTER_FEEDBACK_TIMER = 0.06f;
 
 void SubplotSetCell(int row, int col) {
@@ -2728,7 +2728,7 @@ void SubplotSetCell(int row, int col) {
         gp.CurrentAlignmentV = &subplot.ColAlignmentData[col];
     }
     // set idx
-    if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ColMajor)) 
+    if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ColMajor))
         subplot.CurrentIdx = col * subplot.Rows + row;
     else
         subplot.CurrentIdx = row * subplot.Cols + col;
@@ -2754,7 +2754,7 @@ void SubplotSetCell(int idx) {
 void SubplotNextCell() {
     ImPlotContext& gp      = *GImPlot;
     ImPlotSubplot& subplot = *gp.CurrentSubplot;
-    SubplotSetCell(++subplot.CurrentIdx);    
+    SubplotSetCell(++subplot.CurrentIdx);
 }
 
 bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, ImPlotSubplotFlags flags, float* row_sizes, float* col_sizes) {
@@ -2773,24 +2773,24 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     subplot.ID       = ID;
     subplot.Items.ID = ID;
     // push ID
-    ImGui::PushID(ID); 
+    ImGui::PushID(ID);
 
-    if (just_created) 
-        subplot.Flags = flags;    
+    if (just_created)
+        subplot.Flags = flags;
     else if (flags != subplot.PreviousFlags)
         subplot.Flags = flags;
-    subplot.PreviousFlags = flags;  
+    subplot.PreviousFlags = flags;
 
     // check for change in rows and cols
     if (subplot.Rows != rows || subplot.Cols != cols) {
         subplot.RowAlignmentData.resize(rows);
         subplot.RowLinkData.resize(rows);
         subplot.RowRatios.resize(rows);
-        for (int r = 0; r < rows; ++r) {            
-            subplot.RowAlignmentData[r].Reset();  
-            subplot.RowLinkData[r] = ImPlotRange(0,1);   
+        for (int r = 0; r < rows; ++r) {
+            subplot.RowAlignmentData[r].Reset();
+            subplot.RowLinkData[r] = ImPlotRange(0,1);
             subplot.RowRatios[r] = 1.0f / rows;
-        }   
+        }
         subplot.ColAlignmentData.resize(cols);
         subplot.ColLinkData.resize(cols);
         subplot.ColRatios.resize(cols);
@@ -2804,12 +2804,12 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     float row_sum = 0, col_sum = 0;
     if (row_sizes != NULL) {
         row_sum = ImSum(row_sizes, rows);
-        for (int r = 0; r < rows; ++r)           
+        for (int r = 0; r < rows; ++r)
             subplot.RowRatios[r] = row_sizes[r] / row_sum;
     }
     if (col_sizes != NULL) {
         col_sum = ImSum(col_sizes, cols);
-        for (int c = 0; c < cols; ++c)           
+        for (int c = 0; c < cols; ++c)
             subplot.ColRatios[c] = col_sizes[c] / col_sum;
     }
     subplot.Rows = rows;
@@ -2819,7 +2819,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     ImVec2 title_size(0.0f, 0.0f);
     const float txt_height = ImGui::GetTextLineHeight();
     if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle))
-         title_size = ImGui::CalcTextSize(title, NULL, true);    
+         title_size = ImGui::CalcTextSize(title, NULL, true);
     const float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
     const ImVec2 half_pad = gp.Style.PlotPadding/2;
     const ImVec2 frame_size = ImGui::CalcItemSize(size, gp.Style.PlotDefaultSize.x, gp.Style.PlotDefaultSize.y);
@@ -2839,14 +2839,14 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
         const bool north = ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_North) && !ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_South);
         const bool south = ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_South) && !ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_North);
         const bool horz = subplot.Items.Legend.Orientation == ImPlotOrientation_Horizontal;
-        if ((west && !horz) || (west && horz && !north && !south)) 
-            subplot.GridRect.Min.x += (legend_size.x + gp.Style.LegendPadding.x);        
-        if ((east && !horz) || (east && horz && !north && !south)) 
-            subplot.GridRect.Max.x -= (legend_size.x + gp.Style.LegendPadding.x);        
-        if ((north && horz) || (north && !horz && !west && !east)) 
-            subplot.GridRect.Min.y += (legend_size.y + gp.Style.LegendPadding.y);        
-        if ((south && horz) || (south && !horz && !west && !east)) 
-            subplot.GridRect.Max.y -= (legend_size.y + gp.Style.LegendPadding.y);        
+        if ((west && !horz) || (west && horz && !north && !south))
+            subplot.GridRect.Min.x += (legend_size.x + gp.Style.LegendPadding.x);
+        if ((east && !horz) || (east && horz && !north && !south))
+            subplot.GridRect.Max.x -= (legend_size.x + gp.Style.LegendPadding.x);
+        if ((north && horz) || (north && !horz && !west && !east))
+            subplot.GridRect.Min.y += (legend_size.y + gp.Style.LegendPadding.y);
+        if ((south && horz) || (south && !horz && !west && !east))
+            subplot.GridRect.Max.y -= (legend_size.y + gp.Style.LegendPadding.y);
     }
 
     // render single background frame
@@ -2895,7 +2895,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
                                  ImVec2(IM_ROUND(subplot.GridRect.Max.x),IM_ROUND(ypos)),
                                  sep_hld ? act_col : hov_col, SUBPLOT_BORDER_SIZE);
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
-            } 
+            }
             separator++;
         }
         for (int c = 0; c < subplot.Cols-1; ++c) {
@@ -2925,18 +2925,18 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
                                  ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Max.y)),
                                  sep_hld ? act_col : hov_col, SUBPLOT_BORDER_SIZE);
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-            } 
+            }
             separator++;
         }
-    }  
+    }
 
     // set outgoing sizes
     if (row_sizes != NULL) {
-        for (int r = 0; r < rows; ++r)           
+        for (int r = 0; r < rows; ++r)
             row_sizes[r] = subplot.RowRatios[r] * row_sum;
     }
     if (col_sizes != NULL) {
-        for (int c = 0; c < cols; ++c)           
+        for (int c = 0; c < cols; ++c)
             col_sizes[c] = subplot.ColRatios[c] * col_sum;
     }
 
@@ -2944,7 +2944,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     PushStyleColor(ImPlotCol_FrameBg, IM_COL32_BLACK_TRANS);
     PushStyleVar(ImPlotStyleVar_PlotPadding, half_pad);
     PushStyleVar(ImPlotStyleVar_PlotMinSize, ImVec2(0,0));
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);  
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,0);
 
     // set initial cursor pos
     Window->DC.CursorPos = subplot.GridRect.Min;
@@ -2971,7 +2971,7 @@ void EndSubplots() {
     for (int c = 0; c < subplot.Cols; ++c)
         subplot.ColAlignmentData[c].End();
     // pop styling
-    PopStyleColor(); 
+    PopStyleColor();
     PopStyleVar();
     PopStyleVar();
     ImGui::PopStyleVar();
@@ -3001,20 +3001,20 @@ void EndSubplots() {
             if (ShowLegendContextMenu(subplot.Items.Legend, !ImHasFlag(subplot.Flags, ImPlotFlags_NoLegend)))
                 ImFlipFlag(subplot.Flags, ImPlotFlags_NoLegend);
             ImGui::EndPopup();
-        }    
+        }
     }
     else {
         subplot.Items.Legend.Rect = ImRect();
     }
     // remove items
-    if (gp.CurrentItems == &subplot.Items)   
+    if (gp.CurrentItems == &subplot.Items)
         gp.CurrentItems = NULL;
     // reset the plot items for the next frame (TODO: put this elswhere)
     for (int i = 0; i < subplot.Items.GetItemCount(); ++i) {
         subplot.Items.GetItemByIndex(i)->SeenThisFrame = false;
     }
     // pop id
-    ImGui::PopID(); 
+    ImGui::PopID();
     // set DC back correctly
     GImGui->CurrentWindow->DC.CursorPos = subplot.FrameRect.Min;
     ImGui::Dummy(subplot.FrameRect.GetSize());
@@ -3042,7 +3042,7 @@ bool BeginAlignedPlots(const char* group_id, ImPlotOrientation orientation) {
         gp.CurrentAlignmentV = alignment;
     if (alignment->Orientation != orientation)
         alignment->Reset();
-    alignment->Orientation = orientation;   
+    alignment->Orientation = orientation;
     alignment->Begin();
     return true;
 }
@@ -3052,7 +3052,7 @@ void EndAlignedPlots() {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentAlignmentH != NULL || GImPlot->CurrentAlignmentV != NULL, "Mismatched BeginAlignedPlots()/EndAlignedPlots()!");
     ImPlotContext& gp = *GImPlot;
     ImPlotAlignmentData* alignment = gp.CurrentAlignmentH != NULL ? gp.CurrentAlignmentH : (gp.CurrentAlignmentV != NULL ? gp.CurrentAlignmentV : NULL);
-    if (alignment) 
+    if (alignment)
         alignment->End();
     ResetCtxForNextAlignedPlots(GImPlot);
 }
@@ -3894,7 +3894,7 @@ ImU32 NextColormapColorU32() {
     int idx = gp.CurrentItems->ColormapIdx % gp.ColormapData.GetKeyCount(gp.Style.Colormap);
     ImU32 col  = gp.ColormapData.GetKeyColor(gp.Style.Colormap, idx);
     gp.CurrentItems->ColormapIdx++;
-    return col;    
+    return col;
 }
 
 ImVec4 NextColormapColor() {
@@ -4480,10 +4480,10 @@ void ShowMetricsWindow(bool* p_popen) {
         if (show_axes_rects) {
             fg.AddRect(plot->XAxis.HoverRect.Min, plot->XAxis.HoverRect.Max, IM_COL32(0,255,0,255));
             fg.AddRect(plot->YAxis[0].HoverRect.Min, plot->YAxis[0].HoverRect.Max, IM_COL32(0,255,0,255));
-            if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis2)) 
-                fg.AddRect(plot->YAxis[1].HoverRect.Min, plot->YAxis[1].HoverRect.Max, IM_COL32(0,255,0,255));                
-            if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis3)) 
-                fg.AddRect(plot->YAxis[3].HoverRect.Min, plot->YAxis[2].HoverRect.Max, IM_COL32(0,255,0,255));                
+            if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis2))
+                fg.AddRect(plot->YAxis[1].HoverRect.Min, plot->YAxis[1].HoverRect.Max, IM_COL32(0,255,0,255));
+            if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis3))
+                fg.AddRect(plot->YAxis[3].HoverRect.Min, plot->YAxis[2].HoverRect.Max, IM_COL32(0,255,0,255));
         }
     }
     for (int p = 0; p < n_subplots; ++p) {
@@ -4546,7 +4546,7 @@ void ShowMetricsWindow(bool* p_popen) {
                 ImGui::Bullet(); ImGui::Text("PlotHovered: %s", plot->PlotHovered ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("LegendHovered: %s", plot->Items.Legend.Hovered ? "true" : "false");
                 ImGui::TreePop();
-            }            
+            }
             ImGui::PopID();
         }
         ImGui::TreePop();
@@ -4583,7 +4583,7 @@ void ShowMetricsWindow(bool* p_popen) {
                 ImGui::Bullet(); ImGui::Text("FrameHovered: %s", plot->FrameHovered ? "true" : "false");
                 ImGui::Bullet(); ImGui::Text("LegendHovered: %s", plot->Items.Legend.Hovered ? "true" : "false");
                 ImGui::TreePop();
-            }            
+            }
             ImGui::PopID();
         }
         ImGui::TreePop();

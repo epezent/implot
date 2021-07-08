@@ -773,7 +773,7 @@ struct ImPlotLegendData
 };
 
 // Holds Items and Legend data
-struct ImPlotItemGroup 
+struct ImPlotItemGroup
 {
     ImGuiID            ID;
     ImPlotLegendData   Legend;
@@ -783,7 +783,7 @@ struct ImPlotItemGroup
     ImPlotItemGroup() { ColormapIdx = 0; }
 
     int         GetItemCount() const             { return ItemPool.GetBufSize();                                 }
-    ImGuiID     GetItemID(const char*  label_id) { return ImGui::GetID(label_id); /* GetIDWithSeed ? */          } 
+    ImGuiID     GetItemID(const char*  label_id) { return ImGui::GetID(label_id); /* GetIDWithSeed */            }
     ImPlotItem* GetItem(ImGuiID id)              { return ItemPool.GetByKey(id);                                 }
     ImPlotItem* GetItem(const char* label_id)    { return GetItem(GetItemID(label_id));                          }
     ImPlotItem* GetOrAddItem(ImGuiID id)         { return ItemPool.GetOrAddByKey(id);                            }
@@ -861,7 +861,7 @@ struct ImPlotSubplot {
     ImVector<ImPlotRange>         ColLinkData;
     float                         TempSizes[2];
     bool                          FrameHovered;
-    
+
     ImPlotSubplot() {
         Rows = Cols = CurrentIdx  = 0;
         FrameHovered              = false;

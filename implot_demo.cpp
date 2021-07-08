@@ -216,8 +216,12 @@ void ShowDemo_Configuration() {
     ImPlot::ShowStyleSelector("ImPlot Style");
     ImPlot::ShowColormapSelector("ImPlot Colormap");
     float indent = ImGui::CalcItemWidth() - ImGui::GetFrameHeight();
-    ImGui::Indent(ImGui::CalcItemWidth() - ImGui::GetFrameHeight());
+    ImGui::Separator();
     ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines);
+    ImGui::Separator();
+    ImGui::Checkbox("Use Local Time", &ImPlot::GetStyle().UseLocalTime);
+    ImGui::Checkbox("Use ISO 8601", &ImPlot::GetStyle().UseISO8601);
+    ImGui::Checkbox("Use 24 Hour Clock", &ImPlot::GetStyle().Use24HourClock);
     ImGui::Unindent(indent);
 }
 
@@ -965,7 +969,7 @@ ImPlotPoint SinewaveGetter(void* data, int i) {
 void ShowDemo_SubplotsSizing() {
 
     static ImPlotSubplotFlags flags = ImPlotSubplotFlags_None;
-    ImGui::CheckboxFlags("ImPlotSubplotFlags_NoResize", (unsigned int*)&flags, ImPlotSubplotFlags_NoResize); 
+    ImGui::CheckboxFlags("ImPlotSubplotFlags_NoResize", (unsigned int*)&flags, ImPlotSubplotFlags_NoResize);
     ImGui::CheckboxFlags("ImPlotSubplotFlags_NoTitle", (unsigned int*)&flags, ImPlotSubplotFlags_NoTitle);
 
     static int rows = 3;
@@ -987,7 +991,7 @@ void ShowDemo_SubplotsSizing() {
                 ImPlot::PlotLineG(buffer,SinewaveGetter,&fi,1000);
                 ImPlot::EndPlot();
             }
-        }            
+        }
         ImPlot::EndSubplots();
     }
 }
@@ -995,7 +999,7 @@ void ShowDemo_SubplotsSizing() {
 void ShowDemo_SubplotItemSharing() {
     static ImPlotSubplotFlags flags = ImPlotSubplotFlags_ShareItems;
     ImGui::CheckboxFlags("ImPlotSubplotFlags_ShareItems", (unsigned int*)&flags, ImPlotSubplotFlags_ShareItems);
-    ImGui::CheckboxFlags("ImPlotSubplotFlags_ColMajor", (unsigned int*)&flags, ImPlotSubplotFlags_ColMajor); 
+    ImGui::CheckboxFlags("ImPlotSubplotFlags_ColMajor", (unsigned int*)&flags, ImPlotSubplotFlags_ColMajor);
     static int rows = 2;
     static int cols = 3;
     static int id[] = {0,1,2,3,4,5};
@@ -1021,13 +1025,13 @@ void ShowDemo_SubplotItemSharing() {
                     }
                 }
                 if (ImPlot::BeginDragDropTarget()) {
-                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) 
-                        id[curj] = i;                    
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND"))
+                        id[curj] = i;
                     ImPlot::EndDragDropTarget();
                 }
                 ImPlot::EndPlot();
             }
-        }   
+        }
         ImPlot::EndSubplots();
     }
 }
@@ -1049,7 +1053,7 @@ void ShowDemo_SubplotAxisLinking() {
                 ImPlot::PlotLineG("common",SinewaveGetter,&fc,1000);
                 ImPlot::EndPlot();
             }
-        }            
+        }
         ImPlot::EndSubplots();
     }
 }
@@ -1837,11 +1841,12 @@ void ShowDemoWindow(bool* p_open) {
                 ShowDemo_CustomPlottersAndTooltips();
             ImGui::EndTabItem();
         }
+        if (ImGui::BeginTabItem("Config")) {
+            ShowDemo_Configuration();
+            ImGui::EndTabItem();
+        }
         if (ImGui::BeginTabItem("Help")) {
-            if (ImGui::CollapsingHeader("Help"))
-                ShowDemo_Help();
-            if (ImGui::CollapsingHeader("Configuration"))
-                ShowDemo_Configuration();
+            ShowDemo_Help();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

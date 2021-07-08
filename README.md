@@ -30,6 +30,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
     - and more likely to come
 - mix/match multiple plot items on a single plot
 - configurable axes ranges and scaling (linear/log)
+- subplots
 - time formatted x-axes (US formatted or ISO 8601)
 - reversible and lockable axes
 - up to three independent y-axes

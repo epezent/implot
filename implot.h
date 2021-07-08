@@ -402,8 +402,8 @@ IMPLOT_API void EndPlot();
 //-----------------------------------------------------------------------------
 
 // Starts a subdivided plotting context. If the function returns true,
-// EndSubplots() MUST be called! Call BeginPlot/EndPlot AT MOST [rows*cols] 
-// times in  between the begining and end of the subplot context. Plots are 
+// EndSubplots() MUST be called! Call BeginPlot/EndPlot AT MOST [rows*cols]
+// times in  between the begining and end of the subplot context. Plots are
 // added in row major order.
 //
 // Example:
@@ -420,7 +420,7 @@ IMPLOT_API void EndPlot();
 // }
 //
 // Procudes:
-// 
+//
 // [0][1][2]
 // [3][4][5]
 //
@@ -431,18 +431,18 @@ IMPLOT_API void EndPlot();
 //   (e.g. "MyPlot##HiddenIdText" or "##NoTitle").
 // - #rows and #cols must be greater than 0.
 // - #size is the size of the entire grid of subplots, not the individual plots
-// - #row_ratios and #col_ratios must have AT LEAST #rows and #cols elements, 
+// - #row_ratios and #col_ratios must have AT LEAST #rows and #cols elements,
 //   respectively. These are the sizes of the rows and columns expressed in ratios.
 //   If the user adjusts the dimensions, the arrays are updated with new ratios.
 //
 // Important notes regarding BeginPlot from inside of BeginSubplots:
 //
-// - The #title_id parameter of _BeginPlot_ (see above) does NOT have to be 
+// - The #title_id parameter of _BeginPlot_ (see above) does NOT have to be
 //   unique when called inside of a subplot context. Subplot IDs are hashed
 //   for your convenience so you don't have call PushID or generate unique title
 //   strings. Simply pass an empty string to BeginPlot unless you want to title
 //   each subplot.
-// - The #size parameter of _BeginPlot_ (see above) is ignored when inside of a 
+// - The #size parameter of _BeginPlot_ (see above) is ignored when inside of a
 //   subplot context. The actual size of the subplot will be based on the
 //   #size value you pass to _BeginSubplots_ and #row/#col_ratios if provided.
 
@@ -655,9 +655,9 @@ IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImPlotYAxis y_axis = IMP
 // Algined Plots
 //-----------------------------------------------------------------------------
 
-// Consider using Begin/EndSubplots first. They are more feature rich and 
-// accomplish the same behaviour by default. The functions below offer lower 
-// level control of plot alignment. 
+// Consider using Begin/EndSubplots first. They are more feature rich and
+// accomplish the same behaviour by default. The functions below offer lower
+// level control of plot alignment.
 
 // Align axis padding over multiple plots in a single row or column. If this function returns true, EndAlignedPlots() must be called. #group_id must be unique.
 IMPLOT_API bool BeginAlignedPlots(const char* group_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical);
