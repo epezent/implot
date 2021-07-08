@@ -139,6 +139,14 @@ static inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_
     }
     *min_out = Min; *max_out = Max;
 }
+// Finds the sim of an array
+template <typename T>
+static inline T ImSum(const T* values, int count) {
+    T sum  = 0;
+    for (int i = 0; i < count; ++i)
+        sum += values[i];
+    return sum;
+}
 // Finds the mean of an array
 template <typename T>
 static inline double ImMean(const T* values, int count) {
@@ -698,6 +706,28 @@ struct ImPlotAxis
     inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                               }
 };
 
+// Align plots group data
+struct ImPlotAlignmentData {
+    ImPlotOrientation Orientation;
+    float PadA;
+    float PadB;
+    float PadAMax;
+    float PadBMax;
+    ImPlotAlignmentData() {
+        Orientation = ImPlotOrientation_Vertical;
+        PadA = PadB = PadAMax = PadBMax = 0;
+    }
+    void Begin() { PadAMax = PadBMax = 0; }
+    void Update(float& pad_a, float& pad_b) {
+        if (PadAMax < pad_a) PadAMax = pad_a;
+        if (pad_a < PadA)    pad_a   = PadA;
+        if (PadBMax < pad_b) PadBMax = pad_b;
+        if (pad_b < PadB)    pad_b   = PadB;
+    }
+    void End()   { PadA = PadAMax; PadB = PadBMax;      }
+    void Reset() { PadA = PadB = PadAMax = PadBMax = 0; }
+};
+
 // State information for Plot items
 struct ImPlotItem
 {
@@ -719,50 +749,81 @@ struct ImPlotItem
     ~ImPlotItem() { ID = 0; }
 };
 
-// Holds Legend state labels and item references
+// Holds Legend state
 struct ImPlotLegendData
 {
-    ImVector<int>   Indices;
-    ImGuiTextBuffer Labels;
+    ImVector<int>     Indices;
+    ImGuiTextBuffer   Labels;
+    bool              Hovered;
+    bool              Outside;
+    bool              CanGoInside;
+    bool              FlipSideNextFrame;
+    ImPlotLocation    Location;
+    ImPlotOrientation Orientation;
+    ImRect            Rect;
+
+    ImPlotLegendData() {
+        CanGoInside = true;
+        Hovered      = Outside = FlipSideNextFrame = false;
+        Location     = ImPlotLocation_North | ImPlotLocation_West;
+        Orientation  = ImPlotOrientation_Vertical;
+    }
+
     void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
+};
+
+// Holds Items and Legend data
+struct ImPlotItemGroup
+{
+    ImGuiID            ID;
+    ImPlotLegendData   Legend;
+    ImPool<ImPlotItem> ItemPool;
+    int                ColormapIdx;
+
+    ImPlotItemGroup() { ColormapIdx = 0; }
+
+    int         GetItemCount() const             { return ItemPool.GetBufSize();                                 }
+    ImGuiID     GetItemID(const char*  label_id) { return ImGui::GetID(label_id); /* GetIDWithSeed */            }
+    ImPlotItem* GetItem(ImGuiID id)              { return ItemPool.GetByKey(id);                                 }
+    ImPlotItem* GetItem(const char* label_id)    { return GetItem(GetItemID(label_id));                          }
+    ImPlotItem* GetOrAddItem(ImGuiID id)         { return ItemPool.GetOrAddByKey(id);                            }
+    ImPlotItem* GetItemByIndex(int i)            { return ItemPool.GetByIndex(i);                                }
+    int         GetItemIndex(ImPlotItem* item)   { return ItemPool.GetIndex(item);                               }
+    int         GetLegendCount() const           { return Legend.Indices.size();                                 }
+    ImPlotItem* GetLegendItem(int i)             { return ItemPool.GetByIndex(Legend.Indices[i]);                }
+    const char* GetLegendLabel(int i)            { return Legend.Labels.Buf.Data + GetLegendItem(i)->NameOffset; }
+    void        Reset()                          { ItemPool.Clear(); Legend.Reset(); ColormapIdx = 0;            }
 };
 
 // Holds Plot state information that must persist after EndPlot
 struct ImPlotPlot
 {
-    ImGuiID            ID;
-    ImPlotFlags        Flags;
-    ImPlotFlags        PreviousFlags;
-    ImPlotAxis         XAxis;
-    ImPlotAxis         YAxis[IMPLOT_Y_AXES];
-    ImPlotLegendData   LegendData;
-    ImPool<ImPlotItem> Items;
-    ImVec2             SelectStart;
-    ImRect             SelectRect;
-    ImVec2             QueryStart;
-    ImRect             QueryRect;
-    bool               Initialized;
-    bool               Selecting;
-    bool               Selected;
-    bool               ContextLocked;
-    bool               Querying;
-    bool               Queried;
-    bool               DraggingQuery;
-    bool               LegendHovered;
-    bool               LegendOutside;
-    bool               LegendFlipSideNextFrame;
-    bool               FrameHovered;
-    bool               PlotHovered;
-    int                ColormapIdx;
-    int                CurrentYAxis;
-    ImPlotLocation     MousePosLocation;
-    ImPlotLocation     LegendLocation;
-    ImPlotOrientation  LegendOrientation;
-    ImRect             FrameRect;
-    ImRect             CanvasRect;
-    ImRect             PlotRect;
-    ImRect             AxesRect;
-    ImRect             LegendRect;
+    ImGuiID         ID;
+    ImPlotFlags     Flags;
+    ImPlotFlags     PreviousFlags;
+    ImPlotAxis      XAxis;
+    ImPlotAxis      YAxis[IMPLOT_Y_AXES];
+    ImPlotItemGroup Items;
+    ImVec2          SelectStart;
+    ImRect          SelectRect;
+    ImVec2          QueryStart;
+    ImRect          QueryRect;
+    bool            Initialized;
+    bool            Selecting;
+    bool            Selected;
+    bool            ContextLocked;
+    bool            Querying;
+    bool            Queried;
+    bool            DraggingQuery;
+    bool            FrameHovered;
+    bool            FrameHeld;
+    bool            PlotHovered;
+    int             CurrentYAxis;
+    ImPlotLocation  MousePosLocation;
+    ImRect          FrameRect;
+    ImRect          CanvasRect;
+    ImRect          PlotRect;
+    ImRect          AxesRect;
 
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
@@ -770,20 +831,44 @@ struct ImPlotPlot
         for (int i = 0; i < IMPLOT_Y_AXES; ++i)
             YAxis[i].Orientation = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
-        Initialized       = Selecting = Selected = ContextLocked = Querying = Queried = DraggingQuery = LegendHovered = LegendOutside = LegendFlipSideNextFrame = false;
-        ColormapIdx       = CurrentYAxis = 0;
-        LegendLocation    = ImPlotLocation_North | ImPlotLocation_West;
-        LegendOrientation = ImPlotOrientation_Vertical;
+        Initialized       = Selecting = Selected = ContextLocked = Querying = Queried = DraggingQuery = false;
+        CurrentYAxis       = 0;
         MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
     }
-
-    int         GetLegendCount() const   { return LegendData.Indices.size(); }
-    ImPlotItem* GetLegendItem(int i);
-    const char* GetLegendLabel(int i);
 
     inline bool AnyYInputLocked() const { return YAxis[0].IsInputLocked() || (YAxis[1].Present ? YAxis[1].IsInputLocked() : false) || (YAxis[2].Present ? YAxis[2].IsInputLocked() : false); }
     inline bool AllYInputLocked() const { return YAxis[0].IsInputLocked() && (YAxis[1].Present ? YAxis[1].IsInputLocked() : true ) && (YAxis[2].Present ? YAxis[2].IsInputLocked() : true ); }
     inline bool IsInputLocked() const   { return XAxis.IsInputLocked() && YAxis[0].IsInputLocked() && YAxis[1].IsInputLocked() && YAxis[2].IsInputLocked();                                  }
+};
+
+// Holds subplot data that must persist afer EndSubplot
+struct ImPlotSubplot {
+    ImGuiID                       ID;
+    ImPlotSubplotFlags            Flags;
+    ImPlotSubplotFlags            PreviousFlags;
+    ImPlotItemGroup               Items;
+    int                           Rows;
+    int                           Cols;
+    int                           CurrentIdx;
+    ImRect                        FrameRect;
+    ImRect                        GridRect;
+    ImVec2                        CellSize;
+    ImVector<ImPlotAlignmentData> RowAlignmentData;
+    ImVector<ImPlotAlignmentData> ColAlignmentData;
+    ImVector<float>               RowRatios;
+    ImVector<float>               ColRatios;
+    ImVector<ImPlotRange>         RowLinkData;
+    ImVector<ImPlotRange>         ColLinkData;
+    float                         TempSizes[2];
+    bool                          FrameHovered;
+
+    ImPlotSubplot() {
+        Rows = Cols = CurrentIdx  = 0;
+        FrameHovered              = false;
+        Items.Legend.Location     = ImPlotLocation_North;
+        Items.Legend.Orientation  = ImPlotOrientation_Horizontal;
+        Items.Legend.CanGoInside  = false;
+    }
 };
 
 // Temporary data storage for upcoming plot
@@ -859,10 +944,13 @@ struct ImPlotNextItemData {
 // Holds state information that must persist between calls to BeginPlot()/EndPlot()
 struct ImPlotContext {
     // Plot States
-    ImPool<ImPlotPlot> Plots;
-    ImPlotPlot*        CurrentPlot;
-    ImPlotItem*        CurrentItem;
-    ImPlotItem*        PreviousItem;
+    ImPool<ImPlotPlot>    Plots;
+    ImPool<ImPlotSubplot> Subplots;
+    ImPlotPlot*           CurrentPlot;
+    ImPlotSubplot*        CurrentSubplot;
+    ImPlotItemGroup*      CurrentItems;
+    ImPlotItem*           CurrentItem;
+    ImPlotItem*           PreviousItem;
 
     // Tick Marks and Labels
     ImPlotTickCollection CTicks;
@@ -892,6 +980,7 @@ struct ImPlotContext {
     bool RenderX;
     bool RenderY[IMPLOT_Y_AXES];
 
+
     // Axis Locking Flags
     bool ChildWindowMade;
 
@@ -909,13 +998,17 @@ struct ImPlotContext {
     ImVector<double>   Temp1, Temp2;
 
     // Misc
-    int                VisibleItemCount;
     int                DigitalPlotItemCnt;
     int                DigitalPlotOffset;
     ImPlotNextPlotData NextPlotData;
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPlotPoint        MousePos[IMPLOT_Y_AXES];
+
+    // Align plots
+    ImPool<ImPlotAlignmentData> AlignmentData;
+    ImPlotAlignmentData*        CurrentAlignmentH;
+    ImPlotAlignmentData*        CurrentAlignmentV;
 };
 
 //-----------------------------------------------------------------------------
@@ -932,7 +1025,11 @@ namespace ImPlot {
 // Initializes an ImPlotContext
 IMPLOT_API void Initialize(ImPlotContext* ctx);
 // Resets an ImPlot context for the next call to BeginPlot
-IMPLOT_API void Reset(ImPlotContext* ctx);
+IMPLOT_API void ResetCtxForNextPlot(ImPlotContext* ctx);
+// Restes an ImPlot context for the next call to BeginAlignedPlots
+IMPLOT_API void ResetCtxForNextAlignedPlots(ImPlotContext* ctx);
+// Resets an ImPlot context for the next call to BeginSubplot
+IMPLOT_API void ResetCtxForNextSubplot(ImPlotContext* ctx);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Input Utils
@@ -954,6 +1051,16 @@ IMPLOT_API void BustPlotCache();
 
 // Shows a plot's context menu.
 IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot);
+
+//-----------------------------------------------------------------------------
+// [SECTION] Subplot Utils
+//-----------------------------------------------------------------------------
+
+// Advances to next subplot
+IMPLOT_API void SubplotNextCell();
+
+// Shows a subplot's context menu.
+IMPLOT_API void ShowSubplotsContextMenu(ImPlotSubplot& subplot);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Item Utils
@@ -1044,11 +1151,13 @@ static inline const char* GetFormatY(ImPlotYAxis y) { return GImPlot->NextPlotDa
 // Gets the position of an inner rect that is located inside of an outer rect according to an ImPlotLocation and padding amount.
 IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlotLocation location, const ImVec2& pad = ImVec2(0,0));
 // Calculates the bounding box size of a legend
-IMPLOT_API ImVec2 CalcLegendSize(ImPlotPlot& plot, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
+IMPLOT_API ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
 // Renders legend entries into a bounding box
-IMPLOT_API void ShowLegendEntries(ImPlotPlot& plot, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
+IMPLOT_API bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
 // Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
 IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
+// Shows an legends's context menu.
+IMPLOT_API bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Tick Utils
@@ -1089,6 +1198,8 @@ static inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConve
 
 // Draws vertical text. The position is the bottom left of the text rect.
 IMPLOT_API void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char* text_begin, const char* text_end = NULL);
+// Draws multiline horizontal text centered.
+IMPLOT_API void AddTextCentered(ImDrawList* DrawList, ImVec2 top_center, ImU32 col, const char* text_begin, const char* text_end = NULL);
 // Calculates the size of vertical text
 static inline ImVec2 CalcTextSizeVertical(const char *text) {
     ImVec2 sz = ImGui::CalcTextSize(text);
