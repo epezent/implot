@@ -42,6 +42,10 @@
 #error Must include implot.h before implot_internal.h
 #endif
 
+#if (IMGUI_VERSION_NUM < 18303)
+#define GetBufSize GetSize          // A little bit ugly since 'GetBufSize' could technically be used elsewhere (but currently isn't). Could use a proxy define if needed.
+#endif
+
 //-----------------------------------------------------------------------------
 // [SECTION] Constants
 //-----------------------------------------------------------------------------
