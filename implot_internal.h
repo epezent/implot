@@ -1270,7 +1270,7 @@ void FillRange(ImVector<T>& buffer, int n, T vmin, T vmax) {
 // Offsets and strides a data buffer
 template <typename T>
 static inline T OffsetAndStride(const T* data, int idx, int , int , int stride) {
-    // idx = ImPosMod(offset + idx, count);
+    idx = ImPosMod(offset + idx, count);
     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
 }
 
