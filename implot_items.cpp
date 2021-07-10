@@ -47,12 +47,6 @@
 #define ImDrawFlags_RoundCornersAll ImDrawCornerFlags_All
 #endif
 
-// Support for pre-1.84 versions. ImPool's GetSize() -> GetBufSize()
-#if (IMGUI_VERSION_NUM < 18303)
-#define GetBufSize GetSize          // A little bit ugly since 'GetBufSize' could technically be used elsewhere (but currently isn't). Could use a proxy define if needed.
-#endif
-
-
 namespace ImPlot {
 
 //-----------------------------------------------------------------------------
