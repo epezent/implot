@@ -279,42 +279,6 @@ IMPLOT_INLINE T IndexData(const T* data, int idx, int count, int offset, int str
     }
 }
 
-template <typename T> 
-struct Indexer1 {
-    Indexer1(const T* data, int count) : Data(data), Count(count) { }
-    template <typename I> IMPLOT_INLINE T operator[](I idx) const { return Data[idx]; }
-    const T* const Data;
-    const int Count;
-};
-
-template <typename T>
-struct Indexer2 {
-    Indexer2(const T* data, int count, int offset) : Data(data), Count(count), Offset(count ? ImPosMod(offset, count) : 0) { }
-    template <typename I> IMPLOT_INLINE T operator[](I idx) const { return Data[(Offset + idx) % Count]; }
-    const T* const Data;
-    const int Count;
-    const int Offset;
-};
-
-template <typename T>
-struct Indexer3 {
-    Indexer3(const T* data, int count, int stride) : Data(data), Count(count), Stride(stride) { }
-    template <typename I> IMPLOT_INLINE T operator[](I idx) const { return *(const T*)(const void*)((const unsigned char*)Data + (size_t)(idx) * Stride); }
-    const T* const Data;
-    const int Count;
-    const int Stride;
-};
-
-template <typename T>
-struct Indexer4 {
-    Indexer4(const T* data, int count, int offset, int stride) : Data(data), Count(count), Offset(count ? ImPosMod(offset, count) : 0), Stride(stride) { }
-    template <typename I> IMPLOT_INLINE T operator[](I idx) const { return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((Offset + idx) % Count) * Stride); }
-    const T* const Data;
-    const int Count;
-    const int Offset;
-    const int Stride;
-};
-
 //-----------------------------------------------------------------------------
 // GETTERS
 //-----------------------------------------------------------------------------
@@ -342,24 +306,6 @@ struct GetterYs {
     const double X0;
     const int Offset;
     const int Stride;
-};
-
-
-template <typename Idx>
-struct GetterYsI {
-    GetterYsI(const Idx& indexer, double xscale, double x0) :
-        Indexer(indexer),
-        Count(Indexer.Count),
-        XScale(xscale),
-        X0(x0)
-    { }
-    template <typename I> IMPLOT_INLINE ImPlotPoint operator()(I idx) const {
-        return ImPlotPoint(X0 + XScale * idx, (double)Indexer[idx]);
-    }
-    const Idx& Indexer; 
-    const int Count;
-    const double XScale;
-    const double X0;
 };
 
 // Interprets separate arrays for X and Y points as ImPlotPoints
@@ -500,6 +446,48 @@ struct GetterError {
 
 // Transforms convert points in plot space (i.e. ImPlotPoint) to pixel space (i.e. ImVec2)
 
+struct TransformerLin { 
+    TransformerLin(double pixMin, double pltMin, double,       double m, double    ) : PixMin(pixMin), PltMin(pltMin), M(m) { }
+    template <typename T> IMPLOT_INLINE float operator()(T p) const { return (float)(PixMin + M * (p - PltMin)); }
+    double PixMin, PltMin, M;
+};
+
+struct TransformerLog {
+    TransformerLog(double pixMin, double pltMin, double pltMax, double m, double den) : Den(den), PltMin(pltMin), PltMax(pltMax), PixMin(pixMin), M(m) { }
+    template <typename T> IMPLOT_INLINE float operator()(T p) const {
+        p = p <= 0.0 ? IMPLOT_LOG_ZERO : p;
+        double t = ImLog10(p / PltMin) / Den;
+        p = ImLerp(PltMin, PltMax, (float)t);
+        return (float)(PixMin + M * (p - PltMin));
+    }
+    double Den, PltMin, PltMax, PixMin, M;
+};
+
+template <typename TransformerX, typename TransformerY>
+struct TransformerXY {
+    TransformerXY() :
+        YAxis(GetCurrentYAxis()),
+        Tx(GImPlot->PixelRange[YAxis].Min.x, GImPlot->CurrentPlot->XAxis.Range.Min,        GImPlot->CurrentPlot->XAxis.Range.Max,        GImPlot->Mx,        GImPlot->LogDenX),
+        Ty(GImPlot->PixelRange[YAxis].Min.y, GImPlot->CurrentPlot->YAxis[YAxis].Range.Min, GImPlot->CurrentPlot->YAxis[YAxis].Range.Max, GImPlot->My[YAxis], GImPlot->LogDenY[YAxis])
+    { }
+    template <typename P> IMPLOT_INLINE ImVec2 operator()(const P& plt) const {
+        ImVec2 out;
+        out.x = Tx(plt.x);
+        out.y = Ty(plt.y);
+        return out;
+    }
+    int YAxis;
+    TransformerX Tx;
+    TransformerY Ty;
+};
+
+typedef TransformerXY<TransformerLin,TransformerLin> TransformerLinLin;
+typedef TransformerXY<TransformerLin,TransformerLog> TransformerLinLog;
+typedef TransformerXY<TransformerLog,TransformerLin> TransformerLogLin;
+typedef TransformerXY<TransformerLog,TransformerLog> TransformerLogLog;
+
+/*
+
 // Transforms points for linear x and linear y space
 struct TransformerLinLin {
     TransformerLinLin() : YAxis(GetCurrentYAxis()) {}
@@ -556,6 +544,8 @@ struct TransformerLogLog {
     }
     const int YAxis;
 };
+
+*/
 
 //-----------------------------------------------------------------------------
 // PRIMITIVE RENDERERS
@@ -1029,32 +1019,8 @@ IMPLOT_INLINE void PlotLineEx(const char* label_id, const Getter& getter) {
 
 template <typename T>
 void PlotLine(const char* label_id, const T* values, int count, double xscale, double x0, int offset, int stride) {
-    if (GImPlot->DebugBools[0]) {
-        if (offset == 0 && stride == sizeof(T)) {
-            const Indexer1<T> idxr(values, count);
-            GetterYsI<Indexer1<T>> getter(idxr,xscale,x0);
-            PlotLineEx(label_id, getter);
-        }
-        else if (offset != 0 && stride == sizeof(T)) {
-            const Indexer2<T> idxr(values, count, offset);
-            GetterYsI<Indexer2<T>> getter(idxr,xscale,x0);
-            PlotLineEx(label_id, getter);
-        }
-        else if (offset == 0 && stride != sizeof(T)) {
-            const Indexer3<T> idxr(values, count, stride);
-            GetterYsI<Indexer3<T>> getter(idxr,xscale,x0);
-            PlotLineEx(label_id, getter);
-        }
-        else {
-            const Indexer4<T> idxr(values, count, offset, stride);
-            GetterYsI<Indexer4<T>> getter(idxr,xscale,x0);
-            PlotLineEx(label_id, getter);
-        }
-    }
-    else {
-        GetterYs<T> getter(values,count,xscale,x0,offset,stride);
-        PlotLineEx(label_id, getter);
-    }
+    GetterYs<T> getter(values,count,xscale,x0,offset,stride);
+    PlotLineEx(label_id, getter);    
 }
 
 template IMPLOT_API void PlotLine<ImS8> (const char* label_id, const ImS8* values, int count, double xscale, double x0, int offset, int stride);
