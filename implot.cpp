@@ -690,6 +690,9 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
 // Tick Utils
 //-----------------------------------------------------------------------------
 
+static const float TICK_FILL_X = 0.8f;
+static const float TICK_FILL_Y = 1.0f;
+
 void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, const char* fmt) {
     const int idx0          = ticks.Size;
     const int nMinor        = 10;
@@ -700,12 +703,7 @@ void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn,
     const double graphmax   = ceil(range.Max / interval) * interval;
     bool first_major_set    = false;
     int  first_major_idx    = 0;
-
-    char dummy[32];
-    sprintf(dummy,fmt,-ImAbs(interval / nMinor));
-    ImVec2 dummy_size = ImGui::CalcTextSize(dummy);
     ImVec2 total_size(0,0);
-
     for (double major = graphmin; major < graphmax + 0.5 * interval; major += interval) {
         // is this zero? combat zero formatting issues
         if (major-interval < 0 && major+interval > 0)
@@ -715,19 +713,17 @@ void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn,
                 first_major_idx = ticks.Size;
                 first_major_set = true;
             }
-            ticks.Append(major, true, true, fmt);
-            total_size += dummy_size;
+            total_size += ticks.Append(major, true, true, fmt).LabelSize;
         }
         for (int i = 1; i < nMinor; ++i) {
             double minor = major + i * interval / nMinor;
             if (range.Contains(minor)) {
-                ticks.Append(minor, false, true, fmt);
-                total_size += dummy_size;
+                total_size += ticks.Append(minor, false, true, fmt).LabelSize;
             }
         }
     }
     // prune if necessary
-    if ((orn == ImPlotOrientation_Horizontal && total_size.x > pix) || (orn == ImPlotOrientation_Vertical && total_size.y > pix)) {
+    if ((orn == ImPlotOrientation_Horizontal && total_size.x > pix*TICK_FILL_X) || (orn == ImPlotOrientation_Vertical && total_size.y > pix*TICK_FILL_Y)) {
         for (int i = first_major_idx-1; i >= idx0; i -= 2)
             ticks.Ticks[i].ShowLabel = false;
         for (int i = first_major_idx+1; i < ticks.Size; i += 2)
