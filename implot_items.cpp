@@ -692,6 +692,109 @@ struct ShadedRenderer {
     static const int VtxConsumed = 5;
 };
 
+template <typename TGetter1, typename TGetter2, typename TTransformer>
+struct ShadedClipRenderer {
+    ShadedClipRenderer(const TGetter1& getter1, const TGetter2& getter2, const TTransformer& transformer, ImU32 col) :
+        Getter1(getter1),
+        Getter2(getter2),
+        Transformer(transformer),
+        Prims(ImMin(Getter1.Count, Getter2.Count) - 1),
+        Col(col)
+    {
+        P11 = Transformer(Getter1(0));
+        P12 = Transformer(Getter2(0));
+    }
+
+    inline bool operator()(ImDrawList& DrawList, const ImRect& /*cull_rect*/, const ImVec2& uv, int prim) const {
+        // TODO: Culling
+        ImVec2 P21 = Transformer(Getter1(prim+1));
+        ImVec2 P22 = Transformer(Getter2(prim+1));
+        const int intersect = (P11.y > P12.y && P22.y > P21.y) || (P12.y > P11.y && P21.y > P22.y);
+        ImVec2 intersection = Intersection(P11,P21,P12,P22);
+        DrawList._VtxWritePtr[0].pos = P11;
+        DrawList._VtxWritePtr[0].uv  = uv;
+        DrawList._VtxWritePtr[0].col = Col;
+        DrawList._VtxWritePtr[1].pos = P21;
+        DrawList._VtxWritePtr[1].uv  = uv;
+        DrawList._VtxWritePtr[1].col = Col;
+        DrawList._VtxWritePtr[2].pos = intersection;
+        DrawList._VtxWritePtr[2].uv  = uv;
+        DrawList._VtxWritePtr[2].col = Col;
+        DrawList._VtxWritePtr[3].pos = P12;
+        DrawList._VtxWritePtr[3].uv  = uv;
+        DrawList._VtxWritePtr[3].col = Col;
+        DrawList._VtxWritePtr[4].pos = P22;
+        DrawList._VtxWritePtr[4].uv  = uv;
+        DrawList._VtxWritePtr[4].col = Col;
+        DrawList._VtxWritePtr += 5;
+        DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
+        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1 + intersect);
+        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 0 + 3 * (P11.y >= P12.y) );
+        DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3 - intersect);
+        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1 + 3 * (P21.y >= P22.y) );
+        DrawList._IdxWritePtr += 6;
+        DrawList._VtxCurrentIdx += 5;
+        P11 = P21;
+        P12 = P22;
+        return true;
+    }
+    const TGetter1& Getter1;
+    const TGetter2& Getter2;
+    const TTransformer& Transformer;
+    const int Prims;
+    const ImU32 Col;
+    mutable ImVec2 P11;
+    mutable ImVec2 P12;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 5;
+};
+
+template <typename TGetter, typename TTransformer>
+struct RectRenderer {
+    inline RectRenderer(const TGetter& getter, const TTransformer& transformer, ImU32 col) :
+        Getter(getter),
+        Transformer(transformer),
+        Prims(Getter.Count / 2),
+        Col(col)
+    {}
+    inline bool operator()(ImDrawList& DrawList, const ImRect& /*cull_rect*/, const ImVec2& uv, int prim) const {
+        // TODO: Culling
+        ImVec2 P1 = Transformer(Getter(2*prim));
+        ImVec2 P2 = Transformer(Getter(2*prim+1));
+        DrawList._VtxWritePtr[0].pos   = P1;
+        DrawList._VtxWritePtr[0].uv    = uv;
+        DrawList._VtxWritePtr[0].col   = Col;
+        DrawList._VtxWritePtr[1].pos.x = P1.x;
+        DrawList._VtxWritePtr[1].pos.y = P2.y;
+        DrawList._VtxWritePtr[1].uv    = uv;
+        DrawList._VtxWritePtr[1].col   = Col;
+        DrawList._VtxWritePtr[2].pos   = P2;
+        DrawList._VtxWritePtr[2].uv    = uv;
+        DrawList._VtxWritePtr[2].col   = Col;
+        DrawList._VtxWritePtr[3].pos.x = P2.x;
+        DrawList._VtxWritePtr[3].pos.y = P1.y;
+        DrawList._VtxWritePtr[3].uv    = uv;
+        DrawList._VtxWritePtr[3].col   = Col;
+        DrawList._VtxWritePtr += 4;
+        DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
+        DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+        DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+        DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
+        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
+        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
+        DrawList._IdxWritePtr   += 6;
+        DrawList._VtxCurrentIdx += 4;
+        return true;
+    }
+    const TGetter& Getter;
+    const TTransformer& Transformer;
+    const int Prims;
+    const ImU32 Col;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 4;
+};
+
 // Stupid way of calculating maximum index size of ImDrawIdx without integer overflow issues
 template <typename T>
 struct MaxIdx { static const unsigned int Value; };
@@ -1242,6 +1345,61 @@ void PlotShadedG(const char* label_id, ImPlotPoint (*g1)(void* data, int idx), v
     GetterFuncPtr getter1(g1, data1, count, offset);
     GetterFuncPtr getter2(g2, data2, count, offset);
     PlotShadedEx(label_id, getter1, getter2, true);
+}
+
+//-----------------------------------------------------------------------------
+// PLOT SHADEDCLIP
+//-----------------------------------------------------------------------------
+
+template <typename Getter1, typename Getter2>
+inline void PlotShadedClipEx(const char* label_id, const Getter1& getter1, const Getter2& getter2) {
+    if (BeginItem(label_id, ImPlotCol_Fill)) {
+        if (FitThisFrame()) {
+            for (int i = 0; i < ImMin(getter1.Count, getter2.Count); ++i) {
+                ImPlotPoint p1 = getter1(i);
+                ImPlotPoint p2 = getter2(i);
+                FitPoint(p1);
+                FitPoint(p2);
+            }
+        }
+        const ImPlotNextItemData& s = GetItemData();
+        ImDrawList & DrawList = *GetPlotDrawList();
+        if (s.RenderFill) {
+            ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+            switch (GetCurrentScale()) {
+                case ImPlotScale_LinLin: RenderPrimitives(ShadedClipRenderer<Getter1,Getter2,TransformerLinLin>(getter1,getter2,TransformerLinLin(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+                case ImPlotScale_LogLin: RenderPrimitives(ShadedClipRenderer<Getter1,Getter2,TransformerLogLin>(getter1,getter2,TransformerLogLin(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+                case ImPlotScale_LinLog: RenderPrimitives(ShadedClipRenderer<Getter1,Getter2,TransformerLinLog>(getter1,getter2,TransformerLinLog(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+                case ImPlotScale_LogLog: RenderPrimitives(ShadedClipRenderer<Getter1,Getter2,TransformerLogLog>(getter1,getter2,TransformerLogLog(), col), DrawList, GImPlot->CurrentPlot->PlotRect); break;
+            }
+        }
+        EndItem();
+    }
+}
+
+template <typename T>
+void PlotShadedClip(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, int offset, int stride) {
+    GetterXsYs<T> getter1(xs, ys1, count, offset, stride);
+    GetterXsYs<T> getter2(xs, ys2, count, offset, stride);
+    PlotShadedClipEx(label_id, getter1, getter2);
+}
+
+template IMPLOT_API void PlotShadedClip<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys1, const ImS8* ys2, int count, int offset, int stride);
+template IMPLOT_API void PlotShadedClip<ImU8>(const char* label_id, const ImU8* xs, const ImU8* ys1, const ImU8* ys2, int count, int offset, int stride);
+template IMPLOT_API void PlotShadedClip<ImS16>(const char* label_id, const ImS16* xs, const ImS16* ys1, const ImS16* ys2, int count, int offset, int stride);
+template IMPLOT_API void PlotShadedClip<ImU16>(const char* label_id, const ImU16* xs, const ImU16* ys1, const ImU16* ys2, int count, int offset, int stride);
+template IMPLOT_API void PlotShadedClip<ImS32>(const char* label_id, const ImS32* xs, const ImS32* ys1, const ImS32* ys2, int count, int offset, int stride);
+template IMPLOT_API void PlotShadedClip<ImU32>(const char* label_id, const ImU32* xs, const ImU32* ys1, const ImU32* ys2, int count, int offset, int stride);
+template IMPLOT_API void PlotShadedClip<ImS64>(const char* label_id, const ImS64* xs, const ImS64* ys1, const ImS64* ys2, int count, int offset, int stride);
+template IMPLOT_API void PlotShadedClip<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys1, const ImU64* ys2, int count, int offset, int stride);
+template IMPLOT_API void PlotShadedClip<float>(const char* label_id, const float* xs, const float* ys1, const float* ys2, int count, int offset, int stride);
+template IMPLOT_API void PlotShadedClip<double>(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride);
+
+// custom
+void PlotShadedClipG(const char* label_id, ImPlotPoint (*g1)(void* data, int idx), void* data1, ImPlotPoint (*g2)(void* data, int idx), void* data2, int count, int offset) {
+    GetterFuncPtr getter1(g1, data1, count, offset);
+    GetterFuncPtr getter2(g2, data2, count, offset);
+    PlotShadedClipEx(label_id, getter1, getter2);
 }
 
 //-----------------------------------------------------------------------------
