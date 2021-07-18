@@ -32,8 +32,7 @@
 #define SQRT_1_2 0.70710678118f
 #define SQRT_3_2 0.86602540378f
 
-#define IMPLOT_FORCE_INLINE
-#ifdef IMPLOT_FORCE_INLINE
+#ifndef IMPLOT_NO_FORCE_INLINE
     #ifdef _MSC_VER
         #define IMPLOT_INLINE __forceinline
     #elif defined(__GNUC__)
@@ -52,9 +51,9 @@
 #endif
 
 #if defined __SSE__ || defined __x86_64__ || defined _M_X64
-static inline float  ImInvSqrt(float x)           { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x))); }
+static IMPLOT_INLINE float  ImInvSqrt(float x)           { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x))); }
 #else
-static inline float  ImInvSqrt(float x)           { return 1.0f / sqrtf(x); }
+static IMPLOT_INLINE float  ImInvSqrt(float x)           { return 1.0f / sqrtf(x); }
 #endif
 
 #define IMPLOT_NORMALIZE2F_OVER_ZERO(VX,VY) do { float d2 = VX*VX + VY*VY; if (d2 > 0.0f) { float inv_len = ImInvSqrt(d2); VX *= inv_len; VY *= inv_len; } } while (0)
