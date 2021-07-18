@@ -67,6 +67,16 @@ static inline float  ImInvSqrt(float x)           { return 1.0f / sqrtf(x); }
 namespace ImPlot {
 
 //-----------------------------------------------------------------------------
+// Utils
+//-----------------------------------------------------------------------------
+
+// Calc maximum index size of ImDrawIdx
+template <typename T>
+struct MaxIdx { static const unsigned int Value; };
+template <> const unsigned int MaxIdx<unsigned short>::Value = 65535;
+template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
+
+//-----------------------------------------------------------------------------
 // Item Utils
 //-----------------------------------------------------------------------------
 
@@ -486,77 +496,16 @@ typedef TransformerXY<TransformerLin,TransformerLog> TransformerLinLog;
 typedef TransformerXY<TransformerLog,TransformerLin> TransformerLogLin;
 typedef TransformerXY<TransformerLog,TransformerLog> TransformerLogLog;
 
-/*
-
-// Transforms points for linear x and linear y space
-struct TransformerLinLin {
-    TransformerLinLin() : YAxis(GetCurrentYAxis()) {}
-    // IMPLOT_INLINE ImVec2 operator()(const ImPlotPoint& plt) const { return (*this)(plt.x, plt.y); }
-    template <typename P> IMPLOT_INLINE ImVec2 operator()(const P& plt) const {
-        ImPlotContext& gp = *GImPlot;
-        return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (plt.x - gp.CurrentPlot->XAxis.Range.Min)),
-                       (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (plt.y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
-    }
-    const int YAxis;
-};
-
-// Transforms points for log x and linear y space
-struct TransformerLogLin {
-    TransformerLogLin() : YAxis(GetCurrentYAxis()) {}
-    template <typename P> IMPLOT_INLINE ImVec2 operator()(const P& plt) const {
-        ImPlotContext& gp = *GImPlot;
-        double x = plt.x <= 0.0 ? IMPLOT_LOG_ZERO : plt.x;
-        double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
-               x = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
-        return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
-                       (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (plt.y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
-    }
-    const int YAxis;
-};
-
-// Transforms points for linear x and log y space
-struct TransformerLinLog {
-    TransformerLinLog() : YAxis(GetCurrentYAxis()) {}
-    template <typename P> IMPLOT_INLINE ImVec2 operator()(const P& plt) const {
-        ImPlotContext& gp = *GImPlot;
-        double y = plt.y <= 0.0 ? IMPLOT_LOG_ZERO : plt.y;
-        double t = ImLog10(y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
-               y = ImLerp(gp.CurrentPlot->YAxis[YAxis].Range.Min, gp.CurrentPlot->YAxis[YAxis].Range.Max, (float)t);
-        return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (plt.x - gp.CurrentPlot->XAxis.Range.Min)),
-                       (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
-    }
-    const int YAxis;
-};
-
-// Transforms points for log x and log y space
-struct TransformerLogLog {
-    TransformerLogLog() : YAxis(GetCurrentYAxis()) {}
-    template <typename P> IMPLOT_INLINE ImVec2 operator()(const P& plt) const {
-        ImPlotContext& gp = *GImPlot;
-        double x = plt.x <= 0.0 ? IMPLOT_LOG_ZERO : plt.x;
-        double y = plt.y <= 0.0 ? IMPLOT_LOG_ZERO : plt.y;
-        double t = ImLog10(x / gp.CurrentPlot->XAxis.Range.Min) / gp.LogDenX;
-               x = ImLerp(gp.CurrentPlot->XAxis.Range.Min, gp.CurrentPlot->XAxis.Range.Max, (float)t);
-               t = ImLog10(y / gp.CurrentPlot->YAxis[YAxis].Range.Min) / gp.LogDenY[YAxis];
-               y = ImLerp(gp.CurrentPlot->YAxis[YAxis].Range.Min, gp.CurrentPlot->YAxis[YAxis].Range.Max, (float)t);
-        return ImVec2( (float)(gp.PixelRange[YAxis].Min.x + gp.Mx * (x - gp.CurrentPlot->XAxis.Range.Min)),
-                       (float)(gp.PixelRange[YAxis].Min.y + gp.My[YAxis] * (y - gp.CurrentPlot->YAxis[YAxis].Range.Min)) );
-    }
-    const int YAxis;
-};
-
-*/
-
 //-----------------------------------------------------------------------------
 // PRIMITIVE RENDERERS
 //-----------------------------------------------------------------------------
 
-IMPLOT_INLINE void AddLine(const ImVec2& P1, const ImVec2& P2, float weight, ImU32 col, ImDrawList& DrawList, ImVec2 uv) {
+IMPLOT_INLINE void PrimLine(const ImVec2& P1, const ImVec2& P2, float half_weight, ImU32 col, ImDrawList& DrawList, ImVec2 uv) {
     float dx = P2.x - P1.x;
     float dy = P2.y - P1.y;
     IMPLOT_NORMALIZE2F_OVER_ZERO(dx, dy);
-    dx *= (weight * 0.5f);
-    dy *= (weight * 0.5f);
+    dx *= half_weight;
+    dy *= half_weight;
     DrawList._VtxWritePtr[0].pos.x = P1.x + dy;
     DrawList._VtxWritePtr[0].pos.y = P1.y - dx;
     DrawList._VtxWritePtr[0].uv    = uv;
@@ -584,7 +533,7 @@ IMPLOT_INLINE void AddLine(const ImVec2& P1, const ImVec2& P2, float weight, ImU
     DrawList._VtxCurrentIdx += 4;
 }
 
-IMPLOT_INLINE void AddRectFilled(const ImVec2& Pmin, const ImVec2& Pmax, ImU32 col, ImDrawList& DrawList, ImVec2 uv) {
+IMPLOT_INLINE void PrimRectFilled(const ImVec2& Pmin, const ImVec2& Pmax, ImU32 col, ImDrawList& DrawList, ImVec2 uv) {
     DrawList._VtxWritePtr[0].pos   = Pmin;
     DrawList._VtxWritePtr[0].uv    = uv;
     DrawList._VtxWritePtr[0].col   = col;
@@ -617,7 +566,7 @@ struct LineStripRenderer {
         Transformer(transformer),
         Prims(Getter.Count - 1),
         Col(col),
-        Weight(weight)
+        HalfWeight(weight/2)
     {
         P1 = Transformer(Getter(0));
     }
@@ -627,7 +576,7 @@ struct LineStripRenderer {
             P1 = P2;
             return false;
         }
-        AddLine(P1,P2,Weight,Col,DrawList,uv);
+        PrimLine(P1,P2,HalfWeight,Col,DrawList,uv);
         P1 = P2;
         return true;
     }
@@ -635,8 +584,36 @@ struct LineStripRenderer {
     const TTransformer& Transformer;
     const int Prims;
     const ImU32 Col;
-    const float Weight;
+    const float HalfWeight;
     mutable ImVec2 P1;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 4;
+};
+
+template <typename TGetter1, typename TGetter2, typename TTransformer>
+struct LineSegmentsRenderer {
+    IMPLOT_INLINE LineSegmentsRenderer(const TGetter1& getter1, const TGetter2& getter2, const TTransformer& transformer, ImU32 col, float weight) :
+        Getter1(getter1),
+        Getter2(getter2),
+        Transformer(transformer),
+        Prims(ImMin(Getter1.Count, Getter2.Count)),
+        Col(col),
+        HalfWeight(weight/2)
+    {}
+    IMPLOT_INLINE bool operator()(ImDrawList& DrawList, const ImRect& cull_rect, const ImVec2& uv, int prim) const {
+        ImVec2 P1 = Transformer(Getter1(prim));
+        ImVec2 P2 = Transformer(Getter2(prim));
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
+            return false;
+        PrimLine(P1,P2,HalfWeight,Col,DrawList,uv);
+        return true;
+    }
+    const TGetter1& Getter1;
+    const TGetter2& Getter2;
+    const TTransformer& Transformer;
+    const int Prims;
+    const ImU32 Col;
+    const float HalfWeight;
     static const int IdxConsumed = 6;
     static const int VtxConsumed = 4;
 };
@@ -658,11 +635,8 @@ struct StairsRenderer {
             P1 = P2;
             return false;
         }
-        AddRectFilled(ImVec2(P1.x, P1.y + HalfWeight), ImVec2(P2.x, P1.y - HalfWeight), Col, DrawList, uv);
-        AddRectFilled(ImVec2(P2.x - HalfWeight, P2.y), ImVec2(P2.x + HalfWeight, P1.y), Col, DrawList, uv);
-
-        // AddLine(P1, P12, Weight, Col, DrawList, uv);
-        // AddLine(P12, P2, Weight, Col, DrawList, uv);
+        PrimRectFilled(ImVec2(P1.x, P1.y + HalfWeight), ImVec2(P2.x, P1.y - HalfWeight), Col, DrawList, uv);
+        PrimRectFilled(ImVec2(P2.x - HalfWeight, P2.y), ImVec2(P2.x + HalfWeight, P1.y), Col, DrawList, uv);
         P1 = P2;
         return true;
     }
@@ -676,37 +650,11 @@ struct StairsRenderer {
     static const int VtxConsumed = 8;
 };
 
-template <typename TGetter1, typename TGetter2, typename TTransformer>
-struct LineSegmentsRenderer {
-    IMPLOT_INLINE LineSegmentsRenderer(const TGetter1& getter1, const TGetter2& getter2, const TTransformer& transformer, ImU32 col, float weight) :
-        Getter1(getter1),
-        Getter2(getter2),
-        Transformer(transformer),
-        Prims(ImMin(Getter1.Count, Getter2.Count)),
-        Col(col),
-        Weight(weight)
-    {}
-    IMPLOT_INLINE bool operator()(ImDrawList& DrawList, const ImRect& cull_rect, const ImVec2& uv, int prim) const {
-        ImVec2 P1 = Transformer(Getter1(prim));
-        ImVec2 P2 = Transformer(Getter2(prim));
-        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
-            return false;
-        AddLine(P1,P2,Weight,Col,DrawList,uv);
-        return true;
-    }
-    const TGetter1& Getter1;
-    const TGetter2& Getter2;
-    const TTransformer& Transformer;
-    const int Prims;
-    const ImU32 Col;
-    const float Weight;
-    static const int IdxConsumed = 6;
-    static const int VtxConsumed = 4;
-};
+
 
 template <typename TGetter1, typename TGetter2, typename TTransformer>
 struct ShadedRenderer {
-    ShadedRenderer(const TGetter1& getter1, const TGetter2& getter2, const TTransformer& transformer, ImU32 col) :
+    IMPLOT_INLINE ShadedRenderer(const TGetter1& getter1, const TGetter2& getter2, const TTransformer& transformer, ImU32 col) :
         Getter1(getter1),
         Getter2(getter2),
         Transformer(transformer),
@@ -766,12 +714,6 @@ struct ShadedRenderer {
     static const int IdxConsumed = 6;
     static const int VtxConsumed = 5;
 };
-
-// Stupid way of calculating maximum index size of ImDrawIdx without integer overflow issues
-template <typename T>
-struct MaxIdx { static const unsigned int Value; };
-template <> const unsigned int MaxIdx<unsigned short>::Value = 65535;
-template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
 
 /// Renders primitive shapes in bulk as efficiently as possible.
 template <typename Renderer>
