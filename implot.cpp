@@ -2054,22 +2054,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     for (int i = 0; i < IMPLOT_Y_AXES; ++i)
         plot.YAxis[i].Constrain();
 
-    // constrain equal axes for primary x and y if not approximately equal
-    // constrains x to y since x pixel size depends on y labels width, and causes feedback loops in opposite case
-    if (ImHasFlag(plot.Flags, ImPlotFlags_Equal)) {
-        double xar = plot.XAxis.GetAspect();
-        double yar = plot.YAxis[0].GetAspect();
-        // edge case: user has set x range this frame, so fit y to x so that we honor their request for x range
-        // NB: because of feedback across several frames, the user's x request may not be perfectly honored
-        if (gp.NextPlotData.HasXRange) {
-            plot.YAxis[0].SetAspect(xar);
-        }
-        else {
-            if (!ImAlmostEqual(xar,yar) && !plot.YAxis[0].IsInputLocked())
-                plot.XAxis.SetAspect(yar);
-        }
-    }
-
     // AXIS COLORS -----------------------------------------------------------------
 
     UpdateAxisColors(ImPlotCol_XAxis,  &plot.XAxis);
@@ -2235,6 +2219,23 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     plot.XAxis.Pixels = plot.PlotRect.GetWidth();
     for (int i = 0; i < IMPLOT_Y_AXES; ++i)
         plot.YAxis[i].Pixels = plot.PlotRect.GetHeight();
+
+    // Equal axis constraint. Must happen after we set Pixels
+    // constrain equal axes for primary x and y if not approximately equal
+    // constrains x to y since x pixel size depends on y labels width, and causes feedback loops in opposite case
+    if (ImHasFlag(plot.Flags, ImPlotFlags_Equal)) {
+        double xar = plot.XAxis.GetAspect();
+        double yar = plot.YAxis[0].GetAspect();
+        // edge case: user has set x range this frame, so fit y to x so that we honor their request for x range
+        // NB: because of feedback across several frames, the user's x request may not be perfectly honored
+        if (gp.NextPlotData.HasXRange) {
+            plot.YAxis[0].SetAspect(xar);
+        }
+        else {
+            if (!ImAlmostEqual(xar,yar) && !plot.YAxis[0].IsInputLocked())
+                plot.XAxis.SetAspect(yar);
+        }
+    }
 
     // INPUT ------------------------------------------------------------------
     HandlePlotInput(plot);
