@@ -691,6 +691,9 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
 // Tick Utils
 //-----------------------------------------------------------------------------
 
+static const float TICK_FILL_X = 0.8f;
+static const float TICK_FILL_Y = 1.0f;
+
 void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, const char* fmt) {
     const int idx0          = ticks.Size;
     const int nMinor        = 10;
@@ -701,12 +704,7 @@ void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn,
     const double graphmax   = ceil(range.Max / interval) * interval;
     bool first_major_set    = false;
     int  first_major_idx    = 0;
-
-    char dummy[32];
-    sprintf(dummy,fmt,-ImAbs(interval / nMinor));
-    ImVec2 dummy_size = ImGui::CalcTextSize(dummy);
     ImVec2 total_size(0,0);
-
     for (double major = graphmin; major < graphmax + 0.5 * interval; major += interval) {
         // is this zero? combat zero formatting issues
         if (major-interval < 0 && major+interval > 0)
@@ -716,19 +714,17 @@ void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn,
                 first_major_idx = ticks.Size;
                 first_major_set = true;
             }
-            ticks.Append(major, true, true, fmt);
-            total_size += dummy_size;
+            total_size += ticks.Append(major, true, true, fmt).LabelSize;
         }
         for (int i = 1; i < nMinor; ++i) {
             double minor = major + i * interval / nMinor;
             if (range.Contains(minor)) {
-                ticks.Append(minor, false, true, fmt);
-                total_size += dummy_size;
+                total_size += ticks.Append(minor, false, true, fmt).LabelSize;
             }
         }
     }
     // prune if necessary
-    if ((orn == ImPlotOrientation_Horizontal && total_size.x > pix) || (orn == ImPlotOrientation_Vertical && total_size.y > pix)) {
+    if ((orn == ImPlotOrientation_Horizontal && total_size.x > pix*TICK_FILL_X) || (orn == ImPlotOrientation_Vertical && total_size.y > pix*TICK_FILL_Y)) {
         for (int i = first_major_idx-1; i >= idx0; i -= 2)
             ticks.Ticks[i].ShowLabel = false;
         for (int i = first_major_idx+1; i < ticks.Size; i += 2)
@@ -2059,22 +2055,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     for (int i = 0; i < IMPLOT_Y_AXES; ++i)
         plot.YAxis[i].Constrain();
 
-    // constrain equal axes for primary x and y if not approximately equal
-    // constrains x to y since x pixel size depends on y labels width, and causes feedback loops in opposite case
-    if (ImHasFlag(plot.Flags, ImPlotFlags_Equal)) {
-        double xar = plot.XAxis.GetAspect();
-        double yar = plot.YAxis[0].GetAspect();
-        // edge case: user has set x range this frame, so fit y to x so that we honor their request for x range
-        // NB: because of feedback across several frames, the user's x request may not be perfectly honored
-        if (gp.NextPlotData.HasXRange) {
-            plot.YAxis[0].SetAspect(xar);
-        }
-        else {
-            if (!ImAlmostEqual(xar,yar) && !plot.YAxis[0].IsInputLocked())
-                plot.XAxis.SetAspect(yar);
-        }
-    }
-
     // AXIS COLORS -----------------------------------------------------------------
 
     UpdateAxisColors(ImPlotCol_XAxis,  &plot.XAxis);
@@ -2240,6 +2220,23 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     plot.XAxis.Pixels = plot.PlotRect.GetWidth();
     for (int i = 0; i < IMPLOT_Y_AXES; ++i)
         plot.YAxis[i].Pixels = plot.PlotRect.GetHeight();
+
+    // Equal axis constraint. Must happen after we set Pixels
+    // constrain equal axes for primary x and y if not approximately equal
+    // constrains x to y since x pixel size depends on y labels width, and causes feedback loops in opposite case
+    if (ImHasFlag(plot.Flags, ImPlotFlags_Equal)) {
+        double xar = plot.XAxis.GetAspect();
+        double yar = plot.YAxis[0].GetAspect();
+        // edge case: user has set x range this frame, so fit y to x so that we honor their request for x range
+        // NB: because of feedback across several frames, the user's x request may not be perfectly honored
+        if (gp.NextPlotData.HasXRange) {
+            plot.YAxis[0].SetAspect(xar);
+        }
+        else {
+            if (!ImAlmostEqual(xar,yar) && !plot.YAxis[0].IsInputLocked())
+                plot.XAxis.SetAspect(yar);
+        }
+    }
 
     // INPUT ------------------------------------------------------------------
     HandlePlotInput(plot);
