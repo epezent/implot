@@ -43,6 +43,11 @@
 #error Must include implot.h before implot_internal.h
 #endif
 
+// Support for pre-1.84 versions. ImPool's GetSize() -> GetBufSize()
+#if (IMGUI_VERSION_NUM < 18303)
+#define GetBufSize GetSize
+#endif
+
 //-----------------------------------------------------------------------------
 // [SECTION] Constants
 //-----------------------------------------------------------------------------
@@ -1272,7 +1277,6 @@ static inline T OffsetAndStride(const T* data, int idx, int count, int offset, i
     idx = ImPosMod(offset + idx, count);
     return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
 }
-
 // Calculate histogram bin counts and widths
 template <typename T>
 static inline void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
