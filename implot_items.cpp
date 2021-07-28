@@ -1291,6 +1291,13 @@ void PlotBarsEx(const char* label_id, const Getter& getter, double width) {
                 continue;
             ImVec2 a = PlotToPixels(p.x - half_width, p.y);
             ImVec2 b = PlotToPixels(p.x + half_width, 0);
+            float width_px = ImAbs(a.x-b.x);
+            if (width_px < 1.0f) {
+                a.x += a.x > b.x ? (1-width_px) / 2 : (width_px-1) / 2;
+                b.x += b.x > a.x ? (1-width_px) / 2 : (width_px-1) / 2;
+            }
+            // a.x = IM_ROUND(a.x);
+            // b.x = IM_ROUND(b.x);
             if (s.RenderFill)
                 DrawList.AddRectFilled(a, b, col_fill);
             if (rend_line)

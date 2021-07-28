@@ -4908,7 +4908,7 @@ bool ShowTimePicker(const char* id, ImPlotTime* t) {
     }
     if (!hour24) {
         ImGui::SameLine();
-        if (ImGui::Button(am_pm[ap],ImVec2(height,height))) {
+        if (ImGui::Button(am_pm[ap],ImVec2(0,height))) {
             ap = 1 - ap;
             changed = true;
         }
