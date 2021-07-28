@@ -3180,6 +3180,12 @@ void PopPlotClipRect() {
     ImGui::PopClipRect();
 }
 
+bool IsSubplotsHovered() {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentSubplot != NULL, "IsSubplotsHovered() needs to be called between BeginSubplots() and EndSubplots()!");
+    return gp.CurrentSubplot->FrameHovered;
+}
+
 bool IsPlotHovered() {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotHovered() needs to be called between BeginPlot() and EndPlot()!");

@@ -419,7 +419,7 @@ IMPLOT_API void EndPlot();
 //     EndSubplots();
 // }
 //
-// Procudes:
+// Produces:
 //
 // [0][1][2]
 // [3][4][5]
@@ -651,8 +651,11 @@ IMPLOT_API ImPlotLimits GetPlotQuery(ImPlotYAxis y_axis = IMPLOT_AUTO);
 // Set the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
 IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImPlotYAxis y_axis = IMPLOT_AUTO);
 
+// Returns true if the bounding frame of a subplot is hovered/
+IMPLOT_API bool IsSubplotsHovered();
+
 //-----------------------------------------------------------------------------
-// Algined Plots
+// Aligned Plots
 //-----------------------------------------------------------------------------
 
 // Consider using Begin/EndSubplots first. They are more feature rich and
