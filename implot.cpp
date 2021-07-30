@@ -1294,6 +1294,63 @@ void UpdateAxisColors(int axis_flag, ImPlotAxis* axis) {
     axis->ColorTxt = ImGui::GetColorU32(col_label);
 }
 
+//   [ pad_left  ]                 [ pad_right ]
+//   .................CanvasRect...............>                          
+//   :TPWPK.PTPWPk_____PlotRect____kPWPTP.KPWPT:    T = text height
+//   :A # |- A # |-               -| # A -| # A:    P = label padding
+//   :X   |  X   |                 |   X  |   x:    K = minor tick length
+//   :I # |- I # |-               -| # I -| # I:    W = label width      
+//   :S   |  S   |                 |   S  |   S:    
+//   :3 # |- 0 # |-_______________-| # 1 -| # 2:
+//   :.........................................:
+
+void PadAndDatumAxes(ImPlotPlot& plot, float& pad_left, float& pad_right) {
+    ImPlotContext& gp = *GImPlot;
+
+    pad_left  = 0;
+    pad_right = 0;
+
+    float last_left  = plot.AxesRect.Min.x;
+    float last_right = plot.AxesRect.Max.x;
+
+    const float T = ImGui::GetTextLineHeight();
+    const float P = gp.Style.LabelPadding.x;
+    const float K = gp.Style.MinorTickLen.y;
+
+    for (int i = IMPLOT_Y_AXES; i-- > 0;) {
+        if (!plot.YAxis[i].Present)
+            continue;
+        const bool label = plot.YAxis[i].HasLabel();
+        const bool ticks = plot.YAxis[i].HasTickLabels();
+        if (plot.YAxis[i].IsOpposite()) {
+            if (pad_right != 0)
+                pad_right += K + P;
+            if (plot.YAxis[i].HasLabel())
+                pad_right += T + P;
+            if (plot.YAxis[i].HasTickLabels())
+                pad_right += gp.YTicks[i].MaxWidth + P;
+            plot.YAxis[i].Datum1 = plot.CanvasRect.Max.x - pad_right;
+            plot.YAxis[i].Datum2 = last_right;
+            last_right = plot.YAxis[i].Datum1;
+        }
+        else {
+            if (pad_left != 0)
+                pad_left += K + P;
+            if (plot.YAxis[i].HasLabel())
+                pad_left += T + P;
+            if (plot.YAxis[i].HasTickLabels())
+                pad_left += gp.YTicks[i].MaxWidth + P;
+            plot.YAxis[i].Datum1 = plot.CanvasRect.Min.x + pad_left;
+            plot.YAxis[i].Datum2 = last_left;
+            last_left = plot.YAxis[i].Datum1;
+        }
+    }
+
+    plot.PlotRect.Min.x = plot.CanvasRect.Min.x + pad_left;
+    plot.PlotRect.Max.x = plot.CanvasRect.Max.x - pad_right;
+}
+
+
 //-----------------------------------------------------------------------------
 // RENDERING
 //-----------------------------------------------------------------------------
@@ -2033,6 +2090,27 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     }
 
     // AXIS STATES ------------------------------------------------------------
+    
+    // store axes names (TODO: loop)
+    plot.AxesLabels.Buf.shrink(0);
+    plot.XAxis.NameOffset = plot.YAxis[0].NameOffset = plot.YAxis[1].NameOffset = plot.YAxis[2].NameOffset = -1;
+    if (x_label && ImGui::FindRenderedTextEnd(x_label, NULL) != x_label) {
+        plot.XAxis.NameOffset = plot.AxesLabels.size();
+        plot.AxesLabels.append(x_label, x_label + strlen(x_label) + 1);
+    }
+    if (y1_label && ImGui::FindRenderedTextEnd(y1_label, NULL) != y1_label) {
+        plot.YAxis[0].NameOffset = plot.AxesLabels.size();
+        plot.AxesLabels.append(y1_label, y1_label + strlen(y1_label) + 1);
+    }
+    if (y2_label && ImGui::FindRenderedTextEnd(y2_label, NULL) != y2_label) {
+        plot.YAxis[1].NameOffset = plot.AxesLabels.size();
+        plot.AxesLabels.append(y2_label, y2_label + strlen(y2_label) + 1);
+    }
+    if (y3_label && ImGui::FindRenderedTextEnd(y3_label, NULL) != y3_label) {
+        plot.YAxis[2].NameOffset = plot.AxesLabels.size();
+        plot.AxesLabels.append(y3_label, y3_label + strlen(y3_label) + 1);
+    }
+    
     plot.XAxis.HasRange    = gp.NextPlotData.HasXRange;     plot.XAxis.RangeCond    = gp.NextPlotData.XRangeCond;     plot.XAxis.Present    = true;
     plot.YAxis[0].HasRange = gp.NextPlotData.HasYRange[0];  plot.YAxis[0].RangeCond = gp.NextPlotData.YRangeCond[0];  plot.YAxis[0].Present = true;
     plot.YAxis[1].HasRange = gp.NextPlotData.HasYRange[1];  plot.YAxis[1].RangeCond = gp.NextPlotData.YRangeCond[1];  plot.YAxis[1].Present = ImHasFlag(plot.Flags, ImPlotFlags_YAxis2);
@@ -2134,13 +2212,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
          title_size = ImGui::CalcTextSize(title, NULL, true);
     }
 
-    const bool show_x_label = x_label && !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoLabel);
-
     float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
-    float pad_bot = (plot.XAxis.IsLabeled() ? ImMax(txt_height, gp.XTicks.MaxHeight) + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
-                  + (show_x_label ? txt_height + gp.Style.LabelPadding.y : 0);
+    float pad_bot = (plot.XAxis.HasTickLabels() ? ImMax(txt_height, gp.XTicks.MaxHeight) + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
+                  + (plot.XAxis.HasLabel() ? txt_height + gp.Style.LabelPadding.y : 0);
 
-    // (1*) align plots group
+    // (1*) align plots group (TODO: account for outside legends!)
     if (gp.CurrentAlignmentH)
         gp.CurrentAlignmentH->Update(pad_top,pad_bot);
 
@@ -2157,19 +2233,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     }
 
     // (3) calc left/right pad
-    const bool show_y1_label = y1_label && !ImHasFlag(plot.YAxis[0].Flags, ImPlotAxisFlags_NoLabel);
-    const bool show_y2_label = y2_label && !ImHasFlag(plot.YAxis[1].Flags, ImPlotAxisFlags_NoLabel);
-    const bool show_y3_label = y3_label && !ImHasFlag(plot.YAxis[2].Flags, ImPlotAxisFlags_NoLabel);
+    float pad_left = 0, pad_right = 0;
+    PadAndDatumAxes(plot,pad_left,pad_right);
 
-    float pad_left    = (show_y1_label ? txt_height + gp.Style.LabelPadding.x : 0)
-                            + (plot.YAxis[0].IsLabeled() ? gp.YTicks[0].MaxWidth + gp.Style.LabelPadding.x : 0);
-    float pad_right   = ((plot.YAxis[1].Present && plot.YAxis[1].IsLabeled()) ? gp.YTicks[1].MaxWidth + gp.Style.LabelPadding.x : 0)
-                            + ((plot.YAxis[1].Present && show_y2_label) ? txt_height + gp.Style.LabelPadding.x : 0)
-                            + ((plot.YAxis[1].Present && plot.YAxis[2].Present)   ? gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y : 0)
-                            + ((plot.YAxis[2].Present && plot.YAxis[2].IsLabeled()) ? gp.YTicks[2].MaxWidth + gp.Style.LabelPadding.x : 0)
-                            + ((plot.YAxis[2].Present && show_y3_label) ? txt_height + gp.Style.LabelPadding.x : 0);
-
-    // (3*) align plots group
+    // (3*) align plots group (TODO: account for outside legends!)
     if (gp.CurrentAlignmentV)
         gp.CurrentAlignmentV->Update(pad_left,pad_right);
 
@@ -2194,23 +2261,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     plot.XAxis.ExtHovered = plot.XAxis.HoverRect.Contains(IO.MousePos);
     plot.XAxis.AllHovered = plot.XAxis.ExtHovered || plot.PlotHovered;
 
-    // axis label reference
-    gp.YAxisReference[0] = plot.PlotRect.Min.x;
-    gp.YAxisReference[1] = plot.PlotRect.Max.x;
-    gp.YAxisReference[2] = !plot.YAxis[1].Present  ? plot.PlotRect.Max.x : gp.YAxisReference[1]
-                         + (plot.YAxis[1].IsLabeled() ? gp.Style.LabelPadding.x + gp.YTicks[1].MaxWidth : 0)
-                         + (show_y2_label ? txt_height + gp.Style.LabelPadding.x : 0)
-                         + gp.Style.LabelPadding.x + gp.Style.MinorTickLen.y;
-
-    // y axis regions bb and hover
-    plot.YAxis[0].HoverRect = ImRect(ImVec2(plot.AxesRect.Min.x, plot.PlotRect.Min.y), ImVec2(plot.PlotRect.Min.x, plot.PlotRect.Max.y));
-    plot.YAxis[1].HoverRect = plot.YAxis[2].Present
-                            ? ImRect(plot.PlotRect.GetTR(), ImVec2(gp.YAxisReference[2], plot.PlotRect.Max.y))
-                            : ImRect(plot.PlotRect.GetTR(), ImVec2(plot.AxesRect.Max.x, plot.PlotRect.Max.y));
-
-    plot.YAxis[2].HoverRect = ImRect(ImVec2(gp.YAxisReference[2], plot.PlotRect.Min.y), ImVec2(plot.AxesRect.Max.x, plot.PlotRect.Max.y));
-
+    // // y axis regions bb and hover
     for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+        plot.YAxis[i].HoverRect  = ImRect(ImVec2(ImMin(plot.YAxis[i].Datum1,plot.YAxis[i].Datum2),plot.PlotRect.Min.y),
+                                          ImVec2(ImMax(plot.YAxis[i].Datum1,plot.YAxis[i].Datum2),plot.PlotRect.Max.y));
         plot.YAxis[i].ExtHovered = plot.YAxis[i].Present && plot.YAxis[i].HoverRect.Contains(IO.MousePos);
         plot.YAxis[i].AllHovered = plot.YAxis[i].ExtHovered || plot.PlotHovered;
     }
@@ -2289,13 +2343,13 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     }
 
     // render axis labels
-    if (show_x_label) {
+    if (plot.XAxis.HasLabel()) {
         const ImVec2 xLabel_size = ImGui::CalcTextSize(x_label);
         const ImVec2 xLabel_pos(plot.PlotRect.GetCenter().x - xLabel_size.x * 0.5f, plot.CanvasRect.Max.y - txt_height);
         DrawList.AddText(xLabel_pos, plot.XAxis.ColorTxt, x_label);
     }
 
-    if (show_y1_label) {
+    if (plot.YAxis[0].HasLabel()) {
         const ImVec2 yLabel_size = CalcTextSizeVertical(y1_label);
         const ImVec2 yLabel_pos(plot.CanvasRect.Min.x, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
         AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[0].ColorTxt, y1_label);
@@ -2303,12 +2357,11 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
    const char* y_labels[] = {y2_label, y3_label};
    for (int i = 1; i < IMPLOT_Y_AXES; i++) {
-       const char* current_label = y_labels[i-1];
-       if (plot.YAxis[i].Present && current_label && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoLabel)) {
-           const ImVec2 yLabel_size = CalcTextSizeVertical(current_label);
-           float label_offset = (plot.YAxis[i].IsLabeled() ? gp.YTicks[i].MaxWidth + gp.Style.LabelPadding.x : 0.0f) + gp.Style.LabelPadding.x;
-           const ImVec2 yLabel_pos(gp.YAxisReference[i] + label_offset, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
-           AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[i].ColorTxt, current_label);
+       if (plot.YAxis[i].Present && plot.YAxis[i].HasLabel()) {
+           const ImVec2 yLabel_size = CalcTextSizeVertical(y_labels[i-1]);
+           float label_offset = (plot.YAxis[i].HasTickLabels() ? gp.YTicks[i].MaxWidth + gp.Style.LabelPadding.x : 0.0f) + gp.Style.LabelPadding.x;
+           const ImVec2 yLabel_pos(plot.YAxis[i].Datum1 + label_offset, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
+           AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[i].ColorTxt, y_labels[i-1]);
        }
    }
 
@@ -2325,7 +2378,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
         if (plot.YAxis[i].Present && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoTickLabels)) {
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
-                const float x_start = gp.YAxisReference[i] + (i == 0 ?  (-gp.Style.LabelPadding.x - gp.YTicks[i].Ticks[t].LabelSize.x) : gp.Style.LabelPadding.x);
+                const float x_start = plot.YAxis[i].Datum1 + (i == 0 ?  (-gp.Style.LabelPadding.x - gp.YTicks[i].Ticks[t].LabelSize.x) : gp.Style.LabelPadding.x);
                 ImPlotTick *yt = &gp.YTicks[i].Ticks[t];
                 if (yt->ShowLabel && yt->PixelPos >= plot.PlotRect.Min.y - 1 && yt->PixelPos <= plot.PlotRect.Max.y + 1) {
                     ImVec2 start(x_start, yt->PixelPos - 0.5f * yt->LabelSize.y);
@@ -2395,7 +2448,7 @@ void EndPlot() {
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
         if (!plot.YAxis[i].Present) { continue; }
         axis_count++;
-        float x_start = gp.YAxisReference[i];
+        float x_start = plot.YAxis[i].Datum1;
         if (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoTickMarks)) {
             float direction = (i == 0) ? 1.0f : -1.0f;
             bool no_major = axis_count >= 3;
@@ -4435,6 +4488,7 @@ void ShowMetricsWindow(bool* p_popen) {
 
     static bool show_plot_rects = false;
     static bool show_axes_rects = false;
+    static bool show_axis_rects = false;
     static bool show_canvas_rects = false;
     static bool show_frame_rects = false;
     static bool show_subplot_frame_rects = false;
@@ -4459,6 +4513,7 @@ void ShowMetricsWindow(bool* p_popen) {
         ImGui::Checkbox("Show Canvas Rects",&show_canvas_rects);
         ImGui::Checkbox("Show Plot Rects",  &show_plot_rects);
         ImGui::Checkbox("Show Axes Rects",  &show_axes_rects);
+        ImGui::Checkbox("Show Axis Rects",  &show_axis_rects);
         ImGui::Checkbox("Show Subplot Frame Rects",  &show_subplot_frame_rects);
         ImGui::Checkbox("Show Subplot Grid Rects",  &show_subplot_grid_rects);
 
@@ -4475,7 +4530,9 @@ void ShowMetricsWindow(bool* p_popen) {
             fg.AddRect(plot->CanvasRect.Min, plot->CanvasRect.Max, IM_COL32(0,255,255,255));
         if (show_plot_rects)
             fg.AddRect(plot->PlotRect.Min, plot->PlotRect.Max, IM_COL32(255,255,0,255));
-        if (show_axes_rects) {
+        if (show_axes_rects)
+            fg.AddRect(plot->AxesRect.Min, plot->AxesRect.Max, IM_COL32(0,255,128,255));
+        if (show_axis_rects) {
             fg.AddRect(plot->XAxis.HoverRect.Min, plot->XAxis.HoverRect.Max, IM_COL32(0,255,0,255));
             fg.AddRect(plot->YAxis[0].HoverRect.Min, plot->YAxis[0].HoverRect.Max, IM_COL32(0,255,0,255));
             if (ImHasFlag(plot->Flags, ImPlotFlags_YAxis2))

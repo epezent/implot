@@ -90,17 +90,19 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_NoGridLines   = 1 << 1,  // no grid lines will be displayed
     ImPlotAxisFlags_NoTickMarks   = 1 << 2,  // no tick marks will be displayed
     ImPlotAxisFlags_NoTickLabels  = 1 << 3,  // no text labels will be displayed
-    ImPlotAxisFlags_Foreground    = 1 << 4,  // grid lines will be displayed in the foreground (i.e. on top of data) in stead of the background
-    ImPlotAxisFlags_LogScale      = 1 << 5,  // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
-    ImPlotAxisFlags_Time          = 1 << 6,  // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
-    ImPlotAxisFlags_Invert        = 1 << 7,  // the axis will be inverted
-    ImPlotAxisFlags_NoInitialFit  = 1 << 8,  // axis will not be initially fit to data extents on the first rendered frame (also the case if SetNextPlotLimits explicitly called)
-    ImPlotAxisFlags_AutoFit       = 1 << 9,  // axis will be auto-fitting to data extents
-    ImPlotAxisFlags_RangeFit      = 1 << 10, // axis will only fit points if the point is in the visible range of the **orthoganol** axis
-    ImPlotAxisFlags_LockMin       = 1 << 11, // the axis minimum value will be locked when panning/zooming
-    ImPlotAxisFlags_LockMax       = 1 << 12, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_Opposite      = 1 << 4,  // axis ticks and labels will be rendered on conventionally opposite side (i.e, right or top)
+    ImPlotAxisFlags_Foreground    = 1 << 5,  // grid lines will be displayed in the foreground (i.e. on top of data) in stead of the background
+    ImPlotAxisFlags_LogScale      = 1 << 6,  // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
+    ImPlotAxisFlags_Time          = 1 << 7,  // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
+    ImPlotAxisFlags_Invert        = 1 << 8,  // the axis will be inverted
+    ImPlotAxisFlags_NoInitialFit  = 1 << 9,  // axis will not be initially fit to data extents on the first rendered frame (also the case if SetNextPlotLimits explicitly called)
+    ImPlotAxisFlags_AutoFit       = 1 << 10, // axis will be auto-fitting to data extents
+    ImPlotAxisFlags_RangeFit      = 1 << 11, // axis will only fit points if the point is in the visible range of the **orthoganol** axis
+    ImPlotAxisFlags_LockMin       = 1 << 12, // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax       = 1 << 13, // the axis maximum value will be locked when panning/zooming
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
-    ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels
+    ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels,
+    ImPlotAxisFlags_AuxDefault    = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_Opposite
 };
 
 // Options for subplots (see BeginSubplot).
@@ -388,8 +390,8 @@ IMPLOT_API bool BeginPlot(const char* title_id,
                           ImPlotFlags flags        = ImPlotFlags_None,
                           ImPlotAxisFlags x_flags  = ImPlotAxisFlags_None,
                           ImPlotAxisFlags y_flags  = ImPlotAxisFlags_None,
-                          ImPlotAxisFlags y2_flags = ImPlotAxisFlags_NoGridLines,
-                          ImPlotAxisFlags y3_flags = ImPlotAxisFlags_NoGridLines,
+                          ImPlotAxisFlags y2_flags = ImPlotAxisFlags_AuxDefault,
+                          ImPlotAxisFlags y3_flags = ImPlotAxisFlags_AuxDefault,
                           const char* y2_label     = NULL,
                           const char* y3_label     = NULL);
 

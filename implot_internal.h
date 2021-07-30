@@ -608,6 +608,9 @@ struct ImPlotAxis
     ImU32             ColorMaj, ColorMin, ColorTxt;
     ImGuiCond         RangeCond;
     ImRect            HoverRect;
+    float             Datum1;
+    float             Datum2;
+    int               NameOffset;
 
     ImPlotAxis() {
         Flags       = PreviousFlags = ImPlotAxisFlags_None;
@@ -619,6 +622,8 @@ struct ImPlotAxis
         LinkedMin   = LinkedMax = NULL;
         PickerLevel = 0;
         ColorMaj    = ColorMin = ColorTxt = 0;
+        Datum1      = Datum2 = 0;
+        NameOffset  = -1;
     }
 
     bool SetMin(double _min, bool force=false) {
@@ -693,7 +698,10 @@ struct ImPlotAxis
             Range.Max = Range.Min + DBL_EPSILON;
     }
 
-    inline bool IsLabeled()         const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                          }
+    inline bool HasLabel()          const { return NameOffset != -1 && !ImHasFlag(Flags, ImPlotAxisFlags_NoLabel);           }
+    inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                          }
+
+    inline bool IsOpposite()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                               }
     inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                 }
 
     inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                }
@@ -829,6 +837,7 @@ struct ImPlotPlot
     ImRect          CanvasRect;
     ImRect          PlotRect;
     ImRect          AxesRect;
+    ImGuiTextBuffer AxesLabels;
 
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
@@ -961,7 +970,6 @@ struct ImPlotContext {
     ImPlotTickCollection CTicks;
     ImPlotTickCollection XTicks;
     ImPlotTickCollection YTicks[IMPLOT_Y_AXES];
-    float                YAxisReference[IMPLOT_Y_AXES];
 
     // Annotation and User Labels
     ImPlotAnnotationCollection Annotations;
