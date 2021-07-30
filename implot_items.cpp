@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.11 WIP
+// ImPlot v0.12 WIP
 
 #include "implot.h"
 #include "implot_internal.h"
@@ -278,12 +278,12 @@ void EndItem() {
 // Offsets and strides a data buffer
 template <typename T>
 IMPLOT_INLINE T IndexData(const T* data, int idx, int count, int offset, int stride) {
-    const int s = ((offset == 0) << 0) | ((stride == sizeof(float)) << 1);
+    const int s = 3 - ((offset == 0) << 0) | ((stride == sizeof(float)) << 1);
     switch (s) {
-        case 3 : return data[idx];
-        case 2 : return data[(offset + idx) % count];  
-        case 1 : return *(const T*)(const void*)((const unsigned char*)data + (size_t)((idx) ) * stride);  
-        case 0 : return *(const T*)(const void*)((const unsigned char*)data + (size_t)((offset + idx) % count) * stride);    
+        case 0 : return data[idx];
+        case 1 : return data[(offset + idx) % count];  
+        case 2 : return *(const T*)(const void*)((const unsigned char*)data + (size_t)((idx) ) * stride);  
+        case 3 : return *(const T*)(const void*)((const unsigned char*)data + (size_t)((offset + idx) % count) * stride);    
         default: return T(0);
     }
 }
@@ -695,8 +695,8 @@ struct ShadedRenderer {
         DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1 + intersect);
         DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
         DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3 - intersect);
-        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 4);
+        DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 4);
+        DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3 - intersect);
         DrawList._IdxWritePtr += 6;
         DrawList._VtxCurrentIdx += 5;
         P11 = P21;
