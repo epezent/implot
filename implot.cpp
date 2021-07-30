@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.11 WIP
+// ImPlot v0.12 WIP
 
 /*
 
@@ -2809,7 +2809,6 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
 
     // calc plot frame sizes
     ImVec2 title_size(0.0f, 0.0f);
-    const float txt_height = ImGui::GetTextLineHeight();
     if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle))
          title_size = ImGui::CalcTextSize(title, NULL, true);
     const float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
@@ -2852,12 +2851,10 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     // render splitters
     if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoResize)) {
         ImDrawList& DrawList = *ImGui::GetWindowDrawList();
-        const ImU32 nrm_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_Separator]);
         const ImU32 hov_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorHovered]);
         const ImU32 act_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorActive]);
         float xpos = subplot.GridRect.Min.x;
         float ypos = subplot.GridRect.Min.y;
-        const ImVec2 mouse = ImGui::GetIO().MousePos;
         int separator = 1;
         // bool pass = false;
         for (int r = 0; r < subplot.Rows-1; ++r) {
