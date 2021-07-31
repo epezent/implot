@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2021/07/30 (0.12) - The offset argument of `PlotXG` functions was been removed. Implement offsetting in your getter callback instead.
 - 2021/03/08 (0.9)  - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support. LerpColormap was changed to SampleColormap.
                       ShowColormapScale was changed to ColormapScale and requires additional arguments.
 - 2021/03/07 (0.9)  - The signature of ShowColormapScale was modified to accept a ImVec2 size.
@@ -436,8 +437,6 @@ void Initialize(ImPlotContext* ctx) {
     IMPLOT_APPEND_CMAP(PiYG, false);
     IMPLOT_APPEND_CMAP(Spectral, false);
     IMPLOT_APPEND_CMAP(Greys, false);
-
-    memset(ctx->DebugBools, 0, sizeof(ctx->DebugBools));
 }
 
 void ResetCtxForNextPlot(ImPlotContext* ctx) {

@@ -1014,9 +1014,6 @@ struct ImPlotContext {
     ImPool<ImPlotAlignmentData> AlignmentData;
     ImPlotAlignmentData*        CurrentAlignmentH;
     ImPlotAlignmentData*        CurrentAlignmentV;
-
-    // Debug/dev flags
-    bool DebugBools[4];
 };
 
 //-----------------------------------------------------------------------------
