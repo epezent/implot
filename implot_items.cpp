@@ -278,12 +278,12 @@ void EndItem() {
 // Offsets and strides a data buffer
 template <typename T>
 IMPLOT_INLINE T IndexData(const T* data, int idx, int count, int offset, int stride) {
-    const int s = 3 - ((offset == 0) << 0) | ((stride == sizeof(float)) << 1);
+    const int s = ((offset == 0) << 0) | ((stride == sizeof(float)) << 1);
     switch (s) {
-        case 0 : return data[idx];
-        case 1 : return data[(offset + idx) % count];  
-        case 2 : return *(const T*)(const void*)((const unsigned char*)data + (size_t)((idx) ) * stride);  
-        case 3 : return *(const T*)(const void*)((const unsigned char*)data + (size_t)((offset + idx) % count) * stride);    
+        case 3 : return data[idx];
+        case 2 : return data[(offset + idx) % count];
+        case 1 : return *(const T*)(const void*)((const unsigned char*)data + (size_t)((idx) ) * stride);
+        case 0 : return *(const T*)(const void*)((const unsigned char*)data + (size_t)((offset + idx) % count) * stride);
         default: return T(0);
     }
 }
@@ -455,7 +455,7 @@ struct GetterError {
 
 // Transforms convert points in plot space (i.e. ImPlotPoint) to pixel space (i.e. ImVec2)
 
-struct TransformerLin { 
+struct TransformerLin {
     TransformerLin(double pixMin, double pltMin, double,       double m, double    ) : PixMin(pixMin), PltMin(pltMin), M(m) { }
     template <typename T> IMPLOT_INLINE float operator()(T p) const { return (float)(PixMin + M * (p - PltMin)); }
     double PixMin, PltMin, M;
@@ -961,7 +961,7 @@ IMPLOT_INLINE void PlotLineEx(const char* label_id, const Getter& getter) {
 template <typename T>
 void PlotLine(const char* label_id, const T* values, int count, double xscale, double x0, int offset, int stride) {
     GetterYs<T> getter(values,count,xscale,x0,offset,stride);
-    PlotLineEx(label_id, getter);    
+    PlotLineEx(label_id, getter);
 }
 
 template IMPLOT_API void PlotLine<ImS8> (const char* label_id, const ImS8* values, int count, double xscale, double x0, int offset, int stride);
