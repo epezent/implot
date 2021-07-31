@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.11 WIP
+// ImPlot v0.12 WIP
 
 /*
 
@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2021/07/30 (0.12) - The offset argument of `PlotXG` functions was been removed. Implement offsetting in your getter callback instead.
 - 2021/03/08 (0.9)  - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support. LerpColormap was changed to SampleColormap.
                       ShowColormapScale was changed to ColormapScale and requires additional arguments.
 - 2021/03/07 (0.9)  - The signature of ShowColormapScale was modified to accept a ImVec2 size.
@@ -436,7 +437,6 @@ void Initialize(ImPlotContext* ctx) {
     IMPLOT_APPEND_CMAP(PiYG, false);
     IMPLOT_APPEND_CMAP(Spectral, false);
     IMPLOT_APPEND_CMAP(Greys, false);
-
 }
 
 void ResetCtxForNextPlot(ImPlotContext* ctx) {
@@ -2862,7 +2862,6 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
 
     // calc plot frame sizes
     ImVec2 title_size(0.0f, 0.0f);
-    const float txt_height = ImGui::GetTextLineHeight();
     if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle))
          title_size = ImGui::CalcTextSize(title, NULL, true);
     const float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
@@ -2905,12 +2904,10 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     // render splitters
     if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoResize)) {
         ImDrawList& DrawList = *ImGui::GetWindowDrawList();
-        const ImU32 nrm_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_Separator]);
         const ImU32 hov_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorHovered]);
         const ImU32 act_col = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_SeparatorActive]);
         float xpos = subplot.GridRect.Min.x;
         float ypos = subplot.GridRect.Min.y;
-        const ImVec2 mouse = ImGui::GetIO().MousePos;
         int separator = 1;
         // bool pass = false;
         for (int r = 0; r < subplot.Rows-1; ++r) {
@@ -4970,7 +4967,7 @@ bool ShowTimePicker(const char* id, ImPlotTime* t) {
     }
     if (!hour24) {
         ImGui::SameLine();
-        if (ImGui::Button(am_pm[ap],ImVec2(height,height))) {
+        if (ImGui::Button(am_pm[ap],ImVec2(0,height))) {
             ap = 1 - ap;
             changed = true;
         }

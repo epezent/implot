@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.11 WIP
+// ImPlot v0.12 WIP
 
 #include "implot.h"
 #include <math.h>
@@ -1025,7 +1025,7 @@ void ShowDemo_SubplotItemSharing() {
                     }
                 }
                 if (ImPlot::BeginDragDropTarget()) {
-                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND"))
+                    if (ImGui::AcceptDragDropPayload("MY_DND"))
                         id[curj] = i;
                     ImPlot::EndDragDropTarget();
                 }
