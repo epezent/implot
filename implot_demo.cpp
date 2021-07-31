@@ -1025,7 +1025,7 @@ void ShowDemo_SubplotItemSharing() {
                     }
                 }
                 if (ImPlot::BeginDragDropTarget()) {
-                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND"))
+                    if (ImGui::AcceptDragDropPayload("MY_DND"))
                         id[curj] = i;
                     ImPlot::EndDragDropTarget();
                 }
