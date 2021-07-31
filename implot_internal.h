@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.11 WIP
+// ImPlot v0.12 WIP
 
 // You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
@@ -1271,12 +1271,6 @@ void FillRange(ImVector<T>& buffer, int n, T vmin, T vmax) {
     }
 }
 
-// Offsets and strides a data buffer
-template <typename T>
-static inline T OffsetAndStride(const T* data, int idx, int count, int offset, int stride) {
-    idx = ImPosMod(offset + idx, count);
-    return *(const T*)(const void*)((const unsigned char*)data + (size_t)idx * stride);
-}
 // Calculate histogram bin counts and widths
 template <typename T>
 static inline void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
