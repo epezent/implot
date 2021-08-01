@@ -55,7 +55,7 @@
 // to ImPlotStyleVar_ over time.
 
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
-#define IMPLOT_Y_AXES    3
+#define IMPLOT_MAX_AXES    3
 // Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
 #define IMPLOT_ZOOM_RATE 0.1f
 // Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
@@ -611,7 +611,7 @@ struct ImPlotAxis
     ImRect            HoverRect;
     float             Datum1;
     float             Datum2;
-    int               NameOffset;
+    int               LabelOffset;
 
     ImPlotAxis() {
         Flags       = PreviousFlags = ImPlotAxisFlags_None;
@@ -625,7 +625,7 @@ struct ImPlotAxis
         PickerLevel = 0;
         ColorMaj    = ColorMin = ColorTxt = 0;
         Datum1      = Datum2 = 0;
-        NameOffset  = -1;
+        LabelOffset = -1;
     }
 
     bool SetMin(double _min, bool force=false) {
@@ -700,7 +700,8 @@ struct ImPlotAxis
             Range.Max = Range.Min + DBL_EPSILON;
     }
 
-    inline bool HasLabel()          const { return NameOffset != -1 && !ImHasFlag(Flags, ImPlotAxisFlags_NoLabel);           }
+    inline bool HasLabel()          const { return LabelOffset != -1 && !ImHasFlag(Flags, ImPlotAxisFlags_NoLabel);          }
+    inline bool HasGridLines()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoGridLines);                           }
     inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                          }
     inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                           }
 
@@ -818,7 +819,7 @@ struct ImPlotPlot
     ImPlotFlags     Flags;
     ImPlotFlags     PreviousFlags;
     ImPlotAxis      XAxis;
-    ImPlotAxis      YAxis[IMPLOT_Y_AXES];
+    ImPlotAxis      YAxis[IMPLOT_MAX_AXES];
     ImPlotItemGroup Items;
     ImVec2          SelectStart;
     ImRect          SelectRect;
@@ -840,22 +841,49 @@ struct ImPlotPlot
     ImRect          CanvasRect;
     ImRect          PlotRect;
     ImRect          AxesRect;
-    ImGuiTextBuffer AxesLabels;
+    ImGuiTextBuffer TextBuffer;
+    int             TitleOffset;
 
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
         XAxis.Orientation = ImPlotOrientation_Horizontal;
-        for (int i = 0; i < IMPLOT_Y_AXES; ++i)
+        for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
             YAxis[i].Orientation = ImPlotOrientation_Vertical;
         SelectStart       = QueryStart = ImVec2(0,0);
         Initialized       = Selecting = Selected = ContextLocked = Querying = Queried = DraggingQuery = false;
-        CurrentYAxis       = 0;
+        CurrentYAxis      = 0;
         MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
+        TitleOffset       = -1;
     }
 
     inline bool AnyYInputLocked() const { return YAxis[0].IsInputLocked() || (YAxis[1].Present ? YAxis[1].IsInputLocked() : false) || (YAxis[2].Present ? YAxis[2].IsInputLocked() : false); }
     inline bool AllYInputLocked() const { return YAxis[0].IsInputLocked() && (YAxis[1].Present ? YAxis[1].IsInputLocked() : true ) && (YAxis[2].Present ? YAxis[2].IsInputLocked() : true ); }
     inline bool IsInputLocked() const   { return XAxis.IsInputLocked() && YAxis[0].IsInputLocked() && YAxis[1].IsInputLocked() && YAxis[2].IsInputLocked();                                  }
+
+    inline void ClearTextBuffer() { TextBuffer.Buf.shrink(0); }
+
+    inline void SetTitle(const char* title) {
+        if (title && ImGui::FindRenderedTextEnd(title, NULL) != title) {
+            TitleOffset = TextBuffer.size();
+            TextBuffer.append(title, title + strlen(title) + 1);
+        }
+        else {
+            TitleOffset = -1;
+        }
+    }
+    inline bool HasTitle() const { return TitleOffset != -1 && !ImHasFlag(Flags, ImPlotFlags_NoTitle); }
+    inline const char* GetTitle() const { return TextBuffer.Buf.Data + TitleOffset; }
+
+    inline void SetAxisLabel(ImPlotAxis& axis, const char* label) {
+        if (label && ImGui::FindRenderedTextEnd(label, NULL) != label) {
+            axis.LabelOffset = TextBuffer.size();
+            TextBuffer.append(label, label + strlen(label) + 1);
+        }
+        else {
+            axis.LabelOffset = -1;
+        }
+    }
+    inline const char* GetAxisLabel(const ImPlotAxis& axis) const { return TextBuffer.Buf.Data + axis.LabelOffset; } 
 };
 
 // Holds subplot data that must persist afer EndSubplot
@@ -892,23 +920,23 @@ struct ImPlotSubplot {
 struct ImPlotNextPlotData
 {
     ImGuiCond   XRangeCond;
-    ImGuiCond   YRangeCond[IMPLOT_Y_AXES];
+    ImGuiCond   YRangeCond[IMPLOT_MAX_AXES];
     ImPlotRange XRange;
-    ImPlotRange YRange[IMPLOT_Y_AXES];
+    ImPlotRange YRange[IMPLOT_MAX_AXES];
     bool        HasXRange;
-    bool        HasYRange[IMPLOT_Y_AXES];
+    bool        HasYRange[IMPLOT_MAX_AXES];
     bool        ShowDefaultTicksX;
-    bool        ShowDefaultTicksY[IMPLOT_Y_AXES];
+    bool        ShowDefaultTicksY[IMPLOT_MAX_AXES];
     char        FmtX[16];
-    char        FmtY[IMPLOT_Y_AXES][16];
+    char        FmtY[IMPLOT_MAX_AXES][16];
     bool        HasFmtX;
-    bool        HasFmtY[IMPLOT_Y_AXES];
+    bool        HasFmtY[IMPLOT_MAX_AXES];
     bool        FitX;
-    bool        FitY[IMPLOT_Y_AXES];
+    bool        FitY[IMPLOT_MAX_AXES];
     double*     LinkedXmin;
     double*     LinkedXmax;
-    double*     LinkedYmin[IMPLOT_Y_AXES];
-    double*     LinkedYmax[IMPLOT_Y_AXES];
+    double*     LinkedYmin[IMPLOT_MAX_AXES];
+    double*     LinkedYmax[IMPLOT_MAX_AXES];
 
     ImPlotNextPlotData() { Reset(); }
 
@@ -918,7 +946,7 @@ struct ImPlotNextPlotData
         HasFmtX           = false;
         FitX              = false;
         LinkedXmin = LinkedXmax = NULL;
-        for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+        for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
             HasYRange[i]         = false;
             ShowDefaultTicksY[i] = true;
             HasFmtY[i]           = false;
@@ -972,29 +1000,29 @@ struct ImPlotContext {
     // Tick Marks and Labels
     ImPlotTickCollection CTicks;
     ImPlotTickCollection XTicks;
-    ImPlotTickCollection YTicks[IMPLOT_Y_AXES];
+    ImPlotTickCollection YTicks[IMPLOT_MAX_AXES];
 
     // Annotation and User Labels
     ImPlotAnnotationCollection Annotations;
 
     // Transformations and Data Extents
-    ImPlotScale Scales[IMPLOT_Y_AXES];
-    ImRect      PixelRange[IMPLOT_Y_AXES];
+    ImPlotScale Scales[IMPLOT_MAX_AXES];
+    ImRect      PixelRange[IMPLOT_MAX_AXES];
     double      Mx;
-    double      My[IMPLOT_Y_AXES];
+    double      My[IMPLOT_MAX_AXES];
     double      LogDenX;
-    double      LogDenY[IMPLOT_Y_AXES];
+    double      LogDenY[IMPLOT_MAX_AXES];
     ImPlotRange ExtentsX;
-    ImPlotRange ExtentsY[IMPLOT_Y_AXES];
+    ImPlotRange ExtentsY[IMPLOT_MAX_AXES];
 
     // Data Fitting Flags
     bool FitThisFrame;
     bool FitX;
-    bool FitY[IMPLOT_Y_AXES];
+    bool FitY[IMPLOT_MAX_AXES];
 
     // Axis Rendering Flags
     bool RenderX;
-    bool RenderY[IMPLOT_Y_AXES];
+    bool RenderY[IMPLOT_MAX_AXES];
 
 
     // Axis Locking Flags
@@ -1019,7 +1047,7 @@ struct ImPlotContext {
     ImPlotNextPlotData NextPlotData;
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
-    ImPlotPoint        MousePos[IMPLOT_Y_AXES];
+    ImPlotPoint        MousePos[IMPLOT_MAX_AXES];
 
     // Align plots
     ImPool<ImPlotAlignmentData> AlignmentData;
