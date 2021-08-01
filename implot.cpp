@@ -87,6 +87,12 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 // Global plot context
 ImPlotContext* GImPlot = NULL;
 
+#define IMPLOT_ID_PLT 10030910
+#define IMPLOT_ID_LEG 10030911
+#define IMPLOT_ID_XAX 10030912
+#define IMPLOT_ID_YAX 10030913
+#define IMPLOT_ID_ITM 10030914
+
 //-----------------------------------------------------------------------------
 // Struct Implementations
 //-----------------------------------------------------------------------------
@@ -1260,6 +1266,272 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
 }
 
 //-----------------------------------------------------------------------------
+// Context Menu
+//-----------------------------------------------------------------------------
+
+template <typename F>
+bool DragFloat(const char*, F*, float, F, F) {
+    return false;
+}
+
+template <>
+bool DragFloat<double>(const char* label, double* v, float v_speed, double v_min, double v_max) {
+    return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, "%.3f", 1);
+}
+
+template <>
+bool DragFloat<float>(const char* label, float* v, float v_speed, float v_min, float v_max) {
+    return ImGui::DragScalar(label, ImGuiDataType_Float, v, v_speed, &v_min, &v_max, "%.3f", 1);
+}
+
+inline void BeginDisabledControls(bool cond) {
+    if (cond) {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);
+    }
+}
+
+inline void EndDisabledControls(bool cond) {
+    if (cond) {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleVar();
+    }
+}
+
+void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_allowed) {
+
+    ImGui::PushItemWidth(75);
+    bool always_locked   = axis.IsRangeLocked() || axis.IsAutoFitting();
+    bool label           = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoLabel) && axis.NameOffset != -1;
+    bool grid            = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
+    bool ticks           = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
+    bool labels          = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
+    double drag_speed    = (axis.Range.Size() <= DBL_EPSILON) ? DBL_EPSILON * 1.0e+13 : 0.01 * axis.Range.Size(); // recover from almost equal axis limits.
+
+    if (axis.IsTime()) {
+        ImPlotTime tmin = ImPlotTime::FromDouble(axis.Range.Min);
+        ImPlotTime tmax = ImPlotTime::FromDouble(axis.Range.Max);
+
+        BeginDisabledControls(always_locked);
+        ImGui::CheckboxFlags("##LockMin", (unsigned int*)&axis.Flags, ImPlotAxisFlags_LockMin);
+        EndDisabledControls(always_locked);
+        ImGui::SameLine();
+        BeginDisabledControls(axis.IsLockedMin() || always_locked);
+        if (ImGui::BeginMenu("Min Time")) {
+            if (ShowTimePicker("mintime", &tmin)) {
+                if (tmin >= tmax)
+                    tmax = AddTime(tmin, ImPlotTimeUnit_S, 1);
+                axis.SetRange(tmin.ToDouble(),tmax.ToDouble());
+            }
+            ImGui::Separator();
+            if (ShowDatePicker("mindate",&axis.PickerLevel,&axis.PickerTimeMin,&tmin,&tmax)) {
+                tmin = CombineDateTime(axis.PickerTimeMin, tmin);
+                if (tmin >= tmax)
+                    tmax = AddTime(tmin, ImPlotTimeUnit_S, 1);
+                axis.SetRange(tmin.ToDouble(), tmax.ToDouble());
+            }
+            ImGui::EndMenu();
+        }
+        EndDisabledControls(axis.IsLockedMin() || always_locked);
+
+        BeginDisabledControls(always_locked);
+        ImGui::CheckboxFlags("##LockMax", (unsigned int*)&axis.Flags, ImPlotAxisFlags_LockMax);
+        EndDisabledControls(always_locked);
+        ImGui::SameLine();
+        BeginDisabledControls(axis.IsLockedMax() || always_locked);
+        if (ImGui::BeginMenu("Max Time")) {
+            if (ShowTimePicker("maxtime", &tmax)) {
+                if (tmax <= tmin)
+                    tmin = AddTime(tmax, ImPlotTimeUnit_S, -1);
+                axis.SetRange(tmin.ToDouble(),tmax.ToDouble());
+            }
+            ImGui::Separator();
+            if (ShowDatePicker("maxdate",&axis.PickerLevel,&axis.PickerTimeMax,&tmin,&tmax)) {
+                tmax = CombineDateTime(axis.PickerTimeMax, tmax);
+                if (tmax <= tmin)
+                    tmin = AddTime(tmax, ImPlotTimeUnit_S, -1);
+                axis.SetRange(tmin.ToDouble(), tmax.ToDouble());
+            }
+            ImGui::EndMenu();
+        }
+        EndDisabledControls(axis.IsLockedMax() || always_locked);
+    }
+    else {
+        BeginDisabledControls(always_locked);
+        ImGui::CheckboxFlags("##LockMin", (unsigned int*)&axis.Flags, ImPlotAxisFlags_LockMin);
+        EndDisabledControls(always_locked);
+        ImGui::SameLine();
+        BeginDisabledControls(axis.IsLockedMin() || always_locked);
+        double temp_min = axis.Range.Min;
+        if (DragFloat("Min", &temp_min, (float)drag_speed, -HUGE_VAL, axis.Range.Max - DBL_EPSILON)) {
+            axis.SetMin(temp_min,true);
+            if (equal_axis != NULL)
+                equal_axis->SetAspect(axis.GetAspect());
+        }
+        EndDisabledControls(axis.IsLockedMin() || always_locked);
+
+        BeginDisabledControls(always_locked);
+        ImGui::CheckboxFlags("##LockMax", (unsigned int*)&axis.Flags, ImPlotAxisFlags_LockMax);
+        EndDisabledControls(always_locked);
+        ImGui::SameLine();
+        BeginDisabledControls(axis.IsLockedMax() || always_locked);
+        double temp_max = axis.Range.Max;
+        if (DragFloat("Max", &temp_max, (float)drag_speed, axis.Range.Min + DBL_EPSILON, HUGE_VAL)) {
+            axis.SetMax(temp_max,true);
+            if (equal_axis != NULL)
+                equal_axis->SetAspect(axis.GetAspect());
+        }
+        EndDisabledControls(axis.IsLockedMax() || always_locked);
+    }
+
+    ImGui::Separator();
+
+    ImGui::CheckboxFlags("Auto-Fit",(unsigned int*)&axis.Flags, ImPlotAxisFlags_AutoFit);
+    BeginDisabledControls(axis.IsTime() && time_allowed);
+    ImGui::CheckboxFlags("Log Scale",(unsigned int*)&axis.Flags, ImPlotAxisFlags_LogScale);
+    EndDisabledControls(axis.IsTime() && time_allowed);
+    if (time_allowed) {
+        BeginDisabledControls(axis.IsLog());
+        ImGui::CheckboxFlags("Time",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Time);
+        EndDisabledControls(axis.IsLog());
+    }
+    ImGui::Separator();
+    ImGui::CheckboxFlags("Invert",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Invert);
+    ImGui::CheckboxFlags("Opposite",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Opposite);
+    ImGui::Separator();
+    BeginDisabledControls(axis.NameOffset == -1);
+    if (ImGui::Checkbox("Label", &label))
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoLabel);
+    EndDisabledControls(axis.NameOffset == -1);
+    if (ImGui::Checkbox("Grid Lines", &grid))
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
+    if (ImGui::Checkbox("Tick Marks", &ticks))
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
+    if (ImGui::Checkbox("Tick Labels", &labels))
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
+
+}
+
+bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible) {
+    const float s = ImGui::GetFrameHeight();
+    bool ret = false;
+    if (ImGui::Checkbox("Show",&visible))
+        ret = true;
+    if (legend.CanGoInside)
+        ImGui::Checkbox("Outside", &legend.Outside);
+    if (ImGui::RadioButton("H", legend.Orientation == ImPlotOrientation_Horizontal))
+        legend.Orientation = ImPlotOrientation_Horizontal;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("V", legend.Orientation == ImPlotOrientation_Vertical))
+        legend.Orientation = ImPlotOrientation_Vertical;
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2,2));
+    if (ImGui::Button("NW",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_NorthWest; } ImGui::SameLine();
+    if (ImGui::Button("N", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_North;     } ImGui::SameLine();
+    if (ImGui::Button("NE",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_NorthEast; }
+    if (ImGui::Button("W", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_West;      } ImGui::SameLine();
+    if (ImGui::InvisibleButton("C", ImVec2(1.5f*s,s))) {     } ImGui::SameLine();
+    if (ImGui::Button("E", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_East;      }
+    if (ImGui::Button("SW",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_SouthWest; } ImGui::SameLine();
+    if (ImGui::Button("S", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_South;     } ImGui::SameLine();
+    if (ImGui::Button("SE",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_SouthEast; }
+    ImGui::PopStyleVar();
+    return ret;
+}
+
+void ShowSubplotsContextMenu(ImPlotSubplot& subplot) {
+    if ((ImGui::BeginMenu("Linking"))) {
+        if (ImGui::MenuItem("Link Rows",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
+        if (ImGui::MenuItem("Link Cols",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
+        if (ImGui::MenuItem("Link All X",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX);
+        if (ImGui::MenuItem("Link All Y",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
+        ImGui::EndMenu();
+    }
+    if ((ImGui::BeginMenu("Settings"))) {
+        if (ImGui::MenuItem("Title",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle);
+        if (ImGui::MenuItem("Resizable",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoResize)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoResize);
+        if (ImGui::MenuItem("Align",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign);
+        if (ImGui::MenuItem("Share Items",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)))
+            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems);
+        ImGui::EndMenu();
+    }
+}
+
+void ShowPlotContextMenu(ImPlotPlot& plot) {
+    const bool owns_legend = GImPlot->CurrentItems == &plot.Items;
+    const bool equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
+    if (ImGui::BeginMenu("X-Axis")) {
+        ImGui::PushID("X");
+        ShowAxisContextMenu(plot.XAxis, equal ? &plot.YAxis[0] : NULL, true);
+        ImGui::PopID();
+        ImGui::EndMenu();
+    }
+    for (int i = 0; i < IMPLOT_Y_AXES; i++) {
+        if (i == 1 && !ImHasFlag(plot.Flags, ImPlotFlags_YAxis2)) {
+            continue;
+        }
+        if (i == 2 && !ImHasFlag(plot.Flags, ImPlotFlags_YAxis3)) {
+            continue;
+        }
+        char buf[10] = {};
+        if (i == 0) {
+            snprintf(buf, sizeof(buf) - 1, "Y-Axis");
+        } else {
+            snprintf(buf, sizeof(buf) - 1, "Y-Axis %d", i + 1);
+        }
+        if (ImGui::BeginMenu(buf)) {
+            ImGui::PushID(i);
+            ShowAxisContextMenu(plot.YAxis[i], (equal && i == 0) ? &plot.XAxis : NULL, false);
+            ImGui::PopID();
+            ImGui::EndMenu();
+        }
+    }
+
+    ImGui::Separator();
+    if ((ImGui::BeginMenu("Legend"))) {
+        if (owns_legend) {
+            if (ShowLegendContextMenu(plot.Items.Legend, !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend)))
+                ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
+        }
+        else if (GImPlot->CurrentSubplot != NULL) {
+            if (ShowLegendContextMenu(GImPlot->CurrentSubplot->Items.Legend, !ImHasFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend)))
+                ImFlipFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend);
+        }
+        ImGui::EndMenu();
+    }
+    if ((ImGui::BeginMenu("Settings"))) {
+        if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
+        if (ImGui::MenuItem("Equal", NULL, ImHasFlag(plot.Flags, ImPlotFlags_Equal)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Equal);
+        if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
+        if (ImGui::MenuItem("Query",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Query)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Query);
+        if (ImGui::MenuItem("Title",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoTitle);
+        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
+        if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
+        ImGui::EndMenu();
+    }
+    if (GImPlot->CurrentSubplot != NULL && !ImHasFlag(GImPlot->CurrentPlot->Flags, ImPlotSubplotFlags_NoMenus)) {
+        ImGui::Separator();
+        if ((ImGui::BeginMenu("Subplots"))) {
+            ShowSubplotsContextMenu(*GImPlot->CurrentSubplot);
+            ImGui::EndMenu();
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
 // Axis Utils
 //-----------------------------------------------------------------------------
 
@@ -1294,62 +1566,112 @@ void UpdateAxisColors(int axis_flag, ImPlotAxis* axis) {
     axis->ColorTxt = ImGui::GetColorU32(col_label);
 }
 
-//   [ pad_left  ]                 [ pad_right ]
-//   .................CanvasRect...............>                          
-//   :TPWPK.PTPWPk_____PlotRect____kPWPTP.KPWPT:    T = text height
-//   :A # |- A # |-               -| # A -| # A:    P = label padding
-//   :X   |  X   |                 |   X  |   x:    K = minor tick length
-//   :I # |- I # |-               -| # I -| # I:    W = label width      
-//   :S   |  S   |                 |   S  |   S:    
-//   :3 # |- 0 # |-_______________-| # 1 -| # 2:
-//   :.........................................:
+void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B) {
 
-void PadAndDatumAxes(ImPlotPlot& plot, float& pad_left, float& pad_right) {
     ImPlotContext& gp = *GImPlot;
 
-    pad_left  = 0;
-    pad_right = 0;
+    const float T = ImGui::GetTextLineHeight();
+    const float P = gp.Style.LabelPadding.y;
+    const float K = gp.Style.MinorTickLen.x;
 
-    float last_left  = plot.AxesRect.Min.x;
-    float last_right = plot.AxesRect.Max.x;
+    int   count_T = 0;
+    int   count_B = 0;
+    float last_T  = plot.AxesRect.Min.y;
+    float last_B  = plot.AxesRect.Max.y;
+
+    for (int i = 0; i < 1; ++i) {
+        if (!plot.XAxis.Present)
+            continue;
+        const bool label = plot.XAxis.HasLabel();
+        const bool ticks = plot.XAxis.HasTickLabels(); 
+        const bool opp   = plot.XAxis.IsOpposite();
+        const bool time  = plot.XAxis.IsTime();
+        if (opp) {
+            if (count_T++ > 0)
+                pad_T += K + P;
+            if (label)
+                pad_T += T + P;
+            if (ticks)
+                pad_T += ImMax(T, gp.XTicks.MaxHeight) + P + (time ? T + P : 0);
+            plot.XAxis.Datum1 = plot.CanvasRect.Min.y + pad_T;
+            plot.XAxis.Datum2 = last_T;
+            last_T = plot.XAxis.Datum1;
+        }
+        else {
+            if (count_B++ > 0)
+                pad_B += K + P;
+            if (label)
+                pad_B += T + P;
+            if (ticks)
+                pad_B += ImMax(T, gp.XTicks.MaxHeight) + P + (time ? T + P : 0);
+            plot.XAxis.Datum1 = plot.CanvasRect.Max.y - pad_B;
+            plot.XAxis.Datum2 = last_B;
+            last_B = plot.XAxis.Datum1;
+        }
+    }
+}
+
+void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R) {
+
+    //   [   pad_L   ]                 [   pad_R   ]
+    //   .................CanvasRect................                
+    //   :TPWPK.PTPWP _____PlotRect____ PWPTP.KPWPT:    
+    //   :A # |- A # |-               -| # A -| # A:    
+    //   :X   |  X   |                 |   X  |   x:    
+    //   :I # |- I # |-               -| # I -| # I:         
+    //   :S   |  S   |                 |   S  |   S:    
+    //   :3 # |- 0 # |-_______________-| # 1 -| # 2:
+    //   :.........................................:
+    //
+    //   T = text height
+    //   P = label padding
+    //   K = minor tick length
+    //   W = label width
+
+    ImPlotContext& gp = *GImPlot;
 
     const float T = ImGui::GetTextLineHeight();
     const float P = gp.Style.LabelPadding.x;
     const float K = gp.Style.MinorTickLen.y;
+
+    int   count_L = 0;
+    int   count_R = 0;
+    float last_L  = plot.AxesRect.Min.x;
+    float last_R  = plot.AxesRect.Max.x;
 
     for (int i = IMPLOT_Y_AXES; i-- > 0;) {
         if (!plot.YAxis[i].Present)
             continue;
         const bool label = plot.YAxis[i].HasLabel();
         const bool ticks = plot.YAxis[i].HasTickLabels();
-        if (plot.YAxis[i].IsOpposite()) {
-            if (pad_right != 0)
-                pad_right += K + P;
-            if (plot.YAxis[i].HasLabel())
-                pad_right += T + P;
-            if (plot.YAxis[i].HasTickLabels())
-                pad_right += gp.YTicks[i].MaxWidth + P;
-            plot.YAxis[i].Datum1 = plot.CanvasRect.Max.x - pad_right;
-            plot.YAxis[i].Datum2 = last_right;
-            last_right = plot.YAxis[i].Datum1;
+        const bool opp   = plot.YAxis[i].IsOpposite();
+        if (opp) {
+            if (count_R++ > 0)
+                pad_R += K + P;
+            if (label)
+                pad_R += T + P;
+            if (ticks)
+                pad_R += gp.YTicks[i].MaxWidth + P;
+            plot.YAxis[i].Datum1 = plot.CanvasRect.Max.x - pad_R;
+            plot.YAxis[i].Datum2 = last_R;
+            last_R = plot.YAxis[i].Datum1;
         }
         else {
-            if (pad_left != 0)
-                pad_left += K + P;
-            if (plot.YAxis[i].HasLabel())
-                pad_left += T + P;
-            if (plot.YAxis[i].HasTickLabels())
-                pad_left += gp.YTicks[i].MaxWidth + P;
-            plot.YAxis[i].Datum1 = plot.CanvasRect.Min.x + pad_left;
-            plot.YAxis[i].Datum2 = last_left;
-            last_left = plot.YAxis[i].Datum1;
+            if (count_L++ > 0)
+                pad_L += K + P;
+            if (label)
+                pad_L += T + P;
+            if (ticks)
+                pad_L += gp.YTicks[i].MaxWidth + P;
+            plot.YAxis[i].Datum1 = plot.CanvasRect.Min.x + pad_L;
+            plot.YAxis[i].Datum2 = last_L;
+            last_L = plot.YAxis[i].Datum1;
         }
     }
 
-    plot.PlotRect.Min.x = plot.CanvasRect.Min.x + pad_left;
-    plot.PlotRect.Max.x = plot.CanvasRect.Max.x - pad_right;
+    plot.PlotRect.Min.x = plot.CanvasRect.Min.x + pad_L;
+    plot.PlotRect.Max.x = plot.CanvasRect.Max.x - pad_R;
 }
-
 
 //-----------------------------------------------------------------------------
 // RENDERING
@@ -1436,12 +1758,14 @@ void HandlePlotInput(ImPlotPlot& plot) {
 
     // end drags
     if (plot.XAxis.Dragging && (IO.MouseReleased[gp.InputMap.PanButton] || !IO.MouseDown[gp.InputMap.PanButton])) {
-        plot.XAxis.Dragging             = false;
+        plot.XAxis.Dragging = false;
+        plot.XAxis.ExtHeld  = false;
         G.IO.MouseDragMaxDistanceSqr[0] = 0;
     }
     for (int i = 0; i < IMPLOT_Y_AXES; i++) {
         if (plot.YAxis[i].Dragging && (IO.MouseReleased[gp.InputMap.PanButton] || !IO.MouseDown[gp.InputMap.PanButton])) {
-            plot.YAxis[i].Dragging          = false;
+            plot.YAxis[i].Dragging = false;
+            plot.YAxis[i].ExtHeld  = false;
             G.IO.MouseDragMaxDistanceSqr[0] = 0;
         }
     }
@@ -1510,10 +1834,12 @@ void HandlePlotInput(ImPlotPlot& plot) {
     if (!drag_in_progress && plot.FrameHovered && IO.MouseClicked[gp.InputMap.PanButton] && ImHasFlag(IO.KeyMods, gp.InputMap.PanMod) && !plot.Selecting && !plot.Items.Legend.Hovered && !hov_query && !plot.DraggingQuery) {
         if (plot.XAxis.AllHovered) {
             plot.XAxis.Dragging = true;
+            plot.XAxis.ExtHeld = plot.XAxis.ExtHovered;
         }
         for (int i = 0; i < IMPLOT_Y_AXES; i++) {
             if (plot.YAxis[i].AllHovered) {
                 plot.YAxis[i].Dragging = true;
+                plot.YAxis[i].ExtHeld = plot.YAxis[i].ExtHovered;
             }
         }
     }
@@ -1699,277 +2025,7 @@ void HandlePlotInput(ImPlotPlot& plot) {
 }
 
 //-----------------------------------------------------------------------------
-// Context Menu
-//-----------------------------------------------------------------------------
-
-template <typename F>
-bool DragFloat(const char*, F*, float, F, F) {
-    return false;
-}
-
-template <>
-bool DragFloat<double>(const char* label, double* v, float v_speed, double v_min, double v_max) {
-    return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, "%.3f", 1);
-}
-
-template <>
-bool DragFloat<float>(const char* label, float* v, float v_speed, float v_min, float v_max) {
-    return ImGui::DragScalar(label, ImGuiDataType_Float, v, v_speed, &v_min, &v_max, "%.3f", 1);
-}
-
-inline void BeginDisabledControls(bool cond) {
-    if (cond) {
-        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);
-    }
-}
-
-inline void EndDisabledControls(bool cond) {
-    if (cond) {
-        ImGui::PopItemFlag();
-        ImGui::PopStyleVar();
-    }
-}
-
-void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_allowed) {
-
-    ImGui::PushItemWidth(75);
-    bool always_locked   = axis.IsRangeLocked() || axis.IsAutoFitting();
-    bool label           = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoLabel);
-    bool grid            = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
-    bool ticks           = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
-    bool labels          = !ImHasFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
-    double drag_speed    = (axis.Range.Size() <= DBL_EPSILON) ? DBL_EPSILON * 1.0e+13 : 0.01 * axis.Range.Size(); // recover from almost equal axis limits.
-
-    if (axis.IsTime()) {
-        ImPlotTime tmin = ImPlotTime::FromDouble(axis.Range.Min);
-        ImPlotTime tmax = ImPlotTime::FromDouble(axis.Range.Max);
-
-        BeginDisabledControls(always_locked);
-        ImGui::CheckboxFlags("##LockMin", (unsigned int*)&axis.Flags, ImPlotAxisFlags_LockMin);
-        EndDisabledControls(always_locked);
-        ImGui::SameLine();
-        BeginDisabledControls(axis.IsLockedMin() || always_locked);
-        if (ImGui::BeginMenu("Min Time")) {
-            if (ShowTimePicker("mintime", &tmin)) {
-                if (tmin >= tmax)
-                    tmax = AddTime(tmin, ImPlotTimeUnit_S, 1);
-                axis.SetRange(tmin.ToDouble(),tmax.ToDouble());
-            }
-            ImGui::Separator();
-            if (ShowDatePicker("mindate",&axis.PickerLevel,&axis.PickerTimeMin,&tmin,&tmax)) {
-                tmin = CombineDateTime(axis.PickerTimeMin, tmin);
-                if (tmin >= tmax)
-                    tmax = AddTime(tmin, ImPlotTimeUnit_S, 1);
-                axis.SetRange(tmin.ToDouble(), tmax.ToDouble());
-            }
-            ImGui::EndMenu();
-        }
-        EndDisabledControls(axis.IsLockedMin() || always_locked);
-
-        BeginDisabledControls(always_locked);
-        ImGui::CheckboxFlags("##LockMax", (unsigned int*)&axis.Flags, ImPlotAxisFlags_LockMax);
-        EndDisabledControls(always_locked);
-        ImGui::SameLine();
-        BeginDisabledControls(axis.IsLockedMax() || always_locked);
-        if (ImGui::BeginMenu("Max Time")) {
-            if (ShowTimePicker("maxtime", &tmax)) {
-                if (tmax <= tmin)
-                    tmin = AddTime(tmax, ImPlotTimeUnit_S, -1);
-                axis.SetRange(tmin.ToDouble(),tmax.ToDouble());
-            }
-            ImGui::Separator();
-            if (ShowDatePicker("maxdate",&axis.PickerLevel,&axis.PickerTimeMax,&tmin,&tmax)) {
-                tmax = CombineDateTime(axis.PickerTimeMax, tmax);
-                if (tmax <= tmin)
-                    tmin = AddTime(tmax, ImPlotTimeUnit_S, -1);
-                axis.SetRange(tmin.ToDouble(), tmax.ToDouble());
-            }
-            ImGui::EndMenu();
-        }
-        EndDisabledControls(axis.IsLockedMax() || always_locked);
-    }
-    else {
-        BeginDisabledControls(always_locked);
-        ImGui::CheckboxFlags("##LockMin", (unsigned int*)&axis.Flags, ImPlotAxisFlags_LockMin);
-        EndDisabledControls(always_locked);
-        ImGui::SameLine();
-        BeginDisabledControls(axis.IsLockedMin() || always_locked);
-        double temp_min = axis.Range.Min;
-        if (DragFloat("Min", &temp_min, (float)drag_speed, -HUGE_VAL, axis.Range.Max - DBL_EPSILON)) {
-            axis.SetMin(temp_min,true);
-            if (equal_axis != NULL)
-                equal_axis->SetAspect(axis.GetAspect());
-        }
-        EndDisabledControls(axis.IsLockedMin() || always_locked);
-
-        BeginDisabledControls(always_locked);
-        ImGui::CheckboxFlags("##LockMax", (unsigned int*)&axis.Flags, ImPlotAxisFlags_LockMax);
-        EndDisabledControls(always_locked);
-        ImGui::SameLine();
-        BeginDisabledControls(axis.IsLockedMax() || always_locked);
-        double temp_max = axis.Range.Max;
-        if (DragFloat("Max", &temp_max, (float)drag_speed, axis.Range.Min + DBL_EPSILON, HUGE_VAL)) {
-            axis.SetMax(temp_max,true);
-            if (equal_axis != NULL)
-                equal_axis->SetAspect(axis.GetAspect());
-        }
-        EndDisabledControls(axis.IsLockedMax() || always_locked);
-    }
-
-    ImGui::Separator();
-
-    ImGui::CheckboxFlags("Auto-Fit",(unsigned int*)&axis.Flags, ImPlotAxisFlags_AutoFit);
-    ImGui::CheckboxFlags("Invert",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Invert);
-    BeginDisabledControls(axis.IsTime() && time_allowed);
-    ImGui::CheckboxFlags("Log Scale",(unsigned int*)&axis.Flags, ImPlotAxisFlags_LogScale);
-    EndDisabledControls(axis.IsTime() && time_allowed);
-
-    if (time_allowed) {
-        BeginDisabledControls(axis.IsLog());
-        ImGui::CheckboxFlags("Time",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Time);
-        EndDisabledControls(axis.IsLog());
-    }
-
-    ImGui::Separator();
-    if (ImGui::Checkbox("Label", &label))
-        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoLabel);
-    if (ImGui::Checkbox("Grid Lines", &grid))
-        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoGridLines);
-    if (ImGui::Checkbox("Tick Marks", &ticks))
-        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
-    if (ImGui::Checkbox("Tick Labels", &labels))
-        ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
-}
-
-bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible) {
-    const float s = ImGui::GetFrameHeight();
-    bool ret = false;
-    if (ImGui::Checkbox("Show",&visible))
-        ret = true;
-    if (legend.CanGoInside)
-        ImGui::Checkbox("Outside", &legend.Outside);
-    if (ImGui::RadioButton("H", legend.Orientation == ImPlotOrientation_Horizontal))
-        legend.Orientation = ImPlotOrientation_Horizontal;
-    ImGui::SameLine();
-    if (ImGui::RadioButton("V", legend.Orientation == ImPlotOrientation_Vertical))
-        legend.Orientation = ImPlotOrientation_Vertical;
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2,2));
-    if (ImGui::Button("NW",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_NorthWest; } ImGui::SameLine();
-    if (ImGui::Button("N", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_North;     } ImGui::SameLine();
-    if (ImGui::Button("NE",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_NorthEast; }
-    if (ImGui::Button("W", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_West;      } ImGui::SameLine();
-    if (ImGui::InvisibleButton("C", ImVec2(1.5f*s,s))) {     } ImGui::SameLine();
-    if (ImGui::Button("E", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_East;      }
-    if (ImGui::Button("SW",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_SouthWest; } ImGui::SameLine();
-    if (ImGui::Button("S", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_South;     } ImGui::SameLine();
-    if (ImGui::Button("SE",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_SouthEast; }
-    ImGui::PopStyleVar();
-    return ret;
-}
-
-void ShowSubplotsContextMenu(ImPlotSubplot& subplot) {
-    if ((ImGui::BeginMenu("Linking"))) {
-        if (ImGui::MenuItem("Link Rows",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows)))
-            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
-        if (ImGui::MenuItem("Link Cols",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols)))
-            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
-        if (ImGui::MenuItem("Link All X",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX)))
-            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllX);
-        if (ImGui::MenuItem("Link All Y",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY)))
-            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
-        ImGui::EndMenu();
-    }
-    // if (ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)) {
-    //     if ((ImGui::BeginMenu("Legend"))) {
-    //         if (ShowLegendContextMenu(subplot.Items.Legend, !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend)))
-    //             ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend);
-    //         ImGui::EndMenu();
-    //     }
-    // }
-    if ((ImGui::BeginMenu("Settings"))) {
-        if (ImGui::MenuItem("Title",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle)))
-            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoTitle);
-        if (ImGui::MenuItem("Resizable",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoResize)))
-            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoResize);
-        if (ImGui::MenuItem("Align",NULL,!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign)))
-            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign);
-        if (ImGui::MenuItem("Share Items",NULL,ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems)))
-            ImFlipFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems);
-        ImGui::EndMenu();
-    }
-}
-
-void ShowPlotContextMenu(ImPlotPlot& plot) {
-    const bool owns_legend = GImPlot->CurrentItems == &plot.Items;
-    const bool equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
-    if (ImGui::BeginMenu("X-Axis")) {
-        ImGui::PushID("X");
-        ShowAxisContextMenu(plot.XAxis, equal ? &plot.YAxis[0] : NULL, true);
-        ImGui::PopID();
-        ImGui::EndMenu();
-    }
-    for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        if (i == 1 && !ImHasFlag(plot.Flags, ImPlotFlags_YAxis2)) {
-            continue;
-        }
-        if (i == 2 && !ImHasFlag(plot.Flags, ImPlotFlags_YAxis3)) {
-            continue;
-        }
-        char buf[10] = {};
-        if (i == 0) {
-            snprintf(buf, sizeof(buf) - 1, "Y-Axis");
-        } else {
-            snprintf(buf, sizeof(buf) - 1, "Y-Axis %d", i + 1);
-        }
-        if (ImGui::BeginMenu(buf)) {
-            ImGui::PushID(i);
-            ShowAxisContextMenu(plot.YAxis[i], (equal && i == 0) ? &plot.XAxis : NULL, false);
-            ImGui::PopID();
-            ImGui::EndMenu();
-        }
-    }
-
-    ImGui::Separator();
-    if ((ImGui::BeginMenu("Legend"))) {
-        if (owns_legend) {
-            if (ShowLegendContextMenu(plot.Items.Legend, !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend)))
-                ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
-        }
-        else if (GImPlot->CurrentSubplot != NULL) {
-            if (ShowLegendContextMenu(GImPlot->CurrentSubplot->Items.Legend, !ImHasFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend)))
-                ImFlipFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend);
-        }
-        ImGui::EndMenu();
-    }
-    if ((ImGui::BeginMenu("Settings"))) {
-        if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
-        if (ImGui::MenuItem("Equal", NULL, ImHasFlag(plot.Flags, ImPlotFlags_Equal)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_Equal);
-        if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
-        if (ImGui::MenuItem("Query",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Query)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_Query);
-        if (ImGui::MenuItem("Title",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_NoTitle);
-        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
-        if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
-        ImGui::EndMenu();
-    }
-    if (GImPlot->CurrentSubplot != NULL && !ImHasFlag(GImPlot->CurrentPlot->Flags, ImPlotSubplotFlags_NoMenus)) {
-        ImGui::Separator();
-        if ((ImGui::BeginMenu("Subplots"))) {
-            ShowSubplotsContextMenu(*GImPlot->CurrentSubplot);
-            ImGui::EndMenu();
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-// BeginPlot()
+// BeginPlot
 //-----------------------------------------------------------------------------
 
 bool BeginPlot(const char* title, const char* x_label, const char* y1_label, const ImVec2& size,
@@ -2164,8 +2220,8 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     ImGui::SetItemAllowOverlap();
 
     // canvas/axes bb
-    plot.CanvasRect = ImRect(plot.FrameRect.Min + gp.Style.PlotPadding, plot.FrameRect.Max - gp.Style.PlotPadding);
-    plot.AxesRect   = plot.FrameRect;
+    plot.CanvasRect      = ImRect(plot.FrameRect.Min + gp.Style.PlotPadding, plot.FrameRect.Max - gp.Style.PlotPadding);
+    plot.AxesRect        = plot.FrameRect;
 
     // outside legend adjustments
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Items.GetLegendCount() > 0 && plot.Items.Legend.Outside) {
@@ -2192,6 +2248,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
             plot.AxesRect.Max.y   -= (legend_size.y + gp.Style.PlotPadding.y);
         }
     }
+    
 
     gp.RenderX = (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoGridLines) ||
                   !ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickMarks) ||
@@ -2204,17 +2261,20 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     }
 
     // plot bb
+    float pad_top = 0, pad_bot = 0, pad_left = 0, pad_right = 0;
 
-    // (1) calc top/bot padding and plot height
+    // (0) calc top padding form title
     ImVec2 title_size(0.0f, 0.0f);
     const float txt_height = ImGui::GetTextLineHeight();
-    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)){
-         title_size = ImGui::CalcTextSize(title, NULL, true);
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle))
+         title_size = ImGui::CalcTextSize(title, NULL, true); 
+    if (title_size.x > 0) {
+        pad_top += title_size.y + gp.Style.LabelPadding.y;
+        plot.AxesRect.Min.y += gp.Style.PlotPadding.y + pad_top;
     }
 
-    float pad_top = title_size.x > 0.0f ? title_size.y + gp.Style.LabelPadding.y : 0;
-    float pad_bot = (plot.XAxis.HasTickLabels() ? ImMax(txt_height, gp.XTicks.MaxHeight) + gp.Style.LabelPadding.y + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0) : 0)
-                  + (plot.XAxis.HasLabel() ? txt_height + gp.Style.LabelPadding.y : 0);
+    // (1) calc addition top padding and bot padding
+    PadAndDatumAxesX(plot,pad_top,pad_bot);
 
     // (1*) align plots group (TODO: account for outside legends!)
     if (gp.CurrentAlignmentH)
@@ -2233,8 +2293,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     }
 
     // (3) calc left/right pad
-    float pad_left = 0, pad_right = 0;
-    PadAndDatumAxes(plot,pad_left,pad_right);
+    PadAndDatumAxesY(plot,pad_left,pad_right);
 
     // (3*) align plots group (TODO: account for outside legends!)
     if (gp.CurrentAlignmentV)
@@ -2257,16 +2316,18 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     plot.PlotHovered = plot.FrameHovered && plot.PlotRect.Contains(IO.MousePos);
 
     // x axis region bb and hover
-    plot.XAxis.HoverRect = ImRect(plot.PlotRect.GetBL(), ImVec2(plot.PlotRect.Max.x, plot.AxesRect.Max.y));
-    plot.XAxis.ExtHovered = plot.XAxis.HoverRect.Contains(IO.MousePos);
+    plot.XAxis.HoverRect  = ImRect(ImVec2(plot.PlotRect.Min.x, ImMin(plot.XAxis.Datum1,plot.XAxis.Datum2)),
+                                   ImVec2(plot.PlotRect.Max.x, ImMax(plot.XAxis.Datum1,plot.XAxis.Datum2)));
+    plot.XAxis.ExtHovered = plot.FrameHovered && plot.XAxis.Present && plot.XAxis.HoverRect.Contains(IO.MousePos);
     plot.XAxis.AllHovered = plot.XAxis.ExtHovered || plot.PlotHovered;
 
     // // y axis regions bb and hover
     for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
-        plot.YAxis[i].HoverRect  = ImRect(ImVec2(ImMin(plot.YAxis[i].Datum1,plot.YAxis[i].Datum2),plot.PlotRect.Min.y),
-                                          ImVec2(ImMax(plot.YAxis[i].Datum1,plot.YAxis[i].Datum2),plot.PlotRect.Max.y));
-        plot.YAxis[i].ExtHovered = plot.YAxis[i].Present && plot.YAxis[i].HoverRect.Contains(IO.MousePos);
-        plot.YAxis[i].AllHovered = plot.YAxis[i].ExtHovered || plot.PlotHovered;
+        ImPlotAxis& ax = plot.YAxis[i];
+        ax.HoverRect  = ImRect(ImVec2(ImMin(ax.Datum1,ax.Datum2),plot.PlotRect.Min.y),
+                               ImVec2(ImMax(ax.Datum1,ax.Datum2),plot.PlotRect.Max.y));
+        ax.ExtHovered = plot.FrameHovered && ax.Present && ax.HoverRect.Contains(IO.MousePos);
+        ax.AllHovered = ax.ExtHovered || plot.PlotHovered;
     }
 
     // AXIS ASPECT RATIOS
@@ -2293,7 +2354,6 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
     // INPUT ------------------------------------------------------------------
     HandlePlotInput(plot);
-
 
     UpdateTransformCache();
 
@@ -2343,51 +2403,29 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     }
 
     // render axis labels
-    if (plot.XAxis.HasLabel()) {
-        const ImVec2 xLabel_size = ImGui::CalcTextSize(x_label);
-        const ImVec2 xLabel_pos(plot.PlotRect.GetCenter().x - xLabel_size.x * 0.5f, plot.CanvasRect.Max.y - txt_height);
-        DrawList.AddText(xLabel_pos, plot.XAxis.ColorTxt, x_label);
+    if (plot.XAxis.Present && plot.XAxis.HasLabel()) {
+        const ImVec2 label_size  = ImGui::CalcTextSize(x_label);
+        const float label_offset = (plot.XAxis.HasTickLabels() ? gp.XTicks.MaxHeight + gp.Style.LabelPadding.y : 0.0f) 
+                                 + (plot.XAxis.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0)
+                                 + gp.Style.LabelPadding.y;
+        const ImVec2 label_pos(plot.PlotRect.GetCenter().x - label_size.x * 0.5f, 
+                               plot.XAxis.IsOpposite() ? plot.XAxis.Datum1 - label_offset - label_size.y : plot.XAxis.Datum1 + label_offset);
+        DrawList.AddText(label_pos, plot.XAxis.ColorTxt, x_label);
     }
 
-    if (plot.YAxis[0].HasLabel()) {
-        const ImVec2 yLabel_size = CalcTextSizeVertical(y1_label);
-        const ImVec2 yLabel_pos(plot.CanvasRect.Min.x, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
-        AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[0].ColorTxt, y1_label);
-   }
-
-   const char* y_labels[] = {y2_label, y3_label};
-   for (int i = 1; i < IMPLOT_Y_AXES; i++) {
-       if (plot.YAxis[i].Present && plot.YAxis[i].HasLabel()) {
-           const ImVec2 yLabel_size = CalcTextSizeVertical(y_labels[i-1]);
-           float label_offset = (plot.YAxis[i].HasTickLabels() ? gp.YTicks[i].MaxWidth + gp.Style.LabelPadding.x : 0.0f) + gp.Style.LabelPadding.x;
-           const ImVec2 yLabel_pos(plot.YAxis[i].Datum1 + label_offset, plot.PlotRect.GetCenter().y + yLabel_size.y * 0.5f);
-           AddTextVertical(&DrawList, yLabel_pos, plot.YAxis[i].ColorTxt, y_labels[i-1]);
-       }
-   }
-
-    // render tick labels
-    ImGui::PushClipRect(plot.FrameRect.Min, plot.FrameRect.Max, true);
-    if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickLabels)) {
-        for (int t = 0; t < gp.XTicks.Size; t++) {
-            ImPlotTick *xt = &gp.XTicks.Ticks[t];
-            if (xt->ShowLabel && xt->PixelPos >= plot.PlotRect.Min.x - 1 && xt->PixelPos <= plot.PlotRect.Max.x + 1)
-                DrawList.AddText(ImVec2(xt->PixelPos - xt->LabelSize.x * 0.5f, plot.PlotRect.Max.y + gp.Style.LabelPadding.y + xt->Level * (txt_height + gp.Style.LabelPadding.y)),
-                                 plot.XAxis.ColorTxt, gp.XTicks.GetText(t));
+    const char* y_labels[] = {y1_label, y2_label, y3_label};
+    for (int i = 0; i < IMPLOT_Y_AXES; ++i) {
+        if (plot.YAxis[i].Present && plot.YAxis[i].HasLabel()) {
+            const ImVec2 label_size  = CalcTextSizeVertical(y_labels[i]);
+            const float label_offset = (plot.YAxis[i].HasTickLabels() ? gp.YTicks[i].MaxWidth + gp.Style.LabelPadding.x : 0.0f) 
+                                     + gp.Style.LabelPadding.x;
+            const ImVec2 label_pos(plot.YAxis[i].IsOpposite() ? plot.YAxis[i].Datum1 + label_offset : plot.YAxis[i].Datum1 - label_offset - label_size.x, 
+                                   plot.PlotRect.GetCenter().y + label_size.y * 0.5f);
+            AddTextVertical(&DrawList, label_pos, plot.YAxis[i].ColorTxt, y_labels[i]);
         }
     }
-    for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        if (plot.YAxis[i].Present && !ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoTickLabels)) {
-            for (int t = 0; t < gp.YTicks[i].Size; t++) {
-                const float x_start = plot.YAxis[i].Datum1 + (i == 0 ?  (-gp.Style.LabelPadding.x - gp.YTicks[i].Ticks[t].LabelSize.x) : gp.Style.LabelPadding.x);
-                ImPlotTick *yt = &gp.YTicks[i].Ticks[t];
-                if (yt->ShowLabel && yt->PixelPos >= plot.PlotRect.Min.y - 1 && yt->PixelPos <= plot.PlotRect.Max.y + 1) {
-                    ImVec2 start(x_start, yt->PixelPos - 0.5f * yt->LabelSize.y);
-                    DrawList.AddText(start, plot.YAxis[i].ColorTxt, gp.YTicks[i].GetText(t));
-                }
-            }
-        }
-    }
-    ImGui::PopClipRect();
+
+
     // clear legend (TODO: put elsewhere)
     plot.Items.Legend.Reset();
     // setup items (or dont)
@@ -2418,6 +2456,8 @@ void EndPlot() {
 
     // FINAL RENDER -----------------------------------------------------------
 
+    const bool render_border = gp.Style.PlotBorderSize > 0 && gp.Style.Colors[ImPlotCol_PlotBorder].z > 0;
+
     // render grid (foreground)
     PushPlotClipRect(gp.Style.PlotBorderSize == 0 ? 1.0f : 0.0f);
     if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoGridLines) && ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_Foreground))
@@ -2428,43 +2468,94 @@ void EndPlot() {
     }
     PopPlotClipRect();
 
-    // render x-ticks
-    PushPlotClipRect();
-    if (!ImHasFlag(plot.XAxis.Flags, ImPlotAxisFlags_NoTickMarks)) {
-        for (int t = 0; t < gp.XTicks.Size; t++) {
-            ImPlotTick *xt = &gp.XTicks.Ticks[t];
-            if (xt->Level == 0)
-                DrawList.AddLine(ImVec2(xt->PixelPos, plot.PlotRect.Max.y),
-                                ImVec2(xt->PixelPos, plot.PlotRect.Max.y - (xt->Major ? gp.Style.MajorTickLen.x : gp.Style.MinorTickLen.x)),
-                                plot.XAxis.ColorMaj,
-                                xt->Major ? gp.Style.MajorTickSize.x : gp.Style.MinorTickSize.x);
-        }
-    }
-    PopPlotClipRect();
+    // axis hover rect
+    // if (plot.XAxis.ExtHovered || plot.XAxis.ExtHeld)
+    //     DrawList.AddRectFilled(plot.XAxis.HoverRect.Min, plot.XAxis.HoverRect.Max, IM_COL32(255,255,255,64));
+    // for (int i = 0; i < IMPLOT_Y_AXES; ++i)
+    // {
+    //     if (plot.YAxis[i].ExtHovered || plot.YAxis[i].ExtHeld) {
+    //         DrawList.AddRectFilled(plot.YAxis[i].HoverRect.Min, plot.YAxis[i].HoverRect.Max, IM_COL32(255,255,255,64));
+    //     }
+    // }
 
-    // render y-ticks
-    ImGui::PushClipRect(plot.PlotRect.Min, ImVec2(plot.FrameRect.Max.x, plot.PlotRect.Max.y), true);
-    int axis_count = 0;
-    for (int i = 0; i < IMPLOT_Y_AXES; i++) {
-        if (!plot.YAxis[i].Present) { continue; }
-        axis_count++;
-        float x_start = plot.YAxis[i].Datum1;
-        if (!ImHasFlag(plot.YAxis[i].Flags, ImPlotAxisFlags_NoTickMarks)) {
-            float direction = (i == 0) ? 1.0f : -1.0f;
-            bool no_major = axis_count >= 3;
-            for (int t = 0; t < gp.YTicks[i].Size; t++) {
-                ImPlotTick *yt = &gp.YTicks[i].Ticks[t];
-                ImVec2 start = ImVec2(x_start, yt->PixelPos);
-                DrawList.AddLine(start,
-                                 start + ImVec2(direction * ((!no_major && yt->Major) ? gp.Style.MajorTickLen.y : gp.Style.MinorTickLen.y), 0),
-                                 plot.YAxis[i].ColorMaj,
-                                 (!no_major && yt->Major) ? gp.Style.MajorTickSize.y : gp.Style.MinorTickSize.y);
+    const float txt_height = ImGui::GetTextLineHeight();
+    ImGui::PushClipRect(plot.FrameRect.Min, plot.FrameRect.Max, true);
+
+    // TODO: render axis labels here instead of BeginPlot
+
+    // render x-ticks and labels
+    int count_B = 0, count_T = 0;
+    for (int i = 0; i < 1; i++) {
+        const ImPlotAxis& ax = plot.XAxis;
+        const ImPlotTickCollection& tkc = gp.XTicks;
+        if (!ax.Present) 
+            continue; 
+        const bool opp = ax.IsOpposite();
+        const bool aux = ((opp && count_T > 0)||(!opp && count_B > 0));
+        if (ax.HasTickMarks()) {
+            const float direction = opp ? 1.0f : -1.0f;
+            for (int j = 0; j < tkc.Size; ++j) {
+                const ImPlotTick& tk = tkc.Ticks[j];
+                if (tk.Level != 0)
+                    continue;
+                const ImVec2 start(tk.PixelPos, ax.Datum1);
+                const float len = (!aux && tk.Major) ? gp.Style.MajorTickLen.x  : gp.Style.MinorTickLen.x;
+                const float thk = (!aux && tk.Major) ? gp.Style.MajorTickSize.x : gp.Style.MinorTickSize.x;
+                DrawList.AddLine(start, start + ImVec2(0,direction*len), ax.ColorMaj, thk);
+            }
+            if (aux || !render_border) 
+                DrawList.AddLine(ImVec2(plot.PlotRect.Min.x,ax.Datum1), ImVec2(plot.PlotRect.Max.x,ax.Datum1), ax.ColorMaj, gp.Style.MinorTickSize.x);
+        }
+        if (ax.HasTickLabels()) {
+            for (int j = 0; j < tkc.Size; ++j) {
+                const ImPlotTick& tk = tkc.Ticks[j];
+                const float datum = ax.Datum1 + (opp ? (-gp.Style.LabelPadding.y -txt_height -tk.Level * (txt_height + gp.Style.LabelPadding.y)) 
+                                                     : gp.Style.LabelPadding.y + tk.Level * (txt_height + gp.Style.LabelPadding.y));
+                if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.x - 1 && tk.PixelPos <= plot.PlotRect.Max.x + 1) {
+                    ImVec2 start(tk.PixelPos - 0.5f * tk.LabelSize.x, datum);
+                    DrawList.AddText(start, ax.ColorTxt, tkc.GetText(j));
+                }
             }
         }
-        if (axis_count >= 3) {
-            // Draw a bar next to the ticks to act as a visual separator.
-            DrawList.AddLine(ImVec2(x_start, plot.PlotRect.Min.y), ImVec2(x_start, plot.PlotRect.Max.y), GetStyleColorU32(ImPlotCol_YAxisGrid3), 1);
+        count_B += !opp;
+        count_T +=  opp;
+    }
+       
+    // render y-ticks and labels
+    int count_L = 0, count_R = 0;
+    for (int i = 0; i < IMPLOT_Y_AXES; i++) {
+        const ImPlotAxis& ax = plot.YAxis[i];
+        const ImPlotTickCollection& tkc = gp.YTicks[i];
+        if (!ax.Present) 
+            continue; 
+        const bool opp = ax.IsOpposite();
+        const bool aux = ((opp && count_R > 0)||(!opp && count_L > 0));
+        if (ax.HasTickMarks()) {
+            const float direction = opp ? -1.0f : 1.0f;
+            for (int j = 0; j < tkc.Size; ++j) {
+                const ImPlotTick& tk = tkc.Ticks[j];
+                if (tk.Level != 0)
+                    continue;
+                const ImVec2 start(ax.Datum1, tk.PixelPos);
+                const float len = (!aux && tk.Major) ? gp.Style.MajorTickLen.y  : gp.Style.MinorTickLen.y;
+                const float thk = (!aux && tk.Major) ? gp.Style.MajorTickSize.y : gp.Style.MinorTickSize.y;
+                DrawList.AddLine(start, start + ImVec2(direction*len,0), ax.ColorMaj, thk);
+            }
+            if (aux || !render_border) 
+                DrawList.AddLine(ImVec2(ax.Datum1, plot.PlotRect.Min.y), ImVec2(ax.Datum1, plot.PlotRect.Max.y), ax.ColorMaj, gp.Style.MinorTickSize.y);
         }
+        if (ax.HasTickLabels()) {
+            for (int j = 0; j < tkc.Size; ++j) {
+                const ImPlotTick& tk = tkc.Ticks[j];
+                const float datum = ax.Datum1 + (opp ? gp.Style.LabelPadding.x : (-gp.Style.LabelPadding.x - tk.LabelSize.x));
+                if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.y - 1 && tk.PixelPos <= plot.PlotRect.Max.y + 1) {
+                    ImVec2 start(datum, tk.PixelPos - 0.5f * tk.LabelSize.y);
+                    DrawList.AddText(start, ax.ColorTxt, tkc.GetText(j));
+                }
+            }
+        }
+        count_L += !opp;
+        count_R +=  opp;
     }
     ImGui::PopClipRect();
 
@@ -2613,7 +2704,7 @@ void EndPlot() {
     }
 
     // render border
-    if (gp.Style.PlotBorderSize > 0)
+    if (render_border)
         DrawList.AddRect(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBorder), 0, ImDrawFlags_RoundCornersAll, gp.Style.PlotBorderSize);
 
     // FIT DATA --------------------------------------------------------------
@@ -2764,9 +2855,9 @@ void SubplotSetCell(int row, int col) {
     const bool lr = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
     const bool lc = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
     LinkNextPlotLimits(lx ? &subplot.ColLinkData[0].Min : lc ? &subplot.ColLinkData[col].Min : NULL,
-                        lx ? &subplot.ColLinkData[0].Max : lc ? &subplot.ColLinkData[col].Max : NULL,
-                        ly ? &subplot.RowLinkData[0].Min : lr ? &subplot.RowLinkData[row].Min : NULL,
-                        ly ? &subplot.RowLinkData[0].Max : lr ? &subplot.RowLinkData[row].Max : NULL);
+                       lx ? &subplot.ColLinkData[0].Max : lc ? &subplot.ColLinkData[col].Max : NULL,
+                       ly ? &subplot.RowLinkData[0].Min : lr ? &subplot.RowLinkData[row].Min : NULL,
+                       ly ? &subplot.RowLinkData[0].Max : lr ? &subplot.RowLinkData[row].Max : NULL);
     // setup alignment
     if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign)) {
         gp.CurrentAlignmentH = &subplot.RowAlignmentData[row];
@@ -3533,12 +3624,6 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
 }
 
 //-----------------------------------------------------------------------------
-
-#define IMPLOT_ID_PLT 10030910
-#define IMPLOT_ID_LEG 10030911
-#define IMPLOT_ID_XAX 10030912
-#define IMPLOT_ID_YAX 10030913
-#define IMPLOT_ID_ITM 10030914
 
 bool BeginDragDropTargetEx(int id, const ImRect& rect) {
     ImGuiContext& G  = *GImGui;

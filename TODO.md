@@ -1,10 +1,23 @@
 The list below represents a combination of high-priority work, nice-to-have features, and random ideas. We make no guarantees that all of this work will be completed or even started. If you see something that you need or would like to have, let us know, or better yet consider submitting a PR for the feature.
 
-## Plots
+## API
 
-- remove axis-related args from signature of `BeginPlot` and add `SetupNextAxis` API
-    - add a few overloads of `BeginPlot` that bypass `SetupNextAxis` for common scenarios
-    - make current `BeginPlot` a wrapper to this API
+- make BeginPlot take fewer args:
+    ```cpp
+    if (ImPlot::BeginPlot("MyPlot",p_flags,size)) {
+        ImPlot::Axis(ImAxis_X1,"X",x_flags);
+        ImPlot::Axis(ImAxis_Y1,"Y",y_flags);
+        ImPlot::AxisLimits(ImAxis_X1, 0, 10);
+        ImPlot::AxisFormat(ImAxis_Y1, "%.3f$");
+        ImPlot::AxisTicks(ImAxis_Y1, ...);
+        ImPlot::AxisLink(ImAxis_X1, ....);        
+        ImPlot::Legend(loc,orn,l_flags);
+        ...        
+        ImPlot::PlotLine(...);
+        ImPlot::EndPlot();
+    }
+    ```
+    - add shortcut/legacy overloads
 
 ## Axes
 
@@ -25,6 +38,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 - support gradient and/or colormap sampled fills (e.g. ImPlotFillStyle_)
 - add hover/active color for plot
+- API for setting different fonts for plot elements
 
 ## Legend
 

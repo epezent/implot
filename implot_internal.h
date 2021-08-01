@@ -598,6 +598,7 @@ struct ImPlotAxis
     ImPlotOrientation Orientation;
     bool              Dragging;
     bool              ExtHovered;
+    bool              ExtHeld;
     bool              AllHovered;
     bool              Present;
     bool              HasRange;
@@ -618,6 +619,7 @@ struct ImPlotAxis
         Range.Max   = 1;
         Dragging    = false;
         ExtHovered  = false;
+        ExtHeld     = false;
         AllHovered  = false;
         LinkedMin   = LinkedMax = NULL;
         PickerLevel = 0;
@@ -700,6 +702,7 @@ struct ImPlotAxis
 
     inline bool HasLabel()          const { return NameOffset != -1 && !ImHasFlag(Flags, ImPlotAxisFlags_NoLabel);           }
     inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                          }
+    inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                           }
 
     inline bool IsOpposite()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                               }
     inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                 }
