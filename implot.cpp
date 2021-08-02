@@ -2025,18 +2025,18 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
                const char* y2_label, const char* y3_label)
 {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "Mismatched BeginPlot()/EndPlot()!");
+    IM_ASSERT_USER_ERROR(GImplot->CurrentPlot == NULL, "Mismatched BeginPlot()/EndPlot()!");
     IM_ASSERT_USER_ERROR(!(ImHasFlag(x_flags, ImPlotAxisFlags_Time) && ImHasFlag(x_flags, ImPlotAxisFlags_LogScale)), "ImPlotAxisFlags_Time and ImPlotAxisFlags_LogScale cannot be enabled at the same time!");
     IM_ASSERT_USER_ERROR(!ImHasFlag(y1_flags, ImPlotAxisFlags_Time), "Y axes cannot display time formatted labels!");
 
     // SUBPLOT ID --------------------------------------------------------------
 
-    if (gp.CurrentSubplot != NULL)
-        ImGui::PushID(gp.CurrentSubplot->CurrentIdx);
+    if (GImPlot->CurrentSubplot != NULL)
+        ImGui::PushID(GImPlot->CurrentSubplot->CurrentIdx);
 
     // FRONT MATTER  -----------------------------------------------------------
 
+    ImPlotContext& gp = *GImPlot;
     ImGuiContext &G      = *GImGui;
     ImGuiWindow * Window = G.CurrentWindow;
     if (Window->SkipItems && !gp.CurrentSubplot) {
@@ -2146,8 +2146,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     plot.SetAxisLabel(plot.YAxis[1], y2_label);
     plot.SetAxisLabel(plot.YAxis[2], y3_label);
 
-    // AXIS STATES ------------------------------------------------------------
-    
+    // AXIS STATES ------------------------------------------------------------    
     
     plot.XAxis.HasRange    = gp.NextPlotData.HasXRange;     plot.XAxis.RangeCond    = gp.NextPlotData.XRangeCond;     plot.XAxis.Present    = true;
     plot.YAxis[0].HasRange = gp.NextPlotData.HasYRange[0];  plot.YAxis[0].RangeCond = gp.NextPlotData.YRangeCond[0];  plot.YAxis[0].Present = true;
@@ -2390,10 +2389,10 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 
 void EndPlot() {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "Mismatched BeginPlot()/EndPlot()!");
     ImPlotContext& gp     = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Mismatched BeginPlot()/EndPlot()!");
     ImGuiContext &G       = *GImGui;
-    ImPlotPlot &plot     = *gp.CurrentPlot;
+    ImPlotPlot &plot      = *gp.CurrentPlot;
     ImGuiWindow * Window  = G.CurrentWindow;
     ImDrawList & DrawList = *Window->DrawList;
     const ImGuiIO &   IO  = ImGui::GetIO();
@@ -2417,14 +2416,14 @@ void EndPlot() {
     }
 
     // axis hover rect
-    // if (plot.XAxis.ExtHovered || plot.XAxis.ExtHeld)
-    //     DrawList.AddRectFilled(plot.XAxis.HoverRect.Min, plot.XAxis.HoverRect.Max, IM_COL32(255,255,255,64));
-    // for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
-    // {
-    //     if (plot.YAxis[i].ExtHovered || plot.YAxis[i].ExtHeld) {
-    //         DrawList.AddRectFilled(plot.YAxis[i].HoverRect.Min, plot.YAxis[i].HoverRect.Max, IM_COL32(255,255,255,64));
-    //     }
-    // }
+    if (plot.XAxis.ExtHovered || plot.XAxis.ExtHeld)
+        DrawList.AddRectFilled(plot.XAxis.HoverRect.Min, plot.XAxis.HoverRect.Max, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
+    for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
+    {
+        if (plot.YAxis[i].ExtHovered || plot.YAxis[i].ExtHeld) {
+            DrawList.AddRectFilled(plot.YAxis[i].HoverRect.Min, plot.YAxis[i].HoverRect.Max, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
+        }
+    }
 
     const float txt_height = ImGui::GetTextLineHeight();
 
