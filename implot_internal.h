@@ -591,22 +591,23 @@ struct ImPlotTickCollection {
 // Axis state information that must persist after EndPlot
 struct ImPlotAxis
 {
+    bool              Enabled;
     ImPlotAxisFlags   Flags;
     ImPlotAxisFlags   PreviousFlags;
     ImPlotRange       Range;
     float             Pixels;
     ImPlotOrientation Orientation;
     bool              Dragging;
-    bool              ExtHovered;
-    bool              ExtHeld;
-    bool              AllHovered;
-    bool              Present;
+    bool              LabelsHovered;
+    bool              LabelsHeld;
+    bool              Hovered;
+    bool              Held;
     bool              HasRange;
     double*           LinkedMin;
     double*           LinkedMax;
     ImPlotTime        PickerTimeMin, PickerTimeMax;
     int               PickerLevel;
-    ImU32             ColorMaj, ColorMin, ColorTxt;
+    ImU32             ColorMaj, ColorMin, ColorTxt, ColorHov, ColorAct;
     ImGuiCond         RangeCond;
     ImRect            HoverRect;
     float             Datum1;
@@ -614,16 +615,17 @@ struct ImPlotAxis
     int               LabelOffset;
 
     ImPlotAxis() {
+        Enabled     = false;
         Flags       = PreviousFlags = ImPlotAxisFlags_None;
         Range.Min   = 0;
         Range.Max   = 1;
         Dragging    = false;
-        ExtHovered  = false;
-        ExtHeld     = false;
-        AllHovered  = false;
+        LabelsHovered  = false;
+        LabelsHeld     = false;
+        Hovered  = false;
         LinkedMin   = LinkedMax = NULL;
         PickerLevel = 0;
-        ColorMaj    = ColorMin = ColorTxt = 0;
+        ColorMaj    = ColorMin = ColorTxt = ColorHov = ColorAct = 0;
         Datum1      = Datum2 = 0;
         LabelOffset = -1;
     }
@@ -705,14 +707,18 @@ struct ImPlotAxis
     inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                          }
     inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                           }
 
+    inline bool WillRender()        const { return HasGridLines() || HasTickMarks() || HasTickMarks();                       }
+
     inline bool IsOpposite()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                               }
     inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                 }
+    inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                             }
 
     inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                }
+    inline bool IsInitFit()         const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit);                          }
     inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImGuiCond_Always;                                }
 
-    inline bool IsLockedMin()       const { return !Present || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin); }
-    inline bool IsLockedMax()       const { return !Present || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax); }
+    inline bool IsLockedMin()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin); }
+    inline bool IsLockedMax()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax); }
     inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                           }
 
     inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                         }
@@ -832,9 +838,8 @@ struct ImPlotPlot
     bool            Querying;
     bool            Queried;
     bool            DraggingQuery;
-    bool            FrameHovered;
-    bool            FrameHeld;
-    bool            PlotHovered;
+    bool            Hovered;
+    bool            Held;
     int             CurrentYAxis;
     ImPlotLocation  MousePosLocation;
     ImRect          FrameRect;
@@ -856,8 +861,8 @@ struct ImPlotPlot
         TitleOffset       = -1;
     }
 
-    inline bool AnyYInputLocked() const { return YAxis[0].IsInputLocked() || (YAxis[1].Present ? YAxis[1].IsInputLocked() : false) || (YAxis[2].Present ? YAxis[2].IsInputLocked() : false); }
-    inline bool AllYInputLocked() const { return YAxis[0].IsInputLocked() && (YAxis[1].Present ? YAxis[1].IsInputLocked() : true ) && (YAxis[2].Present ? YAxis[2].IsInputLocked() : true ); }
+    inline bool AnyYInputLocked() const { return YAxis[0].IsInputLocked() || (YAxis[1].Enabled ? YAxis[1].IsInputLocked() : false) || (YAxis[2].Enabled ? YAxis[2].IsInputLocked() : false); }
+    inline bool AllYInputLocked() const { return YAxis[0].IsInputLocked() && (YAxis[1].Enabled ? YAxis[1].IsInputLocked() : true ) && (YAxis[2].Enabled ? YAxis[2].IsInputLocked() : true ); }
     inline bool IsInputLocked() const   { return XAxis.IsInputLocked() && YAxis[0].IsInputLocked() && YAxis[1].IsInputLocked() && YAxis[2].IsInputLocked();                                  }
 
     inline void ClearTextBuffer() { TextBuffer.Buf.shrink(0); }
@@ -1019,11 +1024,6 @@ struct ImPlotContext {
     bool FitThisFrame;
     bool FitX;
     bool FitY[IMPLOT_MAX_AXES];
-
-    // Axis Rendering Flags
-    bool RenderX;
-    bool RenderY[IMPLOT_MAX_AXES];
-
 
     // Axis Locking Flags
     bool ChildWindowMade;

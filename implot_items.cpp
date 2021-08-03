@@ -942,8 +942,9 @@ IMPLOT_INLINE void PlotLineEx(const char* label_id, const Getter& getter) {
         }
         // render markers
         if (s.Marker != ImPlotMarker_None) {
-            PopPlotClipRect();
-            PushPlotClipRect(s.MarkerSize);
+            // uncomment lines below to render markers over plot rect border
+            // PopPlotClipRect();
+            // PushPlotClipRect(s.MarkerSize);
             const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
             const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
             switch (GetCurrentScale()) {
@@ -1016,8 +1017,9 @@ IMPLOT_INLINE void PlotScatterEx(const char* label_id, const Getter& getter) {
         // render markers
         ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle : s.Marker;
         if (marker != ImPlotMarker_None) {
-            PopPlotClipRect();
-            PushPlotClipRect(s.MarkerSize);
+            // uncomment lines below to render markers over plot rect border
+            // PopPlotClipRect();
+            // PushPlotClipRect(s.MarkerSize);
             const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
             const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
             switch (GetCurrentScale()) {

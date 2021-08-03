@@ -138,8 +138,10 @@ enum ImPlotCol_ {
     ImPlotCol_LegendText,    // legend text color (defaults to ImPlotCol_InlayText)
     ImPlotCol_TitleText,     // plot title text color (defaults to ImGuiCol_Text)
     ImPlotCol_InlayText,     // color of text appearing inside of plots (defaults to ImGuiCol_Text)
-    ImPlotCol_Axis,          // x-axis label and tick lables color (defaults to ImGuiCol_Text)
-    ImPlotCol_AxisGrid,      // x-axis grid color (defaults to 25% ImPlotCol_XAxis)
+    ImPlotCol_AxisText,      // axis label and tick lables color (defaults to ImGuiCol_Text)
+    ImPlotCol_AxisGrid,      // axis grid and tick color (defaults to 25% ImPlotCol_XAxis)
+    ImPlotCol_AxisHovered,   // axis hover color (defaults to ImGuiCol_ButtonHovered)
+    ImPlotCol_AxisActive,    // axis active color (defaults to ImGuiCol_ButtonActive)S
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
     ImPlotCol_Query,         // box-query color (defaults to green)
     ImPlotCol_Crosshairs,    // crosshairs color (defaults to ImPlotCol_PlotBorder)

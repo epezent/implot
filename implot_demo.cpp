@@ -1915,7 +1915,7 @@ void StyleSeaborn() {
     colors[ImPlotCol_LegendText]    = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_TitleText]     = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_InlayText]     = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
-    colors[ImPlotCol_Axis]          = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+    colors[ImPlotCol_AxisText]          = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_AxisGrid]      = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImPlotCol_Selection]     = ImVec4(1.00f, 0.65f, 0.00f, 1.00f);
     colors[ImPlotCol_Query]         = ImVec4(0.23f, 0.10f, 0.64f, 1.00f);
