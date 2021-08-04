@@ -613,6 +613,8 @@ struct ImPlotAxis
     float             Datum1;
     float             Datum2;
     int               LabelOffset;
+    char              Fmt[16];
+    void              (*Formatter)(double, char*, int, void*);
 
     ImPlotAxis() {
         Enabled     = false;
@@ -628,6 +630,8 @@ struct ImPlotAxis
         ColorMaj    = ColorMin = ColorTxt = ColorHov = ColorAct = 0;
         Datum1      = Datum2 = 0;
         LabelOffset = -1;
+        ImStrncpy(Fmt,IMPLOT_LABEL_FMT,sizeof(Fmt));
+        Formatter   = NULL;
     }
 
     bool SetMin(double _min, bool force=false) {
@@ -702,31 +706,31 @@ struct ImPlotAxis
             Range.Max = Range.Min + DBL_EPSILON;
     }
 
-    inline bool HasLabel()          const { return LabelOffset != -1 && !ImHasFlag(Flags, ImPlotAxisFlags_NoLabel);          }
-    inline bool HasGridLines()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoGridLines);                           }
-    inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                          }
-    inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                           }
-
-    inline bool WillRender()        const { return HasGridLines() || HasTickMarks() || HasTickMarks();                       }
-
-    inline bool IsOpposite()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                               }
-    inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                 }
-    inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                             }
-
-    inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                }
-    inline bool IsInitFit()         const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit);                          }
-    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImGuiCond_Always;                                }
-
-    inline bool IsLockedMin()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin); }
-    inline bool IsLockedMax()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax); }
-    inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                           }
-
-    inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                         }
-    inline bool IsInputLockedMax()  const { return IsLockedMax() || IsAutoFitting();                                         }
-    inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                         }
-
-    inline bool IsTime()            const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                                   }
-    inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                               }
+    inline bool HasLabel()          const { return LabelOffset != -1 && !ImHasFlag(Flags, ImPlotAxisFlags_NoLabel);                          }
+    inline bool HasGridLines()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoGridLines);                                           }
+    inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                                          }
+    inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                                           }
+                
+    inline bool WillRender()        const { return HasGridLines() || HasTickMarks() || HasTickMarks();                                       }
+                
+    inline bool IsOpposite()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                                               }
+    inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                                 }
+    inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }
+                
+    inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                                }
+    inline bool IsInitFit()         const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
+    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImGuiCond_Always;                                                }
+                
+    inline bool IsLockedMin()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin);                 }
+    inline bool IsLockedMax()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax);                 }
+    inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                                           }
+                
+    inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                                         }
+    inline bool IsInputLockedMax()  const { return IsLockedMax() || IsAutoFitting();                                                         }
+    inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                                         }
+                
+    inline bool IsTime()            const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                                                   }
+    inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                                               }
 };
 
 // Align plots group data
@@ -848,6 +852,8 @@ struct ImPlotPlot
     ImRect          AxesRect;
     ImGuiTextBuffer TextBuffer;
     int             TitleOffset;
+    bool            JustCreated;
+    bool            SetupLocked;
 
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
@@ -859,6 +865,8 @@ struct ImPlotPlot
         CurrentYAxis      = 0;
         MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
         TitleOffset       = -1;
+        JustCreated       = true;
+        SetupLocked       = false;
     }
 
     inline bool AnyYInputLocked() const { return YAxis[0].IsInputLocked() || (YAxis[1].Enabled ? YAxis[1].IsInputLocked() : false) || (YAxis[2].Enabled ? YAxis[2].IsInputLocked() : false); }
@@ -926,21 +934,29 @@ struct ImPlotNextPlotData
 {
     ImGuiCond   XRangeCond;
     ImGuiCond   YRangeCond[IMPLOT_MAX_AXES];
+
     ImPlotRange XRange;
     ImPlotRange YRange[IMPLOT_MAX_AXES];
+
     bool        HasXRange;
     bool        HasYRange[IMPLOT_MAX_AXES];
+
     bool        ShowDefaultTicksX;
     bool        ShowDefaultTicksY[IMPLOT_MAX_AXES];
+
     char        FmtX[16];
     char        FmtY[IMPLOT_MAX_AXES][16];
+
     bool        HasFmtX;
     bool        HasFmtY[IMPLOT_MAX_AXES];
+
     bool        FitX;
     bool        FitY[IMPLOT_MAX_AXES];
+
     double*     LinkedXmin;
-    double*     LinkedXmax;
     double*     LinkedYmin[IMPLOT_MAX_AXES];
+    
+    double*     LinkedXmax;
     double*     LinkedYmax[IMPLOT_MAX_AXES];
 
     ImPlotNextPlotData() { Reset(); }
@@ -1011,7 +1027,6 @@ struct ImPlotContext {
     ImPlotAnnotationCollection Annotations;
 
     // Transformations and Data Extents
-    ImPlotScale Scales[IMPLOT_MAX_AXES];
     ImRect      PixelRange[IMPLOT_MAX_AXES];
     double      Mx;
     double      My[IMPLOT_MAX_AXES];
@@ -1135,8 +1150,19 @@ IMPLOT_API void UpdateAxisColors(int axis_flag, ImPlotAxis* axis);
 
 // Updates plot-to-pixel space transformation variables for the current plot.
 IMPLOT_API void UpdateTransformCache();
-// Gets the XY scale for the current plot and y-axis
-static inline ImPlotScale GetCurrentScale() { return GImPlot->Scales[GetCurrentYAxis()]; }
+// Gets the XY scale for the current plot and y-axis (TODO)
+static inline ImPlotScale GetCurrentScale() { 
+    int i = GetCurrentYAxis();
+    ImPlotPlot& plot = *GetCurrentPlot();
+    if (!plot.XAxis.IsLog() && !plot.YAxis[i].IsLog())
+        return ImPlotScale_LinLin;
+    else if (plot.XAxis.IsLog() && !plot.YAxis[i].IsLog())
+        return ImPlotScale_LogLin;
+    else if (!plot.XAxis.IsLog() && plot.YAxis[i].IsLog())
+        return ImPlotScale_LinLog;
+    else
+        return ImPlotScale_LogLog;
+}
 
 // Returns true if the user has requested data to be fit.
 static inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
@@ -1183,10 +1209,6 @@ IMPLOT_API void PullLinkedAxis(ImPlotAxis& axis);
 
 // Shows an axis's context menu.
 IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_allowed = false);
-
-// Get format spec for axis
-static inline const char* GetFormatX()              { return GImPlot->NextPlotData.HasFmtX    ? GImPlot->NextPlotData.FmtX    : IMPLOT_LABEL_FMT; }
-static inline const char* GetFormatY(ImPlotYAxis y) { return GImPlot->NextPlotData.HasFmtY[y] ? GImPlot->NextPlotData.FmtY[y] : IMPLOT_LABEL_FMT; }
 
 //-----------------------------------------------------------------------------
 // [SECTION] Legend Utils

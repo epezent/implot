@@ -55,13 +55,15 @@ struct ImPlotContext;          // ImPlot context (opaque struct, see implot_inte
 typedef int ImPlotFlags;        // -> enum ImPlotFlags_
 typedef int ImPlotAxisFlags;    // -> enum ImPlotAxisFlags_
 typedef int ImPlotSubplotFlags; // -> enum ImPlotSubplotFlags_
+typedef int ImPlotLegendFlags;  // -> enum ImPlotLegendFlags_
 typedef int ImPlotCol;          // -> enum ImPlotCol_
 typedef int ImPlotStyleVar;     // -> enum ImPlotStyleVar_
 typedef int ImPlotMarker;       // -> enum ImPlotMarker_
 typedef int ImPlotColormap;     // -> enum ImPlotColormap_
 typedef int ImPlotLocation;     // -> enum ImPlotLocation_
 typedef int ImPlotOrientation;  // -> enum ImPlotOrientation_
-typedef int ImPlotYAxis;        // -> enum ImPlotYAxis_;
+typedef int ImPlotYAxis;        // -> enum ImPlotYAxis_
+typedef int ImAxis;             // -> enum ImAxis_
 typedef int ImPlotBin;          // -> enum ImPlotBin_
 
 // Options for plots (see BeginPlot).
@@ -119,6 +121,16 @@ enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_LinkAllX    = 1 << 8,  // link the x-axis limits in every plot in the subplot
     ImPlotSubplotFlags_LinkAllY    = 1 << 9 , // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
     ImPlotSubplotFlags_ColMajor    = 1 << 10  // subplots are added in column major order instead of the default row major order
+};
+
+// Options for legends (see SetupLegend)
+enum ImPlotLegendFlags_ {
+    ImPlotLegendFlags_None        = 0,      // default
+    ImPlotLegendFlags_NoButtons   = 1 << 0,
+    ImPlotLegendFlags_NoHighlight = 1 << 1, 
+    ImPlotLegendFlags_Outside     = 1 << 2,
+    ImPlotLegendFlags_Horizontal  = 1 << 3,
+    ImPlotLegendFlags_SortItems   = 1 << 4,
 };
 
 // Plot styling colors.
@@ -242,6 +254,17 @@ enum ImPlotYAxis_ {
     ImPlotYAxis_1 = 0, // left (default)
     ImPlotYAxis_2 = 1, // first on right side
     ImPlotYAxis_3 = 2  // second on right side
+};
+
+enum ImAxis_ {
+    ImAxis_X1,
+    // ImAxis_X2,
+    // ImAxis_X3,
+    // ImAxis_X4,
+    ImAxis_Y1,
+    ImAxis_Y2,
+    ImAxis_Y3,
+    // ImAxis_Y4,
 };
 
 // Enums for different automatic histogram binning methods (k = bin count or w = bin width)
@@ -394,6 +417,23 @@ IMPLOT_API bool BeginPlot(const char* title_id,
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot(). See example above.
 IMPLOT_API void EndPlot();
+
+//-----------------------------------------------------------------------------
+// NEW API
+//-----------------------------------------------------------------------------
+
+IMPLOT_API bool BeginPlotS(const char* title_id, const ImVec2& size = ImVec2(-1,0), ImPlotFlags flags = ImPlotFlags_None);
+
+IMPLOT_API void SetupAxis(ImAxis axis, const char* label = NULL, ImPlotAxisFlags flags = ImPlotAxisFlags_None);
+IMPLOT_API void SetupAxisLimits(ImAxis axis, double min_lim, double max_lim, ImGuiCond cond = ImGuiCond_Once);
+IMPLOT_API void SetupAxisConstraints(ImAxis axis);
+IMPLOT_API void SetupAxisLinks(ImAxis axis, double* min_lnk, double* max_lnk);
+IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
+IMPLOT_API void SetupAxisFormat(ImAxis axis, void (*formatter)(double value, char* buff, int size));
+
+IMPLOT_API void SetupLegend(ImPlotLegendFlags flags, ImPlotLocation loc);
+
+IMPLOT_API void FinishSetup();
 
 //-----------------------------------------------------------------------------
 // Begin/EndSubplots

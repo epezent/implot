@@ -26,6 +26,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - make axis side configurable (top/left, right/bottom) via new flag `ImPlotAxisFlags_Opposite`
 - add support for setting tick label strings via callback
 - add flag to remove weekends on Time axis
+- pixel space scale, normalized space scale (see matplotlib)
 
 ## Plot Items
 
@@ -42,10 +43,11 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 ## Legend
 
-- change `SetLegendLocation` API to be more consistent, i.e. `SetNextLegendLocation`
-- add legend scroll
-- improve legend icons (e.g. adopt markers, gradients, etc)
 - `ImPlotLegendFlags`
+    - `_SortItems`
+    - `_Scroll`
+    - `_NoButtons`
+- improve legend icons (e.g. adopt markers, gradients, etc)
 
 ## Tools / Misc.
 
