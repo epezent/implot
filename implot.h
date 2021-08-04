@@ -428,8 +428,10 @@ IMPLOT_API void SetupAxis(ImAxis axis, const char* label = NULL, ImPlotAxisFlags
 IMPLOT_API void SetupAxisLimits(ImAxis axis, double min_lim, double max_lim, ImGuiCond cond = ImGuiCond_Once);
 IMPLOT_API void SetupAxisConstraints(ImAxis axis);
 IMPLOT_API void SetupAxisLinks(ImAxis axis, double* min_lnk, double* max_lnk);
+
+// TODO: mouse pos fmt, demo bug
 IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
-IMPLOT_API void SetupAxisFormat(ImAxis axis, void (*formatter)(double value, char* buff, int size));
+IMPLOT_API void SetupAxisFormat(ImAxis axis, void (*formatter)(double value, char* buff, int size, void* data), void* data);
 
 IMPLOT_API void SetupLegend(ImPlotLegendFlags flags, ImPlotLocation loc);
 
@@ -916,7 +918,7 @@ IMPLOT_API ImVec4 GetColormapColor(int idx, ImPlotColormap cmap = IMPLOT_AUTO);
 IMPLOT_API ImVec4 SampleColormap(float t, ImPlotColormap cmap = IMPLOT_AUTO);
 
 // Shows a vertical color scale with linear spaced ticks using the specified color map. Use double hashes to hide label (e.g. "##NoLabel").
-IMPLOT_API void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0), ImPlotColormap cmap = IMPLOT_AUTO, const char* fmt = "%g");
+IMPLOT_API void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0), ImPlotColormap cmap = IMPLOT_AUTO, char* fmt = "%g");
 // Shows a horizontal slider with a colormap gradient background. Optionally returns the color sampled at t in [0 1].
 IMPLOT_API bool ColormapSlider(const char* label, float* t, ImVec4* out = NULL, const char* format = "", ImPlotColormap cmap = IMPLOT_AUTO);
 // Shows a button with a colormap gradient brackground.

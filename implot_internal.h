@@ -64,6 +64,8 @@
 #define IMPLOT_MAX_TIME  32503680000
 // Default label format for axis labels
 #define IMPLOT_LABEL_FMT "%g"
+// Max character size for tick labels
+#define IMPLOT_LABEL_MAX_SIZE 32
 // Plot values less than or equal to 0 will be replaced with this on log scale axes
 #define IMPLOT_LOG_ZERO DBL_MIN
 
@@ -564,13 +566,13 @@ struct ImPlotTickCollection {
         return Ticks.back();
     }
 
-    const ImPlotTick& Append(double value, bool major, bool show_label, const char* fmt) {
+    const ImPlotTick& Append(double value, bool major, bool show_label, void (*formatter)(double, char*, int, void*), void* data) {
         ImPlotTick tick(value, major, show_label);
-        if (show_label && fmt != NULL) {
-            char temp[32];
+        if (show_label && formatter != NULL) {
+            char buff[IMPLOT_LABEL_MAX_SIZE];
             tick.TextOffset = TextBuffer.size();
-            snprintf(temp, 32, fmt, tick.PlotPos);
-            TextBuffer.append(temp, temp + strlen(temp) + 1);
+            formatter(tick.PlotPos, buff, sizeof(buff), data);
+            TextBuffer.append(buff, buff + strlen(buff) + 1);
             tick.LabelSize = ImGui::CalcTextSize(TextBuffer.Buf.Data + tick.TextOffset);
         }
         return Append(tick);
@@ -615,6 +617,7 @@ struct ImPlotAxis
     int               LabelOffset;
     char              Fmt[16];
     void              (*Formatter)(double, char*, int, void*);
+    void*             FormatterData;
 
     ImPlotAxis() {
         Enabled     = false;
@@ -1229,17 +1232,22 @@ IMPLOT_API bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible);
 // [SECTION] Tick Utils
 //-----------------------------------------------------------------------------
 
+static inline void DefaultFormatter(double value, char* buff, int size, void* data) {
+    char* fmt = (char*)data;
+    snprintf(buff, size, fmt, value);
+}
+
 // Label a tick with time formatting.
 IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);
 
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
-IMPLOT_API void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, const char* fmt);
+IMPLOT_API void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
-IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, const char* fmt);
+IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
+// Populates a list of ImPlotTicks with custom spaced and labeled ticks
+IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
 // Populates a list of ImPlotTicks with time formatted ticks.
 IMPLOT_API void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks);
-// Populates a list of ImPlotTicks with custom spaced and labeled ticks
-IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks, const char* fmt);
 
 // Create a a string label for a an axis value
 IMPLOT_API int LabelAxisValue(const ImPlotAxis& axis, const ImPlotTickCollection& ticks, double value, char* buff, int size);

@@ -1943,7 +1943,7 @@ void StyleSeaborn() {
     style.PlotPadding      = ImVec2(12,12);
     style.LabelPadding     = ImVec2(5,5);
     style.LegendPadding    = ImVec2(5,5);
-    style.MousePosPadding      = ImVec2(5,5);
+    style.MousePosPadding  = ImVec2(5,5);
     style.PlotMinSize      = ImVec2(300,225);
 }
 
