@@ -62,7 +62,6 @@ typedef int ImPlotMarker;       // -> enum ImPlotMarker_
 typedef int ImPlotColormap;     // -> enum ImPlotColormap_
 typedef int ImPlotLocation;     // -> enum ImPlotLocation_
 typedef int ImPlotOrientation;  // -> enum ImPlotOrientation_
-typedef int ImPlotYAxis;        // -> enum ImPlotYAxis_
 typedef int ImAxis;             // -> enum ImAxis_
 typedef int ImPlotBin;          // -> enum ImPlotBin_
 
@@ -249,22 +248,15 @@ enum ImPlotOrientation_ {
     ImPlotOrientation_Vertical    // up/down
 };
 
-// Enums for different y-axes.
-enum ImPlotYAxis_ {
-    ImPlotYAxis_1 = 0, // left (default)
-    ImPlotYAxis_2 = 1, // first on right side
-    ImPlotYAxis_3 = 2  // second on right side
-};
-
+// Axis indices. You are STRONGLY encouraged to use the enums provided here
+// instead of hardcoding integer values.
 enum ImAxis_ {
-    ImAxis_X1,
-    // ImAxis_X2,
-    // ImAxis_X3,
-    // ImAxis_X4,
-    ImAxis_Y1,
-    ImAxis_Y2,
-    ImAxis_Y3,
-    // ImAxis_Y4,
+    ImAxis_X1 = 0, // first horizontal axis (enabled by default)
+    ImAxis_X2 = 1, // second horizontal axis (disabled by default)
+    ImAxis_X3 = 2, // third horizontal axis (disabled by default)
+    ImAxis_Y1 = 3, // first vertical axis (enabled by default)
+    ImAxis_Y2 = 4, // second vertical axis (disabled by default)
+    ImAxis_Y3 = 5, // third vertical axis (disabled by default)
 };
 
 // Enums for different automatic histogram binning methods (k = bin count or w = bin width)
@@ -631,68 +623,69 @@ IMPLOT_API void PlotDummy(const char* label_id);
 // Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
 IMPLOT_API void SetNextPlotLimits(double xmin, double xmax, double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once);
 // Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
-IMPLOT_API void SetNextPlotLimitsX(double xmin, double xmax, ImGuiCond cond = ImGuiCond_Once);
+IMPLOT_API void SetNextPlotLimitsX(double xmin, double xmax, ImGuiCond cond = ImGuiCond_Once, ImAxis x_axis = ImAxis_X1);
 // Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
-IMPLOT_API void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, ImPlotYAxis y_axis = ImPlotYAxis_1);
+IMPLOT_API void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, ImAxis y_axis = ImAxis_Y1);
 // Links the next plot limits to external values. Set to NULL for no linkage. The pointer data must remain valid until the matching call to EndPlot.
 IMPLOT_API void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2 = NULL, double* ymax2 = NULL, double* ymin3 = NULL, double* ymax3 = NULL);
 // Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
 IMPLOT_API void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true);
 
 // Set the X axis ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
-IMPLOT_API void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
-IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
+IMPLOT_API void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis x_axis = ImAxis_X1);
+IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis x_axis = ImAxis_X1);
 // Set the Y axis ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
-IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImPlotYAxis y_axis = ImPlotYAxis_1);
-IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImPlotYAxis y_axis = ImPlotYAxis_1);
+IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1);
+IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1);
 
 // Set the format for numeric X axis labels (default="%g"). Formated values will be doubles (i.e. don't supply %d, %i, etc.). Not applicable if ImPlotAxisFlags_Time enabled.
-IMPLOT_API void SetNextPlotFormatX(const char* fmt);
+IMPLOT_API void SetNextPlotFormatX(const char* fmt, ImAxis x_axis = ImAxis_X1);
 // Set the format for numeric Y axis labels (default="%g"). Formated values will be doubles (i.e. don't supply %d, %i, etc.).
-IMPLOT_API void SetNextPlotFormatY(const char* fmt, ImPlotYAxis y_axis=ImPlotYAxis_1);
+IMPLOT_API void SetNextPlotFormatY(const char* fmt, ImAxis y_axis = ImAxis_Y1);
 
 // The following functions MUST be called BETWEEN Begin/EndPlot!
 
-// Select which Y axis will be used for subsequent plot elements. The default is ImPlotYAxis_1, or the first (left) Y axis. Enable 2nd and 3rd axes with ImPlotFlags_YAxisX.
-IMPLOT_API void SetPlotYAxis(ImPlotYAxis y_axis);
+// Select which axis/axes will be used for subsequent plot elements.
+IMPLOT_API void SetPlotAxis(ImAxis axis);
+IMPLOT_API void SetPlotAxes(ImAxis x_axis, ImAxis y_axis);
 // Hides or shows the next plot item (i.e. as if it were toggled from the legend). Use ImGuiCond_Always if you need to forcefully set this every frame.
 IMPLOT_API void HideNextItem(bool hidden = true, ImGuiCond cond = ImGuiCond_Once);
 
-// Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
-IMPLOT_API ImPlotPoint PixelsToPlot(const ImVec2& pix, ImPlotYAxis y_axis = IMPLOT_AUTO);
-IMPLOT_API ImPlotPoint PixelsToPlot(float x, float y, ImPlotYAxis y_axis = IMPLOT_AUTO);
-// Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
-IMPLOT_API ImVec2 PlotToPixels(const ImPlotPoint& plt, ImPlotYAxis y_axis = IMPLOT_AUTO);
-IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImPlotYAxis y_axis = IMPLOT_AUTO);
+// Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
+IMPLOT_API ImPlotPoint PixelsToPlot(const ImVec2& pix, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotPoint PixelsToPlot(float x, float y, ImAxis y_axis = IMPLOT_AUTO);
+// Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
+IMPLOT_API ImVec2 PlotToPixels(const ImPlotPoint& plt, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImAxis y_axis = IMPLOT_AUTO);
+
 // Get the current Plot position (top-left) in pixels.
 IMPLOT_API ImVec2 GetPlotPos();
 // Get the curent Plot size in pixels.
 IMPLOT_API ImVec2 GetPlotSize();
+
+// Returns the mouse position in x,y coordinates of the current plot. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
+IMPLOT_API ImPlotPoint GetPlotMousePos(ImAxis y_axis = IMPLOT_AUTO);
+// Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
+IMPLOT_API ImPlotLimits GetPlotLimits(ImAxis y_axis = IMPLOT_AUTO);
+
 // Returns true if the plot area in the current plot is hovered.
 IMPLOT_API bool IsPlotHovered();
 // Returns true if the XAxis plot area in the current plot is hovered.
-IMPLOT_API bool IsPlotXAxisHovered();
-// Returns true if the YAxis[n] plot area in the current plot is hovered.
-IMPLOT_API bool IsPlotYAxisHovered(ImPlotYAxis y_axis = 0);
-// Returns the mouse position in x,y coordinates of the current plot. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
-IMPLOT_API ImPlotPoint GetPlotMousePos(ImPlotYAxis y_axis = IMPLOT_AUTO);
-// Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
-IMPLOT_API ImPlotLimits GetPlotLimits(ImPlotYAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API bool IsAxisHovered(ImAxis x_axis);
+// Returns true if the bounding frame of a subplot is hovered/
+IMPLOT_API bool IsSubplotsHovered();
 
 // Returns true if the current plot is being box selected.
 IMPLOT_API bool IsPlotSelected();
 // Returns the current plot box selection bounds.
-IMPLOT_API ImPlotLimits GetPlotSelection(ImPlotYAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotLimits GetPlotSelection(ImAxis y_axis = IMPLOT_AUTO);
 
 // Returns true if the current plot is being queried or has an active query. Query must be enabled with ImPlotFlags_Query.
 IMPLOT_API bool IsPlotQueried();
 // Returns the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
-IMPLOT_API ImPlotLimits GetPlotQuery(ImPlotYAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotLimits GetPlotQuery(ImAxis y_axis = IMPLOT_AUTO);
 // Set the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
-IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImPlotYAxis y_axis = IMPLOT_AUTO);
-
-// Returns true if the bounding frame of a subplot is hovered/
-IMPLOT_API bool IsSubplotsHovered();
+IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImAxis y_axis = IMPLOT_AUTO);
 
 //-----------------------------------------------------------------------------
 // Aligned Plots
@@ -759,9 +752,7 @@ IMPLOT_API void EndLegendPopup();
 // Turns the current plot's plotting area into a drag and drop target. Don't forget to call EndDragDropTarget!
 IMPLOT_API bool BeginDragDropTarget();
 // Turns the current plot's X-axis into a drag and drop target. Don't forget to call EndDragDropTarget!
-IMPLOT_API bool BeginDragDropTargetX();
-// Turns the current plot's Y-Axis into a drag and drop target. Don't forget to call EndDragDropTarget!
-IMPLOT_API bool BeginDragDropTargetY(ImPlotYAxis axis = ImPlotYAxis_1);
+IMPLOT_API bool BeginDragDropTargetAxis(ImAxis axis);
 // Turns the current plot's legend into a drag and drop target. Don't forget to call EndDragDropTarget!
 IMPLOT_API bool BeginDragDropTargetLegend();
 // Ends a drag and drop target (currently just an alias for ImGui::EndDragDropTarget).
@@ -773,9 +764,7 @@ IMPLOT_API void EndDragDropTarget();
 // Turns the current plot's plotting area into a drag and drop source. Don't forget to call EndDragDropSource!
 IMPLOT_API bool BeginDragDropSource(ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
 // Turns the current plot's X-axis into a drag and drop source. Don't forget to call EndDragDropSource!
-IMPLOT_API bool BeginDragDropSourceX(ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
-// Turns the current plot's Y-axis into a drag and drop source. Don't forget to call EndDragDropSource!
-IMPLOT_API bool BeginDragDropSourceY(ImPlotYAxis axis = ImPlotYAxis_1, ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
+IMPLOT_API bool BeginDragDropSourceAxis(ImAxis axis, ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
 // Turns an item in the current plot's legend into drag and drop source. Don't forget to call EndDragDropSource!
 IMPLOT_API bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags = 0);
 // Ends a drag and drop source (currently just an alias for ImGui::EndDragDropSource).
