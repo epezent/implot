@@ -831,15 +831,19 @@ struct ImPlotPlot
     ImGuiID         ID;
     ImPlotFlags     Flags;
     ImPlotFlags     PreviousFlags;
+
     ImPlotAxis      XAxis[IMPLOT_MAX_AXES];
     ImPlotAxis      YAxis[IMPLOT_MAX_AXES];
     int             CurrentX;
     int             CurrentY;
+
     ImPlotItemGroup Items;
+
     ImVec2          SelectStart;
     ImRect          SelectRect;
     ImVec2          QueryStart;
     ImRect          QueryRect;
+
     bool            Initialized;
     bool            Selecting;
     bool            Selected;
@@ -849,6 +853,7 @@ struct ImPlotPlot
     bool            DraggingQuery;
     bool            Hovered;
     bool            Held;
+    
     ImPlotLocation  MousePosLocation;
     ImRect          FrameRect;
     ImRect          CanvasRect;
@@ -899,6 +904,10 @@ struct ImPlotPlot
     inline bool HasTitle() const { return TitleOffset != -1 && !ImHasFlag(Flags, ImPlotFlags_NoTitle); }
     inline const char* GetTitle() const { return TextBuffer.Buf.Data + TitleOffset; }
 
+    inline ImPlotAxis* GetAxis(ImAxis axis) {
+        return XAxis + axis;
+    }
+
     inline void SetAxisLabel(ImPlotAxis& axis, const char* label) {
         if (label && ImGui::FindRenderedTextEnd(label, NULL) != label) {
             axis.LabelOffset = TextBuffer.size();
@@ -944,47 +953,25 @@ struct ImPlotSubplot {
 // Temporary data storage for upcoming plot
 struct ImPlotNextPlotData
 {
-    ImGuiCond   XRangeCond[IMPLOT_MAX_AXES];
-    ImGuiCond   YRangeCond[IMPLOT_MAX_AXES];
-
-    ImPlotRange XRange[IMPLOT_MAX_AXES];
-    ImPlotRange YRange[IMPLOT_MAX_AXES];
-
-    bool        HasXRange[IMPLOT_MAX_AXES];
-    bool        HasYRange[IMPLOT_MAX_AXES];
-
-    bool        ShowDefaultTicksX[IMPLOT_MAX_AXES];
-    bool        ShowDefaultTicksY[IMPLOT_MAX_AXES];
-
-    char        FmtX[IMPLOT_MAX_AXES][16];
-    char        FmtY[IMPLOT_MAX_AXES][16];
-
-    bool        HasFmtX[IMPLOT_MAX_AXES];
-    bool        HasFmtY[IMPLOT_MAX_AXES];
-
-    bool        FitX[IMPLOT_MAX_AXES];
-    bool        FitY[IMPLOT_MAX_AXES];
-
-    double*     LinkedXmin[IMPLOT_MAX_AXES];
-    double*     LinkedYmin[IMPLOT_MAX_AXES];
-    
-    double*     LinkedXmax[IMPLOT_MAX_AXES];
-    double*     LinkedYmax[IMPLOT_MAX_AXES];
+    ImGuiCond   RangeCond[2*IMPLOT_MAX_AXES];
+    ImPlotRange Range[2*IMPLOT_MAX_AXES];
+    bool        HasRange[2*IMPLOT_MAX_AXES];
+    bool        ShowDefaultTicks[2*IMPLOT_MAX_AXES];
+    char        Fmt[2*IMPLOT_MAX_AXES][16];
+    bool        HasFmt[2*IMPLOT_MAX_AXES];
+    bool        Fit[2*IMPLOT_MAX_AXES];
+    double*     LinkedMin[2*IMPLOT_MAX_AXES];    
+    double*     LinkedMax[2*IMPLOT_MAX_AXES];
 
     ImPlotNextPlotData() { Reset(); }
 
     void Reset() {
-        for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-            HasXRange[i]         = false;
-            ShowDefaultTicksX[i] = true;
-            HasFmtX[i]           = false;
-            FitX[i]              = false;
-            LinkedXmin[i] = LinkedXmax[i] = NULL;
-            HasYRange[i]         = false;
-            ShowDefaultTicksY[i] = true;
-            HasFmtY[i]           = false;
-            FitY[i]              = false;
-            LinkedYmin[i] = LinkedYmax[i] = NULL;
+        for (int i = 0; i < 2*IMPLOT_MAX_AXES; ++i) {
+            HasRange[i]                 = false;
+            ShowDefaultTicks[i]         = true;
+            HasFmt[i]                   = false;
+            Fit[i]                      = false;
+            LinkedMin[i] = LinkedMax[i] = NULL;
         }
     }
 
@@ -1039,18 +1026,18 @@ struct ImPlotContext {
     ImPlotAnnotationCollection Annotations;
 
     // Transformations and Data Extents
-    ImRect      PixelRange[IMPLOT_MAX_AXES];
     double      Mx[IMPLOT_MAX_AXES];
     double      My[IMPLOT_MAX_AXES];
     double      LogDenX[IMPLOT_MAX_AXES];
     double      LogDenY[IMPLOT_MAX_AXES];
-    ImPlotRange ExtentsX[IMPLOT_MAX_AXES];
-    ImPlotRange ExtentsY[IMPLOT_MAX_AXES];
+    ImRect      PixelRange[IMPLOT_MAX_AXES];
 
-    // Data Fitting Flags
+    // Data Fitting 
     bool FitThisFrame;
     bool FitX[IMPLOT_MAX_AXES];
     bool FitY[IMPLOT_MAX_AXES];
+    ImPlotRange ExtentsX[IMPLOT_MAX_AXES];
+    ImPlotRange ExtentsY[IMPLOT_MAX_AXES];
 
     // Axis Locking Flags
     bool ChildWindowMade;

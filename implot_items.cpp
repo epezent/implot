@@ -475,8 +475,9 @@ struct TransformerLog {
 template <typename TransformerX, typename TransformerY>
 struct TransformerXY {
     TransformerXY() :
-        YAxis(GetCurrentYAxis()),
-        Tx(GImPlot->PixelRange[YAxis].Min.x, GImPlot->CurrentPlot->XAxis.Range.Min,        GImPlot->CurrentPlot->XAxis.Range.Max,        GImPlot->Mx,        GImPlot->LogDenX),
+        XAxis(GetCurrentAxisX()),
+        YAxis(GetCurrentAxisY()),
+        Tx(GImPlot->PixelRange[YAxis].Min.x, GImPlot->CurrentPlot->XAxis[XAxis].Range.Min, GImPlot->CurrentPlot->XAxis[XAxis].Range.Max, GImPlot->Mx[XAxis], GImPlot->LogDenX[XAxis]),
         Ty(GImPlot->PixelRange[YAxis].Min.y, GImPlot->CurrentPlot->YAxis[YAxis].Range.Min, GImPlot->CurrentPlot->YAxis[YAxis].Range.Max, GImPlot->My[YAxis], GImPlot->LogDenY[YAxis])
     { }
     template <typename P> IMPLOT_INLINE ImVec2 operator()(const P& plt) const {
@@ -485,6 +486,7 @@ struct TransformerXY {
         out.y = Ty(plt.y);
         return out;
     }
+    int XAxis;
     int YAxis;
     TransformerX Tx;
     TransformerY Ty;
@@ -1189,11 +1191,11 @@ void PlotShaded(const char* label_id, const T* values, int count, double y_ref, 
     bool fit2 = true;
     if (y_ref == -HUGE_VAL) {
         fit2 = false;
-        y_ref = GetPlotLimits().Y.Min;
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;
     }
     if (y_ref == HUGE_VAL) {
         fit2 = false;
-        y_ref = GetPlotLimits().Y.Max;
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
     }
     GetterYs<T> getter1(values,count,xscale,x0,offset,stride);
     GetterYRef getter2(y_ref,count,xscale,x0);
@@ -1216,11 +1218,11 @@ void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, doubl
     bool fit2 = true;
     if (y_ref == -HUGE_VAL) {
         fit2 = false;
-        y_ref = GetPlotLimits().Y.Min;
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;
     }
     if (y_ref == HUGE_VAL) {
         fit2 = false;
-        y_ref = GetPlotLimits().Y.Max;
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
     }
     GetterXsYs<T> getter1(xs, ys, count, offset, stride);
     GetterXsYRef<T> getter2(xs, y_ref, count, offset, stride);
@@ -1291,8 +1293,8 @@ void PlotBarsEx(const char* label_id, const Getter& getter, double width) {
             ImPlotPoint p = getter(i);
             if (p.y == 0)
                 continue;
-            ImVec2 a = PlotToPixels(p.x - half_width, p.y);
-            ImVec2 b = PlotToPixels(p.x + half_width, 0);
+            ImVec2 a = PlotToPixels(p.x - half_width, p.y,IMPLOT_AUTO,IMPLOT_AUTO);
+            ImVec2 b = PlotToPixels(p.x + half_width, 0,IMPLOT_AUTO,IMPLOT_AUTO);
             float width_px = ImAbs(a.x-b.x);
             if (width_px < 1.0f) {
                 a.x += a.x > b.x ? (1-width_px) / 2 : (width_px-1) / 2;
@@ -1377,8 +1379,8 @@ void PlotBarsHEx(const char* label_id, const Getter& getter, THeight height) {
             ImPlotPoint p = getter(i);
             if (p.x == 0)
                 continue;
-            ImVec2 a = PlotToPixels(0, p.y - half_height);
-            ImVec2 b = PlotToPixels(p.x, p.y + half_height);
+            ImVec2 a = PlotToPixels(0, p.y - half_height,IMPLOT_AUTO,IMPLOT_AUTO);
+            ImVec2 b = PlotToPixels(p.x, p.y + half_height,IMPLOT_AUTO,IMPLOT_AUTO);
             if (s.RenderFill)
                 DrawList.AddRectFilled(a, b, col_fill);
             if (rend_line)
@@ -1449,8 +1451,8 @@ void PlotErrorBarsEx(const char* label_id, const Getter& getter) {
         const float half_whisker = s.ErrorBarSize * 0.5f;
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPointError e = getter(i);
-            ImVec2 p1 = PlotToPixels(e.X, e.Y - e.Neg);
-            ImVec2 p2 = PlotToPixels(e.X, e.Y + e.Pos);
+            ImVec2 p1 = PlotToPixels(e.X, e.Y - e.Neg,IMPLOT_AUTO,IMPLOT_AUTO);
+            ImVec2 p2 = PlotToPixels(e.X, e.Y + e.Pos,IMPLOT_AUTO,IMPLOT_AUTO);
             DrawList.AddLine(p1,p2,col, s.ErrorBarWeight);
             if (rend_whisker) {
                 DrawList.AddLine(p1 - ImVec2(half_whisker, 0), p1 + ImVec2(half_whisker, 0), col, s.ErrorBarWeight);
@@ -1516,8 +1518,8 @@ void PlotErrorBarsHEx(const char* label_id, const Getter& getter) {
         const float half_whisker = s.ErrorBarSize * 0.5f;
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPointError e = getter(i);
-            ImVec2 p1 = PlotToPixels(e.X - e.Neg, e.Y);
-            ImVec2 p2 = PlotToPixels(e.X + e.Pos, e.Y);
+            ImVec2 p1 = PlotToPixels(e.X - e.Neg, e.Y,IMPLOT_AUTO,IMPLOT_AUTO);
+            ImVec2 p2 = PlotToPixels(e.X + e.Pos, e.Y,IMPLOT_AUTO,IMPLOT_AUTO);
             DrawList.AddLine(p1, p2, col, s.ErrorBarWeight);
             if (rend_whisker) {
                 DrawList.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, s.ErrorBarWeight);
@@ -1648,7 +1650,7 @@ template IMPLOT_API void PlotStems<double>(const char* label_id, const double* x
 template <typename T>
 void PlotVLines(const char* label_id, const T* xs, int count, int offset, int stride) {
     if (BeginItem(label_id, ImPlotCol_Line)) {
-        const ImPlotLimits lims = GetPlotLimits();
+        const ImPlotLimits lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
         GetterXsYRef<T> get_min(xs,lims.Y.Min,count,offset,stride);
         GetterXsYRef<T> get_max(xs,lims.Y.Max,count,offset,stride);
         if (FitThisFrame()) {
@@ -1686,7 +1688,7 @@ template IMPLOT_API void PlotVLines<double>(const char* label_id, const double* 
 template <typename T>
 void PlotHLines(const char* label_id, const T* ys, int count, int offset, int stride) {
     if (BeginItem(label_id, ImPlotCol_Line)) {
-        const ImPlotLimits lims = GetPlotLimits();
+        const ImPlotLimits lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
         GetterXRefYs<T> get_min(lims.X.Min,ys,count,offset,stride);
         GetterXRefYs<T> get_max(lims.X.Max,ys,count,offset,stride);
         if (FitThisFrame()) {
@@ -1727,12 +1729,12 @@ template IMPLOT_API void PlotHLines<double>(const char* label_id, const double* 
 IMPLOT_INLINE void RenderPieSlice(ImDrawList& DrawList, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col) {
     static const float resolution = 50 / (2 * IM_PI);
     static ImVec2 buffer[50];
-    buffer[0] = PlotToPixels(center);
+    buffer[0] = PlotToPixels(center,IMPLOT_AUTO,IMPLOT_AUTO);
     int n = ImMax(3, (int)((a1 - a0) * resolution));
     double da = (a1 - a0) / (n - 1);
     for (int i = 0; i < n; ++i) {
         double a = a0 + i * da;
-        buffer[i + 1] = PlotToPixels(center.x + radius * cos(a), center.y + radius * sin(a));
+        buffer[i + 1] = PlotToPixels(center.x + radius * cos(a), center.y + radius * sin(a),IMPLOT_AUTO,IMPLOT_AUTO);
     }
     DrawList.AddConvexPolyFilled(buffer, n + 1, col);
 }
@@ -1781,7 +1783,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
                 sprintf(buffer, fmt, (double)values[i]);
                 ImVec2 size = ImGui::CalcTextSize(buffer);
                 double angle = a0 + (a1 - a0) * 0.5;
-                ImVec2 pos = PlotToPixels(center.x + 0.5 * radius * cos(angle), center.y + 0.5 * radius * sin(angle));
+                ImVec2 pos = PlotToPixels(center.x + 0.5 * radius * cos(angle), center.y + 0.5 * radius * sin(angle),IMPLOT_AUTO,IMPLOT_AUTO);
                 ImU32 col  = CalcTextColor(ImGui::ColorConvertU32ToFloat4(item->Color));
                 DrawList.AddText(pos - size * 0.5f, col, buffer);
             }
@@ -2161,7 +2163,7 @@ IMPLOT_INLINE void PlotDigitalEx(const char* label_id, Getter getter) {
         ImDrawList& DrawList = *GetPlotDrawList();
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1 && s.RenderFill) {
-            const int y_axis = GetCurrentYAxis();
+            const int y_axis = GetCurrentAxisY();
             int pixYMax = 0;
             ImPlotPoint itemData1 = getter(0);
             for (int i = 0; i < getter.Count; ++i) {
@@ -2177,8 +2179,8 @@ IMPLOT_INLINE void PlotDigitalEx(const char* label_id, Getter getter) {
                 int pixY_1 = (int)(pixY_1_float); //allow only positive values
                 int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1_float) + s.DigitalBitGap);
                 pixYMax = ImMax(pixYMax, pixY_chPosOffset);
-                ImVec2 pMin = PlotToPixels(itemData1);
-                ImVec2 pMax = PlotToPixels(itemData2);
+                ImVec2 pMin = PlotToPixels(itemData1,IMPLOT_AUTO,IMPLOT_AUTO);
+                ImVec2 pMax = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO);
                 int pixY_Offset = 20; //20 pixel from bottom due to mouse cursor label
                 pMin.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
                 pMax.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
@@ -2187,7 +2189,7 @@ IMPLOT_INLINE void PlotDigitalEx(const char* label_id, Getter getter) {
                     const int in = (i + 1);
                     itemData2 = getter(in);
                     if (ImNanOrInf(itemData2.y)) break;
-                    pMax.x = PlotToPixels(itemData2).x;
+                    pMax.x = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO).x;
                     i++;
                 }
                 //do not extend plot outside plot range
@@ -2247,8 +2249,8 @@ void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPo
         ImU32 tint_col32 = ImGui::ColorConvertFloat4ToU32(tint_col);
         GetCurrentItem()->Color = tint_col32;
         ImDrawList& DrawList = *GetPlotDrawList();
-        ImVec2 p1 = PlotToPixels(bmin.x, bmax.y);
-        ImVec2 p2 = PlotToPixels(bmax.x, bmin.y);
+        ImVec2 p1 = PlotToPixels(bmin.x, bmax.y,IMPLOT_AUTO,IMPLOT_AUTO);
+        ImVec2 p2 = PlotToPixels(bmax.x, bmin.y,IMPLOT_AUTO,IMPLOT_AUTO);
         PushPlotClipRect();
         DrawList.AddImage(user_texture_id, p1, p2, uv0, uv1, tint_col32);
         PopPlotClipRect();
@@ -2268,11 +2270,11 @@ void PlotText(const char* text, double x, double y, bool vertical, const ImVec2&
     ImU32 colTxt = GetStyleColorU32(ImPlotCol_InlayText);
     if (vertical) {
         ImVec2 ctr = CalcTextSizeVertical(text) * 0.5f;
-        ImVec2 pos = PlotToPixels(ImPlotPoint(x,y)) + ImVec2(-ctr.x, ctr.y) + pixel_offset;
+        ImVec2 pos = PlotToPixels(ImPlotPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) + ImVec2(-ctr.x, ctr.y) + pixel_offset;
         AddTextVertical(&DrawList, pos, colTxt, text);
     }
     else {
-        ImVec2 pos = PlotToPixels(ImPlotPoint(x,y)) - ImGui::CalcTextSize(text) * 0.5f + pixel_offset;
+        ImVec2 pos = PlotToPixels(ImPlotPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) - ImGui::CalcTextSize(text) * 0.5f + pixel_offset;
         DrawList.AddText(pos, colTxt, text);
     }
     PopPlotClipRect();
