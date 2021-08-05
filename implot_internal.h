@@ -618,6 +618,7 @@ struct ImPlotAxis
     char              Fmt[16];
     void              (*Formatter)(double, char*, int, void*);
     void*             FormatterData;
+    bool              ShowDefaultTicks;
 
     ImPlotAxis() {
         Enabled     = false;
@@ -635,6 +636,7 @@ struct ImPlotAxis
         LabelOffset = -1;
         ImStrncpy(Fmt,IMPLOT_LABEL_FMT,sizeof(Fmt));
         Formatter   = NULL;
+        ShowDefaultTicks = true;
     }
 
     bool SetMin(double _min, bool force=false) {
@@ -908,6 +910,16 @@ struct ImPlotPlot
         return XAxis + axis;
     }
 
+    inline int GetAxisIdxX(ImAxis axis) {
+        IM_ASSERT_USER_ERROR(axis == IMPLOT_AUTO || axis >= ImAxis_X1 && axis < ImAxis_Y1, "axis is not a X-axis!");
+        return axis == IMPLOT_AUTO ? CurrentX : axis;
+    }
+
+    inline int GetAxisIdxY(ImAxis axis) {
+        IM_ASSERT_USER_ERROR(axis == IMPLOT_AUTO || axis >= ImAxis_Y1 && axis < ImAxis_COUNT, "axis is not a Y-axis!");
+        return axis == IMPLOT_AUTO ? CurrentY : axis % IMPLOT_MAX_AXES;
+    }
+
     inline void SetAxisLabel(ImPlotAxis& axis, const char* label) {
         if (label && ImGui::FindRenderedTextEnd(label, NULL) != label) {
             axis.LabelOffset = TextBuffer.size();
@@ -1142,6 +1154,8 @@ IMPLOT_API void BustItemCache();
 // [SECTION] Axis Utils
 //-----------------------------------------------------------------------------
 
+
+
 // Returns true if any enabled axis is locked from user input.
 static inline bool AnyAxesInputLocked(ImPlotAxis* axes, int count) { 
     for (int i = 0; i < count; ++i) {
@@ -1163,6 +1177,14 @@ static inline bool AllAxesInputLocked(ImPlotAxis* axes, int count) {
 static inline bool AnyAxesDragging(ImPlotAxis* axes, int count) {
     for (int i = 0; i < count; ++i) {
         if (axes[i].Enabled && axes[i].Dragging)
+            return true;
+    }
+    return false;
+}
+
+static inline bool AnyAxesHovered(ImPlotAxis* axes, int count) {
+    for (int i = 0; i < count; ++i) {
+        if (axes[i].Enabled && axes[i].Hovered)
             return true;
     }
     return false;

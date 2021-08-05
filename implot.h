@@ -626,12 +626,12 @@ IMPLOT_API void SetAxis(ImAxis axis);
 IMPLOT_API void SetAxes(ImAxis x_axis, ImAxis y_axis);
 
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
-IMPLOT_API ImPlotPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis /*= IMPLOT_AUTO*/, ImAxis y_axis /*= IMPLOT_AUTO*/);
-IMPLOT_API ImPlotPoint PixelsToPlot(float x, float y, ImAxis x_axis /*= IMPLOT_AUTO*/, ImAxis y_axis /*= IMPLOT_AUTO*/);
+IMPLOT_API ImPlotPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotPoint PixelsToPlot(float x, float y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
-IMPLOT_API ImVec2 PlotToPixels(const ImPlotPoint& plt, ImAxis x_axis /*= IMPLOT_AUTO*/, ImAxis y_axis /*= IMPLOT_AUTO*/);
-IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImAxis x_axis /*= IMPLOT_AUTO*/, ImAxis y_axis /*= IMPLOT_AUTO*/);
+IMPLOT_API ImVec2 PlotToPixels(const ImPlotPoint& plt, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Get the current Plot position (top-left) in pixels.
 IMPLOT_API ImVec2 GetPlotPos();
@@ -639,9 +639,9 @@ IMPLOT_API ImVec2 GetPlotPos();
 IMPLOT_API ImVec2 GetPlotSize();
 
 // Returns the mouse position in x,y coordinates of the current plot. 
-IMPLOT_API ImPlotPoint GetPlotMousePos(ImAxis x_axis /*= IMPLOT_AUTO*/, ImAxis y_axis /*= IMPLOT_AUTO*/);
+IMPLOT_API ImPlotPoint GetPlotMousePos(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 // Returns the current plot axis range. 
-IMPLOT_API ImPlotLimits GetPlotLimits(ImAxis x_axis /*= IMPLOT_AUTO*/, ImAxis y_axis /*= IMPLOT_AUTO*/);
+IMPLOT_API ImPlotLimits GetPlotLimits(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Returns true if the plot area in the current plot is hovered.
 IMPLOT_API bool IsPlotHovered();
@@ -653,14 +653,14 @@ IMPLOT_API bool IsSubplotsHovered();
 // Returns true if the current plot is being box selected.
 IMPLOT_API bool IsPlotSelected();
 // Returns the current plot box selection bounds.
-IMPLOT_API ImPlotLimits GetPlotSelection(ImAxis x_axis /*= IMPLOT_AUTO*/, ImAxis y_axis /*= IMPLOT_AUTO*/);
+IMPLOT_API ImPlotLimits GetPlotSelection(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Returns true if the current plot is being queried or has an active query. Query must be enabled with ImPlotFlags_Query.
 IMPLOT_API bool IsPlotQueried();
 // Returns the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
-IMPLOT_API ImPlotLimits GetPlotQuery(ImAxis x_axis /*= IMPLOT_AUTO*/, ImAxis y_axis /*= IMPLOT_AUTO*/);
+IMPLOT_API ImPlotLimits GetPlotQuery(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 // Set the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
-IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImAxis x_axis /*= IMPLOT_AUTO*/, ImAxis y_axis /*= IMPLOT_AUTO*/);
+IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Tools

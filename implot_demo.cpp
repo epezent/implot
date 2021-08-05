@@ -888,11 +888,11 @@ void ShowDemo_MultipleYAxes() {
         ImPlot::PlotLine("f(x) = x", xs, xs, 1001);
         ImPlot::PlotLine("f(x) = sin(x)*3+1", xs, ys1, 1001);
         if (y2_axis) {
-            ImPlot::SetPlotYAxis(ImPlotYAxis_2);
+            ImPlot::SetAxis(ImAxis_Y2);
             ImPlot::PlotLine("f(x) = cos(x)*.2+.5 (Y2)", xs, ys2, 1001);
         }
         if (y3_axis) {
-            ImPlot::SetPlotYAxis(ImPlotYAxis_3);
+            ImPlot::SetAxis(ImAxis_Y3);
             ImPlot::PlotLine("f(x) = sin(x+.5)*100+200 (Y3)", xs2, ys3, 1001);
         }
         ImPlot::EndPlot();
@@ -1206,7 +1206,7 @@ void ShowDemo_DragLines() {
             ys[i] = (y1+y2)/2+fabs(y2-y1)/2*sin(f*i/10);
         }
         ImPlot::PlotLine("Interactive Data", xs, ys, 1000);
-        ImPlot::SetPlotYAxis(ImPlotYAxis_2);
+        ImPlot::SetAxis(ImAxis_Y2);
         ImPlot::DragLineY("f",&f,show_labels,ImVec4(1,0.5f,1,1));
         ImPlot::EndPlot();
     }
@@ -1290,7 +1290,7 @@ void ShowDemo_DragAndDrop() {
             static int i = 0;
             Idx = i++;
             Plt = 0;
-            Yax = ImPlotYAxis_1;
+            Yax = ImAxis_Y1;
             sprintf(Label, "%02d Hz", Idx+1);
             Color = RandomColor();
             Data.reserve(1001);
@@ -1299,7 +1299,7 @@ void ShowDemo_DragAndDrop() {
                 Data.push_back(ImVec2(t, 0.5f + 0.5f * sinf(2*3.14f*t*(Idx+1))));
             }
         }
-        void Reset() { Plt = 0; Yax = ImPlotYAxis_1; }
+        void Reset() { Plt = 0; Yax = ImAxis_Y1; }
     };
 
     const int         k_dnd = 20;
@@ -1341,7 +1341,7 @@ void ShowDemo_DragAndDrop() {
     if (ImPlot::BeginPlot("##DND1", NULL, "[drop here]", ImVec2(-1,195), ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3, flags | ImPlotAxisFlags_Lock, flags, flags, flags, "[drop here]", "[drop here]")) {
         for (int k = 0; k < k_dnd; ++k) {
             if (dnd[k].Plt == 1 && dnd[k].Data.size() > 0) {
-                ImPlot::SetPlotYAxis(dnd[k].Yax);
+                ImPlot::SetAxis(dnd[k].Yax);
                 ImPlot::SetNextLineStyle(dnd[k].Color);
                 static char label[32];
                 sprintf(label,"%s (Y%d)", dnd[k].Label, dnd[k].Yax+1);
@@ -1364,7 +1364,7 @@ void ShowDemo_DragAndDrop() {
         }
         // allow each y-axis to be a DND target
         for (int y = 0; y < 3; ++y) {
-            if (ImPlot::BeginDragDropTargetY(y)) {
+            if (ImPlot::BeginDragDropTargetAxis(ImAxis_Y1+y)) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
                     int i = *(int*)payload->Data; dnd[i].Plt = 1; dnd[i].Yax = y;
                 }
@@ -1390,28 +1390,28 @@ void ShowDemo_DragAndDrop() {
             ImPlot::PlotLine("##dndxy", &dndx->Data[0].y, &dndy->Data[0].y, dndx->Data.size(), 0, 2 * sizeof(float));
         }
         // allow the x-axis to be a DND target
-        if (ImPlot::BeginDragDropTargetX()) {
+        if (ImPlot::BeginDragDropTargetAxis(ImAxis_X1)) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
                 int i = *(int*)payload->Data; dndx = &dnd[i];
             }
             ImPlot::EndDragDropTarget();
         }
         // allow the x-axis to be a DND source
-        if (dndx != NULL && ImPlot::BeginDragDropSourceX()) {
+        if (dndx != NULL && ImPlot::BeginDragDropSourceAxis(ImAxis_X1)) {
             ImGui::SetDragDropPayload("MY_DND", &dndx->Idx, sizeof(int));
             ImPlot::ItemIcon(dndx->Color); ImGui::SameLine();
             ImGui::TextUnformatted(dndx->Label);
             ImPlot::EndDragDropSource();
         }
         // allow the y-axis to be a DND target
-        if (ImPlot::BeginDragDropTargetY()) {
+        if (ImPlot::BeginDragDropTargetAxis(ImAxis_Y1)) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
                 int i = *(int*)payload->Data; dndy = &dnd[i];
             }
             ImPlot::EndDragDropTarget();
         }
         // allow the y-axis to be a DND source
-        if (dndy != NULL && ImPlot::BeginDragDropSourceY()) {
+        if (dndy != NULL && ImPlot::BeginDragDropSource(ImAxis_Y1)) {
             ImGui::SetDragDropPayload("MY_DND", &dndy->Idx, sizeof(int));
             ImPlot::ItemIcon(dndy->Color); ImGui::SameLine();
             ImGui::TextUnformatted(dndy->Label);
@@ -1559,15 +1559,15 @@ void ShowDemo_TickLabels()  {
     static const char* ylabels_aux[] = {"A","B","C","D","E","F"};
     if (custom_fmt) {
         ImPlot::SetNextPlotFormatX("%g ms");
-        ImPlot::SetNextPlotFormatY("%g Hz", ImPlotYAxis_1);
-        ImPlot::SetNextPlotFormatY("%g dB", ImPlotYAxis_2);
-        ImPlot::SetNextPlotFormatY("%g km", ImPlotYAxis_3);
+        ImPlot::SetNextPlotFormatY("%g Hz", ImAxis_Y1);
+        ImPlot::SetNextPlotFormatY("%g dB", ImAxis_Y2);
+        ImPlot::SetNextPlotFormatY("%g km", ImAxis_Y3);
     }
     if (custom_ticks) {
         ImPlot::SetNextPlotTicksX(&pi,1,custom_labels ? pi_str : NULL, true);
-        ImPlot::SetNextPlotTicksY(yticks, 4, custom_labels ? ylabels : NULL, ImPlotYAxis_1);
-        ImPlot::SetNextPlotTicksY(yticks_aux, 3, custom_labels ? ylabels_aux : NULL, false, ImPlotYAxis_2);
-        ImPlot::SetNextPlotTicksY(0, 1, 6, custom_labels ? ylabels_aux : NULL, false, ImPlotYAxis_3);
+        ImPlot::SetNextPlotTicksY(yticks, 4, custom_labels ? ylabels : NULL, false, ImAxis_Y1);
+        ImPlot::SetNextPlotTicksY(yticks_aux, 3, custom_labels ? ylabels_aux : NULL, false, ImAxis_Y2);
+        ImPlot::SetNextPlotTicksY(0, 1, 6, custom_labels ? ylabels_aux : NULL, false, ImAxis_Y3);
     }
     ImPlot::SetNextPlotLimits(2.5,5,0,10);
     if (ImPlot::BeginPlot("##Ticks", NULL, NULL, ImVec2(-1,0), ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
