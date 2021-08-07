@@ -419,12 +419,15 @@ IMPLOT_API bool BeginPlotS(const char* title_id, const ImVec2& size = ImVec2(-1,
 
 IMPLOT_API void SetupAxis(ImAxis axis, const char* label = NULL, ImPlotAxisFlags flags = ImPlotAxisFlags_None);
 IMPLOT_API void SetupAxisLimits(ImAxis axis, double min_lim, double max_lim, ImGuiCond cond = ImGuiCond_Once);
-IMPLOT_API void SetupAxisConstraints(ImAxis axis);
+IMPLOT_API void SetupAxisConstraints(ImAxis axis); // TODO
+IMPLOT_API void SetupAxisColor(); // TODO
 IMPLOT_API void SetupAxisLinks(ImAxis axis, double* min_lnk, double* max_lnk);
 
 // TODO: mouse pos fmt, demo bug
 IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
 IMPLOT_API void SetupAxisFormat(ImAxis axis, void (*formatter)(double value, char* buff, int size, void* data), void* data);
+IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
+IMPLOT_API void SetupAxisTicks(ImAxis axis, double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
 
 IMPLOT_API void SetupLegend(ImPlotLegendFlags flags, ImPlotLocation loc);
 
@@ -715,7 +718,7 @@ IMPLOT_API void EndLegendPopup();
 // The following functions MUST be called BETWEEN Begin/EndPlot!
 
 // Turns the current plot's plotting area into a drag and drop target. Don't forget to call EndDragDropTarget!
-IMPLOT_API bool BeginDragDropTarget();
+IMPLOT_API bool BeginDragDropTargetPlot();
 // Turns the current plot's X-axis into a drag and drop target. Don't forget to call EndDragDropTarget!
 IMPLOT_API bool BeginDragDropTargetAxis(ImAxis axis);
 // Turns the current plot's legend into a drag and drop target. Don't forget to call EndDragDropTarget!
@@ -727,7 +730,7 @@ IMPLOT_API void EndDragDropTarget();
 // You can change the modifier if desired. If ImGuiKeyModFlags_None is provided, the axes will be locked from panning.
 
 // Turns the current plot's plotting area into a drag and drop source. Don't forget to call EndDragDropSource!
-IMPLOT_API bool BeginDragDropSource(ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
+IMPLOT_API bool BeginDragDropSourcePlot(ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
 // Turns the current plot's X-axis into a drag and drop source. Don't forget to call EndDragDropSource!
 IMPLOT_API bool BeginDragDropSourceAxis(ImAxis axis, ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
 // Turns an item in the current plot's legend into drag and drop source. Don't forget to call EndDragDropSource!

@@ -878,8 +878,8 @@ void ShowDemo_MultipleYAxes() {
     ImGui::SameLine(); if (ImGui::Button("Fit Y3")) ImPlot::FitNextPlotAxes(false, false, false, true);
 
     ImPlot::SetNextPlotLimits(0.1, 100, 0, 10);
-    ImPlot::SetNextPlotLimitsY(0, 1, ImGuiCond_Once, 1);
-    ImPlot::SetNextPlotLimitsY(0, 300, ImGuiCond_Once, 2);
+    ImPlot::SetNextPlotLimitsY(0, 1, ImGuiCond_Once, ImAxis_Y2);
+    ImPlot::SetNextPlotLimitsY(0, 300, ImGuiCond_Once, ImAxis_Y3);
     if (ImPlot::BeginPlot("Multi-Axis Plot", NULL, "Y-Axis 1", ImVec2(-1,0),
                             (y2_axis ? ImPlotFlags_YAxis2 : 0) |
                             (y3_axis ? ImPlotFlags_YAxis3 : 0),
@@ -1024,7 +1024,7 @@ void ShowDemo_SubplotItemSharing() {
                         }
                     }
                 }
-                if (ImPlot::BeginDragDropTarget()) {
+                if (ImPlot::BeginDragDropTargetPlot()) {
                     if (ImGui::AcceptDragDropPayload("MY_DND"))
                         id[curj] = i;
                     ImPlot::EndDragDropTarget();
@@ -1282,7 +1282,7 @@ void ShowDemo_DragAndDrop() {
     struct MyDndItem {
         int              Idx;
         int              Plt;
-        int              Yax;
+        ImAxis           Yax;
         char             Label[16];
         ImVector<ImVec2> Data;
         ImVec4           Color;
@@ -1343,8 +1343,8 @@ void ShowDemo_DragAndDrop() {
             if (dnd[k].Plt == 1 && dnd[k].Data.size() > 0) {
                 ImPlot::SetAxis(dnd[k].Yax);
                 ImPlot::SetNextLineStyle(dnd[k].Color);
-                static char label[32];
-                sprintf(label,"%s (Y%d)", dnd[k].Label, dnd[k].Yax+1);
+                char label[32];
+                sprintf(label,"%s (Y%d)", dnd[k].Label, dnd[k].Yax-ImAxis_Y1+1);
                 ImPlot::PlotLine(label, &dnd[k].Data[0].x, &dnd[k].Data[0].y, dnd[k].Data.size(), 0, 2 * sizeof(float));
                 // allow legend item labels to be DND sources
                 if (ImPlot::BeginDragDropSourceItem(label)) {
@@ -1356,15 +1356,15 @@ void ShowDemo_DragAndDrop() {
             }
         }
         // allow the main plot area to be a DND target
-        if (ImPlot::BeginDragDropTarget()) {
+        if (ImPlot::BeginDragDropTargetPlot()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
-                int i = *(int*)payload->Data; dnd[i].Plt = 1; dnd[i].Yax = 0;
+                int i = *(int*)payload->Data; dnd[i].Plt = 1; dnd[i].Yax = ImAxis_Y1;
             }
             ImPlot::EndDragDropTarget();
         }
         // allow each y-axis to be a DND target
-        for (int y = 0; y < 3; ++y) {
-            if (ImPlot::BeginDragDropTargetAxis(ImAxis_Y1+y)) {
+        for (int y = ImAxis_Y1; y <= ImAxis_Y3; ++y) {
+            if (ImPlot::BeginDragDropTargetAxis(y)) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
                     int i = *(int*)payload->Data; dnd[i].Plt = 1; dnd[i].Yax = y;
                 }
@@ -1374,7 +1374,7 @@ void ShowDemo_DragAndDrop() {
         // allow the legend to be a DND target
         if (ImPlot::BeginDragDropTargetLegend()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
-                int i = *(int*)payload->Data; dnd[i].Plt = 1; dnd[i].Yax = 0;
+                int i = *(int*)payload->Data; dnd[i].Plt = 1; dnd[i].Yax = ImAxis_Y1;
             }
             ImPlot::EndDragDropTarget();
         }
@@ -1411,20 +1411,20 @@ void ShowDemo_DragAndDrop() {
             ImPlot::EndDragDropTarget();
         }
         // allow the y-axis to be a DND source
-        if (dndy != NULL && ImPlot::BeginDragDropSource(ImAxis_Y1)) {
+        if (dndy != NULL && ImPlot::BeginDragDropSourceAxis(ImAxis_Y1)) {
             ImGui::SetDragDropPayload("MY_DND", &dndy->Idx, sizeof(int));
             ImPlot::ItemIcon(dndy->Color); ImGui::SameLine();
             ImGui::TextUnformatted(dndy->Label);
             ImPlot::EndDragDropSource();
         }
         // allow the plot area to be a DND target
-        if (ImPlot::BeginDragDropTarget()) {
+        if (ImPlot::BeginDragDropTargetPlot()) {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_DND")) {
                 int i = *(int*)payload->Data; dndx = dndy = &dnd[i];
             }
         }
         // allow the plot area to be a DND source
-        if (ImPlot::BeginDragDropSource()) {
+        if (ImPlot::BeginDragDropSourcePlot()) {
             ImGui::TextUnformatted("Yes, you can\ndrag this!");
             ImPlot::EndDragDropSource();
         }

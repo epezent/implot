@@ -27,6 +27,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add support for setting tick label strings via callback
 - add flag to remove weekends on Time axis
 - pixel space scale, normalized space scale (see matplotlib)
+- give each axis an ID, remove ad-hoc DND solution
 
 ## Plot Items
 
@@ -54,9 +55,11 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add `IsPlotChanging` to detect change in limits
 - add ability to extend plot/axis context menus
 - add LTTB downsampling for lines
+- reword DragLine/Point to use ButtonBehavior
 
 ## Optimizations
 
 - find faster way to buffer data into ImDrawList (very slow)
 - reduce number of calls to `PushClipRect`
 - explore SIMD operations for high density plot items
+

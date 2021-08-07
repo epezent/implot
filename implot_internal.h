@@ -593,6 +593,7 @@ struct ImPlotTickCollection {
 // Axis state information that must persist after EndPlot
 struct ImPlotAxis
 {
+    ImGuiID           ID;
     bool              Enabled;
     ImPlotAxisFlags   Flags;
     ImPlotAxisFlags   PreviousFlags;
@@ -723,7 +724,7 @@ struct ImPlotAxis
     inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }
                 
     inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                                }
-    inline bool IsInitFit()         const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
+    inline bool CanInitFit()         const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
     inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImGuiCond_Always;                                                }
                 
     inline bool IsLockedMin()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin);                 }
@@ -881,15 +882,12 @@ struct ImPlotPlot
         SetupLocked       = false;
     }
 
-    // inline bool AnyYInputLocked() const { return YAxis[0].IsInputLocked() || (YAxis[1].Enabled ? YAxis[1].IsInputLocked() : false) || (YAxis[2].Enabled ? YAxis[2].IsInputLocked() : false); }
-    // inline bool AllYInputLocked() const { return YAxis[0].IsInputLocked() && (YAxis[1].Enabled ? YAxis[1].IsInputLocked() : true ) && (YAxis[2].Enabled ? YAxis[2].IsInputLocked() : true ); }
-
     inline bool IsInputLocked() const { 
         for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-            if (XAxis[i].IsInputLocked() || YAxis[i].IsInputLocked())
-                return true;
+            if (!XAxis[i].IsInputLocked() || !YAxis[i].IsInputLocked())
+                return false;
         }
-        return false;
+        return true;
     }        
 
     inline void ClearTextBuffer() { TextBuffer.Buf.shrink(0); }
