@@ -28,13 +28,15 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add flag to remove weekends on Time axis
 - pixel space scale, normalized space scale (see matplotlib)
 - give each axis an ID, remove ad-hoc DND solution
+- make ImPlotFlags_Equal not a flag -> `SetupEqual(ImAxis x, ImAxis y)`
 
 ## Plot Items
 
 - add `ImPlotLineFlags`, `ImPlotBarsFlags`, etc. for each plot type
 - add `PlotBarGroups` wrapper that makes rendering groups of bars easier
+- add `PlotBubbles` (see MATLAB bubble chart)
 - add non-zero references for `PlotBars` etc.
-
+- add exploding to `PlotPieChart`
 
 ## Styling
 
@@ -55,7 +57,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add `IsPlotChanging` to detect change in limits
 - add ability to extend plot/axis context menus
 - add LTTB downsampling for lines
-- reword DragLine/Point to use ButtonBehavior
+- rework DragLine/Point to use ButtonBehavior
 
 ## Optimizations
 

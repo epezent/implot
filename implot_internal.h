@@ -87,7 +87,7 @@ struct ImPlotTick;
 struct ImPlotAxis;
 struct ImPlotAxisColor;
 struct ImPlotItem;
-struct ImPlotLegendData;
+struct ImPlotLegend;
 struct ImPlotPlot;
 struct ImPlotNextPlotData;
 
@@ -610,7 +610,7 @@ struct ImPlotAxis
     double*           LinkedMax;
     ImPlotTime        PickerTimeMin, PickerTimeMax;
     int               PickerLevel;
-    ImU32             ColorMaj, ColorMin, ColorTxt, ColorHov, ColorAct;
+    ImU32             ColorMaj, ColorMin, ColorTxt, ColorHov, ColorAct, ColorHiLi;
     ImGuiCond         RangeCond;
     ImRect            HoverRect;
     float             Datum1;
@@ -783,23 +783,23 @@ struct ImPlotItem
 };
 
 // Holds Legend state
-struct ImPlotLegendData
+struct ImPlotLegend
 {
+    ImPlotLegendFlags Flags;
+    ImPlotLegendFlags PreviousFlags;
+    ImPlotLocation    Location;
+    ImPlotLocation    PreviousLocation;
     ImVector<int>     Indices;
     ImGuiTextBuffer   Labels;
     bool              Hovered;
-    bool              Outside;
     bool              CanGoInside;
-    bool              FlipSideNextFrame;
-    ImPlotLocation    Location;
-    ImPlotOrientation Orientation;
     ImRect            Rect;
 
-    ImPlotLegendData() {
-        CanGoInside = true;
-        Hovered      = Outside = FlipSideNextFrame = false;
-        Location     = ImPlotLocation_North | ImPlotLocation_West;
-        Orientation  = ImPlotOrientation_Vertical;
+    ImPlotLegend() {
+        Flags        = PreviousFlags = ImPlotLegendFlags_None;
+        CanGoInside  = true;
+        Hovered      = false;
+        Location     = ImPlotLocation_NorthWest;
     }
 
     void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
@@ -809,7 +809,7 @@ struct ImPlotLegendData
 struct ImPlotItemGroup
 {
     ImGuiID            ID;
-    ImPlotLegendData   Legend;
+    ImPlotLegend   Legend;
     ImPool<ImPlotItem> ItemPool;
     int                ColormapIdx;
 
@@ -918,6 +918,20 @@ struct ImPlotPlot
         return axis == IMPLOT_AUTO ? CurrentY : axis % IMPLOT_MAX_AXES;
     }
 
+    inline int EnabledAxesX() {
+        int cnt = 0;
+        for (int i = 0; i < IMPLOT_MAX_AXES; ++i) 
+            cnt += XAxis[i].Enabled;
+        return cnt;
+    }
+
+    inline int EnabledAxesY() {
+        int cnt = 0;
+        for (int i = 0; i < IMPLOT_MAX_AXES; ++i) 
+            cnt += YAxis[i].Enabled;
+        return cnt;
+    }
+
     inline void SetAxisLabel(ImPlotAxis& axis, const char* label) {
         if (label && ImGui::FindRenderedTextEnd(label, NULL) != label) {
             axis.LabelOffset = TextBuffer.size();
@@ -955,7 +969,7 @@ struct ImPlotSubplot {
         Rows = Cols = CurrentIdx  = 0;
         FrameHovered              = false;
         Items.Legend.Location     = ImPlotLocation_North;
-        Items.Legend.Orientation  = ImPlotOrientation_Horizontal;
+        Items.Legend.Flags        = ImPlotLegendFlags_Horizontal|ImPlotLegendFlags_Outside;
         Items.Legend.CanGoInside  = false;
     }
 };
@@ -1121,6 +1135,17 @@ IMPLOT_API void BustPlotCache();
 IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot);
 
 //-----------------------------------------------------------------------------
+// [SECTION] Setup Utils
+//-----------------------------------------------------------------------------
+
+// Lock Setup and call SetupFinish if necessary.
+static inline void SetupLock() { 
+    if (!GImPlot->CurrentPlot->SetupLocked)
+        SetupFinish();
+    GImPlot->CurrentPlot->SetupLocked = true; 
+}
+
+//-----------------------------------------------------------------------------
 // [SECTION] Subplot Utils
 //-----------------------------------------------------------------------------
 
@@ -1268,13 +1293,13 @@ IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bo
 // Gets the position of an inner rect that is located inside of an outer rect according to an ImPlotLocation and padding amount.
 IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlotLocation location, const ImVec2& pad = ImVec2(0,0));
 // Calculates the bounding box size of a legend
-IMPLOT_API ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation);
+IMPLOT_API ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& spacing, bool vertical);
 // Renders legend entries into a bounding box
-IMPLOT_API bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orientation, ImDrawList& DrawList);
+IMPLOT_API bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, bool vertical, ImDrawList& DrawList);
 // Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
-IMPLOT_API void ShowAltLegend(const char* title_id, ImPlotOrientation orientation = ImPlotOrientation_Vertical, const ImVec2 size = ImVec2(0,0), bool interactable = true);
+IMPLOT_API void ShowAltLegend(const char* title_id, bool vertical = true, const ImVec2 size = ImVec2(0,0), bool interactable = true);
 // Shows an legends's context menu.
-IMPLOT_API bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible);
+IMPLOT_API bool ShowLegendContextMenu(ImPlotLegend& legend, bool visible);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Tick Utils

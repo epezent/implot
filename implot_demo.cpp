@@ -239,7 +239,9 @@ void ShowDemo_LinePlots() {
         ys2[i] = xs2[i] * xs2[i];
     }
     ImGui::BulletText("Anti-aliasing can be enabled from the plot's context menu (see Help).");
-    if (ImPlot::BeginPlot("Line Plot", "x", "f(x)")) {
+    if (ImPlot::BeginPlot("Line Plot")) {
+        ImPlot::SetupAxis(ImAxis_X1, "x");
+        ImPlot::SetupAxis(ImAxis_Y1, "f(x)");
         ImPlot::PlotLine("sin(x)", xs1, ys1, 1001);
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
         ImPlot::PlotLine("x^2", xs2, ys2, 11);
@@ -282,7 +284,9 @@ void ShowDemo_FilledLinePlots() {
     }
 
     ImPlot::SetNextPlotLimits(0,100,0,500);
-    if (ImPlot::BeginPlot("Stock Prices", "Days", "Price")) {
+    if (ImPlot::BeginPlot("Stock Prices")) {
+        ImPlot::SetupAxis(ImAxis_X1, "Days");
+        ImPlot::SetupAxis(ImAxis_Y1, "Price");
         if (show_fills) {
             ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
             ImPlot::PlotShaded("Stock 1", xs1, ys1, 101, shade_mode == 0 ? -INFINITY : shade_mode == 1 ? INFINITY : fill_ref);
@@ -315,7 +319,7 @@ void ShowDemo_ShadedPlots() {
     static float alpha = 0.25f;
     ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
 
-    if (ImPlot::BeginPlot("Shaded Plots", "X-Axis", "Y-Axis")) {
+    if (ImPlot::BeginPlot("Shaded Plots")) {
         ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
         ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
         ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
@@ -342,7 +346,7 @@ void ShowDemo_ScatterPlots() {
         ys2[i] = 0.75f + 0.2f * ((float)rand() / (float)RAND_MAX);
     }
 
-    if (ImPlot::BeginPlot("Scatter Plot", NULL, NULL)) {
+    if (ImPlot::BeginPlot("Scatter Plot")) {
         ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
         ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 6, ImVec4(0,1,0,0.5f), IMPLOT_AUTO, ImVec4(0,1,0,1));
@@ -360,7 +364,9 @@ void ShowDemo_StairstepPlots() {
         ys1[i] = 0.5f + 0.4f * sinf(50 * i * 0.01f);
         ys2[i] = 0.5f + 0.2f * sinf(25 * i * 0.01f);
     }
-    if (ImPlot::BeginPlot("Stairstep Plot", "x", "f(x)")) {
+    if (ImPlot::BeginPlot("Stairstep Plot")) {
+        ImPlot::SetupAxis(ImAxis_X1, "x");
+        ImPlot::SetupAxis(ImAxis_Y1, "f(x)");
         ImPlot::PlotStairs("Signal 1", ys1, 101, 0.01f);
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 2.0f);
         ImPlot::PlotStairs("Signal 2", ys2, 101, 0.01f);
@@ -389,17 +395,20 @@ void ShowDemo_BarPlots() {
         ImPlot::SetNextPlotLimits(-0.5, 9.5, 0, 110, ImGuiCond_Always);
         ImPlot::SetNextPlotTicksX(positions, 10, labels);
     }
-    if (ImPlot::BeginPlot("Bar Plot", horz ? "Score" :  "Student", horz ? "Student" : "Score",
-                            ImVec2(-1,0), 0, 0, horz ? ImPlotAxisFlags_Invert : 0))
+    if (ImPlot::BeginPlot("Bar Plot"))
     {
         if (horz) {
-            ImPlot::SetLegendLocation(ImPlotLocation_West, ImPlotOrientation_Vertical);
+            ImPlot::SetupAxis(ImAxis_X1, "Score");
+            ImPlot::SetupAxis(ImAxis_Y1, "Student", ImPlotAxisFlags_Invert);
+            ImPlot::SetupLegend(ImPlotLocation_West); 
             ImPlot::PlotBarsH("Midterm Exam", midtm, 10, 0.2, -0.2);
             ImPlot::PlotBarsH("Final Exam",   final, 10, 0.2,    0);
             ImPlot::PlotBarsH("Course Grade", grade, 10, 0.2,  0.2);
         }
         else {
-            ImPlot::SetLegendLocation(ImPlotLocation_South, ImPlotOrientation_Horizontal);
+            ImPlot::SetupAxis(ImAxis_X1, "Student");
+            ImPlot::SetupAxis(ImAxis_Y1, "Score");
+            ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Horizontal); 
             ImPlot::PlotBars("Midterm Exam", midtm, 10, 0.2, -0.2);
             ImPlot::PlotBars("Final Exam",   final, 10, 0.2,    0);
             ImPlot::PlotBars("Course Grade", grade, 10, 0.2,  0.2);
@@ -422,7 +431,7 @@ void ShowDemo_ErrorBars() {
 
 
     ImPlot::SetNextPlotLimits(0, 6, 0, 10);
-    if (ImPlot::BeginPlot("##ErrorBars",NULL,NULL)) {
+    if (ImPlot::BeginPlot("##ErrorBars")) {
 
         ImPlot::PlotBars("Bar", xs, bar, 5, 0.5f);
         ImPlot::PlotErrorBars("Bar", xs, bar, err1, 5);
@@ -449,8 +458,9 @@ void ShowDemo_StemPlots() {
         ys1[i] = 1.0 + 0.5 * sin(25*xs[i])*cos(2*xs[i]);
         ys2[i] = 0.5 + 0.25  * sin(10*xs[i]) * sin(xs[i]);
     }
-    ImPlot::SetNextPlotLimits(0,1,0,1.6);
     if (ImPlot::BeginPlot("Stem Plots")) {
+        ImPlot::SetupAxisLimits(ImAxis_X1,0,1.0);
+        ImPlot::SetupAxisLimits(ImAxis_Y1,0,1.6);
         ImPlot::PlotStems("Stems 1",xs,ys1,51);
         ImPlot::SetNextLineStyle(ImVec4(1,0.5f,0,0.75f));
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Square,5,ImVec4(1,0.5f,0,0.25f));
@@ -461,7 +471,9 @@ void ShowDemo_StemPlots() {
 
 void ShowDemo_InfiniteLines() {
     static double vals[] = {0.25, 0.5, 0.75};
-    if (ImPlot::BeginPlot("##Infinite",0,0,ImVec2(-1,0),0,ImPlotAxisFlags_NoInitialFit,ImPlotAxisFlags_NoInitialFit)) {
+    if (ImPlot::BeginPlot("##Infinite")) {
+        ImPlot::SetupAxis(ImAxis_X1,NULL,ImPlotAxisFlags_NoInitialFit);
+        ImPlot::SetupAxis(ImAxis_Y1,NULL,ImPlotAxisFlags_NoInitialFit);
         ImPlot::PlotVLines("VLines",vals,3);
         ImPlot::PlotHLines("HLines",vals,3);
         ImPlot::EndPlot();
@@ -479,8 +491,11 @@ void ShowDemo_PieCharts() {
         ImGui::Checkbox("Normalize", &normalize);
     }
 
-    ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-    if (ImPlot::BeginPlot("##Pie1", NULL, NULL, ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
+    if (ImPlot::BeginPlot("##Pie1", ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
+        ImPlot::SetupAxis(ImAxis_X1, NULL, ImPlotAxisFlags_NoDecorations);
+        ImPlot::SetupAxis(ImAxis_Y1, NULL, ImPlotAxisFlags_NoDecorations);
+        ImPlot::SetupAxisLimits(ImAxis_X1, 0, 1);
+        ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 1);
         ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, normalize, "%.2f");
         ImPlot::EndPlot();
     }
@@ -491,8 +506,11 @@ void ShowDemo_PieCharts() {
     static int data2[]             = {1,1,2,3,5};
 
     ImPlot::PushColormap(ImPlotColormap_Pastel);
-    ImPlot::SetNextPlotLimits(0,1,0,1,ImGuiCond_Always);
-    if (ImPlot::BeginPlot("##Pie2", NULL, NULL, ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMousePos, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations)) {
+    if (ImPlot::BeginPlot("##Pie2", ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
+        ImPlot::SetupAxis(ImAxis_X1, NULL, ImPlotAxisFlags_NoDecorations);
+        ImPlot::SetupAxis(ImAxis_Y1, NULL, ImPlotAxisFlags_NoDecorations);
+        ImPlot::SetupAxisLimits(ImAxis_X1, 0, 1);
+        ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 1);
         ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.4, true, "%.0f", 180);
         ImPlot::EndPlot();
     }
@@ -531,7 +549,7 @@ void ShowDemo_Heatmaps() {
     ImPlot::PushColormap(map);
     SetNextPlotTicksX(0 + 1.0/14.0, 1 - 1.0/14.0, 7, xlabels);
     SetNextPlotTicksY(1 - 1.0/14.0, 0 + 1.0/14.0, 7, ylabels);
-    if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(225,225),ImPlotFlags_NoLegend|ImPlotFlags_NoMousePos,axes_flags,axes_flags)) {
+    if (ImPlot::BeginPlot("##Heatmap1",NULL,NULL,ImVec2(225,225),ImPlotFlags_NoLegend|ImPlotFlags_NoMouseText,axes_flags,axes_flags)) {
         ImPlot::PlotHeatmap("heat",values1[0],7,7,scale_min,scale_max);
         ImPlot::EndPlot();
     }
@@ -1171,8 +1189,11 @@ void ShowDemo_LegendOptions() {
     ImGui::SliderFloat2("LegendInnerPadding", (float*)&GetStyle().LegendInnerPadding, 0.0f, 10.0f, "%.0f");
     ImGui::SliderFloat2("LegendSpacing", (float*)&GetStyle().LegendSpacing, 0.0f, 5.0f, "%.0f");
 
-    if (ImPlot::BeginPlot("##Legend","x","y",ImVec2(-1,0))) {
-        ImPlot::SetLegendLocation(loc, h ? ImPlotOrientation_Horizontal : ImPlotOrientation_Vertical, o);
+    if (ImPlot::BeginPlot("##Legend",ImVec2(-1,0))) {
+        ImPlotLegendFlags flags = ImPlotLegendFlags_None;
+        if (h) flags |= ImPlotLegendFlags_Horizontal;
+        if (o) flags |= ImPlotLegendFlags_Outside;
+        ImPlot::SetupLegend(loc, flags); 
         static MyImPlot::WaveData data1(0.001, 0.2, 2, 0.75);
         static MyImPlot::WaveData data2(0.001, 0.2, 4, 0.25);
         static MyImPlot::WaveData data3(0.001, 0.2, 6, 0.5);
@@ -1195,7 +1216,8 @@ void ShowDemo_DragLines() {
     static bool show_labels = true;
     ImGui::Checkbox("Show Labels##1",&show_labels);
     ImPlot::SetNextPlotLimits(0,1,0,1);
-    if (ImPlot::BeginPlot("##guides",0,0,ImVec2(-1,0),ImPlotFlags_YAxis2)) {
+    if (ImPlot::BeginPlot("##guides",ImVec2(-1,0))) {
+        ImPlot::SetupAxis(ImAxis_Y2);
         ImPlot::DragLineX("x1",&x1,show_labels);
         ImPlot::DragLineX("x2",&x2,show_labels);
         ImPlot::DragLineY("y1",&y1,show_labels);
@@ -1660,6 +1682,15 @@ void ShowDemo_LegendPopups() {
     }
 }
 
+void ShowDemo_ColormapTools() {
+    static int cmap = 0;
+    if (ImPlot::ColormapButton("Colormap Button",ImVec2(0,0),cmap)) {
+        cmap = (cmap + 1) % ImPlot::GetColormapCount();
+    }
+    ImPlot::ColormapIcon(cmap); ImGui::SameLine(); ImGui::Text("Colormap Icon");
+    ImPlot::ColormapScale("Colormap Scale",0,1,ImVec2(0,0),cmap);
+}
+
 void ShowDemo_CustomPlottersAndTooltips()  {
     ImGui::BulletText("You can create custom plotters or extend ImPlot using implot_internal.h.");
     double dates[]  = {1546300800,1546387200,1546473600,1546560000,1546819200,1546905600,1546992000,1547078400,1547164800,1547424000,1547510400,1547596800,1547683200,1547769600,1547942400,1548028800,1548115200,1548201600,1548288000,1548374400,1548633600,1548720000,1548806400,1548892800,1548979200,1549238400,1549324800,1549411200,1549497600,1549584000,1549843200,1549929600,1550016000,1550102400,1550188800,1550361600,1550448000,1550534400,1550620800,1550707200,1550793600,1551052800,1551139200,1551225600,1551312000,1551398400,1551657600,1551744000,1551830400,1551916800,1552003200,1552262400,1552348800,1552435200,1552521600,1552608000,1552867200,1552953600,1553040000,1553126400,1553212800,1553472000,1553558400,1553644800,1553731200,1553817600,1554076800,1554163200,1554249600,1554336000,1554422400,1554681600,1554768000,1554854400,1554940800,1555027200,1555286400,1555372800,1555459200,1555545600,1555632000,1555891200,1555977600,1556064000,1556150400,1556236800,1556496000,1556582400,1556668800,1556755200,1556841600,1557100800,1557187200,1557273600,1557360000,1557446400,1557705600,1557792000,1557878400,1557964800,1558051200,1558310400,1558396800,1558483200,1558569600,1558656000,1558828800,1558915200,1559001600,1559088000,1559174400,1559260800,1559520000,1559606400,1559692800,1559779200,1559865600,1560124800,1560211200,1560297600,1560384000,1560470400,1560729600,1560816000,1560902400,1560988800,1561075200,1561334400,1561420800,1561507200,1561593600,1561680000,1561939200,1562025600,1562112000,1562198400,1562284800,1562544000,1562630400,1562716800,1562803200,1562889600,1563148800,1563235200,1563321600,1563408000,1563494400,1563753600,1563840000,1563926400,1564012800,1564099200,1564358400,1564444800,1564531200,1564617600,1564704000,1564963200,1565049600,1565136000,1565222400,1565308800,1565568000,1565654400,1565740800,1565827200,1565913600,1566172800,1566259200,1566345600,1566432000,1566518400,1566777600,1566864000,1566950400,1567036800,1567123200,1567296000,1567382400,1567468800,1567555200,1567641600,1567728000,1567987200,1568073600,1568160000,1568246400,1568332800,1568592000,1568678400,1568764800,1568851200,1568937600,1569196800,1569283200,1569369600,1569456000,1569542400,1569801600,1569888000,1569974400,1570060800,1570147200,1570406400,1570492800,1570579200,1570665600,1570752000,1571011200,1571097600,1571184000,1571270400,1571356800,1571616000,1571702400,1571788800,1571875200,1571961600};
@@ -1828,6 +1859,8 @@ void ShowDemoWindow(bool* p_open) {
                 ShowDemo_LegendOptions();
             if (ImGui::CollapsingHeader("Legend Popups"))
                 ShowDemo_LegendPopups();
+            if (ImGui::CollapsingHeader("Colormap Tools"))
+                ShowDemo_ColormapTools();
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Custom")) {

@@ -147,13 +147,6 @@ ImVec4 GetLastItemColor() {
     return ImVec4();
 }
 
-void HideNextItem(bool hidden, ImGuiCond cond) {
-    ImPlotContext& gp = *GImPlot;
-    gp.NextItemData.HasHidden  = true;
-    gp.NextItemData.Hidden     = hidden;
-    gp.NextItemData.HiddenCond = cond;
-}
-
 void BustItemCache() {
     ImPlotContext& gp = *GImPlot;
     for (int p = 0; p < gp.Plots.GetBufSize(); ++p) {
@@ -188,10 +181,14 @@ void BustColorCache(const char* plot_title_id) {
 // Begin/EndItem
 //-----------------------------------------------------------------------------
 
+static const float ITEM_HIGHLIGHT_LINE_SCALE = 2.0f;
+static const float ITEM_HIGHLIGHT_MARK_SCALE = 1.25f;
+
 // Begins a new item. Returns false if the item should not be plotted.
 bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotX() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     bool just_created;
     ImPlotItem* item = RegisterOrGetItem(label_id, &just_created);
     // set current item
@@ -243,10 +240,19 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
         s.Colors[ImPlotCol_Fill].w       *= s.FillAlpha;
         // s.Colors[ImPlotCol_MarkerFill].w *= s.FillAlpha; // TODO: this should be separate, if it at all
         // apply highlight mods
-        if (item->LegendHovered && !ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_NoHighlight)) {
-            s.LineWeight   *= 2;
-            s.MarkerWeight *= 2;
-            // TODO: highlight fills?
+        if (item->LegendHovered) {
+            if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightItem)) {
+                s.LineWeight   *= ITEM_HIGHLIGHT_LINE_SCALE;
+                s.MarkerSize   *= ITEM_HIGHLIGHT_MARK_SCALE;
+                s.MarkerWeight *= ITEM_HIGHLIGHT_LINE_SCALE;
+                // TODO: how to highlight fills?
+            }
+            if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightAxis)) {
+                if (gp.CurrentPlot->EnabledAxesX() > 1)
+                    gp.CurrentPlot->XAxis[gp.CurrentPlot->CurrentX].ColorHiLi = item->Color;
+                if (gp.CurrentPlot->EnabledAxesY() > 1)
+                    gp.CurrentPlot->YAxis[gp.CurrentPlot->CurrentY].ColorHiLi = item->Color;
+            }
         }
         // set render flags
         s.RenderLine       = s.Colors[ImPlotCol_Line].w          > 0 && s.LineWeight > 0;
@@ -2265,6 +2271,7 @@ void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPo
 // double
 void PlotText(const char* text, double x, double y, bool vertical, const ImVec2& pixel_offset) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();        
     ImDrawList & DrawList = *GetPlotDrawList();
     PushPlotClipRect();
     ImU32 colTxt = GetStyleColorU32(ImPlotCol_InlayText);

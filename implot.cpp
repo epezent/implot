@@ -39,10 +39,13 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
                     - BeginDragDropSourceX/BeginDragDropSourceY -> BeginDragDropSourceAxis
                     - BeginDragDropTarget                       -> BeginDragDropTargetPlot
                     - BeginDragDropSource                       -> BeginDragDropSourcePlot
+                    - SetLegendLocation                         -> SetupLegend
+                    - SetMousePosLocation                       -> SetupMouseText
+                    - ImPlotFlags_NoHighlight                   -> ImPlotLegendFlags_NoHighlight
+                    - ImPlotFlags_NoMousePos                    -> ImPlotFlags_NoMouseText
                     - The following functions now expext both X and Y axes:
                     - PixelsToPlot, PlotToPixels, GetPlotMousePos, GetPlotLimits, GetPlotSelection, GetPlotQuery, SetPlotQuery
                     - ImPlotCol_XAxis, ImPlotCol_XAxisGrid, ImPlotCol_YAxis1, etc. were been replaced with ImPlotCol_AxisText and ImPlotCol_AxisGrid.
-
 - 2021/07/30 (0.12) - The offset argument of `PlotXG` functions was been removed. Implement offsetting in your getter callback instead.
 - 2021/03/08 (0.9)  - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support. LerpColormap was changed to SampleColormap.
                       ShowColormapScale was changed to ColormapScale and requires additional arguments.
@@ -569,7 +572,7 @@ ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlot
     return pos;
 }
 
-ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orn) {
+ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& spacing, bool vertical) {
     // vars
     const int   nItems      = items.GetLegendCount();
     const float txt_ht      = ImGui::GetTextLineHeight();
@@ -584,13 +587,13 @@ ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& s
         sum_label_width        += label_width;
     }
     // calc legend size
-    const ImVec2 legend_size = orn == ImPlotOrientation_Vertical ?
+    const ImVec2 legend_size = vertical ?
                                ImVec2(pad.x * 2 + icon_size + max_label_width, pad.y * 2 + nItems * txt_ht + (nItems - 1) * spacing.y) :
                                ImVec2(pad.x * 2 + icon_size * nItems + sum_label_width + (nItems - 1) * spacing.x, pad.y * 2 + txt_ht);
     return legend_size;
 }
 
-bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hovered, const ImVec2& pad, const ImVec2& spacing, ImPlotOrientation orn, ImDrawList& DrawList) {
+bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hovered, const ImVec2& pad, const ImVec2& spacing, bool vertical, ImDrawList& DrawList) {
     ImGuiIO& IO = ImGui::GetIO();
     // vars
     const float txt_ht      = ImGui::GetTextLineHeight();
@@ -605,9 +608,9 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
         ImPlotItem* item        = items.GetLegendItem(i);
         const char* label       = items.GetLegendLabel(i);
         const float label_width = ImGui::CalcTextSize(label, NULL, true).x;
-        const ImVec2 top_left   = orn == ImPlotOrientation_Vertical ?
-                                         legend_bb.Min + pad + ImVec2(0, i * (txt_ht + spacing.y)) :
-                                         legend_bb.Min + pad + ImVec2(i * (icon_size + spacing.x) + sum_label_width, 0);
+        const ImVec2 top_left   = vertical ?
+                                  legend_bb.Min + pad + ImVec2(0, i * (txt_ht + spacing.y)) :
+                                  legend_bb.Min + pad + ImVec2(i * (icon_size + spacing.x) + sum_label_width, 0);
         sum_label_width        += label_width;
         ImRect icon_bb;
         icon_bb.Min = top_left + ImVec2(icon_shrink,icon_shrink);
@@ -620,11 +623,17 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
 
         bool icon_hov = false;
         bool icon_hld = false;
-        bool icon_clk = ImGui::ButtonBehavior(icon_bb, item->ID, &icon_hov, &icon_hld);
+        bool icon_clk = ImHasFlag(items.Legend.Flags, ImPlotLegendFlags_NoButtons) 
+                      ? false 
+                      : ImGui::ButtonBehavior(icon_bb, item->ID, &icon_hov, &icon_hld);
         if (icon_clk)
             item->Show = !item->Show;
 
-        if (icon_hov || label_bb.Contains(IO.MousePos)) {
+        const bool can_hover = (icon_hov || label_bb.Contains(IO.MousePos))
+                             && (!ImHasFlag(items.Legend.Flags, ImPlotLegendFlags_NoHighlightItem)
+                             || !ImHasFlag(items.Legend.Flags, ImPlotLegendFlags_NoHighlightAxis));
+
+        if (can_hover) {
             item->LegendHovered = true;
             col_txt_hl = ImMixU32(col_txt, col_item, 64);
             any_item_hovered = true;
@@ -640,7 +649,7 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
         else
             col_icon = item->Show ? col_item : col_txt_dis;
 
-        DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, col_icon, 1);
+        DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, col_icon);
         const char* text_display_end = ImGui::FindRenderedTextEnd(label, NULL);
         if (label != text_display_end)
             DrawList.AddText(top_left + ImVec2(icon_size, 0), item->Show ? col_txt_hl  : col_txt_dis, label, text_display_end);
@@ -1368,18 +1377,18 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_all
 
 }
 
-bool ShowLegendContextMenu(ImPlotLegendData& legend, bool visible) {
+bool ShowLegendContextMenu(ImPlotLegend& legend, bool visible) {
     const float s = ImGui::GetFrameHeight();
     bool ret = false;
     if (ImGui::Checkbox("Show",&visible))
         ret = true;
     if (legend.CanGoInside)
-        ImGui::Checkbox("Outside", &legend.Outside);
-    if (ImGui::RadioButton("H", legend.Orientation == ImPlotOrientation_Horizontal))
-        legend.Orientation = ImPlotOrientation_Horizontal;
+        ImGui::CheckboxFlags("Outside",(unsigned int*)&legend.Flags, ImPlotLegendFlags_Outside);
+    if (ImGui::RadioButton("H", ImHasFlag(legend.Flags, ImPlotLegendFlags_Horizontal)))
+        legend.Flags |= ImPlotLegendFlags_Horizontal;
     ImGui::SameLine();
-    if (ImGui::RadioButton("V", legend.Orientation == ImPlotOrientation_Vertical))
-        legend.Orientation = ImPlotOrientation_Vertical;
+    if (ImGui::RadioButton("V", !ImHasFlag(legend.Flags, ImPlotLegendFlags_Horizontal)))
+        legend.Flags &= ~ImPlotLegendFlags_Horizontal;
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2,2));
     if (ImGui::Button("NW",ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_NorthWest; } ImGui::SameLine();
     if (ImGui::Button("N", ImVec2(1.5f*s,s))) { legend.Location = ImPlotLocation_North;     } ImGui::SameLine();
@@ -1450,16 +1459,18 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
     }
 
     ImGui::Separator();
-    if ((ImGui::BeginMenu("Legend"))) {
-        if (owns_legend) {
-            if (ShowLegendContextMenu(plot.Items.Legend, !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend)))
-                ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
+    if (!ImHasFlag(GImPlot->CurrentItems->Legend.Flags, ImPlotLegendFlags_NoMenus)) {
+        if ((ImGui::BeginMenu("Legend"))) {
+            if (owns_legend) {
+                if (ShowLegendContextMenu(plot.Items.Legend, !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend)))
+                    ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
+            }
+            else if (GImPlot->CurrentSubplot != NULL) {
+                if (ShowLegendContextMenu(GImPlot->CurrentSubplot->Items.Legend, !ImHasFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend)))
+                    ImFlipFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend);
+            }
+            ImGui::EndMenu();
         }
-        else if (GImPlot->CurrentSubplot != NULL) {
-            if (ShowLegendContextMenu(GImPlot->CurrentSubplot->Items.Legend, !ImHasFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend)))
-                ImFlipFlag(GImPlot->CurrentSubplot->Flags, ImPlotSubplotFlags_NoLegend);
-        }
-        ImGui::EndMenu();
     }
     if ((ImGui::BeginMenu("Settings"))) {
         if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
@@ -1472,8 +1483,8 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
             ImFlipFlag(plot.Flags, ImPlotFlags_Query);
         if (ImGui::MenuItem("Title",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)))
             ImFlipFlag(plot.Flags, ImPlotFlags_NoTitle);
-        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_NoMousePos);
+        if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMouseText)))
+            ImFlipFlag(plot.Flags, ImPlotFlags_NoMouseText);
         if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
             ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
         ImGui::EndMenu();
@@ -2125,11 +2136,33 @@ void SetupAxisTicks(ImAxis idx, double x_min, double x_max, int n_ticks, const c
     SetupAxisTicks(idx, GImPlot->Temp1.Data, n_ticks, labels, show_default);
 }
 
+void SetupLegend(ImPlotLocation location, ImPlotLegendFlags flags) {
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
+                         "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentItems != NULL, 
+                         "SetupLegend() needs to be called within an itemized context!");
+    ImPlotLegend& legend = GImPlot->CurrentItems->Legend;
+    // check and set location
+    if (location != legend.PreviousLocation)
+        legend.Location = location;
+    legend.PreviousLocation = location;
+    // check and set flags
+    if (flags != legend.PreviousFlags)
+        legend.Flags = flags;
+    legend.PreviousFlags = flags;
+}
+
+void SetupMouseText(ImPlotLocation location) {
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
+                         "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
+    GImPlot->CurrentPlot->MousePosLocation = location;
+}
+
 //-----------------------------------------------------------------------------
 // BeginPlot
 //-----------------------------------------------------------------------------
 
-bool BeginPlotS(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
+bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot == NULL, "Mismatched BeginPlot()/EndPlot()!");
 
@@ -2215,34 +2248,16 @@ bool BeginPlotS(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
         return false;
     }
 
-    return true;
-}
-
-bool BeginPlot(const char* title, const char* x_label, const char* y1_label, const ImVec2& size,
-               ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y1_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags,
-               const char* y2_label, const char* y3_label)
-{
-    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot == NULL, "Mismatched BeginPlot()/EndPlot()!");
-
-    if (!BeginPlotS(title, size, flags))
-        return false;
-
-    SetupAxis(ImAxis_X1, x_label, x_flags);
-    SetupAxis(ImAxis_Y1, y1_label, y1_flags);
-    if (ImHasFlag(flags, ImPlotFlags_YAxis2))
-        SetupAxis(ImAxis_Y2, y2_label, y2_flags);
-    if (ImHasFlag(flags, ImPlotFlags_YAxis3))
-        SetupAxis(ImAxis_Y3, y3_label, y3_flags);
-
-    FinishSetup();
+    // setup items (or dont)
+    if (gp.CurrentItems == NULL)
+        gp.CurrentItems = &plot.Items;
 
     return true;
 }
 
-void FinishSetup() {
+void SetupFinish() {
     IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "FinishSetup needs to be called after BeginPlot!");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "SetupFinish needs to be called after BeginPlot!");
 
     ImPlotContext& gp       = *GImPlot;
     ImGuiContext& G         = *GImGui;
@@ -2259,6 +2274,7 @@ void FinishSetup() {
     for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
         ImPlotAxis& xax = plot.XAxis[i];
         ImPlotAxis& yax = plot.YAxis[i];
+        xax.ColorHiLi = yax.ColorHiLi = IM_COL32_BLACK_TRANS;
         xax.Constrain();
         yax.Constrain();
         if (!plot.Initialized && xax.CanInitFit())
@@ -2274,13 +2290,14 @@ void FinishSetup() {
     plot.AxesRect        = plot.FrameRect;
 
     // outside legend adjustments
-    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Items.GetLegendCount() > 0 && plot.Items.Legend.Outside) { // this correct?
-        const ImVec2 legend_size = CalcLegendSize(plot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.Items.Legend.Orientation);
-        const bool west = ImHasFlag(plot.Items.Legend.Location, ImPlotLocation_West) && !ImHasFlag(plot.Items.Legend.Location, ImPlotLocation_East);
-        const bool east = ImHasFlag(plot.Items.Legend.Location, ImPlotLocation_East) && !ImHasFlag(plot.Items.Legend.Location, ImPlotLocation_West);
-        const bool north = ImHasFlag(plot.Items.Legend.Location, ImPlotLocation_North) && !ImHasFlag(plot.Items.Legend.Location, ImPlotLocation_South);
-        const bool south = ImHasFlag(plot.Items.Legend.Location, ImPlotLocation_South) && !ImHasFlag(plot.Items.Legend.Location, ImPlotLocation_North);
-        const bool horz = plot.Items.Legend.Orientation == ImPlotOrientation_Horizontal;
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Items.GetLegendCount() > 0 && ImHasFlag(plot.Items.Legend.Flags, ImPlotLegendFlags_Outside)) { 
+        ImPlotLegend& legend = plot.Items.Legend;
+        const bool horz = ImHasFlag(legend.Flags, ImPlotLegendFlags_Horizontal);
+        const ImVec2 legend_size = CalcLegendSize(plot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, !horz);
+        const bool west = ImHasFlag(legend.Location, ImPlotLocation_West) && !ImHasFlag(legend.Location, ImPlotLocation_East);
+        const bool east = ImHasFlag(legend.Location, ImPlotLocation_East) && !ImHasFlag(legend.Location, ImPlotLocation_West);
+        const bool north = ImHasFlag(legend.Location, ImPlotLocation_North) && !ImHasFlag(legend.Location, ImPlotLocation_South);
+        const bool south = ImHasFlag(legend.Location, ImPlotLocation_South) && !ImHasFlag(legend.Location, ImPlotLocation_North);
         if ((west && !horz) || (west && horz && !north && !south)) {
             plot.CanvasRect.Min.x += (legend_size.x + gp.Style.LegendPadding.x);
             plot.AxesRect.Min.x   += (legend_size.x + gp.Style.PlotPadding.x);
@@ -2453,10 +2470,7 @@ void FinishSetup() {
 
     // clear legend (TODO: put elsewhere)
     plot.Items.Legend.Reset();
-    // setup items (or dont)
-    if (gp.CurrentItems == NULL)
-        gp.CurrentItems = &plot.Items;
-    // push ID to set item hashes
+    // push ID to set item hashes (TODO: SetupFinish?)
     ImGui::PushOverrideID(gp.CurrentItems->ID);
 }
 
@@ -2507,6 +2521,8 @@ void EndPlot() {
             continue;
         if ((ax.LabelsHovered || ax.LabelsHeld) && !plot.Held)
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.LabelsHeld ? ax.ColorAct : ax.ColorHov);
+        else if (ax.ColorHiLi != IM_COL32_BLACK)
+            DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorHiLi);
         const ImPlotTickCollection& tkc = gp.XTicks[i];
         const bool opp = ax.IsOpposite();
         const bool aux = ((opp && count_T > 0)||(!opp && count_B > 0));
@@ -2557,6 +2573,8 @@ void EndPlot() {
             continue;
         if ((ax.LabelsHovered || ax.LabelsHeld) && !plot.Held)
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.LabelsHeld ? ax.ColorAct : ax.ColorHov);
+        else if (ax.ColorHiLi != IM_COL32_BLACK)
+            DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorHiLi);
         const ImPlotTickCollection& tkc = gp.YTicks[i];
         const bool opp = ax.IsOpposite();
         const bool aux = ((opp && count_R > 0)||(!opp && count_L > 0));
@@ -2665,7 +2683,7 @@ void EndPlot() {
     }
 
     // render mouse pos
-    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoMousePos) && plot.Hovered) {
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoMouseText) && plot.Hovered) {
         // char buffer[128] = {};
         // ImBufferWriter writer(buffer, sizeof(buffer));
         // // x
@@ -2705,41 +2723,41 @@ void EndPlot() {
         plot.Items.GetItemByIndex(i)->LegendHovered = false;
     // render legend
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Items.GetLegendCount() > 0) {
-        const ImVec2 legend_size = CalcLegendSize(plot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.Items.Legend.Orientation);
-        const ImVec2 legend_pos  = GetLocationPos(plot.Items.Legend.Outside ? plot.FrameRect : plot.PlotRect,
+        ImPlotLegend& legend = plot.Items.Legend;
+        const bool   legend_out  = ImHasFlag(legend.Flags, ImPlotLegendFlags_Outside);
+        const bool   legend_horz = ImHasFlag(legend.Flags, ImPlotLegendFlags_Horizontal);
+        const ImVec2 legend_size = CalcLegendSize(plot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, !legend_horz);
+        const ImVec2 legend_pos  = GetLocationPos(legend_out ? plot.FrameRect : plot.PlotRect,
                                                   legend_size,
-                                                  plot.Items.Legend.Location,
-                                                  plot.Items.Legend.Outside ? gp.Style.PlotPadding : gp.Style.LegendPadding);
-        plot.Items.Legend.Rect = ImRect(legend_pos, legend_pos + legend_size);
+                                                  legend.Location,
+                                                  legend_out ? gp.Style.PlotPadding : gp.Style.LegendPadding);
+        legend.Rect = ImRect(legend_pos, legend_pos + legend_size);
         // test hover
-        plot.Items.Legend.Hovered = ImGui::IsWindowHovered() && plot.Items.Legend.Rect.Contains(IO.MousePos);
+        legend.Hovered = ImGui::IsWindowHovered() && legend.Rect.Contains(IO.MousePos);
 
-        if (plot.Items.Legend.Outside)
+        if (legend_out)
             ImGui::PushClipRect(plot.FrameRect.Min, plot.FrameRect.Max, true);
         else
             PushPlotClipRect();
         ImU32  col_bg      = GetStyleColorU32(ImPlotCol_LegendBg);
         ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
-        DrawList.AddRectFilled(plot.Items.Legend.Rect.Min, plot.Items.Legend.Rect.Max, col_bg);
-        DrawList.AddRect(plot.Items.Legend.Rect.Min, plot.Items.Legend.Rect.Max, col_bd);
-        bool legend_contextable = ShowLegendEntries(plot.Items, plot.Items.Legend.Rect, plot.Items.Legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, plot.Items.Legend.Orientation, DrawList);
+        DrawList.AddRectFilled(legend.Rect.Min, legend.Rect.Max, col_bg);
+        DrawList.AddRect(legend.Rect.Min, legend.Rect.Max, col_bd);
+        bool legend_contextable = ShowLegendEntries(plot.Items, legend.Rect, legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, !legend_horz, DrawList)
+                                && !ImHasFlag(legend.Flags, ImPlotLegendFlags_NoMenus);
         // main ctx menu
         if (legend_contextable && !ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && IO.MouseReleased[gp.InputMap.ContextMenuButton] && !plot.ContextLocked)
             ImGui::OpenPopup("##LegendContext");
         ImGui::PopClipRect();
         if (ImGui::BeginPopup("##LegendContext")) {
             ImGui::Text("Legend"); ImGui::Separator();
-            if (ShowLegendContextMenu(plot.Items.Legend, !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend)))
+            if (ShowLegendContextMenu(legend, !ImHasFlag(plot.Flags, ImPlotFlags_NoLegend)))
                 ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
             ImGui::EndPopup();
         }
     }
     else {
         plot.Items.Legend.Rect = ImRect();
-    }
-    if (plot.Items.Legend.FlipSideNextFrame)  {
-        plot.Items.Legend.Outside  = !plot.Items.Legend.Outside;
-        plot.Items.Legend.FlipSideNextFrame = false;
     }
 
     // render border
@@ -3005,17 +3023,18 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
     subplot.GridRect.Max = subplot.FrameRect.Max - half_pad;
     subplot.FrameHovered = subplot.FrameRect.Contains(ImGui::GetMousePos()) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
 
-    // outside legend adjustments
+    // outside legend adjustments (TODO: make function)
     const bool share_items = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems);
     if (share_items)
         gp.CurrentItems = &subplot.Items;
     if (share_items && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend) && subplot.Items.GetLegendCount() > 0) {
-        const ImVec2 legend_size = CalcLegendSize(subplot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, subplot.Items.Legend.Orientation);
-        const bool west = ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_West) && !ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_East);
-        const bool east = ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_East) && !ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_West);
-        const bool north = ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_North) && !ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_South);
-        const bool south = ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_South) && !ImHasFlag(subplot.Items.Legend.Location, ImPlotLocation_North);
-        const bool horz = subplot.Items.Legend.Orientation == ImPlotOrientation_Horizontal;
+        ImPlotLegend& legend = subplot.Items.Legend;
+        const bool horz = ImHasFlag(legend.Flags, ImPlotLegendFlags_Horizontal);
+        const ImVec2 legend_size = CalcLegendSize(subplot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, !horz);
+        const bool west = ImHasFlag(legend.Location, ImPlotLocation_West) && !ImHasFlag(legend.Location, ImPlotLocation_East);
+        const bool east = ImHasFlag(legend.Location, ImPlotLocation_East) && !ImHasFlag(legend.Location, ImPlotLocation_West);
+        const bool north = ImHasFlag(legend.Location, ImPlotLocation_North) && !ImHasFlag(legend.Location, ImPlotLocation_South);
+        const bool south = ImHasFlag(legend.Location, ImPlotLocation_South) && !ImHasFlag(legend.Location, ImPlotLocation_North);
         if ((west && !horz) || (west && horz && !north && !south))
             subplot.GridRect.Min.x += (legend_size.x + gp.Style.LegendPadding.x);
         if ((east && !horz) || (east && horz && !north && !south))
@@ -3158,7 +3177,8 @@ void EndSubplots() {
     const bool share_items = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_ShareItems);
     ImDrawList& DrawList = *ImGui::GetWindowDrawList();
     if (share_items && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoLegend) && subplot.Items.GetLegendCount() > 0) {
-        const ImVec2 legend_size = CalcLegendSize(subplot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, subplot.Items.Legend.Orientation);
+        const bool   legend_horz = ImHasFlag(subplot.Items.Legend.Flags, ImPlotLegendFlags_Horizontal);
+        const ImVec2 legend_size = CalcLegendSize(subplot.Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, !legend_horz);
         const ImVec2 legend_pos  = GetLocationPos(subplot.FrameRect, legend_size, subplot.Items.Legend.Location, gp.Style.PlotPadding);
         subplot.Items.Legend.Rect = ImRect(legend_pos, legend_pos + legend_size);
         subplot.Items.Legend.Hovered = subplot.FrameHovered && subplot.Items.Legend.Rect.Contains(ImGui::GetIO().MousePos);
@@ -3167,7 +3187,8 @@ void EndSubplots() {
         ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
         DrawList.AddRectFilled(subplot.Items.Legend.Rect.Min, subplot.Items.Legend.Rect.Max, col_bg);
         DrawList.AddRect(subplot.Items.Legend.Rect.Min, subplot.Items.Legend.Rect.Max, col_bd);
-        bool legend_contextable =ShowLegendEntries(subplot.Items, subplot.Items.Legend.Rect, subplot.Items.Legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, subplot.Items.Legend.Orientation, DrawList);
+        bool legend_contextable = ShowLegendEntries(subplot.Items, subplot.Items.Legend.Rect, subplot.Items.Legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, !legend_horz, DrawList)
+                                && !ImHasFlag(subplot.Items.Legend.Flags, ImPlotLegendFlags_NoMenus);
         if (legend_contextable && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoMenus) && ImGui::GetIO().MouseReleased[gp.InputMap.ContextMenuButton])
             ImGui::OpenPopup("##LegendContext");
         ImGui::PopClipRect();
@@ -3201,36 +3222,6 @@ void EndSubplots() {
 // MISC API
 //-----------------------------------------------------------------------------
 
-bool BeginAlignedPlots(const char* group_id, ImPlotOrientation orientation) {
-    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentAlignmentH == NULL && GImPlot->CurrentAlignmentV == NULL, "Mismatched BeginAlignedPlots()/EndAlignedPlots()!");
-    ImPlotContext& gp = *GImPlot;
-    ImGuiContext &G = *GImGui;
-    ImGuiWindow * Window = G.CurrentWindow;
-    if (Window->SkipItems)
-        return false;
-    const ImGuiID ID = Window->GetID(group_id);
-    ImPlotAlignmentData* alignment = gp.AlignmentData.GetOrAddByKey(ID);
-    if (orientation == ImPlotOrientation_Horizontal)
-        gp.CurrentAlignmentH = alignment;
-    if (orientation == ImPlotOrientation_Vertical)
-        gp.CurrentAlignmentV = alignment;
-    if (alignment->Orientation != orientation)
-        alignment->Reset();
-    alignment->Orientation = orientation;
-    alignment->Begin();
-    return true;
-}
-
-void EndAlignedPlots() {
-    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentAlignmentH != NULL || GImPlot->CurrentAlignmentV != NULL, "Mismatched BeginAlignedPlots()/EndAlignedPlots()!");
-    ImPlotContext& gp = *GImPlot;
-    ImPlotAlignmentData* alignment = gp.CurrentAlignmentH != NULL ? gp.CurrentAlignmentH : (gp.CurrentAlignmentV != NULL ? gp.CurrentAlignmentV : NULL);
-    if (alignment)
-        alignment->End();
-    ResetCtxForNextAlignedPlots(GImPlot);
-}
 
 ImPlotInputMap& GetInputMap() {
     return GImPlot->InputMap;
@@ -3244,6 +3235,7 @@ void SetAxis(ImAxis axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetAxis() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(axis >= ImAxis_X1 && axis < ImAxis_COUNT, "Axis indices out of bounds!");
+    SetupLock();
     if (axis < ImAxis_Y1)
         gp.CurrentPlot->CurrentX = axis;
     else
@@ -3254,6 +3246,7 @@ void SetAxes(ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetAxes() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(x_axis >= ImAxis_X1 && x_axis < ImAxis_Y1 && y_axis >= ImAxis_Y1 && y_axis < ImAxis_COUNT, "Axis indices out of bounds!");
+    SetupLock();
     gp.CurrentPlot->CurrentX = x_axis;
     gp.CurrentPlot->CurrentY = y_axis % IMPLOT_MAX_AXES;
 }
@@ -3261,6 +3254,7 @@ void SetAxes(ImAxis x_axis, ImAxis y_axis) {
 ImPlotPoint PixelsToPlot(float x, float y, ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     const int ix = plot.GetAxisIdxX(x_axis);
     const int iy = plot.GetAxisIdxY(y_axis);
@@ -3285,6 +3279,7 @@ ImPlotPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis, ImAxis y_axis) {
 ImVec2 PlotToPixels(double x, double y, ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     const int ix = plot.GetAxisIdxX(x_axis);
     const int iy = plot.GetAxisIdxY(y_axis);
@@ -3311,61 +3306,30 @@ ImVec2 PlotToPixels(const ImPlotPoint& plt, ImAxis x_axis, ImAxis y_axis) {
 ImVec2 GetPlotPos() {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotPos() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     return gp.CurrentPlot->PlotRect.Min;
 }
 
 ImVec2 GetPlotSize() {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotSize() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     return gp.CurrentPlot->PlotRect.GetSize();
-}
-
-ImDrawList* GetPlotDrawList() {
-    return ImGui::GetWindowDrawList();
-}
-
-void PushPlotClipRect(float expand) {
-    ImPlotContext& gp = *GImPlot;
-    ImRect rect = gp.CurrentPlot->PlotRect;
-    rect.Expand(expand);
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PushPlotClipRect() needs to be called between BeginPlot() and EndPlot()!");
-    ImGui::PushClipRect(rect.Min, rect.Max, true);
-}
-
-void PopPlotClipRect() {
-    ImGui::PopClipRect();
-}
-
-bool IsSubplotsHovered() {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentSubplot != NULL, "IsSubplotsHovered() needs to be called between BeginSubplots() and EndSubplots()!");
-    return gp.CurrentSubplot->FrameHovered;
-}
-
-bool IsPlotHovered() {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotHovered() needs to be called between BeginPlot() and EndPlot()!");
-    return gp.CurrentPlot->Hovered;
-}
-
-bool IsAxisHovered(ImAxis axis) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotXAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
-    return gp.CurrentPlot->GetAxis(axis)->LabelsHovered;
 }
 
 ImPlotPoint GetPlotMousePos(ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotMousePos() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     const int ix = gp.CurrentPlot->GetAxisIdxX(x_axis);
     const int iy = gp.CurrentPlot->GetAxisIdxY(y_axis);
     return ImPlotPoint(gp.MousePos[ix].x, gp.MousePos[iy].y);
 }
 
-
 ImPlotLimits GetPlotLimits(ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotLimits() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     const int ix = gp.CurrentPlot->GetAxisIdxX(x_axis);
     const int iy = gp.CurrentPlot->GetAxisIdxY(y_axis);
     ImPlotPlot& plot = *gp.CurrentPlot;
@@ -3375,15 +3339,37 @@ ImPlotLimits GetPlotLimits(ImAxis x_axis, ImAxis y_axis) {
     return limits;
 }
 
+bool IsPlotHovered() {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotHovered() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
+    return gp.CurrentPlot->Hovered;
+}
+
+bool IsAxisHovered(ImAxis axis) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotXAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
+    return gp.CurrentPlot->GetAxis(axis)->LabelsHovered;
+}
+
+bool IsSubplotsHovered() {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentSubplot != NULL, "IsSubplotsHovered() needs to be called between BeginSubplots() and EndSubplots()!");
+    return gp.CurrentSubplot->FrameHovered;
+}
+
 bool IsPlotSelected() {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotSelected() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     return gp.CurrentPlot->Selected;
 }
 
 ImPlotLimits GetPlotSelection(ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotSelection() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     if (!plot.Selected)
         return ImPlotLimits(0,0,0,0);
@@ -3401,12 +3387,14 @@ ImPlotLimits GetPlotSelection(ImAxis x_axis, ImAxis y_axis) {
 bool IsPlotQueried() {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotQueried() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     return gp.CurrentPlot->Queried;
 }
 
 ImPlotLimits GetPlotQuery(ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     if (!plot.Queried)
         return ImPlotLimits(0,0,0,0);
@@ -3424,6 +3412,7 @@ ImPlotLimits GetPlotQuery(ImAxis x_axis, ImAxis y_axis) {
 void SetPlotQuery(const ImPlotLimits& query, ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     UpdateTransformCache();
     ImVec2 p1 = PlotToPixels(query.Min(),x_axis,y_axis);
@@ -3433,9 +3422,21 @@ void SetPlotQuery(const ImPlotLimits& query, ImAxis x_axis, ImAxis y_axis) {
     plot.QueryRect = ImRect(ImMin(p1,p2)-plot.PlotRect.Min, ImMax(p1,p2)-plot.PlotRect.Min);
 }
 
+void HideNextItem(bool hidden, ImGuiCond cond) {
+    ImPlotContext& gp = *GImPlot;
+    gp.NextItemData.HasHidden  = true;
+    gp.NextItemData.Hidden     = hidden;
+    gp.NextItemData.HiddenCond = cond;
+}
+
+//-----------------------------------------------------------------------------
+// [SECTION] Plot Tools
+//-----------------------------------------------------------------------------
+
 void AnnotateEx(double x, double y, bool clamp, const ImVec4& col, const ImVec2& off, const char* fmt, va_list args) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "Annotate() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     ImVec2 pos = PlotToPixels(x,y,IMPLOT_AUTO,IMPLOT_AUTO);
     ImU32  bg  = ImGui::GetColorU32(col);
     ImU32  fg  = col.w == 0 ? GetStyleColorU32(ImPlotCol_InlayText) : CalcTextColor(col);
@@ -3489,6 +3490,7 @@ void AnnotateClamped(double x, double y, const ImVec2& offset, const ImVec4& col
 bool DragLineX(const char* id, double* value, bool show_label, const ImVec4& col, float thickness) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "DragLineX() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     const float grab_size = ImMax(5.0f, thickness);
     float yt = gp.CurrentPlot->PlotRect.Min.y;
     float yb = gp.CurrentPlot->PlotRect.Max.y;
@@ -3534,6 +3536,7 @@ bool DragLineX(const char* id, double* value, bool show_label, const ImVec4& col
 bool DragLineY(const char* id, double* value, bool show_label, const ImVec4& col, float thickness) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "DragLineY() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     const float grab_size = ImMax(5.0f, thickness);
     float xl = gp.CurrentPlot->PlotRect.Min.x;
     float xr = gp.CurrentPlot->PlotRect.Max.x;
@@ -3580,6 +3583,7 @@ bool DragLineY(const char* id, double* value, bool show_label, const ImVec4& col
 bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVec4& col, float radius) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "DragPoint() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
     const float grab_size = ImMax(5.0f, 2*radius);
     const bool outside = !GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Contains(*x,*y);
     if (outside)
@@ -3626,6 +3630,78 @@ bool DragPoint(const char* id, double* x, double* y, bool show_label, const ImVe
 }
 
 //-----------------------------------------------------------------------------
+// [SECTION] Legend Utils and Tools
+//-----------------------------------------------------------------------------
+
+bool IsLegendEntryHovered(const char* label_id) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "IsPlotItemHighlight() needs to be called within an itemized context!");
+    SetupLock();
+    ImGuiID id = ImGui::GetIDWithSeed(label_id, NULL, gp.CurrentItems->ID);
+    ImPlotItem* item = gp.CurrentItems->GetItem(id);
+    return item && item->LegendHovered;
+}
+
+bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "BeginLegendPopup() needs to be called within an itemized context!");
+    SetupLock();
+    ImGuiWindow* window = GImGui->CurrentWindow;
+    if (window->SkipItems)
+        return false;
+    ImGuiID id = ImGui::GetIDWithSeed(label_id, NULL, gp.CurrentItems->ID);
+    if (ImGui::IsMouseReleased(mouse_button)) {
+        ImPlotItem* item = gp.CurrentItems->GetItem(id);
+        if (item && item->LegendHovered)
+            ImGui::OpenPopupEx(id);
+    }
+    return ImGui::BeginPopupEx(id, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings);
+}
+
+void EndLegendPopup() {
+    SetupLock();
+    ImGui::EndPopup();
+}
+
+void ShowAltLegend(const char* title_id, ImPlotOrientation orientation, const ImVec2 size, bool interactable) {
+    ImPlotContext& gp    = *GImPlot;
+    ImGuiContext &G      = *GImGui;
+    ImGuiWindow * Window = G.CurrentWindow;
+    if (Window->SkipItems)
+        return;
+    ImDrawList &DrawList = *Window->DrawList;
+    ImPlotPlot* plot = GetPlot(title_id);
+    ImVec2 legend_size;
+    ImVec2 default_size = gp.Style.LegendPadding * 2;
+    if (plot != NULL) {
+        legend_size  = CalcLegendSize(plot->Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, orientation);
+        default_size = legend_size + gp.Style.LegendPadding * 2;
+    }
+    ImVec2 frame_size = ImGui::CalcItemSize(size, default_size.x, default_size.y);
+    ImRect bb_frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
+    ImGui::ItemSize(bb_frame);
+    if (!ImGui::ItemAdd(bb_frame, 0, &bb_frame))
+        return;
+    ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, G.Style.FrameRounding);
+    DrawList.PushClipRect(bb_frame.Min, bb_frame.Max, true);
+    if (plot != NULL) {
+        const ImVec2 legend_pos  = GetLocationPos(bb_frame, legend_size, 0, gp.Style.LegendPadding);
+        const ImRect legend_bb(legend_pos, legend_pos + legend_size);
+        interactable = interactable && bb_frame.Contains(ImGui::GetIO().MousePos);
+        // render legend box
+        ImU32  col_bg      = GetStyleColorU32(ImPlotCol_LegendBg);
+        ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
+        DrawList.AddRectFilled(legend_bb.Min, legend_bb.Max, col_bg);
+        DrawList.AddRect(legend_bb.Min, legend_bb.Max, col_bd);
+        // render entries
+        ShowLegendEntries(plot->Items, legend_bb, interactable, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, orientation, DrawList);
+    }
+    DrawList.PopClipRect();
+}
+
+//-----------------------------------------------------------------------------
+// [SECTION] Drag and Drop Utils
+//-----------------------------------------------------------------------------
 
 bool BeginDragDropTargetEx(int id, const ImRect& rect) {
     ImGuiContext& G  = *GImGui;
@@ -3636,19 +3712,23 @@ bool BeginDragDropTargetEx(int id, const ImRect& rect) {
 }
 
 bool BeginDragDropTargetPlot() {
+    SetupLock();
     return BeginDragDropTargetEx(IMPLOT_ID_PLT, GImPlot->CurrentPlot->PlotRect);
 }
 
 bool BeginDragDropTargetAxis(ImAxis axis) {
+    SetupLock();
     ImPlotAxis* ax = GImPlot->CurrentPlot->GetAxis(axis);
     return BeginDragDropTargetEx(ax->ID, ax->HoverRect);
 }
 
 bool BeginDragDropTargetLegend() {
+    SetupLock();
     return BeginDragDropTargetEx(IMPLOT_ID_LEG, GImPlot->CurrentItems->Legend.Rect);
 }
 
 void EndDragDropTarget() {
+    SetupLock();
 	ImGui::EndDragDropTarget();
 }
 
@@ -3707,6 +3787,7 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
 }
 
 bool BeginDragDropSourcePlot(ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    SetupLock();
     if (ImGui::GetIO().KeyMods == key_mods) {
         for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
             GImPlot->CurrentPlot->XAxis[i].Dragging = false;
@@ -3719,6 +3800,7 @@ bool BeginDragDropSourcePlot(ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags
 }
 
 bool BeginDragDropSourceAxis(ImAxis axis, ImGuiKeyModFlags key_mods, ImGuiDragDropFlags flags) {
+    SetupLock();
     ImPlotAxis* ax = GImPlot->CurrentPlot->GetAxis(axis);
     if (ImGui::GetIO().KeyMods == key_mods)
         ax->Dragging = false;
@@ -3728,6 +3810,7 @@ bool BeginDragDropSourceAxis(ImAxis axis, ImGuiKeyModFlags key_mods, ImGuiDragDr
 }
 
 bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
+    SetupLock();
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "BeginDragDropSourceItem() needs to be called within an itemized context!");
     ImGuiID item_id = ImGui::GetIDWithSeed(label_id, NULL, gp.CurrentItems->ID);
@@ -3738,116 +3821,47 @@ bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags) {
 }
 
 void EndDragDropSource() {
+    SetupLock();
     ImGui::EndDragDropSource();
 }
 
-void ItemIcon(const ImVec4& col) {
-    ItemIcon(ImGui::ColorConvertFloat4ToU32(col));
-}
-
-void ItemIcon(ImU32 col) {
-    const float txt_size = ImGui::GetTextLineHeight();
-    ImVec2 size(txt_size-4,txt_size);
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    ImVec2 pos = window->DC.CursorPos;
-    ImGui::GetWindowDrawList()->AddRectFilled(pos + ImVec2(0,2), pos + size - ImVec2(0,2), col);
-    ImGui::Dummy(size);
-}
-
-void ColormapIcon(ImPlotColormap cmap) {
-    ImPlotContext& gp = *GImPlot;
-    const float txt_size = ImGui::GetTextLineHeight();
-    ImVec2 size(txt_size-4,txt_size);
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    ImVec2 pos = window->DC.CursorPos;
-    ImRect rect(pos+ImVec2(0,2),pos+size-ImVec2(0,2));
-    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
-    RenderColorBar(gp.ColormapData.GetKeys(cmap),gp.ColormapData.GetKeyCount(cmap),DrawList,rect,false,false,!gp.ColormapData.IsQual(cmap));
-    ImGui::Dummy(size);
-}
-
+//-----------------------------------------------------------------------------
+// [SECTION] Aligned Plots
 //-----------------------------------------------------------------------------
 
-void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation, bool outside) {
+bool BeginAlignedPlots(const char* group_id, ImPlotOrientation orientation) {
+    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentAlignmentH == NULL && GImPlot->CurrentAlignmentV == NULL, "Mismatched BeginAlignedPlots()/EndAlignedPlots()!");
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "SetLegendLocation() needs to be called within an itemized context!");
-    gp.CurrentItems->Legend.Location  = location;
-    gp.CurrentItems->Legend.Orientation = orientation;
-    if (gp.CurrentItems->Legend.Outside != outside)
-        gp.CurrentItems->Legend.FlipSideNextFrame = true;
-}
-
-void SetMousePosLocation(ImPlotLocation location) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetMousePosLocation() needs to be called between BeginPlot() and EndPlot()!");
-    gp.CurrentPlot->MousePosLocation = location;
-}
-
-bool IsLegendEntryHovered(const char* label_id) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "IsPlotItemHighlight() needs to be called within an itemized context!");
-    ImGuiID id = ImGui::GetIDWithSeed(label_id, NULL, gp.CurrentItems->ID);
-    ImPlotItem* item = gp.CurrentItems->GetItem(id);
-    return item && item->LegendHovered;
-}
-
-bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentItems != NULL, "BeginLegendPopup() needs to be called within an itemized context!");
-    ImGuiWindow* window = GImGui->CurrentWindow;
-    if (window->SkipItems)
-        return false;
-    ImGuiID id = ImGui::GetIDWithSeed(label_id, NULL, gp.CurrentItems->ID);
-    if (ImGui::IsMouseReleased(mouse_button)) {
-        ImPlotItem* item = gp.CurrentItems->GetItem(id);
-        if (item && item->LegendHovered)
-            ImGui::OpenPopupEx(id);
-    }
-    return ImGui::BeginPopupEx(id, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings);
-}
-
-void EndLegendPopup() {
-    ImGui::EndPopup();
-}
-
-void ShowAltLegend(const char* title_id, ImPlotOrientation orientation, const ImVec2 size, bool interactable) {
-    ImPlotContext& gp    = *GImPlot;
-    ImGuiContext &G      = *GImGui;
+    ImGuiContext &G = *GImGui;
     ImGuiWindow * Window = G.CurrentWindow;
     if (Window->SkipItems)
-        return;
-    ImDrawList &DrawList = *Window->DrawList;
-    ImPlotPlot* plot = GetPlot(title_id);
-    ImVec2 legend_size;
-    ImVec2 default_size = gp.Style.LegendPadding * 2;
-    if (plot != NULL) {
-        legend_size  = CalcLegendSize(plot->Items, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, orientation);
-        default_size = legend_size + gp.Style.LegendPadding * 2;
-    }
-    ImVec2 frame_size = ImGui::CalcItemSize(size, default_size.x, default_size.y);
-    ImRect bb_frame = ImRect(Window->DC.CursorPos, Window->DC.CursorPos + frame_size);
-    ImGui::ItemSize(bb_frame);
-    if (!ImGui::ItemAdd(bb_frame, 0, &bb_frame))
-        return;
-    ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, G.Style.FrameRounding);
-    DrawList.PushClipRect(bb_frame.Min, bb_frame.Max, true);
-    if (plot != NULL) {
-        const ImVec2 legend_pos  = GetLocationPos(bb_frame, legend_size, 0, gp.Style.LegendPadding);
-        const ImRect legend_bb(legend_pos, legend_pos + legend_size);
-        interactable = interactable && bb_frame.Contains(ImGui::GetIO().MousePos);
-        // render legend box
-        ImU32  col_bg      = GetStyleColorU32(ImPlotCol_LegendBg);
-        ImU32  col_bd      = GetStyleColorU32(ImPlotCol_LegendBorder);
-        DrawList.AddRectFilled(legend_bb.Min, legend_bb.Max, col_bg);
-        DrawList.AddRect(legend_bb.Min, legend_bb.Max, col_bd);
-        // render entries
-        ShowLegendEntries(plot->Items, legend_bb, interactable, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, orientation, DrawList);
-    }
-    DrawList.PopClipRect();
+        return false;
+    const ImGuiID ID = Window->GetID(group_id);
+    ImPlotAlignmentData* alignment = gp.AlignmentData.GetOrAddByKey(ID);
+    if (orientation == ImPlotOrientation_Horizontal)
+        gp.CurrentAlignmentH = alignment;
+    if (orientation == ImPlotOrientation_Vertical)
+        gp.CurrentAlignmentV = alignment;
+    if (alignment->Orientation != orientation)
+        alignment->Reset();
+    alignment->Orientation = orientation;
+    alignment->Begin();
+    return true;
+}
+
+void EndAlignedPlots() {
+    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentAlignmentH != NULL || GImPlot->CurrentAlignmentV != NULL, "Mismatched BeginAlignedPlots()/EndAlignedPlots()!");
+    ImPlotContext& gp = *GImPlot;
+    ImPlotAlignmentData* alignment = gp.CurrentAlignmentH != NULL ? gp.CurrentAlignmentH : (gp.CurrentAlignmentV != NULL ? gp.CurrentAlignmentV : NULL);
+    if (alignment)
+        alignment->End();
+    ResetCtxForNextAlignedPlots(GImPlot);
 }
 
 //-----------------------------------------------------------------------------
-// STYLING
+// [SECTION] Plot and Item Styling
 //-----------------------------------------------------------------------------
 
 ImPlotStyle& GetStyle() {
@@ -3952,7 +3966,7 @@ void PopStyleVar(int count) {
 }
 
 //------------------------------------------------------------------------------
-// COLORMAPS
+// [Section] Colormaps
 //------------------------------------------------------------------------------
 
 ImPlotColormap AddColormap(const char* name, const ImVec4* colormap, int size, bool qual) {
@@ -4220,10 +4234,52 @@ bool ColormapButton(const char* label, const ImVec2& size_arg, ImPlotColormap cm
     return pressed;
 }
 
+//-----------------------------------------------------------------------------
+// [Section] Miscellaneous
+//-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
-// Style Editor etc.
-//-----------------------------------------------------------------------------
+void ItemIcon(const ImVec4& col) {
+    ItemIcon(ImGui::ColorConvertFloat4ToU32(col));
+}
+
+void ItemIcon(ImU32 col) {
+    const float txt_size = ImGui::GetTextLineHeight();
+    ImVec2 size(txt_size-4,txt_size);
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    ImVec2 pos = window->DC.CursorPos;
+    ImGui::GetWindowDrawList()->AddRectFilled(pos + ImVec2(0,2), pos + size - ImVec2(0,2), col);
+    ImGui::Dummy(size);
+}
+
+void ColormapIcon(ImPlotColormap cmap) {
+    ImPlotContext& gp = *GImPlot;
+    const float txt_size = ImGui::GetTextLineHeight();
+    ImVec2 size(txt_size-4,txt_size);
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    ImVec2 pos = window->DC.CursorPos;
+    ImRect rect(pos+ImVec2(0,2),pos+size-ImVec2(0,2));
+    ImDrawList& DrawList = *ImGui::GetWindowDrawList();
+    RenderColorBar(gp.ColormapData.GetKeys(cmap),gp.ColormapData.GetKeyCount(cmap),DrawList,rect,false,false,!gp.ColormapData.IsQual(cmap));
+    ImGui::Dummy(size);
+}
+
+ImDrawList* GetPlotDrawList() {
+    return ImGui::GetWindowDrawList();
+}
+
+void PushPlotClipRect(float expand) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PushPlotClipRect() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
+    ImRect rect = gp.CurrentPlot->PlotRect;
+    rect.Expand(expand);
+    ImGui::PushClipRect(rect.Min, rect.Max, true);
+}
+
+void PopPlotClipRect() {
+    SetupLock();
+    ImGui::PopClipRect();
+}
 
 static void HelpMarker(const char* desc) {
     ImGui::TextDisabled("(?)");
@@ -5186,6 +5242,28 @@ void StyleColorsLight(ImPlotStyle* dst) {
 //-----------------------------------------------------------------------------
 
 #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
+
+bool BeginPlot(const char* title, const char* x_label, const char* y1_label, const ImVec2& size,
+               ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y1_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags,
+               const char* y2_label, const char* y3_label)
+{
+    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot == NULL, "Mismatched BeginPlot()/EndPlot()!");
+
+    if (!BeginPlot(title, size, flags))
+        return false;
+
+    SetupAxis(ImAxis_X1, x_label, x_flags);
+    SetupAxis(ImAxis_Y1, y1_label, y1_flags);
+    if (ImHasFlag(flags, ImPlotFlags_YAxis2))
+        SetupAxis(ImAxis_Y2, y2_label, y2_flags);
+    if (ImHasFlag(flags, ImPlotFlags_YAxis3))
+        SetupAxis(ImAxis_Y3, y3_label, y3_flags);
+
+    // SetupFinish();
+
+    return true;
+}
 
 void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot == NULL, "SetNextPlotLimits() needs to be called before BeginPlot()!");

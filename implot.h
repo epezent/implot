@@ -72,16 +72,15 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoLegend      = 1 << 1,  // the legend will not be displayed
     ImPlotFlags_NoMenus       = 1 << 2,  // the user will not be able to open context menus with right-click
     ImPlotFlags_NoBoxSelect   = 1 << 3,  // the user will not be able to box-select with right-click drag
-    ImPlotFlags_NoMousePos    = 1 << 4,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
-    ImPlotFlags_NoHighlight   = 1 << 5,  // plot items will not be highlighted when their legend entry is hovered
-    ImPlotFlags_NoChild       = 1 << 6,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_Equal         = 1 << 7,  // primary x and y axes will be constrained to have the same units/pixel (does not apply to auxiliary y-axes)
-    ImPlotFlags_YAxis2        = 1 << 8,  // enable a 2nd y-axis on the right side
-    ImPlotFlags_YAxis3        = 1 << 9,  // enable a 3rd y-axis on the right side
-    ImPlotFlags_Query         = 1 << 10, // the user will be able to draw query rects with middle-mouse or CTRL + right-click drag
-    ImPlotFlags_Crosshairs    = 1 << 11, // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased   = 1 << 12, // plot lines will be software anti-aliased (not recommended for high density plots, prefer MSAA)
-    ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos
+    ImPlotFlags_NoMouseText   = 1 << 4,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
+    ImPlotFlags_NoChild       = 1 << 5,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_Equal         = 1 << 6,  // primary x and y axes will be constrained to have the same units/pixel (does not apply to auxiliary y-axes)
+    ImPlotFlags_YAxis2        = 1 << 7,  // enable a 2nd y-axis on the right side
+    ImPlotFlags_YAxis3        = 1 << 8,  // enable a 3rd y-axis on the right side
+    ImPlotFlags_Query         = 1 << 9,  // the user will be able to draw query rects with middle-mouse or CTRL + right-click drag
+    ImPlotFlags_Crosshairs    = 1 << 10, // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_AntiAliased   = 1 << 11, // plot lines will be software anti-aliased (not recommended for high density plots, prefer MSAA)
+    ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText
 };
 
 // Options for plot axes (see BeginPlot).
@@ -91,16 +90,17 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_NoGridLines   = 1 << 1,  // no grid lines will be displayed
     ImPlotAxisFlags_NoTickMarks   = 1 << 2,  // no tick marks will be displayed
     ImPlotAxisFlags_NoTickLabels  = 1 << 3,  // no text labels will be displayed
-    ImPlotAxisFlags_Opposite      = 1 << 4,  // axis ticks and labels will be rendered on conventionally opposite side (i.e, right or top)
-    ImPlotAxisFlags_Foreground    = 1 << 5,  // grid lines will be displayed in the foreground (i.e. on top of data) in stead of the background
-    ImPlotAxisFlags_LogScale      = 1 << 6,  // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
-    ImPlotAxisFlags_Time          = 1 << 7,  // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
-    ImPlotAxisFlags_Invert        = 1 << 8,  // the axis will be inverted
-    ImPlotAxisFlags_NoInitialFit  = 1 << 9,  // axis will not be initially fit to data extents on the first rendered frame (also the case if SetNextPlotLimits explicitly called)
-    ImPlotAxisFlags_AutoFit       = 1 << 10, // axis will be auto-fitting to data extents
-    ImPlotAxisFlags_RangeFit      = 1 << 11, // axis will only fit points if the point is in the visible range of the **orthoganol** axis
-    ImPlotAxisFlags_LockMin       = 1 << 12, // the axis minimum value will be locked when panning/zooming
-    ImPlotAxisFlags_LockMax       = 1 << 13, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_NoInitialFit  = 1 << 4,  // axis will not be initially fit to data extents on the first rendered frame (also the case if SetNextPlotLimits explicitly called)
+    // ImPlotAxisFlags_NoMenus       = 1 << 5,  // the user will not be able to open context menus with right-click
+    ImPlotAxisFlags_Opposite      = 1 << 6,  // axis ticks and labels will be rendered on conventionally opposite side (i.e, right or top)
+    ImPlotAxisFlags_Foreground    = 1 << 7,  // grid lines will be displayed in the foreground (i.e. on top of data) in stead of the background
+    ImPlotAxisFlags_LogScale      = 1 << 8,  // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time)
+    ImPlotAxisFlags_Time          = 1 << 9,  // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
+    ImPlotAxisFlags_Invert        = 1 << 10, // the axis will be inverted
+    ImPlotAxisFlags_AutoFit       = 1 << 11, // axis will be auto-fitting to data extents
+    ImPlotAxisFlags_RangeFit      = 1 << 12, // axis will only fit points if the point is in the visible range of the **orthoganol** axis
+    ImPlotAxisFlags_LockMin       = 1 << 13, // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax       = 1 << 14, // the axis maximum value will be locked when panning/zooming
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
     ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels,
     ImPlotAxisFlags_AuxDefault    = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_Opposite
@@ -124,12 +124,14 @@ enum ImPlotSubplotFlags_ {
 
 // Options for legends (see SetupLegend)
 enum ImPlotLegendFlags_ {
-    ImPlotLegendFlags_None        = 0,      // default
-    ImPlotLegendFlags_NoButtons   = 1 << 0,
-    ImPlotLegendFlags_NoHighlight = 1 << 1, 
-    ImPlotLegendFlags_Outside     = 1 << 2,
-    ImPlotLegendFlags_Horizontal  = 1 << 3,
-    ImPlotLegendFlags_SortItems   = 1 << 4,
+    ImPlotLegendFlags_None            = 0,      // default
+    ImPlotLegendFlags_NoButtons       = 1 << 0, // legend icons will not function as hide/show buttons
+    ImPlotLegendFlags_NoHighlightItem = 1 << 1, // plot items will not be highlighted when their legend entry is hovered
+    ImPlotLegendFlags_NoHighlightAxis = 1 << 2, // axes will not be highlighted when legend entries are hovered (only relevant if x/y-axis count > 1)
+    ImPlotLegendFlags_NoMenus         = 1 << 3, // the user will not be able to open context menus with right-click
+    ImPlotLegendFlags_Outside         = 1 << 4, // legend will be rendered outside of the plot area
+    ImPlotLegendFlags_Horizontal      = 1 << 5, // legend entries will be displayed horizontally
+    // ImPlotLegendFlags_SortItems       = 1 << 6, // legend entries will be sorted in alpha-numeric order (does not affect item render order)
 };
 
 // Plot styling colors.
@@ -378,7 +380,7 @@ IMPLOT_API void SetImGuiContext(ImGuiContext* ctx);
 // be called! You are encouraged to use the following convention:
 //
 // if (BeginPlot(...)) {
-//     ImPlot::PlotLine(...);
+//     PlotLine(...);
 //     ...
 //     EndPlot();
 // }
@@ -388,50 +390,73 @@ IMPLOT_API void SetImGuiContext(ImGuiContext* ctx);
 // - #title_id must be unique to the current ImGui ID scope. If you need to avoid ID
 //   collisions or don't want to display a title in the plot, use double hashes
 //   (e.g. "MyPlot##HiddenIdText" or "##NoTitle").
-// - If #x_label and/or #y_label are provided, axes labels will be displayed.
 // - #size is the **frame** size of the plot widget, not the plot area. The default
-//   size of plots (i.e. when ImVec2(0,0)) can be modified in your ImPlotStyle
-//   (default is 400x300 px).
-// - Auxiliary y-axes must be enabled with ImPlotFlags_YAxis2/3 to be displayed.
-// - See ImPlotFlags and ImPlotAxisFlags for more available options.
-
-IMPLOT_API bool BeginPlot(const char* title_id,
-                          const char* x_label      = NULL,
-                          const char* y_label      = NULL,
-                          const ImVec2& size       = ImVec2(-1,0),
-                          ImPlotFlags flags        = ImPlotFlags_None,
-                          ImPlotAxisFlags x_flags  = ImPlotAxisFlags_None,
-                          ImPlotAxisFlags y_flags  = ImPlotAxisFlags_None,
-                          ImPlotAxisFlags y2_flags = ImPlotAxisFlags_AuxDefault,
-                          ImPlotAxisFlags y3_flags = ImPlotAxisFlags_AuxDefault,
-                          const char* y2_label     = NULL,
-                          const char* y3_label     = NULL);
+//   size of plots (i.e. when ImVec2(0,0)) can be modified in your ImPlotStyle.
+IMPLOT_API bool BeginPlot(const char* title_id, const ImVec2& size = ImVec2(-1,0), ImPlotFlags flags = ImPlotFlags_None);
 
 // Only call EndPlot() if BeginPlot() returns true! Typically called at the end
 // of an if statement conditioned on BeginPlot(). See example above.
 IMPLOT_API void EndPlot();
 
 //-----------------------------------------------------------------------------
-// [SECTION] NEW API
+// [SECTION] Setup
 //-----------------------------------------------------------------------------
 
-IMPLOT_API bool BeginPlotS(const char* title_id, const ImVec2& size = ImVec2(-1,0), ImPlotFlags flags = ImPlotFlags_None);
+// The following API allows you to setup and customize various aspects of the
+// current plot. The functions should be called immediately after BeginPlot
+// and before any other API calls. Typical usage is as follows:
 
+// if (BeginPlot(...)) {                     1) begin a new plot
+//     SetupAxis(ImAxis_X1, "My X-Axis");    2) make Setup calls
+//     SetupAxis(ImAxis_Y1, "My Y-Axis");
+//     SetupLegend(ImPlotLocation_North);   
+//     ...
+//     SetupFinish();                        3) [optional] explicitly finish setup
+//     PlotLine(...);                        4) plot items
+//     ...
+//     EndPlot();                            5) end the plot
+// }
+//
+// Important notes:
+//
+// - Always call Setup code at the top of your BeginPlot conditional statement.
+// - Setup is locked once you start plotting or explicitly call SetupFinish.
+//   Do NOT call Setup code after you begin plotting or after you make
+//   any non-Setup API calls (e.g. utils like PlotToPixels also lock Setup)
+// - Calling SetupFinish is OPTIONAL, but probably good practice. If you do not
+//   call it yourself, then the first subsequent plotting function will call it
+//   for you. 
+
+// TODO:
+// - fix drag lines labels
+// - clean up HandleInput
+// - format mouse text
+// - format demo state reset?
+
+// Enables an axis or sets the label and/or flags for an existing axis. Leave #label = NULL for no label.
 IMPLOT_API void SetupAxis(ImAxis axis, const char* label = NULL, ImPlotAxisFlags flags = ImPlotAxisFlags_None);
+// Sets an axis range limits. If ImGuiCond_Always is used, the axes limits will be locked.
 IMPLOT_API void SetupAxisLimits(ImAxis axis, double min_lim, double max_lim, ImGuiCond cond = ImGuiCond_Once);
-IMPLOT_API void SetupAxisConstraints(ImAxis axis); // TODO
-IMPLOT_API void SetupAxisColor(); // TODO
+// Links an axis range limits to external values. Set to NULL for no linkage. The pointer data must remain valid until EndPlot.
 IMPLOT_API void SetupAxisLinks(ImAxis axis, double* min_lnk, double* max_lnk);
 
-// TODO: mouse pos fmt, demo bug
+IMPLOT_API void SetupAxisColor(); // TODO?
+IMPLOT_API void SetupAxisConstraints(ImAxis axis); // TODO?
+
 IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
 IMPLOT_API void SetupAxisFormat(ImAxis axis, void (*formatter)(double value, char* buff, int size, void* data), void* data);
 IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
 IMPLOT_API void SetupAxisTicks(ImAxis axis, double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
 
-IMPLOT_API void SetupLegend(ImPlotLegendFlags flags, ImPlotLocation loc);
+// Sets up the plot legend.
+IMPLOT_API void SetupLegend(ImPlotLocation location, ImPlotLegendFlags flags = ImPlotLegendFlags_None);
+// Set the location of the current plot's mouse position text (default = South|East).
+IMPLOT_API void SetupMouseText(ImPlotLocation location);
 
-IMPLOT_API void FinishSetup();
+
+// Explicitly finalize plot setup. Once you call this, you cannot make anymore Setup calls for the current plot!
+// Note that this function is completely optional, and will be called by the first subsequent setup-locking API call.
+IMPLOT_API void SetupFinish();
 
 //-----------------------------------------------------------------------------
 // [SECTION] Begin/EndSubplots
@@ -464,7 +489,7 @@ IMPLOT_API void FinishSetup();
 //
 // - #title_id must be unique to the current ImGui ID scope. If you need to avoid ID
 //   collisions or don't want to display a title in the plot, use double hashes
-//   (e.g. "MyPlot##HiddenIdText" or "##NoTitle").
+//   (e.g. "MySubplot##HiddenIdText" or "##NoTitle").
 // - #rows and #cols must be greater than 0.
 // - #size is the size of the entire grid of subplots, not the individual plots
 // - #row_ratios and #col_ratios must have AT LEAST #rows and #cols elements,
@@ -665,6 +690,10 @@ IMPLOT_API ImPlotLimits GetPlotQuery(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis 
 // Set the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
 IMPLOT_API void SetPlotQuery(const ImPlotLimits& query, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
+// Hides or shows the next plot item (i.e. as if it were toggled from the legend).
+// Use ImGuiCond_Always if you need to forcefully set this every frame.
+IMPLOT_API void HideNextItem(bool hidden = true, ImGuiCond cond = ImGuiCond_Once);
+
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Tools
 //-----------------------------------------------------------------------------
@@ -696,16 +725,8 @@ IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label 
 
 // The following functions MUST be called BETWEEN Begin/EndPlot!
 
-// Hides or shows the next plot item (i.e. as if it were toggled from the legend). Use ImGuiCond_Always if you need to forcefully set this every frame.
-IMPLOT_API void HideNextItem(bool hidden = true, ImGuiCond cond = ImGuiCond_Once);
-
-// Set the location of the current plot's (or subplot's) legend.
-IMPLOT_API void SetLegendLocation(ImPlotLocation location, ImPlotOrientation orientation = ImPlotOrientation_Vertical, bool outside = false);
-// Set the location of the current plot's mouse position text (default = South|East).
-IMPLOT_API void SetMousePosLocation(ImPlotLocation location);
 // Returns true if a plot item legend entry is hovered.
 IMPLOT_API bool IsLegendEntryHovered(const char* label_id);
-
 // Begin a popup for a legend entry.
 IMPLOT_API bool BeginLegendPopup(const char* label_id, ImGuiMouseButton mouse_button = 1);
 // End a popup for a legend entry.
@@ -938,40 +959,60 @@ IMPLOT_API void ShowMetricsWindow(bool* p_popen = NULL);
 // Shows the ImPlot demo window.
 IMPLOT_API void ShowDemoWindow(bool* p_open = NULL);
 
+}  // namespace ImPlot
+
 //-----------------------------------------------------------------------------
 // [SECTION] Obsolete Functions/Types
 //-----------------------------------------------------------------------------
 
-// The following will be removed in v1.0. Please keep your copy of implot up to date! 
+// The following functions will be removed! Keep your copy of implot up to date! 
 // Occasionally set '#define IMPLOT_DISABLE_OBSOLETE_FUNCTIONS' to stay ahead.
+// If you absolutely must use these functions and do not want to receive compiler 
+// warnings, set '#define IMPLOT_DISABLE_OBSOLETE_WARNINGS'.
 
 #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
 
-// The following functions MUST be called BEFORE BeginPlot!
+#define IMPLOT_DISABLE_DEPRECATED_WARNINGS
+#ifndef IMPLOT_DISABLE_DEPRECATED_WARNINGS
+#if __cplusplus > 201402L
+#define IMPLOT_DEPRECATED(method) [[deprecated]] method
+#elif defined( __GNUC__ ) && !defined( __INTEL_COMPILER ) && ( __GNUC__ > 3 || ( __GNUC__ == 3 && __GNUC_MINOR__ >= 1 ) )
+#define IMPLOT_DEPRECATED(method) method __attribute__( ( deprecated ) )
+#elif defined( _MSC_VER )
+#define IMPLOT_DEPRECATED(method) __declspec(deprecated) method
+#else
+#define IMPLOT_DEPRECATED(method) method
+#endif
+#else
+#define IMPLOT_DEPRECATED(method) method
+#endif
 
-// Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
-IMPLOT_API void SetNextPlotLimits(double xmin, double xmax, double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once);
-// Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
-IMPLOT_API void SetNextPlotLimitsX(double xmin, double xmax, ImGuiCond cond = ImGuiCond_Once);
-// Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
-IMPLOT_API void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, ImAxis y_axis = ImAxis_Y1);
-// Links the next plot limits to external values. Set to NULL for no linkage. The pointer data must remain valid until the matching call to EndPlot.
-IMPLOT_API void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2 = NULL, double* ymax2 = NULL, double* ymin3 = NULL, double* ymax3 = NULL);
-// Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
-IMPLOT_API void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true);
+namespace ImPlot {
 
-// Set the X axis ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
-IMPLOT_API void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
-IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
-// Set the Y axis ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
-IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1);
-IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1);
-
-// Set the format for numeric X axis labels (default="%g"). Formated values will be doubles (i.e. don't supply %d, %i, etc.). Not applicable if ImPlotAxisFlags_Time enabled.
-IMPLOT_API void SetNextPlotFormatX(const char* fmt);
-// Set the format for numeric Y axis labels (default="%g"). Formated values will be doubles (i.e. don't supply %d, %i, etc.).
-IMPLOT_API void SetNextPlotFormatY(const char* fmt, ImAxis y_axis = ImAxis_Y1);
+// OBSOLETED in v0.12 -> PLANNED REMOVAL in v1.0
+IMPLOT_DEPRECATED( IMPLOT_API bool BeginPlot(const char* title_id,
+                                             const char* x_label,  // = NULL,
+                                             const char* y_label,  // = NULL,
+                                             const ImVec2& size       = ImVec2(-1,0),
+                                             ImPlotFlags flags        = ImPlotFlags_None,
+                                             ImPlotAxisFlags x_flags  = ImPlotAxisFlags_None,
+                                             ImPlotAxisFlags y_flags  = ImPlotAxisFlags_None,
+                                             ImPlotAxisFlags y2_flags = ImPlotAxisFlags_AuxDefault,
+                                             ImPlotAxisFlags y3_flags = ImPlotAxisFlags_AuxDefault,
+                                             const char* y2_label     = NULL,
+                                             const char* y3_label     = NULL) );
+IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotLimits(double xmin, double xmax, double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once) );
+IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotLimitsX(double xmin, double xmax, ImGuiCond cond = ImGuiCond_Once) );
+IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, ImAxis y_axis = ImAxis_Y1) );
+IMPLOT_DEPRECATED( IMPLOT_API void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2 = NULL, double* ymax2 = NULL, double* ymin3 = NULL, double* ymax3 = NULL) );
+IMPLOT_DEPRECATED( IMPLOT_API void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true) );
+IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false) );
+IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false) );
+IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1) );
+IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1) );
+IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotFormatX(const char* fmt) );
+IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotFormatY(const char* fmt, ImAxis y_axis = ImAxis_Y1) );
 
 #endif
 
-}  // namespace ImPlot
+} // namespace ImPlot
