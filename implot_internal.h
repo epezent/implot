@@ -242,11 +242,11 @@ struct ImBufferWriter
 
 // Fixed size point array
 template <int N>
-struct ImPlotPointArray {
-    inline ImPlotPoint&       operator[](int i)       { return Data[i]; }
-    inline const ImPlotPoint& operator[](int i) const { return Data[i]; }
+struct ImPointArray {
+    inline ImPoint&       operator[](int i)       { return Data[i]; }
+    inline const ImPoint& operator[](int i) const { return Data[i]; }
     inline int Size()                                 { return N; }
-    ImPlotPoint Data[N];
+    ImPoint Data[N];
 };
 
 //-----------------------------------------------------------------------------
@@ -463,10 +463,10 @@ struct ImPlotColormapData {
 
 };
 
-// ImPlotPoint with positive/negative error values
-struct ImPlotPointError {
+// ImPoint with positive/negative error values
+struct ImPointError {
     double X, Y, Neg, Pos;
-    ImPlotPointError(double x, double y, double neg, double pos) {
+    ImPointError(double x, double y, double neg, double pos) {
         X = x; Y = y; Neg = neg; Pos = pos;
     }
 };
@@ -597,7 +597,7 @@ struct ImPlotAxis
     bool              Enabled;
     ImPlotAxisFlags   Flags;
     ImPlotAxisFlags   PreviousFlags;
-    ImPlotRange       Range;
+    ImLimits       Range;
     float             Pixels;
     bool              Vertical;
     bool              Dragging;
@@ -687,7 +687,7 @@ struct ImPlotAxis
         PickerTimeMax = ImPlotTime::FromDouble(Range.Max);
     }
 
-    void SetRange(const ImPlotRange& range) {
+    void SetRange(const ImLimits& range) {
         SetRange(range.Min, range.Max);
     }
 
@@ -971,8 +971,8 @@ struct ImPlotSubplot {
     ImVector<ImPlotAlignmentData> ColAlignmentData;
     ImVector<float>               RowRatios;
     ImVector<float>               ColRatios;
-    ImVector<ImPlotRange>         RowLinkData;
-    ImVector<ImPlotRange>         ColLinkData;
+    ImVector<ImLimits>         RowLinkData;
+    ImVector<ImLimits>         ColLinkData;
     float                         TempSizes[2];
     bool                          FrameHovered;
 
@@ -989,7 +989,7 @@ struct ImPlotSubplot {
 struct ImPlotNextPlotData
 {
     ImGuiCond   RangeCond[2*IMPLOT_MAX_AXES];
-    ImPlotRange Range[2*IMPLOT_MAX_AXES];
+    ImLimits Range[2*IMPLOT_MAX_AXES];
     bool        HasRange[2*IMPLOT_MAX_AXES];
     bool        ShowDefaultTicks[2*IMPLOT_MAX_AXES];
     char        Fmt[2*IMPLOT_MAX_AXES][16];
@@ -1071,8 +1071,8 @@ struct ImPlotContext {
     bool FitThisFrame;
     bool FitX[IMPLOT_MAX_AXES];
     bool FitY[IMPLOT_MAX_AXES];
-    ImPlotRange ExtentsX[IMPLOT_MAX_AXES];
-    ImPlotRange ExtentsY[IMPLOT_MAX_AXES];
+    ImLimits ExtentsX[IMPLOT_MAX_AXES];
+    ImLimits ExtentsY[IMPLOT_MAX_AXES];
 
     // Axis Locking Flags
     bool ChildWindowMade;
@@ -1096,7 +1096,7 @@ struct ImPlotContext {
     ImPlotNextPlotData NextPlotData;
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
-    ImPlotPoint        MousePos[IMPLOT_MAX_AXES];
+    ImPoint        MousePos[IMPLOT_MAX_AXES];
 
     // Align plots
     ImPool<ImPlotAlignmentData> AlignmentData;
@@ -1252,14 +1252,14 @@ static inline ImPlotScale GetCurrentScale() {
 // Returns true if the user has requested data to be fit.
 static inline bool FitThisFrame() { return GImPlot->FitThisFrame; }
 // Extend the the extents of an axis on current plot so that it encompasses v
-static inline void FitPointAxis(ImPlotAxis& axis, ImPlotRange& ext, double v) {
+static inline void FitPointAxis(ImPlotAxis& axis, ImLimits& ext, double v) {
     if (!ImNanOrInf(v) && !(ImHasFlag(axis.Flags, ImPlotAxisFlags_LogScale) && v <= 0)) {
         ext.Min = v < ext.Min ? v : ext.Min;
         ext.Max = v > ext.Max ? v : ext.Max;
     }
 }
 // Extend the the extents of an axis on current plot so that it encompasses v
-static inline void FitPointMultiAxis(ImPlotAxis& axis, ImPlotAxis& alt, ImPlotRange& ext, double v, double v_alt) {
+static inline void FitPointMultiAxis(ImPlotAxis& axis, ImPlotAxis& alt, ImLimits& ext, double v, double v_alt) {
     if (ImHasFlag(axis.Flags, ImPlotAxisFlags_RangeFit) && !alt.Range.Contains(v_alt))
         return;
     if (!ImNanOrInf(v) && !(ImHasFlag(axis.Flags, ImPlotAxisFlags_LogScale) && v <= 0)) {
@@ -1278,7 +1278,7 @@ static inline void FitPointY(double y) {
     FitPointAxis(GImPlot->CurrentPlot->YAxis[y_axis], GImPlot->ExtentsY[y_axis], y);
 }
 // Extends the current plot's axes so that it encompasses point p
-static inline void FitPoint(const ImPlotPoint& p) {
+static inline void FitPoint(const ImPoint& p) {
     const int x_axis  = GImPlot->CurrentPlot->CurrentY;
     const int y_axis  = GImPlot->CurrentPlot->CurrentY;
     FitPointMultiAxis(GImPlot->CurrentPlot->XAxis[x_axis], GImPlot->CurrentPlot->YAxis[y_axis], GImPlot->ExtentsX[x_axis], p.x, p.y);
@@ -1286,7 +1286,7 @@ static inline void FitPoint(const ImPlotPoint& p) {
 }
 
 // Returns true if two ranges overlap
-static inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)
+static inline bool RangesOverlap(const ImLimits& r1, const ImLimits& r2)
 { return r1.Min <= r2.Max && r2.Min <= r1.Max; }
 
 // Updates pointers for linked axes from axis internal range.
@@ -1325,13 +1325,13 @@ static inline void DefaultFormatter(double value, char* buff, int size, void* da
 IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);
 
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
-IMPLOT_API void AddTicksDefault(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
+IMPLOT_API void AddTicksDefault(const ImLimits& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
-IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
+IMPLOT_API void AddTicksLogarithmic(const ImLimits& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
 IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
 // Populates a list of ImPlotTicks with time formatted ticks.
-IMPLOT_API void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksTime(const ImLimits& range, float plot_width, ImPlotTickCollection& ticks);
 
 // Create a a string label for a an axis value
 IMPLOT_API int LabelAxisValue(const ImPlotAxis& axis, const ImPlotTickCollection& ticks, double value, char* buff, int size);
@@ -1422,7 +1422,7 @@ void FillRange(ImVector<T>& buffer, int n, T vmin, T vmax) {
 
 // Calculate histogram bin counts and widths
 template <typename T>
-static inline void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
+static inline void CalculateBins(const T* values, int count, ImPlotBin meth, const ImLimits& range, int& bins_out, double& width_out) {
     switch (meth) {
         case ImPlotBin_Sqrt:
             bins_out  = (int)ceil(sqrt(count));

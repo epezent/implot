@@ -34,6 +34,9 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 - 2021/08/XX (0.13) MAJOR API OVERHAUL! See #xxx for more details!
                     - RENAMED:
+                      - ImPlotPoint                               -> ImPoint
+                      - ImPlotRange                               -> ImLimits
+                      - ImPlotLimits                              -> ImLimitsXY
                       - ImPlotYAxis_                              -> ImAxis_
                       - SetPlotYAxis                              -> SetAxis
                       - IsPlotXAxisHovered/IsPlotXYAxisHovered    -> IsAxisHovered
@@ -673,7 +676,7 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
 static const float TICK_FILL_X = 0.8f;
 static const float TICK_FILL_Y = 1.0f;
 
-void AddTicksDefault(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data) {
+void AddTicksDefault(const ImLimits& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data) {
     const int idx0          = ticks.Size;
     const int nMinor        = 10;
     const int nMajor        = ImMax(2, (int)IM_ROUND(pix / (vertical ? 300.0f : 400.0f)));
@@ -711,7 +714,7 @@ void AddTicksDefault(const ImPlotRange& range, float pix, bool vertical, ImPlotT
     }
 }
 
-void AddTicksLogarithmic(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data) {
+void AddTicksLogarithmic(const ImLimits& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data) {
     if (range.Min <= 0 || range.Max <= 0)
         return;
     const int nMajor = vertical ? ImMax(2, (int)IM_ROUND(pix * 0.02f)) : ImMax(2, (int)IM_ROUND(pix * 0.01f));
@@ -1143,7 +1146,7 @@ inline ImPlotDateTimeFmt GetDateTimeFmt(const ImPlotDateTimeFmt* ctx, ImPlotTime
     return fmt;
 }
 
-void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks) {
+void AddTicksTime(const ImLimits& range, float plot_width, ImPlotTickCollection& ticks) {
     // get units for level 0 and level 1 labels
     const ImPlotTimeUnit unit0 = GetUnitForRange(range.Size() / (plot_width / 100)); // level = 0 (top)
     const ImPlotTimeUnit unit1 = unit0 + 1;                                          // level = 1 (bottom)
@@ -1790,8 +1793,8 @@ void HandlePlotInput(ImPlotPlot& plot) {
         for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
             // special case for axis equal and both x and y0 hovered
             if (axis_equal && !plot.XAxis[i].IsInputLocked() && plot.XAxis[i].Dragging && !plot.YAxis[i].IsInputLocked() && plot.YAxis[i].Dragging) {
-                ImPlotPoint plot_tl = PixelsToPlot(plot.PlotRect.Min - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1+i);
-                ImPlotPoint plot_br = PixelsToPlot(plot.PlotRect.Max - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1+i);
+                ImPoint plot_tl = PixelsToPlot(plot.PlotRect.Min - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1+i);
+                ImPoint plot_br = PixelsToPlot(plot.PlotRect.Max - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1+i);
                 plot.XAxis[i].SetMin(plot.XAxis[i].IsInverted() ? plot_br.x : plot_tl.x);
                 plot.XAxis[i].SetMax(plot.XAxis[i].IsInverted() ? plot_tl.x : plot_br.x);
                 plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
@@ -1803,16 +1806,16 @@ void HandlePlotInput(ImPlotPlot& plot) {
                 equal_dragged = true;
             }
             if (!plot.XAxis[i].IsInputLocked() && plot.XAxis[i].Dragging && !equal_dragged) {
-                ImPlotPoint plot_tl = PixelsToPlot(plot.PlotRect.Min - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1);
-                ImPlotPoint plot_br = PixelsToPlot(plot.PlotRect.Max - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1);
+                ImPoint plot_tl = PixelsToPlot(plot.PlotRect.Min - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1);
+                ImPoint plot_br = PixelsToPlot(plot.PlotRect.Max - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1);
                 plot.XAxis[i].SetMin(plot.XAxis[i].IsInverted() ? plot_br.x : plot_tl.x);
                 plot.XAxis[i].SetMax(plot.XAxis[i].IsInverted() ? plot_tl.x : plot_br.x);
                 if (axis_equal)
                     plot.YAxis[i].SetAspect(plot.XAxis[i].GetAspect());
             }
             if (!plot.YAxis[i].IsInputLocked() && plot.YAxis[i].Dragging && !equal_dragged) {
-                ImPlotPoint plot_tl = PixelsToPlot(plot.PlotRect.Min - IO.MouseDelta, ImAxis_X1, ImAxis_Y1+i);
-                ImPlotPoint plot_br = PixelsToPlot(plot.PlotRect.Max - IO.MouseDelta, ImAxis_X1, ImAxis_Y1+i);
+                ImPoint plot_tl = PixelsToPlot(plot.PlotRect.Min - IO.MouseDelta, ImAxis_X1, ImAxis_Y1+i);
+                ImPoint plot_br = PixelsToPlot(plot.PlotRect.Max - IO.MouseDelta, ImAxis_X1, ImAxis_Y1+i);
                 plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
                 plot.YAxis[i].SetMax(plot.YAxis[i].IsInverted() ? plot_br.y : plot_tl.y);
                 if (axis_equal)
@@ -1862,8 +1865,8 @@ void HandlePlotInput(ImPlotPlot& plot) {
         for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
             // special case for axis equal and both x and y0 hovered
             if (axis_equal && plot.XAxis[i].Hovered && !plot.XAxis[i].IsInputLocked() && plot.YAxis[i].Hovered && !plot.YAxis[i].IsInputLocked()) {
-                const ImPlotPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), ImAxis_X1+i, ImAxis_Y1+i);
-                const ImPlotPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), ImAxis_X1+i, ImAxis_Y1+i);
+                const ImPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), ImAxis_X1+i, ImAxis_Y1+i);
+                const ImPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), ImAxis_X1+i, ImAxis_Y1+i);
                 plot.XAxis[i].SetMin(plot.XAxis[i].IsInverted() ? plot_br.x : plot_tl.x);
                 plot.XAxis[i].SetMax(plot.XAxis[i].IsInverted() ? plot_tl.x : plot_br.x);
                 plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
@@ -1875,16 +1878,16 @@ void HandlePlotInput(ImPlotPlot& plot) {
                 equal_zoomed = true;
             }
             if (plot.XAxis[i].Hovered && !plot.XAxis[i].IsInputLocked() && !equal_zoomed) {
-                const ImPlotPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), ImAxis_X1+i, ImAxis_Y1);
-                const ImPlotPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), ImAxis_X1+i, ImAxis_Y1);
+                const ImPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), ImAxis_X1+i, ImAxis_Y1);
+                const ImPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), ImAxis_X1+i, ImAxis_Y1);
                 plot.XAxis[i].SetMin(plot.XAxis[i].IsInverted() ? plot_br.x : plot_tl.x);
                 plot.XAxis[i].SetMax(plot.XAxis[i].IsInverted() ? plot_tl.x : plot_br.x);
                 if (axis_equal)
                     plot.YAxis[i].SetAspect(plot.XAxis[i].GetAspect());
             }
             if (plot.YAxis[i].Hovered && !plot.YAxis[i].IsInputLocked() && !equal_zoomed) {
-                const ImPlotPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), ImAxis_X1, ImAxis_Y1+i);
-                const ImPlotPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), ImAxis_X1, ImAxis_Y1+i);
+                const ImPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), ImAxis_X1, ImAxis_Y1+i);
+                const ImPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), ImAxis_X1, ImAxis_Y1+i);
                 plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
                 plot.YAxis[i].SetMax(plot.YAxis[i].IsInverted() ? plot_br.y : plot_tl.y);
                 if (axis_equal)
@@ -1912,14 +1915,14 @@ void HandlePlotInput(ImPlotPlot& plot) {
 
             for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
                 if (!plot.XAxis[i].IsInputLocked() && x_can_change) {
-                    ImPlotPoint p1 = PixelsToPlot(plot.SelectStart, ImAxis_X1+i, ImAxis_Y1);
-                    ImPlotPoint p2 = PixelsToPlot(IO.MousePos, ImAxis_X1+i, ImAxis_Y1);
+                    ImPoint p1 = PixelsToPlot(plot.SelectStart, ImAxis_X1+i, ImAxis_Y1);
+                    ImPoint p2 = PixelsToPlot(IO.MousePos, ImAxis_X1+i, ImAxis_Y1);
                     plot.XAxis[i].SetMin(ImMin(p1.x, p2.x));
                     plot.XAxis[i].SetMax(ImMax(p1.x, p2.x));
                 }
                 if (!plot.YAxis[i].IsInputLocked() && y_can_change) {
-                    ImPlotPoint p1 = PixelsToPlot(plot.SelectStart, ImAxis_X1, ImAxis_Y1+i);
-                    ImPlotPoint p2 = PixelsToPlot(IO.MousePos, ImAxis_X1, ImAxis_Y1+i);
+                    ImPoint p1 = PixelsToPlot(plot.SelectStart, ImAxis_X1, ImAxis_Y1+i);
+                    ImPoint p2 = PixelsToPlot(IO.MousePos, ImAxis_X1, ImAxis_Y1+i);
                     plot.YAxis[i].SetMin(ImMin(p1.y, p2.y));
                     plot.YAxis[i].SetMax(ImMax(p1.y, p2.y));
                 }
@@ -2063,7 +2066,7 @@ IMPLOT_API void SetupAxis(ImAxis idx, const char* label, ImPlotAxisFlags flags) 
     double*     npd_lmax = gp.NextPlotData.LinkedMax[idx];
     bool        npd_rngh = gp.NextPlotData.HasRange[idx];
     ImGuiCond   npd_rngc = gp.NextPlotData.RangeCond[idx];
-    ImPlotRange npd_rngv = gp.NextPlotData.Range[idx];
+    ImLimits npd_rngv = gp.NextPlotData.Range[idx];
     bool        npd_fmth = gp.NextPlotData.HasFmt[idx];
     char*       npd_fmtc = gp.NextPlotData.Fmt[idx];
     bool        npd_deft = gp.NextPlotData.ShowDefaultTicks[idx];
@@ -3017,7 +3020,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
         subplot.RowRatios.resize(rows);
         for (int r = 0; r < rows; ++r) {
             subplot.RowAlignmentData[r].Reset();
-            subplot.RowLinkData[r] = ImPlotRange(0,1);
+            subplot.RowLinkData[r] = ImLimits(0,1);
             subplot.RowRatios[r] = 1.0f / rows;
         }
         subplot.ColAlignmentData.resize(cols);
@@ -3025,7 +3028,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
         subplot.ColRatios.resize(cols);
         for (int c = 0; c < cols; ++c) {
             subplot.ColAlignmentData[c].Reset();
-            subplot.ColLinkData[c] = ImPlotRange(0,1);
+            subplot.ColLinkData[c] = ImLimits(0,1);
             subplot.ColRatios[c] = 1.0f / cols;
         }
     }
@@ -3284,14 +3287,14 @@ void SetAxes(ImAxis x_axis, ImAxis y_axis) {
     gp.CurrentPlot->CurrentY = y_axis % IMPLOT_MAX_AXES;
 }
 
-ImPlotPoint PixelsToPlot(float x, float y, ImAxis x_axis, ImAxis y_axis) {
+ImPoint PixelsToPlot(float x, float y, ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     const int ix = plot.GetAxisIdxX(x_axis);
     const int iy = plot.GetAxisIdxY(y_axis);
-    ImPlotPoint plt;
+    ImPoint plt;
     plt.x = (x - gp.PixelRange[iy].Min.x) / gp.Mx[ix] + plot.XAxis[ix].Range.Min;
     plt.y = (y - gp.PixelRange[iy].Min.y) / gp.My[iy] + plot.YAxis[iy].Range.Min;
     if (plot.XAxis[ix].IsLog()) {
@@ -3305,7 +3308,7 @@ ImPlotPoint PixelsToPlot(float x, float y, ImAxis x_axis, ImAxis y_axis) {
     return plt;
 }
 
-ImPlotPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis, ImAxis y_axis) {
+ImPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis, ImAxis y_axis) {
     return PixelsToPlot(pix.x, pix.y, x_axis, y_axis);
 }
 
@@ -3332,7 +3335,7 @@ ImVec2 PlotToPixels(double x, double y, ImAxis x_axis, ImAxis y_axis) {
     return pix;
 }
 
-ImVec2 PlotToPixels(const ImPlotPoint& plt, ImAxis x_axis, ImAxis y_axis) {
+ImVec2 PlotToPixels(const ImPoint& plt, ImAxis x_axis, ImAxis y_axis) {
     return PlotToPixels(plt.x, plt.y, x_axis, y_axis);
 }
 
@@ -3350,23 +3353,23 @@ ImVec2 GetPlotSize() {
     return gp.CurrentPlot->PlotRect.GetSize();
 }
 
-ImPlotPoint GetPlotMousePos(ImAxis x_axis, ImAxis y_axis) {
+ImPoint GetPlotMousePos(ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotMousePos() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     const int ix = gp.CurrentPlot->GetAxisIdxX(x_axis);
     const int iy = gp.CurrentPlot->GetAxisIdxY(y_axis);
-    return ImPlotPoint(gp.MousePos[ix].x, gp.MousePos[iy].y);
+    return ImPoint(gp.MousePos[ix].x, gp.MousePos[iy].y);
 }
 
-ImPlotLimits GetPlotLimits(ImAxis x_axis, ImAxis y_axis) {
+ImLimitsXY GetPlotLimits(ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotLimits() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     const int ix = gp.CurrentPlot->GetAxisIdxX(x_axis);
     const int iy = gp.CurrentPlot->GetAxisIdxY(y_axis);
     ImPlotPlot& plot = *gp.CurrentPlot;
-    ImPlotLimits limits;
+    ImLimitsXY limits;
     limits.X = plot.XAxis[ix].Range;
     limits.Y = plot.YAxis[iy].Range;
     return limits;
@@ -3399,17 +3402,17 @@ bool IsPlotSelected() {
     return gp.CurrentPlot->Selected;
 }
 
-ImPlotLimits GetPlotSelection(ImAxis x_axis, ImAxis y_axis) {
+ImLimitsXY GetPlotSelection(ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotSelection() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     if (!plot.Selected)
-        return ImPlotLimits(0,0,0,0);
+        return ImLimitsXY(0,0,0,0);
     UpdateTransformCache();
-    ImPlotPoint p1 = PixelsToPlot(plot.SelectRect.Min + plot.PlotRect.Min, x_axis, y_axis);
-    ImPlotPoint p2 = PixelsToPlot(plot.SelectRect.Max + plot.PlotRect.Min, x_axis, y_axis);
-    ImPlotLimits result;
+    ImPoint p1 = PixelsToPlot(plot.SelectRect.Min + plot.PlotRect.Min, x_axis, y_axis);
+    ImPoint p2 = PixelsToPlot(plot.SelectRect.Max + plot.PlotRect.Min, x_axis, y_axis);
+    ImLimitsXY result;
     result.X.Min = ImMin(p1.x, p2.x);
     result.X.Max = ImMax(p1.x, p2.x);
     result.Y.Min = ImMin(p1.y, p2.y);
@@ -3424,17 +3427,17 @@ bool IsPlotQueried() {
     return gp.CurrentPlot->Queried;
 }
 
-ImPlotLimits GetPlotQuery(ImAxis x_axis, ImAxis y_axis) {
+ImLimitsXY GetPlotQuery(ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     if (!plot.Queried)
-        return ImPlotLimits(0,0,0,0);
+        return ImLimitsXY(0,0,0,0);
     UpdateTransformCache();
-    ImPlotPoint p1 = PixelsToPlot(plot.QueryRect.Min + plot.PlotRect.Min, x_axis, y_axis);
-    ImPlotPoint p2 = PixelsToPlot(plot.QueryRect.Max + plot.PlotRect.Min, x_axis, y_axis);
-    ImPlotLimits result;
+    ImPoint p1 = PixelsToPlot(plot.QueryRect.Min + plot.PlotRect.Min, x_axis, y_axis);
+    ImPoint p2 = PixelsToPlot(plot.QueryRect.Max + plot.PlotRect.Min, x_axis, y_axis);
+    ImLimitsXY result;
     result.X.Min = ImMin(p1.x, p2.x);
     result.X.Max = ImMax(p1.x, p2.x);
     result.Y.Min = ImMin(p1.y, p2.y);
@@ -3442,7 +3445,7 @@ ImPlotLimits GetPlotQuery(ImAxis x_axis, ImAxis y_axis) {
     return result;
 }
 
-void SetPlotQuery(const ImPlotLimits& query, ImAxis x_axis, ImAxis y_axis) {
+void SetPlotQuery(const ImLimitsXY& query, ImAxis x_axis, ImAxis y_axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotQuery() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
@@ -4158,7 +4161,7 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
     if (frame_size.y < gp.Style.PlotMinSize.y && size.y < 0.0f)
         frame_size.y = gp.Style.PlotMinSize.y;
 
-    ImPlotRange range(scale_min,scale_max);
+    ImLimits range(scale_min,scale_max);
     gp.CTicks.Reset();
     AddTicksDefault(range, frame_size.y, true, gp.CTicks, DefaultFormatter, fmt);
 

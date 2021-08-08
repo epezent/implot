@@ -50,9 +50,9 @@ struct WaveData {
     double X, Amp, Freq, Offset;
     WaveData(double x, double amp, double freq, double offset) { X = x; Amp = amp; Freq = freq; Offset = offset; }
 };
-ImPlotPoint SineWave(void* wave_data, int idx);
-ImPlotPoint SawWave(void* wave_data, int idx);
-ImPlotPoint Spiral(void*, int idx);
+ImPoint SineWave(void* wave_data, int idx);
+ImPoint SawWave(void* wave_data, int idx);
+ImPoint Spiral(void*, int idx);
 
 // Example for Tables section.
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size);
@@ -567,7 +567,7 @@ void ShowDemo_Heatmaps() {
     ImPlot::SetNextPlotLimits(-1,1,-1,1);
     if (ImPlot::BeginPlot("##Heatmap2",NULL,NULL,ImVec2(225,225),0,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations)) {
         ImPlot::PlotHeatmap("heat1",values2,size,size,0,1,NULL);
-        ImPlot::PlotHeatmap("heat2",values2,size,size,0,1,NULL, ImPlotPoint(-1,-1), ImPlotPoint(0,0));
+        ImPlot::PlotHeatmap("heat2",values2,size,size,0,1,NULL, ImPoint(-1,-1), ImPoint(0,0));
         ImPlot::EndPlot();
     }
     ImPlot::PopColormap();
@@ -629,7 +629,7 @@ void ShowDemo_Histogram() {
 
     if (ImPlot::BeginPlot("##Histograms")) {
         ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
-        ImPlot::PlotHistogram("Empirical", dist.Data, 10000, bins, cumulative, density, range ? ImPlotRange(rmin,rmax) : ImPlotRange(), outliers);
+        ImPlot::PlotHistogram("Empirical", dist.Data, 10000, bins, cumulative, density, range ? ImLimits(rmin,rmax) : ImLimits(), outliers);
         if (density && outliers)
             ImPlot::PlotLine("Theoretical",x,y,100);
         ImPlot::EndPlot();
@@ -651,7 +651,7 @@ void ShowDemo_Histogram2D() {
     ImPlot::PushColormap("Hot");
     ImPlot::SetNextPlotLimits(-6,6,-6,6);
     if (ImPlot::BeginPlot("##Hist2D",0,0,ImVec2(ImGui::GetContentRegionAvail().x-100-ImGui::GetStyle().ItemSpacing.x,0),0,flags,flags)) {
-        max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],density2,ImPlotLimits(-6,6,-6,6));
+        max_count = ImPlot::PlotHistogram2D("Hist2D",dist1.Data,dist2.Data,count,xybins[0],xybins[1],density2,ImLimitsXY(-6,6,-6,6));
         ImPlot::EndPlot();
     }
     ImGui::SameLine();
@@ -983,9 +983,9 @@ void ShowDemo_AutoFittingData() {
     };
 }
 
-ImPlotPoint SinewaveGetter(void* data, int i) {
+ImPoint SinewaveGetter(void* data, int i) {
     float f = *(float*)data;
-    return ImPlotPoint(i,sinf(f*i));
+    return ImPoint(i,sinf(f*i));
 }
 
 void ShowDemo_SubplotsSizing() {
@@ -1081,15 +1081,15 @@ void ShowDemo_SubplotAxisLinking() {
 }
 
 void ShowDemo_Querying() {
-    static ImVector<ImPlotPoint> data;
-    static ImPlotLimits range, query, select;
+    static ImVector<ImPoint> data;
+    static ImLimitsXY range, query, select;
     static bool init = true;
     if (init) {
         for (int i = 0; i < 50; ++i)
         {
             double x = RandomRange(0.0, 1.0);
             double y = RandomRange(0.0, 1.0);
-            data.push_back(ImPlotPoint(x,y));
+            data.push_back(ImPoint(x,y));
         }
         init = false;
     }
@@ -1105,15 +1105,15 @@ void ShowDemo_Querying() {
     ImPlot::SetNextPlotLimits(0,1,0,1);
     if (ImPlot::BeginPlot("##Centroid", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Query)) {
         if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) {
-            ImPlotPoint pt = ImPlot::GetPlotMousePos();
+            ImPoint pt = ImPlot::GetPlotMousePos();
             data.push_back(pt);
         }
         if (data.size() > 0)
             ImPlot::PlotScatter("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(double));
         if (ImPlot::IsPlotQueried() && data.size() > 0) {
-            ImPlotLimits range2 = ImPlot::GetPlotQuery();
+            ImLimitsXY range2 = ImPlot::GetPlotQuery();
             int cnt = 0;
-            ImPlotPoint avg;
+            ImPoint avg;
             for (int i = 0; i < data.size(); ++i) {
                 if (range2.Contains(data[i].x, data[i].y)) {
                     avg.x += data[i].x;
@@ -1158,7 +1158,7 @@ void ShowDemo_Views() {
     static bool use_selection = false;
     ImGui::Checkbox("Use Box Selection",&use_selection);
     bool is_viewed = false;
-    ImPlotLimits view;
+    ImLimitsXY view;
     ImPlot::SetNextPlotLimits(0,0.01,-1,1);
     if (ImPlot::BeginPlot("##View1",NULL,NULL,ImVec2(-1,150), ImPlotFlags_Query, flags, flags)) {
         ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
@@ -1245,8 +1245,8 @@ void ShowDemo_DragPoints() {
     ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
     ImPlot::SetNextPlotLimits(0,1,0,1);
     if (ImPlot::BeginPlot("##Bezier",0,0,ImVec2(-1,0),ImPlotFlags_CanvasOnly,flags,flags)) {
-        static ImPlotPoint P[] = {ImPlotPoint(.05f,.05f), ImPlotPoint(0.2,0.4),  ImPlotPoint(0.8,0.6),  ImPlotPoint(.95f,.95f)};
-        static ImPlotPoint B[100];
+        static ImPoint P[] = {ImPoint(.05f,.05f), ImPoint(0.2,0.4),  ImPoint(0.8,0.6),  ImPoint(.95f,.95f)};
+        static ImPoint B[100];
         for (int i = 0; i < 100; ++i) {
             double t  = i / 99.0;
             double u  = 1 - t;
@@ -1254,14 +1254,14 @@ void ShowDemo_DragPoints() {
             double w2 = 3*u*u*t;
             double w3 = 3*u*t*t;
             double w4 = t*t*t;
-            B[i] = ImPlotPoint(w1*P[0].x + w2*P[1].x + w3*P[2].x + w4*P[3].x, w1*P[0].y + w2*P[1].y + w3*P[2].y + w4*P[3].y);
+            B[i] = ImPoint(w1*P[0].x + w2*P[1].x + w3*P[2].x + w4*P[3].x, w1*P[0].y + w2*P[1].y + w3*P[2].y + w4*P[3].y);
         }
         ImPlot::SetNextLineStyle(ImVec4(0,0.9f,0,1), 2);
-        ImPlot::PlotLine("##bez",&B[0].x, &B[0].y, 100, 0, sizeof(ImPlotPoint));
+        ImPlot::PlotLine("##bez",&B[0].x, &B[0].y, 100, 0, sizeof(ImPoint));
         ImPlot::SetNextLineStyle(ImVec4(1,0.5f,1,1));
-        ImPlot::PlotLine("##h1",&P[0].x, &P[0].y, 2, 0, sizeof(ImPlotPoint));
+        ImPlot::PlotLine("##h1",&P[0].x, &P[0].y, 2, 0, sizeof(ImPoint));
         ImPlot::SetNextLineStyle(ImVec4(0,0.5f,1,1));
-        ImPlot::PlotLine("##h2",&P[2].x, &P[2].y, 2, 0, sizeof(ImPlotPoint));
+        ImPlot::PlotLine("##h2",&P[2].x, &P[2].y, 2, 0, sizeof(ImPoint));
         ImPlot::DragPoint("P0",&P[0].x,&P[0].y, show_labels, ImVec4(0,0.9f,0,1));
         ImPlot::DragPoint("P1",&P[1].x,&P[1].y, show_labels, ImVec4(1,0.5f,1,1));
         ImPlot::DragPoint("P2",&P[2].x,&P[2].y, show_labels, ImVec4(0,0.5f,1,1));
@@ -1559,7 +1559,7 @@ void ShowDemo_CustomDataAndGetters() {
         ImPlot::PopStyleVar();
 
         // you can also pass C++ lambdas:
-        // auto lamda = [](void* data, int idx) { ... return ImPlotPoint(x,y); };
+        // auto lamda = [](void* data, int idx) { ... return ImPoint(x,y); };
         // ImPlot::PlotLine("My Lambda", lambda, data, 1000);
 
         ImPlot::EndPlot();
@@ -1643,9 +1643,9 @@ void ShowDemo_CustomStyles() {
 
 void ShowDemo_CustomRendering() {
     if (ImPlot::BeginPlot("##CustomRend")) {
-        ImVec2 cntr = ImPlot::PlotToPixels(ImPlotPoint(0.5f,  0.5f));
-        ImVec2 rmin = ImPlot::PlotToPixels(ImPlotPoint(0.25f, 0.75f));
-        ImVec2 rmax = ImPlot::PlotToPixels(ImPlotPoint(0.75f, 0.25f));
+        ImVec2 cntr = ImPlot::PlotToPixels(ImPoint(0.5f,  0.5f));
+        ImVec2 rmin = ImPlot::PlotToPixels(ImPoint(0.25f, 0.75f));
+        ImVec2 rmax = ImPlot::PlotToPixels(ImPoint(0.75f, 0.25f));
         ImPlot::PushPlotClipRect();
         ImPlot::GetPlotDrawList()->AddCircleFilled(cntr,20,IM_COL32(255,255,0,255),20);
         ImPlot::GetPlotDrawList()->AddRect(rmin, rmax, IM_COL32(128,0,255,255));
@@ -1914,26 +1914,26 @@ void ShowDemoWindow(bool* p_open) {
 
 namespace MyImPlot {
 
-ImPlotPoint SineWave(void* data , int idx) {
+ImPoint SineWave(void* data , int idx) {
     WaveData* wd = (WaveData*)data;
     double x = idx * wd->X;
-    return ImPlotPoint(x, wd->Offset + wd->Amp * sin(2 * 3.14 * wd->Freq * x));
+    return ImPoint(x, wd->Offset + wd->Amp * sin(2 * 3.14 * wd->Freq * x));
 }
 
-ImPlotPoint SawWave(void* data, int idx) {
+ImPoint SawWave(void* data, int idx) {
     WaveData* wd = (WaveData*)data;
     double x = idx * wd->X;
-    return ImPlotPoint(x, wd->Offset + wd->Amp * (-2 / 3.14 * atan(cos(3.14 * wd->Freq * x) / sin(3.14 * wd->Freq * x))));
+    return ImPoint(x, wd->Offset + wd->Amp * (-2 / 3.14 * atan(cos(3.14 * wd->Freq * x) / sin(3.14 * wd->Freq * x))));
 }
 
-ImPlotPoint Spiral(void*, int idx) {
+ImPoint Spiral(void*, int idx) {
     float r = 0.9f;            // outer radius
     float a = 0;               // inner radius
     float b = 0.05f;           // increment per rev
     float n = (r - a) / b;     // number  of revolutions
     double th = 2 * n * 3.14;  // angle
     float Th = float(th * idx / (1000 - 1));
-    return ImPlotPoint(0.5f+(a + b*Th / (2.0f * (float) 3.14))*cos(Th),
+    return ImPoint(0.5f+(a + b*Th / (2.0f * (float) 3.14))*cos(Th),
                        0.5f + (a + b*Th / (2.0f * (float)3.14))*sin(Th));
 }
 
@@ -2039,7 +2039,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
 
     // custom tool
     if (ImPlot::IsPlotHovered() && tooltip) {
-        ImPlotPoint mouse   = ImPlot::GetPlotMousePos();
+        ImPoint mouse   = ImPlot::GetPlotMousePos();
         mouse.x             = ImPlot::RoundTime(ImPlotTime::FromDouble(mouse.x), ImPlotTimeUnit_Day).ToDouble();
         float  tool_l       = ImPlot::PlotToPixels(mouse.x - half_width * 1.5, mouse.y).x;
         float  tool_r       = ImPlot::PlotToPixels(mouse.x + half_width * 1.5, mouse.y).x;
@@ -2071,8 +2071,8 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
         // fit data if requested
         if (ImPlot::FitThisFrame()) {
             for (int i = 0; i < count; ++i) {
-                ImPlot::FitPoint(ImPlotPoint(xs[i], lows[i]));
-                ImPlot::FitPoint(ImPlotPoint(xs[i], highs[i]));
+                ImPlot::FitPoint(ImPoint(xs[i], lows[i]));
+                ImPlot::FitPoint(ImPoint(xs[i], highs[i]));
             }
         }
         // render data
@@ -2124,12 +2124,12 @@ enum BenchMode {
 struct BenchRecord {
     int Mode;
     bool AA;
-    ImVector<ImPlotPoint> Data;
+    ImVector<ImPoint> Data;
 };
 
-ImPlotPoint BenchmarkGetter(void* data, int idx) {
+ImPoint BenchmarkGetter(void* data, int idx) {
     float* values = (float*)data;
-    return ImPlotPoint(idx, values[idx]);
+    return ImPoint(idx, values[idx]);
 }
 
 void ShowBenchmarkTool() {
@@ -2149,7 +2149,7 @@ void ShowBenchmarkTool() {
         F++;
         if (F == frames) {
             t2 = ImGui::GetTime();
-            records.back().Data.push_back(ImPlotPoint(L, frames / (t2 - t1)));
+            records.back().Data.push_back(ImPoint(L, frames / (t2 - t1)));
             L  += 5;
             F  = 0;
             t1 = ImGui::GetTime();
@@ -2242,7 +2242,7 @@ void ShowBenchmarkTool() {
         for (int run = 0; run < records.size(); ++run) {
             if (records[run].Data.Size > 1) {
                 sprintf(buffer, "B%d-%s%s", run + 1, names[records[run].Mode], records[run].AA ? "-AA" : "");
-                ImVector<ImPlotPoint>& d = records[run].Data;
+                ImVector<ImPoint>& d = records[run].Data;
                 ImPlot::PlotLine(buffer, &d[0].x, &d[0].y, d.Size, 0, 2*sizeof(double));
             }
         }
