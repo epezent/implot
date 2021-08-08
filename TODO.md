@@ -36,13 +36,18 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add `PlotBarGroups` wrapper that makes rendering groups of bars easier
 - add `PlotBubbles` (see MATLAB bubble chart)
 - add non-zero references for `PlotBars` etc.
-- add exploding to `PlotPieChart`
+- add exploding to `PlotPieChart` (on hover-highlight?)
 
 ## Styling
 
 - support gradient and/or colormap sampled fills (e.g. ImPlotFillStyle_)
 - add hover/active color for plot
 - API for setting different fonts for plot elements
+
+## Colormaps
+
+- gradient editing tool
+- `RemoveColormap`
 
 ## Legend
 

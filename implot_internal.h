@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.12 WIP
+// ImPlot v0.13 WIP
 
 // You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
@@ -63,7 +63,7 @@
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
 #define IMPLOT_MAX_TIME  32503680000
 // Default label format for axis labels
-#define IMPLOT_LABEL_FMT "%g"
+#define IMPLOT_LABEL_FORMAT "%g"
 // Max character size for tick labels
 #define IMPLOT_LABEL_MAX_SIZE 32
 // Plot values less than or equal to 0 will be replaced with this on log scale axes
@@ -599,7 +599,7 @@ struct ImPlotAxis
     ImPlotAxisFlags   PreviousFlags;
     ImPlotRange       Range;
     float             Pixels;
-    ImPlotOrientation Orientation;
+    bool              Vertical;
     bool              Dragging;
     bool              LabelsHovered;
     bool              LabelsHeld;
@@ -616,27 +616,36 @@ struct ImPlotAxis
     float             Datum1;
     float             Datum2;
     int               LabelOffset;
-    char              Fmt[16];
+    char              FormatSpec[16];
+    bool              HasFormatSpec;
     void              (*Formatter)(double, char*, int, void*);
     void*             FormatterData;
     bool              ShowDefaultTicks;
 
     ImPlotAxis() {
-        Enabled     = false;
-        Flags       = PreviousFlags = ImPlotAxisFlags_None;
-        Range.Min   = 0;
-        Range.Max   = 1;
-        Dragging    = false;
-        LabelsHovered  = false;
-        LabelsHeld     = false;
-        Hovered  = false;
-        LinkedMin   = LinkedMax = NULL;
-        PickerLevel = 0;
-        ColorMaj    = ColorMin = ColorTxt = ColorHov = ColorAct = 0;
-        Datum1      = Datum2 = 0;
-        LabelOffset = -1;
-        ImStrncpy(Fmt,IMPLOT_LABEL_FMT,sizeof(Fmt));
-        Formatter   = NULL;
+        Enabled          = false;
+        Flags            = PreviousFlags = ImPlotAxisFlags_None;
+        Range.Min        = 0;
+        Range.Max        = 1;
+        Dragging         = false;
+        LabelsHovered    = false;
+        LabelsHeld       = false;
+        Hovered          = false;
+        LinkedMin        = LinkedMax = NULL;
+        PickerLevel      = 0;
+        ColorMaj         = ColorMin = ColorTxt = ColorHov = ColorAct = 0;
+        Datum1           = Datum2 = 0;
+        LabelOffset      = -1;
+        Formatter        = NULL;
+        ShowDefaultTicks = true;
+    }
+
+    void Reset() {
+        Enabled       = false;
+        LabelOffset   = -1;
+        HasFormatSpec = false;
+        Formatter     = NULL;
+        FormatterData = NULL;
         ShowDefaultTicks = true;
     }
 
@@ -737,17 +746,19 @@ struct ImPlotAxis
                 
     inline bool IsTime()            const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                                                   }
     inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                                               }
+
+    inline bool HasMenus()          const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoMenus);                                               }
 };
 
 // Align plots group data
 struct ImPlotAlignmentData {
-    ImPlotOrientation Orientation;
+    bool  Vertical;
     float PadA;
     float PadB;
     float PadAMax;
     float PadBMax;
     ImPlotAlignmentData() {
-        Orientation = ImPlotOrientation_Vertical;
+        Vertical    = true;
         PadA = PadB = PadAMax = PadBMax = 0;
     }
     void Begin() { PadAMax = PadBMax = 0; }
@@ -809,7 +820,7 @@ struct ImPlotLegend
 struct ImPlotItemGroup
 {
     ImGuiID            ID;
-    ImPlotLegend   Legend;
+    ImPlotLegend       Legend;
     ImPool<ImPlotItem> ItemPool;
     int                ColormapIdx;
 
@@ -870,8 +881,8 @@ struct ImPlotPlot
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
         for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-            XAxis[i].Orientation = ImPlotOrientation_Horizontal;
-            YAxis[i].Orientation = ImPlotOrientation_Vertical;
+            XAxis[i].Vertical = false;
+            YAxis[i].Vertical = true;
         }
         SelectStart       = QueryStart = ImVec2(0,0);
         Initialized       = Selecting = Selected = ContextLocked = Querying = Queried = DraggingQuery = false;
@@ -1314,9 +1325,9 @@ static inline void DefaultFormatter(double value, char* buff, int size, void* da
 IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);
 
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
-IMPLOT_API void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
+IMPLOT_API void AddTicksDefault(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
-IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
+IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
 IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
 // Populates a list of ImPlotTicks with time formatted ticks.

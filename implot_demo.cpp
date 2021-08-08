@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.12 WIP
+// ImPlot v0.13 WIP
 
 #include "implot.h"
 #include <math.h>
@@ -945,8 +945,12 @@ void ShowDemo_EqualAxes() {
         double angle = i * 2 * PI / 999.0;
         xs[i] = cos(angle); ys[i] = sin(angle);
     }
-    if (ImPlot::BeginPlot("",0,0,ImVec2(-1,0),ImPlotFlags_Equal)) {
-        ImPlot::PlotLine("Circle",xs,ys,1000);
+    if (ImPlot::BeginPlot("",ImVec2(-1,0),ImPlotFlags_Equal)) {
+        ImPlot::SetupAxis(ImAxis_X2, NULL, ImPlotAxisFlags_AuxDefault);
+        ImPlot::SetupAxis(ImAxis_Y2, NULL, ImPlotAxisFlags_AuxDefault);
+        ImPlot::PlotLine("Circle 11",xs,ys,1000);
+        ImPlot::SetAxes(ImAxis_X2, ImAxis_Y2);
+        ImPlot::PlotLine("Circle 22",xs,ys,1000);
         ImPlot::EndPlot();
     }
 }
@@ -1562,6 +1566,22 @@ void ShowDemo_CustomDataAndGetters() {
     }
 }
 
+void MetricFormatter(double value, char* buff, int size, void*) {
+    static double v[]      = {1000000000,1000000,1000,1,0.001,0.000001,0.000000001};
+    static const char* p[] = {"G","M","k","","m","u","n"};
+    if (value == 0) {
+        snprintf(buff,size,"0 Hz");
+        return;
+    }
+    for (int i = 0; i < 7; ++i) {
+        if (fabs(value) >= v[i]) {
+            snprintf(buff,size,"%.0f %sHz",value/v[i],p[i]);
+            return;
+        }
+    }
+    snprintf(buff,size,"%.0f %sHz",value/v[6],p[6]);
+}
+
 void ShowDemo_TickLabels()  {
     static bool custom_fmt    = true;
     static bool custom_ticks  = false;
@@ -1573,27 +1593,30 @@ void ShowDemo_TickLabels()  {
         ImGui::SameLine();
         ImGui::Checkbox("Show Custom Labels", &custom_labels);
     }
-    double pi = 3.14;
+    const double pi = 3.14;
     const char* pi_str[] = {"PI"};
-    static double yticks[] = {1,3,7,9};
+    static double yticks[] = {100,300,700,900};
     static const char*  ylabels[] = {"One","Three","Seven","Nine"};
     static double yticks_aux[] = {0.2,0.4,0.6};
     static const char* ylabels_aux[] = {"A","B","C","D","E","F"};
-    if (custom_fmt) {
-        ImPlot::SetNextPlotFormatX("%g ms");
-        ImPlot::SetNextPlotFormatY("%g Hz", ImAxis_Y1);
-        ImPlot::SetNextPlotFormatY("%g dB", ImAxis_Y2);
-        ImPlot::SetNextPlotFormatY("%g km", ImAxis_Y3);
-    }
-    if (custom_ticks) {
-        ImPlot::SetNextPlotTicksX(&pi,1,custom_labels ? pi_str : NULL, true);
-        ImPlot::SetNextPlotTicksY(yticks, 4, custom_labels ? ylabels : NULL, false, ImAxis_Y1);
-        ImPlot::SetNextPlotTicksY(yticks_aux, 3, custom_labels ? ylabels_aux : NULL, false, ImAxis_Y2);
-        ImPlot::SetNextPlotTicksY(0, 1, 6, custom_labels ? ylabels_aux : NULL, false, ImAxis_Y3);
-    }
-    ImPlot::SetNextPlotLimits(2.5,5,0,10);
-    if (ImPlot::BeginPlot("##Ticks", NULL, NULL, ImVec2(-1,0), ImPlotFlags_YAxis2 | ImPlotFlags_YAxis3)) {
-        // nothing to see here, just the ticks
+
+    if (ImPlot::BeginPlot("##Ticks")) {
+        ImPlot::SetupAxis(ImAxis_Y2, NULL, ImPlotAxisFlags_AuxDefault);
+        ImPlot::SetupAxis(ImAxis_Y3, NULL, ImPlotAxisFlags_AuxDefault);
+        ImPlot::SetupAxisLimits(ImAxis_X1,2.5,5);
+        ImPlot::SetupAxisLimits(ImAxis_Y1,0,1000);
+        if (custom_fmt) {
+            ImPlot::SetupAxisFormat(ImAxis_X1, "%g ms");
+            ImPlot::SetupAxisFormat(ImAxis_Y1, MetricFormatter);
+            ImPlot::SetupAxisFormat(ImAxis_Y2, "%g dB");
+            ImPlot::SetupAxisFormat(ImAxis_Y3, "%g km");
+        }
+        if (custom_ticks) {
+            ImPlot::SetupAxisTicks(ImAxis_X1, &pi,1,custom_labels ? pi_str : NULL, true);
+            ImPlot::SetupAxisTicks(ImAxis_Y1, yticks, 4, custom_labels ? ylabels : NULL, false);
+            ImPlot::SetupAxisTicks(ImAxis_Y2, yticks_aux, 3, custom_labels ? ylabels_aux : NULL, false);
+            ImPlot::SetupAxisTicks(ImAxis_Y3, 0, 1, 6, custom_labels ? ylabels_aux : NULL, false);
+        }
         ImPlot::EndPlot();
     }
 }
