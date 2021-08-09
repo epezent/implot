@@ -1080,6 +1080,7 @@ void ShowDemo_SubplotAxisLinking() {
     }
 }
 
+/*
 void ShowDemo_Querying() {
     static ImVector<ImPoint> data;
     static ImLimitsXY range, query, select;
@@ -1178,6 +1179,7 @@ void ShowDemo_Views() {
         ImPlot::EndPlot();
     }
 }
+*/
 
 void ShowDemo_LegendOptions() {
     static ImPlotLocation loc = ImPlotLocation_East;
@@ -1601,10 +1603,9 @@ void ShowDemo_TickLabels()  {
     static const char* ylabels_aux[] = {"A","B","C","D","E","F"};
 
     if (ImPlot::BeginPlot("##Ticks")) {
+        ImPlot::SetupPlotLimits(2.5,5,0,1000);
         ImPlot::SetupAxis(ImAxis_Y2, NULL, ImPlotAxisFlags_AuxDefault);
         ImPlot::SetupAxis(ImAxis_Y3, NULL, ImPlotAxisFlags_AuxDefault);
-        ImPlot::SetupAxisLimits(ImAxis_X1,2.5,5);
-        ImPlot::SetupAxisLimits(ImAxis_Y1,0,1000);
         if (custom_fmt) {
             ImPlot::SetupAxisFormat(ImAxis_X1, "%g ms");
             ImPlot::SetupAxisFormat(ImAxis_Y1, MetricFormatter);
@@ -1866,10 +1867,10 @@ void ShowDemoWindow(bool* p_open) {
         if (ImGui::BeginTabItem("Tools")) {
             if (ImGui::CollapsingHeader("Offset and Stride"))
                 ShowDemo_OffsetAndStride();
-            if (ImGui::CollapsingHeader("Querying"))
-                ShowDemo_Querying();
-            if (ImGui::CollapsingHeader("Views"))
-                ShowDemo_Views();
+            // if (ImGui::CollapsingHeader("Querying"))
+            //     ShowDemo_Querying();
+            // if (ImGui::CollapsingHeader("Views"))
+            //     ShowDemo_Views();
             if (ImGui::CollapsingHeader("Drag Lines"))
                 ShowDemo_DragLines();
             if (ImGui::CollapsingHeader("Drag Points"))
@@ -1976,7 +1977,6 @@ void StyleSeaborn() {
     colors[ImPlotCol_AxisHovered]   = ImVec4(0.92f, 0.92f, 0.95f, 1.00f);
     colors[ImPlotCol_AxisActive]    = ImVec4(0.92f, 0.92f, 0.95f, 0.75f);
     colors[ImPlotCol_Selection]     = ImVec4(1.00f, 0.65f, 0.00f, 1.00f);
-    colors[ImPlotCol_Query]         = ImVec4(0.23f, 0.10f, 0.64f, 1.00f);
     colors[ImPlotCol_Crosshairs]    = ImVec4(0.23f, 0.10f, 0.64f, 0.50f);
 
     style.LineWeight       = 1.5;

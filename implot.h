@@ -85,17 +85,16 @@ typedef int ImPlotBin;          // -> enum ImPlotBin_
 
 // Options for plots (see BeginPlot).
 enum ImPlotFlags_ {
-    ImPlotFlags_None          = 0,       // default
-    ImPlotFlags_NoTitle       = 1 << 0,  // the plot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MyPlot")
-    ImPlotFlags_NoLegend      = 1 << 1,  // the legend will not be displayed
-    ImPlotFlags_NoMenus       = 1 << 2,  // the user will not be able to open context menus with right-click
-    ImPlotFlags_NoBoxSelect   = 1 << 3,  // the user will not be able to box-select with right-click drag
-    ImPlotFlags_NoMouseText   = 1 << 4,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
-    ImPlotFlags_NoChild       = 1 << 5,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_Equal         = 1 << 6,  // primary x and y axes will be constrained to have the same units/pixel (does not apply to auxiliary y-axes)
-    ImPlotFlags_Query         = 1 << 7,  // the user will be able to draw query rects with middle-mouse or CTRL + right-click drag
-    ImPlotFlags_Crosshairs    = 1 << 8, // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased   = 1 << 9, // plot lines will be software anti-aliased (not recommended for high density plots, prefer MSAA)
+    ImPlotFlags_None          = 0,      // default
+    ImPlotFlags_NoTitle       = 1 << 0, // the plot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MyPlot")
+    ImPlotFlags_NoLegend      = 1 << 1, // the legend will not be displayed
+    ImPlotFlags_NoMenus       = 1 << 2, // the user will not be able to open context menus with right-click
+    ImPlotFlags_NoBoxSelect   = 1 << 3, // the user will not be able to box-select with right-click drag
+    ImPlotFlags_NoMouseText   = 1 << 4, // the mouse position, in plot coordinates, will not be displayed inside of the plot
+    ImPlotFlags_NoChild       = 1 << 5, // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_Equal         = 1 << 6, // primary x and y axes will be constrained to have the same units/pixel (does not apply to auxiliary y-axes)
+    ImPlotFlags_Crosshairs    = 1 << 7, // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_AntiAliased   = 1 << 8, // plot lines will be software anti-aliased (not recommended for high density plots, prefer MSAA)
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText
 };
 
@@ -172,7 +171,6 @@ enum ImPlotCol_ {
     ImPlotCol_AxisHovered,   // axis hover color (defaults to ImGuiCol_ButtonHovered)
     ImPlotCol_AxisActive,    // axis active color (defaults to ImGuiCol_ButtonActive)S
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
-    ImPlotCol_Query,         // box-query color (defaults to green)
     ImPlotCol_Crosshairs,    // crosshairs color (defaults to ImPlotCol_PlotBorder)
     ImPlotCol_COUNT
 };
@@ -496,10 +494,9 @@ IMPLOT_API void EndSubplots();
 
 // TODO:
 // - fix drag lines labels
-// - clean up HandleInput
 // - format mouse text
 
-// Sets the primary X and Y axes range limits. If ImGuiCond_Always is used, the axes limits will be locked.
+// Sets the primary X and Y axes range limits. If ImGuiCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
 IMPLOT_API void SetupPlotLimits(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
 
 // Enables an axis or sets the label and/or flags for an existing axis. Leave #label = NULL for no label.
@@ -509,12 +506,17 @@ IMPLOT_API void SetupAxisLimits(ImAxis axis, double min_lim, double max_lim, ImG
 // Links an axis range limits to external values. Set to NULL for no linkage. The pointer data must remain valid until EndPlot.
 IMPLOT_API void SetupAxisLinks(ImAxis axis, double* min_lnk, double* max_lnk);
 
-IMPLOT_API void SetupAxisColor(); // TODO?
-IMPLOT_API void SetupAxisConstraints(ImAxis axis); // TODO?
+IMPLOT_API void SetupAxisColor(ImAxis axis);       // TODO
+IMPLOT_API void SetupAxisConstraints(ImAxis axis); // TODO
+IMPLOT_API void SetupAxisHome(ImAxis axis);        // TODO
 
+// Sets the format of numeric axis labels via formater specifier (default="%g"). Formated values will be double (i.e. use %f).
 IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
-IMPLOT_API void SetupAxisFormat(ImAxis axis, void (*formatter)(double value, char* buff, int size, void* data), void* data = NULL);
+// Sets the format of numeric axis labels via formatter callback. Given #value, write a label into #buff. Optionally pass user data.
+IMPLOT_API void SetupAxisFormat(ImAxis axis, void (*formatter)(double value, char* buff, int buff_size, void* data), void* data = NULL);
+// Sets an axis' ticks and optionally the labels. To keep the default ticks, set #keep_default=true.
 IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
+// Sets an axis' ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
 IMPLOT_API void SetupAxisTicks(ImAxis axis, double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
 
 // Sets up the plot legend.
@@ -710,13 +712,6 @@ IMPLOT_API bool IsSubplotsHovered();
 IMPLOT_API bool IsPlotSelected();
 // Returns the current plot box selection bounds.
 IMPLOT_API ImLimitsXY GetPlotSelection(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
-
-// Returns true if the current plot is being queried or has an active query. Query must be enabled with ImPlotFlags_Query.
-IMPLOT_API bool IsPlotQueried();
-// Returns the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
-IMPLOT_API ImLimitsXY GetPlotQuery(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
-// Set the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
-IMPLOT_API void SetPlotQuery(const ImLimitsXY& query, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Hides or shows the next plot item (i.e. as if it were toggled from the legend).
 // Use ImGuiCond_Always if you need to forcefully set this every frame.

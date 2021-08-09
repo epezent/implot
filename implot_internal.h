@@ -308,11 +308,8 @@ struct ImPlotInputMap {
     ImGuiMouseButton BoxSelectButton;       // RMB      begins box selection when pressed and confirms selection when released
     ImGuiKeyModFlags BoxSelectMod;          // none     optional modifier that must be held for box selection
     ImGuiMouseButton BoxSelectCancelButton; // LMB      cancels active box selection when pressed
-    ImGuiMouseButton QueryButton;           // MMB      begins query selection when pressed and end query selection when released
-    ImGuiKeyModFlags QueryMod;              // none     optional modifier that must be held for query selection
-    ImGuiKeyModFlags QueryToggleMod;        // Ctrl     when held, active box selections turn into queries
-    ImGuiKeyModFlags HorizontalMod;         // Alt      expands active box selection/query horizontally to plot edge when held
-    ImGuiKeyModFlags VerticalMod;           // Shift    expands active box selection/query vertically to plot edge when held
+    ImGuiKeyModFlags HorizontalMod;         // Alt      expands active box selection horizontally to plot edge when held
+    ImGuiKeyModFlags VerticalMod;           // Shift    expands active box selection vertically to plot edge when held
     IMPLOT_API ImPlotInputMap();
 };
 
@@ -597,10 +594,10 @@ struct ImPlotAxis
     bool              Enabled;
     ImPlotAxisFlags   Flags;
     ImPlotAxisFlags   PreviousFlags;
-    ImLimits       Range;
+    ImLimits          Range;
     float             Pixels;
     bool              Vertical;
-    bool              Dragging;
+    // bool              Dragging;
     bool              LabelsHovered;
     bool              LabelsHeld;
     bool              Hovered;
@@ -627,7 +624,7 @@ struct ImPlotAxis
         Flags            = PreviousFlags = ImPlotAxisFlags_None;
         Range.Min        = 0;
         Range.Max        = 1;
-        Dragging         = false;
+        // Dragging         = false;
         LabelsHovered    = false;
         LabelsHeld       = false;
         Hovered          = false;
@@ -855,16 +852,11 @@ struct ImPlotPlot
 
     ImVec2          SelectStart;
     ImRect          SelectRect;
-    ImVec2          QueryStart;
-    ImRect          QueryRect;
 
     bool            Initialized;
     bool            Selecting;
     bool            Selected;
     bool            ContextLocked;
-    bool            Querying;
-    bool            Queried;
-    bool            DraggingQuery;
     bool            Hovered;
     bool            Held;
     
@@ -884,8 +876,8 @@ struct ImPlotPlot
             XAxis[i].Vertical = false;
             YAxis[i].Vertical = true;
         }
-        SelectStart       = QueryStart = ImVec2(0,0);
-        Initialized       = Selecting = Selected = ContextLocked = Querying = Queried = DraggingQuery = false;
+        SelectStart       = ImVec2(0,0);
+        Initialized       = Selecting = Selected = ContextLocked = false;
         CurrentX          = CurrentY  = 0;
         MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
         TitleOffset       = -1;
@@ -1208,9 +1200,9 @@ static inline bool AllAxesInputLocked(ImPlotAxis* axes, int count) {
     return true;
 }
 
-static inline bool AnyAxesDragging(ImPlotAxis* axes, int count) {
+static inline bool AnyAxesHeld(ImPlotAxis* axes, int count) {
     for (int i = 0; i < count; ++i) {
-        if (axes[i].Enabled && axes[i].Dragging)
+        if (axes[i].Enabled && axes[i].Held)
             return true;
     }
     return false;

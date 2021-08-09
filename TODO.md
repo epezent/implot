@@ -63,6 +63,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add ability to extend plot/axis context menus
 - add LTTB downsampling for lines
 - rework DragLine/Point to use ButtonBehavior
+- make query a tool -> `DragRect`
 
 ## Optimizations
 
