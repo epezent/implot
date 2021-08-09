@@ -29,6 +29,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - pixel space scale, normalized space scale (see matplotlib)
 - give each axis an ID, remove ad-hoc DND solution
 - make ImPlotFlags_Equal not a flag -> `SetupEqual(ImAxis x, ImAxis y)`
+- allow axis to be drag to opposite side (ala ImGui Table headers)
 
 ## Plot Items
 
@@ -64,6 +65,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add LTTB downsampling for lines
 - rework DragLine/Point to use ButtonBehavior
 - make query a tool -> `DragRect`
+- remove tag from drag line/point -> add `AxisTag` tool
 
 ## Optimizations
 

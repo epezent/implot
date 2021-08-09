@@ -597,9 +597,6 @@ struct ImPlotAxis
     ImLimits          Range;
     float             Pixels;
     bool              Vertical;
-    // bool              Dragging;
-    bool              LabelsHovered;
-    bool              LabelsHeld;
     bool              Hovered;
     bool              Held;
     bool              HasRange;
@@ -624,10 +621,8 @@ struct ImPlotAxis
         Flags            = PreviousFlags = ImPlotAxisFlags_None;
         Range.Min        = 0;
         Range.Max        = 1;
-        // Dragging         = false;
-        LabelsHovered    = false;
-        LabelsHeld       = false;
-        Hovered          = false;
+        Hovered    = false;
+        Held       = false;
         LinkedMin        = LinkedMax = NULL;
         PickerLevel      = 0;
         ColorMaj         = ColorMin = ColorTxt = ColorHov = ColorAct = 0;
@@ -636,7 +631,6 @@ struct ImPlotAxis
         Formatter        = NULL;
         ShowDefaultTicks = true;
     }
-
     void Reset() {
         Enabled       = false;
         LabelOffset   = -1;
@@ -730,7 +724,7 @@ struct ImPlotAxis
     inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }
                 
     inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                                }
-    inline bool CanInitFit()         const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
+    inline bool CanInitFit()        const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
     inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImGuiCond_Always;                                                }
                 
     inline bool IsLockedMin()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin);                 }

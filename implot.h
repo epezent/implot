@@ -495,6 +495,10 @@ IMPLOT_API void EndSubplots();
 // TODO:
 // - fix drag lines labels
 // - format mouse text
+// - fix subplots linking
+// - fix padding alignment
+// - make legend an item
+// - 
 
 // Sets the primary X and Y axes range limits. If ImGuiCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
 IMPLOT_API void SetupPlotLimits(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
