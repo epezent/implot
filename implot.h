@@ -355,6 +355,21 @@ struct ImPlotStyle {
     IMPLOT_API ImPlotStyle();
 };
 
+// Input mapping structure, default values listed in the comments.
+struct ImPlotInputMap {
+    ImGuiMouseButton PanButton;             // LMB      enables panning when held
+    ImGuiKeyModFlags PanMod;                // none     optional modifier that must be held for panning
+    ImGuiMouseButton FitButton;             // LMB      fits visible data when double clicked
+    ImGuiMouseButton ContextMenuButton;     // RMB      opens plot context menu (if enabled) when clicked
+    ImGuiMouseButton BoxSelectButton;       // RMB      begins box selection when pressed and confirms selection when released
+    ImGuiKeyModFlags BoxSelectMod;          // none     optional modifier that must be held for box selection
+    ImGuiMouseButton BoxSelectCancelButton; // LMB      cancels active box selection when pressed
+    ImGuiKeyModFlags HorizontalMod;         // Alt      expands active box selection horizontally to plot edge when held
+    ImGuiKeyModFlags VerticalMod;           // Shift    expands active box selection vertically to plot edge when held
+    ImGuiKeyModFlags DragDropMod;           // Ctrl     used for axis/plot DND activation and maybe more things in future             
+    IMPLOT_API ImPlotInputMap();
+};
+
 namespace ImPlot {
 
 //-----------------------------------------------------------------------------
@@ -498,7 +513,9 @@ IMPLOT_API void EndSubplots();
 // - fix subplots linking
 // - fix padding alignment
 // - make legend an item
-// - 
+// - clean up DND w/ new button behaviors
+// - equal axis demo bug
+// - input mapping
 
 // Sets the primary X and Y axes range limits. If ImGuiCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
 IMPLOT_API void SetupPlotLimits(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
@@ -673,11 +690,11 @@ IMPLOT_API void AnnotateClampedV(double x, double y, const ImVec2& pix_offset, c
 IMPLOT_API void AnnotateClampedV(double x, double y, const ImVec2& pix_offset, const ImVec4& color, const char* fmt, va_list args) IM_FMTLIST(5);
 
 // Shows a draggable vertical guide line at an x-value. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragLineX(const char* id, double* x_value, bool show_label = true, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
+IMPLOT_API bool DragLineX(const char* id, double* x_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
 // Shows a draggable horizontal guide line at a y-value. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragLineY(const char* id, double* y_value, bool show_label = true, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
+IMPLOT_API bool DragLineY(const char* id, double* y_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
 // Shows a draggable point at x,y. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragPoint(const char* id, double* x, double* y, bool show_label = true, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 4);
+IMPLOT_API bool DragPoint(const char* id, double* x, double* y, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 4);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Utils
@@ -759,10 +776,10 @@ IMPLOT_API void EndDragDropTarget();
 // NB: By default, plot and axes drag and drop *sources* require holding the Ctrl modifier to initiate the drag.
 // You can change the modifier if desired. If ImGuiKeyModFlags_None is provided, the axes will be locked from panning.
 
-// Turns the current plot's plotting area into a drag and drop source. Don't forget to call EndDragDropSource!
-IMPLOT_API bool BeginDragDropSourcePlot(ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
-// Turns the current plot's X-axis into a drag and drop source. Don't forget to call EndDragDropSource!
-IMPLOT_API bool BeginDragDropSourceAxis(ImAxis axis, ImGuiKeyModFlags key_mods = ImGuiKeyModFlags_Ctrl, ImGuiDragDropFlags flags = 0);
+// Turns the current plot's plotting area into a drag and drop source. You must hold Ctrl. Don't forget to call EndDragDropSource!
+IMPLOT_API bool BeginDragDropSourcePlot(ImGuiDragDropFlags flags = 0);
+// Turns the current plot's X-axis into a drag and drop source. You must hold Ctrl. Don't forget to call EndDragDropSource!
+IMPLOT_API bool BeginDragDropSourceAxis(ImAxis axis, ImGuiDragDropFlags flags = 0);
 // Turns an item in the current plot's legend into drag and drop source. Don't forget to call EndDragDropSource!
 IMPLOT_API bool BeginDragDropSourceItem(const char* label_id, ImGuiDragDropFlags flags = 0);
 // Ends a drag and drop source (currently just an alias for ImGui::EndDragDropSource).
@@ -923,6 +940,10 @@ IMPLOT_API void BustColorCache(const char* plot_title_id = NULL);
 //-----------------------------------------------------------------------------
 // [SECTION] Miscellaneous
 //-----------------------------------------------------------------------------
+
+// Setup input mappings (TODO)
+void MapInputDefault(ImPlotInputMap* dst = NULL);
+void MapInputReverse(ImPlotInputMap* dst = NULL);
 
 // Render icons similar to those that appear in legends (nifty for data lists).
 IMPLOT_API void ItemIcon(const ImVec4& col);

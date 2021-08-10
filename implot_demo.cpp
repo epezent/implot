@@ -918,20 +918,25 @@ void ShowDemo_MultipleYAxes() {
 }
 
 void ShowDemo_LinkedAxes() {
-    static double xmin = 0, xmax = 1, ymin = 0, ymax = 1;
+    static ImLimitsXY lims(0,1,0,1);
     static bool linkx = true, linky = true;
     int data[2] = {0,1};
     ImGui::Checkbox("Link X", &linkx);
     ImGui::SameLine();
     ImGui::Checkbox("Link Y", &linky);
+
+    ImGui::DragScalarN("Limits",ImGuiDataType_Double,&lims.X.Min,4,0.01f);
+
     if (BeginAlignedPlots("AlignedGroup")) {
-        ImPlot::LinkNextPlotLimits(linkx ? &xmin : NULL , linkx ? &xmax : NULL, linky ? &ymin : NULL, linky ? &ymax : NULL);
         if (ImPlot::BeginPlot("Plot A")) {
+            ImPlot::SetupAxisLinks(ImAxis_X1, linkx ? &lims.X.Min : NULL, linkx ? &lims.X.Max : NULL);
+            ImPlot::SetupAxisLinks(ImAxis_Y1, linky ? &lims.Y.Min : NULL, linky ? &lims.Y.Max : NULL);
             ImPlot::PlotLine("Line",data,2);
             ImPlot::EndPlot();
         }
-        ImPlot::LinkNextPlotLimits(linkx ? &xmin : NULL , linkx ? &xmax : NULL, linky ? &ymin : NULL, linky ? &ymax : NULL);
         if (ImPlot::BeginPlot("Plot B")) {
+            ImPlot::SetupAxisLinks(ImAxis_X1, linkx ? &lims.X.Min : NULL, linkx ? &lims.X.Max : NULL);
+            ImPlot::SetupAxisLinks(ImAxis_Y1, linky ? &lims.Y.Min : NULL, linky ? &lims.Y.Max : NULL);
             ImPlot::PlotLine("Line",data,2);
             ImPlot::EndPlot();
         }
@@ -1219,15 +1224,13 @@ void ShowDemo_DragLines() {
     static double y1 = 0.25;
     static double y2 = 0.75;
     static double f = 0.1;
-    static bool show_labels = true;
-    ImGui::Checkbox("Show Labels##1",&show_labels);
     ImPlot::SetNextPlotLimits(0,1,0,1);
     if (ImPlot::BeginPlot("##guides",ImVec2(-1,0))) {
         ImPlot::SetupAxis(ImAxis_Y2);
-        ImPlot::DragLineX("x1",&x1,show_labels);
-        ImPlot::DragLineX("x2",&x2,show_labels);
-        ImPlot::DragLineY("y1",&y1,show_labels);
-        ImPlot::DragLineY("y2",&y2,show_labels);
+        ImPlot::DragLineX("x1",&x1);
+        ImPlot::DragLineX("x2",&x2);
+        ImPlot::DragLineY("y1",&y1);
+        ImPlot::DragLineY("y2",&y2);
         double xs[1000], ys[1000];
         for (int i = 0; i < 1000; ++i) {
             xs[i] = (x2+x1)/2+fabs(x2-x1)*(i/1000.0f - 0.5f);
@@ -1235,15 +1238,13 @@ void ShowDemo_DragLines() {
         }
         ImPlot::PlotLine("Interactive Data", xs, ys, 1000);
         ImPlot::SetAxis(ImAxis_Y2);
-        ImPlot::DragLineY("f",&f,show_labels,ImVec4(1,0.5f,1,1));
+        ImPlot::DragLineY("f",&f,ImVec4(1,0.5f,1,1));
         ImPlot::EndPlot();
     }
 }
 
 void ShowDemo_DragPoints() {
     static bool show_labels = true;
-    ImGui::BulletText("Click and drag any point.");
-    ImGui::Checkbox("Show Labels##2",&show_labels);
     ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
     ImPlot::SetNextPlotLimits(0,1,0,1);
     if (ImPlot::BeginPlot("##Bezier",0,0,ImVec2(-1,0),ImPlotFlags_CanvasOnly,flags,flags)) {
@@ -1264,10 +1265,16 @@ void ShowDemo_DragPoints() {
         ImPlot::PlotLine("##h1",&P[0].x, &P[0].y, 2, 0, sizeof(ImPoint));
         ImPlot::SetNextLineStyle(ImVec4(0,0.5f,1,1));
         ImPlot::PlotLine("##h2",&P[2].x, &P[2].y, 2, 0, sizeof(ImPoint));
-        ImPlot::DragPoint("P0",&P[0].x,&P[0].y, show_labels, ImVec4(0,0.9f,0,1));
-        ImPlot::DragPoint("P1",&P[1].x,&P[1].y, show_labels, ImVec4(1,0.5f,1,1));
-        ImPlot::DragPoint("P2",&P[2].x,&P[2].y, show_labels, ImVec4(0,0.5f,1,1));
-        ImPlot::DragPoint("P3",&P[3].x,&P[3].y, show_labels, ImVec4(0,0.9f,0,1));
+        ImPlot::DragPoint("P0",&P[0].x,&P[0].y, ImVec4(0,0.9f,0,1));
+        ImPlot::DragPoint("P1",&P[1].x,&P[1].y, ImVec4(1,0.5f,1,1));
+        ImPlot::DragPoint("P2",&P[2].x,&P[2].y, ImVec4(0,0.5f,1,1));
+        ImPlot::DragPoint("P3",&P[3].x,&P[3].y, ImVec4(0,0.9f,0,1));
+        for (int i = 0; i < 4; ++i)
+        {
+            P[i].x = P[i].x < 0.0 ? 0.0 : P[i].x > 1.0 ? 1.0 : P[i].x;
+            P[i].y = P[i].y < 0.0 ? 0.0 : P[i].y > 1.0 ? 1.0 : P[i].y;
+
+        }
         ImPlot::EndPlot();
     }
 }

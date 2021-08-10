@@ -299,20 +299,6 @@ enum ImPlotTimeFmt_ {              // default        [ 24 Hour Clock ]
     ImPlotTimeFmt_Hr               // 7pm            [ 19:00        ]
 };
 
-// Input mapping structure, default values listed in the comments.
-struct ImPlotInputMap {
-    ImGuiMouseButton PanButton;             // LMB      enables panning when held
-    ImGuiKeyModFlags PanMod;                // none     optional modifier that must be held for panning
-    ImGuiMouseButton FitButton;             // LMB      fits visible data when double clicked
-    ImGuiMouseButton ContextMenuButton;     // RMB      opens plot context menu (if enabled) when clicked
-    ImGuiMouseButton BoxSelectButton;       // RMB      begins box selection when pressed and confirms selection when released
-    ImGuiKeyModFlags BoxSelectMod;          // none     optional modifier that must be held for box selection
-    ImGuiMouseButton BoxSelectCancelButton; // LMB      cancels active box selection when pressed
-    ImGuiKeyModFlags HorizontalMod;         // Alt      expands active box selection horizontally to plot edge when held
-    ImGuiKeyModFlags VerticalMod;           // Shift    expands active box selection vertically to plot edge when held
-    IMPLOT_API ImPlotInputMap();
-};
-
 //-----------------------------------------------------------------------------
 // [SECTION] ImPlot Structs
 //-----------------------------------------------------------------------------
@@ -739,6 +725,16 @@ struct ImPlotAxis
     inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                                               }
 
     inline bool HasMenus()          const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoMenus);                                               }
+
+    void PushLinks() {
+        if (LinkedMin) { *LinkedMin = Range.Min; }
+        if (LinkedMax) { *LinkedMax = Range.Max; }
+    }
+
+    void PullLinks() {
+        if (LinkedMin) { SetMin(*LinkedMin,true); }
+        if (LinkedMax) { SetMax(*LinkedMax,true); }
+    }
 };
 
 // Align plots group data
@@ -1082,7 +1078,7 @@ struct ImPlotContext {
     ImPlotNextPlotData NextPlotData;
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
-    ImPoint        MousePos[IMPLOT_MAX_AXES];
+    ImPoint            MousePos[IMPLOT_MAX_AXES];
 
     // Align plots
     ImPool<ImPlotAlignmentData> AlignmentData;
@@ -1274,11 +1270,6 @@ static inline void FitPoint(const ImPoint& p) {
 // Returns true if two ranges overlap
 static inline bool RangesOverlap(const ImLimits& r1, const ImLimits& r2)
 { return r1.Min <= r2.Max && r2.Min <= r1.Max; }
-
-// Updates pointers for linked axes from axis internal range.
-IMPLOT_API void PushLinkedAxis(ImPlotAxis& axis);
-// Updates axis internal range from points for linked axes.
-IMPLOT_API void PullLinkedAxis(ImPlotAxis& axis);
 
 // Shows an axis's context menu.
 IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_allowed = false);
