@@ -25,6 +25,10 @@
 #include "implot.h"
 #include "implot_internal.h"
 
+#if defined __SSE__ || defined __x86_64__ || defined _M_X64
+#include <xmmintrin.h>
+#endif
+
 #ifdef _MSC_VER
 #define sprintf sprintf_s
 #endif
