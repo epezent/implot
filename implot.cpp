@@ -85,8 +85,9 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #endif
 
 // Global plot context
+#ifndef GImPlot
 ImPlotContext* GImPlot = NULL;
-
+#endif
 //-----------------------------------------------------------------------------
 // Struct Implementations
 //-----------------------------------------------------------------------------
