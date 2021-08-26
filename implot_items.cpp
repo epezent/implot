@@ -51,6 +51,7 @@
 #endif
 
 #if defined __SSE__ || defined __x86_64__ || defined _M_X64
+#include <xmmintrin.h>
 static IMPLOT_INLINE float  ImInvSqrt(float x)           { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x))); }
 #else
 static IMPLOT_INLINE float  ImInvSqrt(float x)           { return 1.0f / sqrtf(x); }
