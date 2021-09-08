@@ -92,8 +92,9 @@ struct ImPlotNextPlotData;
 //-----------------------------------------------------------------------------
 // [SECTION] Context Pointer
 //-----------------------------------------------------------------------------
-
+#ifndef GImPlot
 extern IMPLOT_API ImPlotContext* GImPlot; // Current implicit context pointer
+#endif
 
 //-----------------------------------------------------------------------------
 // [SECTION] Generic Helpers
