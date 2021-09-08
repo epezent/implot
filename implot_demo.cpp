@@ -983,7 +983,7 @@ void ShowDemo_SubplotsSizing() {
     if (ImPlot::BeginSubplots("My Subplots", rows, cols, ImVec2(-1,400), flags, rratios, cratios)) {
         for (int i = 0; i < rows*cols; ++i) {
             if (ImPlot::BeginPlot("",NULL,NULL,ImVec2(),ImPlotFlags_NoLegend,ImPlotAxisFlags_NoTickLabels,ImPlotAxisFlags_NoTickLabels)) {
-                char buffer[8];
+                char buffer[16];
                 float fi = 0.01f * (i+1);
                 sprintf(buffer, "data%d", i);
                 if (i == 0)
