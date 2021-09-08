@@ -51,9 +51,12 @@
 #endif
 
 #if defined __SSE__ || defined __x86_64__ || defined _M_X64
-static IMPLOT_INLINE float  ImInvSqrt(float x)           { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x))); }
+#ifndef IMGUI_ENABLE_SSE
+#include <immintrin.h>
+#endif
+static IMPLOT_INLINE float  ImInvSqrt(float x) { return _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(x))); }
 #else
-static IMPLOT_INLINE float  ImInvSqrt(float x)           { return 1.0f / sqrtf(x); }
+static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
 #endif
 
 #define IMPLOT_NORMALIZE2F_OVER_ZERO(VX,VY) do { float d2 = VX*VX + VY*VY; if (d2 > 0.0f) { float inv_len = ImInvSqrt(d2); VX *= inv_len; VY *= inv_len; } } while (0)
