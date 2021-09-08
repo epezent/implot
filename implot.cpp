@@ -118,7 +118,9 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #endif
 
 // Global plot context
+#ifndef GImPlot
 ImPlotContext* GImPlot = NULL;
+#endif
 
 // TODO: remove, weird
 #define IMPLOT_ID_PLT 10030910
