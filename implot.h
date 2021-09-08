@@ -37,6 +37,7 @@
 // [SECTION] Drag and Drop
 // [SECTION] Styling
 // [SECTION] Colormaps
+// [SECTION] Input Mapping
 // [SECTION] Miscellaneous
 // [SECTION] Demo
 // [SECTION] Obsolete API
@@ -357,16 +358,18 @@ struct ImPlotStyle {
 
 // Input mapping structure, default values listed in the comments.
 struct ImPlotInputMap {
-    ImGuiMouseButton PanButton;             // LMB      enables panning when held
-    ImGuiKeyModFlags PanMod;                // none     optional modifier that must be held for panning
-    ImGuiMouseButton FitButton;             // LMB      fits visible data when double clicked
-    ImGuiMouseButton ContextMenuButton;     // RMB      opens plot context menu (if enabled) when clicked
-    ImGuiMouseButton BoxSelectButton;       // RMB      begins box selection when pressed and confirms selection when released
-    ImGuiKeyModFlags BoxSelectMod;          // none     optional modifier that must be held for box selection
-    ImGuiMouseButton BoxSelectCancelButton; // LMB      cancels active box selection when pressed
-    ImGuiKeyModFlags HorizontalMod;         // Alt      expands active box selection horizontally to plot edge when held
-    ImGuiKeyModFlags VerticalMod;           // Shift    expands active box selection vertically to plot edge when held
-    ImGuiKeyModFlags DragDropMod;           // Ctrl     used for axis/plot DND activation and maybe more things in future             
+    ImGuiMouseButton Pan;           // LMB      enables panning when held,
+    ImGuiKeyModFlags PanMod;        // none     optional modifier that must be held for panning/fitting
+    ImGuiMouseButton Fit;           // LMB      initiates fit when double clicked
+    ImGuiMouseButton Select;        // RMB      begins box selection when pressed and confirms selection when released
+    ImGuiMouseButton SelectCancel;  // LMB      cancels active box selection when pressed; cannot be same as Select
+    ImGuiKeyModFlags SelectMod;     // none     optional modifier that must be held for box selection
+    ImGuiKeyModFlags SelectHorzMod; // Alt      expands active box selection horizontally to plot edge when held
+    ImGuiKeyModFlags SelectVertMod; // Shift    expands active box selection vertically to plot edge when held    
+    ImGuiMouseButton Menu;          // RMB      opens context menus (if enabled) when clicked     
+    ImGuiKeyModFlags OverrideMod;   // Ctrl     when held, all input is ignored; used to enable axis/plots as DND sources    
+    ImGuiKeyModFlags ZoomMod;       // none     optional modifier that must be held for scroll wheel zooming
+    float            ZoomRate;      // 0.1f     zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click); make negative to invert
     IMPLOT_API ImPlotInputMap();
 };
 
@@ -938,12 +941,17 @@ IMPLOT_API bool ColormapButton(const char* label, const ImVec2& size = ImVec2(0,
 IMPLOT_API void BustColorCache(const char* plot_title_id = NULL);
 
 //-----------------------------------------------------------------------------
-// [SECTION] Miscellaneous
+// [SECTION] Input Mapping
 //-----------------------------------------------------------------------------
 
 // Setup input mappings (TODO)
-void MapInputDefault(ImPlotInputMap* dst = NULL);
-void MapInputReverse(ImPlotInputMap* dst = NULL);
+IMPLOT_API ImPlotInputMap& GetInputMap();
+IMPLOT_API void MapInputDefault(ImPlotInputMap* dst = NULL);
+IMPLOT_API void MapInputReverse(ImPlotInputMap* dst = NULL);
+
+//-----------------------------------------------------------------------------
+// [SECTION] Miscellaneous
+//-----------------------------------------------------------------------------
 
 // Render icons similar to those that appear in legends (nifty for data lists).
 IMPLOT_API void ItemIcon(const ImVec4& col);

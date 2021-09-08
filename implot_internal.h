@@ -56,8 +56,6 @@
 
 // The maximum number of supported y-axes (DO NOT CHANGE THIS)
 #define IMPLOT_MAX_AXES    3
-// Zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click)
-#define IMPLOT_ZOOM_RATE 0.1f
 // Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
 #define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
@@ -846,7 +844,6 @@ struct ImPlotPlot
     bool            Initialized;
     bool            Selecting;
     bool            Selected;
-    bool            ContextLocked;
     bool            Hovered;
     bool            Held;
     
@@ -867,7 +864,7 @@ struct ImPlotPlot
             YAxis[i].Vertical = true;
         }
         SelectStart       = ImVec2(0,0);
-        Initialized       = Selecting = Selected = ContextLocked = false;
+        Initialized       = Selecting = Selected = false;
         CurrentX          = CurrentY  = 0;
         MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
         TitleOffset       = -1;
@@ -953,8 +950,8 @@ struct ImPlotSubplot {
     ImVector<ImPlotAlignmentData> ColAlignmentData;
     ImVector<float>               RowRatios;
     ImVector<float>               ColRatios;
-    ImVector<ImLimits>         RowLinkData;
-    ImVector<ImLimits>         ColLinkData;
+    ImVector<ImLimits>            RowLinkData;
+    ImVector<ImLimits>            ColLinkData;
     float                         TempSizes[2];
     bool                          FrameHovered;
 
@@ -1079,6 +1076,7 @@ struct ImPlotContext {
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     ImPoint            MousePos[IMPLOT_MAX_AXES];
+    bool               OpenContextThisFrame;
 
     // Align plots
     ImPool<ImPlotAlignmentData> AlignmentData;

@@ -210,19 +210,80 @@ void ShowDemo_Help() {
 
 //-----------------------------------------------------------------------------
 
-void ShowDemo_Configuration() {
+void ButtonSelector(const char* label, ImGuiMouseButton* b) {
+    ImGui::PushID(label);
+    if (ImGui::RadioButton("Left",*b == ImGuiMouseButton_Left))
+        *b = ImGuiMouseButton_Left;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Right",*b == ImGuiMouseButton_Right))
+        *b = ImGuiMouseButton_Right;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Middle",*b == ImGuiMouseButton_Middle))
+        *b = ImGuiMouseButton_Middle;
+    ImGui::PopID();
+}
+
+void ModSelector(const char* label, ImGuiKeyModFlags* k) {
+    ImGui::PushID(label);
+    ImGui::CheckboxFlags("Ctrl", (unsigned int*)k, ImGuiKeyModFlags_Ctrl); ImGui::SameLine();
+    ImGui::CheckboxFlags("Shift", (unsigned int*)k, ImGuiKeyModFlags_Shift); ImGui::SameLine();
+    ImGui::CheckboxFlags("Alt", (unsigned int*)k, ImGuiKeyModFlags_Alt); ImGui::SameLine();
+    ImGui::CheckboxFlags("Super", (unsigned int*)k, ImGuiKeyModFlags_Super); 
+    ImGui::PopID();
+}
+
+void InputMapping(const char* label, ImGuiMouseButton* b, ImGuiKeyModFlags* k) {
+    ImGui::LabelText("##",label); 
+    if (b != NULL) {
+        ImGui::SameLine(150);
+        ButtonSelector(label,b); 
+    }    
+    if (k != NULL) {
+        ImGui::SameLine(350);
+        ModSelector(label,k);
+    }
+}
+
+void ShowDemo_Config() {
     ImGui::ShowFontSelector("Font");
     ImGui::ShowStyleSelector("ImGui Style");
     ImPlot::ShowStyleSelector("ImPlot Style");
     ImPlot::ShowColormapSelector("ImPlot Colormap");
-    float indent = ImGui::CalcItemWidth() - ImGui::GetFrameHeight();
     ImGui::Separator();
     ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines);
+    ImGui::Separator();
+    ImPlotInputMap& map = ImPlot::GetInputMap();
+    
+    InputMapping("Pan",&map.Pan,&map.PanMod);
+    InputMapping("Fit",&map.Fit,NULL);
+    InputMapping("Select",&map.Select,&map.SelectMod);
+    InputMapping("SelectCancel",&map.SelectCancel,NULL);
+    InputMapping("SelectHorzMod",NULL,&map.SelectHorzMod);
+    InputMapping("SelectVertMod",NULL,&map.SelectVertMod);
+    InputMapping("Menu",&map.Menu,NULL);
+    InputMapping("OverrideMod",NULL,&map.OverrideMod);
+    InputMapping("ZoomMod",NULL,&map.ZoomMod);
+    ImGui::SliderFloat("ZoomRate",&map.ZoomRate,-1,1);
+
     ImGui::Separator();
     ImGui::Checkbox("Use Local Time", &ImPlot::GetStyle().UseLocalTime);
     ImGui::Checkbox("Use ISO 8601", &ImPlot::GetStyle().UseISO8601);
     ImGui::Checkbox("Use 24 Hour Clock", &ImPlot::GetStyle().Use24HourClock);
-    ImGui::Unindent(indent);
+    ImGui::Separator();
+    if (ImPlot::BeginPlot("Preview")) {
+        static double now = (double)time(0);
+        ImPlot::SetupAxis(ImAxis_X1,NULL,ImPlotAxisFlags_Time);
+        ImPlot::SetupAxisLimits(ImAxis_X1, now, now + 24*3600);        
+        for (int i = 0; i < 10; ++i) {
+            double x[2] = {now, now + 24*3600};
+            double y[2] = {0,i/9.0};
+            ImGui::PushID(i);
+            ImPlot::PlotLine("##Line",x,y,2);
+            ImGui::PopID();
+        }
+        ImPlot::EndPlot();
+    }
+
 }
 
 //-----------------------------------------------------------------------------
@@ -1906,7 +1967,7 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Config")) {
-            ShowDemo_Configuration();
+            ShowDemo_Config();
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Help")) {

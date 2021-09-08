@@ -52,7 +52,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
                       - ImPlotCol_XAxisGrid, ImPlotCol_Y1AxisGrid -> ImPlotCol_AxisGrid
                     - MODIFIED:
                       - PixelsToPlot, PlotToPixels, GetPlotMousePos, GetPlotLimits, GetPlotSelection now expect a Y-Axis and X-Axis
-                      - BeginDragDropSourcePlot/Axis no longer accept key mod flags (defaults to ImPlotInputMap.DragDropMod)
+                      - BeginDragDropSourcePlot/Axis no longer accept key mod flags (defaults to ImPlotInputMap.OverrideMod)
                       - DragLineX/Y, DragPoint no longer have the option to show labels. Render yourself via annotation and/or tag tools.
                     - REPLACED
                       - GetPlotQuery, SetPlotQuery, IsPlotQueried, ImPlotCol_Query have been removed in favor of DragRect tool
@@ -133,16 +133,7 @@ ImPlotContext* GImPlot = NULL;
 //-----------------------------------------------------------------------------
 
 ImPlotInputMap::ImPlotInputMap() {
-    PanButton             = ImGuiMouseButton_Left;
-    PanMod                = ImGuiKeyModFlags_None;
-    FitButton             = ImGuiMouseButton_Left;
-    ContextMenuButton     = ImGuiMouseButton_Right;
-    BoxSelectButton       = ImGuiMouseButton_Right;
-    BoxSelectMod          = ImGuiKeyModFlags_None;
-    BoxSelectCancelButton = ImGuiMouseButton_Left;
-    HorizontalMod         = ImGuiKeyModFlags_Alt;
-    VerticalMod           = ImGuiKeyModFlags_Shift;
-    DragDropMod           = ImGuiKeyModFlags_Ctrl;
+    ImPlot::MapInputDefault(this);
 }
 
 ImPlotStyle::ImPlotStyle() {
@@ -493,6 +484,7 @@ void ResetCtxForNextPlot(ImPlotContext* ctx) {
         ctx->ExtentsY[i].Max = -HUGE_VAL;
         ctx->FitY[i] = false;
     }
+    ctx->OpenContextThisFrame = false;
     // reset digital plot items count
     ctx->DigitalPlotItemCnt = 0;
     ctx->DigitalPlotOffset = 0;
@@ -1714,27 +1706,25 @@ bool UpdateInput(ImPlotPlot& plot) {
                                              | ImGuiButtonFlags_MouseButtonRight 
                                              | ImGuiButtonFlags_MouseButtonMiddle;
     const ImGuiButtonFlags axis_button_flags = ImGuiButtonFlags_FlattenChildren
-                                             | ImGuiButtonFlags_AllowItemOverlap
-                                             | ImGuiButtonFlags_PressedOnClick
-                                             | ImGuiButtonFlags_PressedOnDoubleClick;
+                                             | plot_button_flags;
 
     const bool plot_clicked = ImGui::ButtonBehavior(plot.PlotRect,plot.ID,&plot.Hovered,&plot.Held,plot_button_flags);   
     ImGui::SetItemAllowOverlap();
 
     if (plot_clicked) {
-        if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) && IO.MouseClicked[gp.InputMap.BoxSelectButton] && ImHasFlag(IO.KeyMods, gp.InputMap.BoxSelectMod)) {
+        if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) && IO.MouseClicked[gp.InputMap.Select] && ImHasFlag(IO.KeyMods, gp.InputMap.SelectMod)) {
             plot.Selecting   = true;
             plot.SelectStart = IO.MousePos;
             plot.SelectRect  = ImRect(0,0,0,0);
         }
-        if (IO.MouseDoubleClicked[gp.InputMap.FitButton]) {
+        if (IO.MouseDoubleClicked[gp.InputMap.Fit]) {
             gp.FitThisFrame = true;
             for (int i = 0; i < IMPLOT_MAX_AXES; ++i) 
                 gp.FitX[i] = gp.FitY[i] = true;
         }
     }
 
-    const bool can_pan = IO.MouseDown[gp.InputMap.PanButton] && ImHasFlag(IO.KeyMods, gp.InputMap.PanMod);
+    const bool can_pan = IO.MouseDown[gp.InputMap.Pan] && ImHasFlag(IO.KeyMods, gp.InputMap.PanMod);
 
     plot.Held = plot.Held && can_pan;
 
@@ -1750,7 +1740,7 @@ bool UpdateInput(ImPlotPlot& plot) {
         ImPlotAxis& xax = plot.XAxis[i];
         ImGui::KeepAliveID(xax.ID);
         x_click[i]  = ImGui::ButtonBehavior(xax.HoverRect,xax.ID,&xax.Hovered,&xax.Held, axis_button_flags);
-        if (x_click[i] && IO.MouseDoubleClicked[gp.InputMap.FitButton])
+        if (x_click[i] && IO.MouseDoubleClicked[gp.InputMap.Fit])
             gp.FitThisFrame = gp.FitX[i] = true;
         xax.Held  = xax.Held && can_pan;
         x_hov[i]  = xax.Hovered || plot.Hovered;
@@ -1759,7 +1749,7 @@ bool UpdateInput(ImPlotPlot& plot) {
         ImPlotAxis& yax = plot.YAxis[i];
         ImGui::KeepAliveID(yax.ID);
         y_click[i]  = ImGui::ButtonBehavior(yax.HoverRect,yax.ID,&yax.Hovered,&yax.Held, axis_button_flags);
-        if (y_click[i] && IO.MouseDoubleClicked[gp.InputMap.FitButton])
+        if (y_click[i] && IO.MouseDoubleClicked[gp.InputMap.Pan])
             gp.FitThisFrame = gp.FitY[i] = true;
         yax.Held  = yax.Held && can_pan;
         y_hov[i]  = yax.Hovered || plot.Hovered;
@@ -1767,7 +1757,7 @@ bool UpdateInput(ImPlotPlot& plot) {
     }
 
     // cancel due to DND activity
-    if (GImGui->DragDropActive || IO.KeyMods == gp.InputMap.DragDropMod) {
+    if (GImGui->DragDropActive || (IO.KeyMods == gp.InputMap.OverrideMod) && gp.InputMap.OverrideMod != 0) {
         return false;
     }
 
@@ -1776,6 +1766,10 @@ bool UpdateInput(ImPlotPlot& plot) {
     const bool any_x_held = plot.Held    || AnyAxesHeld(plot.XAxis, IMPLOT_MAX_AXES);
     const bool any_y_held = plot.Held    || AnyAxesHeld(plot.YAxis, IMPLOT_MAX_AXES);
     const bool axis_equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
+
+    // CONTEXT-----------------------------------------------------------------
+
+    gp.OpenContextThisFrame = IO.MouseReleased[gp.InputMap.Menu];
 
     // DRAG INPUT -------------------------------------------------------------
 
@@ -1836,9 +1830,9 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     // SCROLL INPUT -----------------------------------------------------------
 
-    if ((any_x_hov || any_y_hov) && IO.MouseWheel != 0) {
+    if ((any_x_hov || any_y_hov) && IO.MouseWheel != 0 && ImHasFlag(IO.KeyMods, gp.InputMap.ZoomMod)) {
         UpdateTransformCache();
-        float zoom_rate = IMPLOT_ZOOM_RATE;
+        float zoom_rate = gp.InputMap.ZoomRate;
         if (IO.MouseWheel > 0)
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));
         float tx = ImRemap(IO.MousePos.x, plot.PlotRect.Min.x, plot.PlotRect.Max.x, 0.0f, 1.0f);
@@ -1883,10 +1877,10 @@ bool UpdateInput(ImPlotPlot& plot) {
     if (plot.Selecting) {
         UpdateTransformCache();
         const ImVec2 d = plot.SelectStart - IO.MousePos;
-        const bool x_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImFabs(d.x) > 2;
-        const bool y_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.VerticalMod)   && ImFabs(d.y) > 2;
+        const bool x_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.SelectHorzMod) && ImFabs(d.x) > 2;
+        const bool y_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.SelectVertMod)   && ImFabs(d.y) > 2;
         // confirm
-        if (IO.MouseReleased[gp.InputMap.BoxSelectButton] || !IO.MouseDown[gp.InputMap.BoxSelectButton]) {
+        if (IO.MouseReleased[gp.InputMap.Select]) {
 
             for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
                 if (!plot.XAxis[i].IsInputLocked() && x_can_change) {
@@ -1902,28 +1896,28 @@ bool UpdateInput(ImPlotPlot& plot) {
                     plot.YAxis[i].SetMax(ImMax(p1.y, p2.y));
                 }
             }
-            if (x_can_change || y_can_change || (ImHasFlag(IO.KeyMods,gp.InputMap.HorizontalMod) && ImHasFlag(IO.KeyMods,gp.InputMap.VerticalMod)))
-                plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
+            if (x_can_change || y_can_change || (ImHasFlag(IO.KeyMods,gp.InputMap.SelectHorzMod) && ImHasFlag(IO.KeyMods,gp.InputMap.SelectVertMod)))
+                gp.OpenContextThisFrame = false;
             plot.Selected = plot.Selecting = false;
         }
         // cancel
-        else if (IO.MouseClicked[gp.InputMap.BoxSelectCancelButton] || IO.MouseDown[gp.InputMap.BoxSelectCancelButton]) {
+        else if (IO.MouseClicked[gp.InputMap.SelectCancel] || IO.MouseDown[gp.InputMap.SelectCancel]) {
             plot.Selected = plot.Selecting = false;
-            plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
+            gp.OpenContextThisFrame = false;
         }
         else if (ImLengthSqr(d) > BOX_SELECT_DRAG_THRESHOLD) {
             // bad selection
             if (plot.IsInputLocked()) {
                 ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
-                plot.ContextLocked = gp.InputMap.BoxSelectButton == gp.InputMap.ContextMenuButton;
+                gp.OpenContextThisFrame = false;
                 plot.Selected      = false;
             }
             else {
                 // TODO: Handle only min or max locked cases
-                plot.SelectRect.Min.x = ImHasFlag(IO.KeyMods, gp.InputMap.HorizontalMod) || AllAxesInputLocked(plot.XAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Min.x : ImMin(plot.SelectStart.x, IO.MousePos.x);
-                plot.SelectRect.Max.x = ImHasFlag(IO.KeyMods, gp.InputMap.HorizontalMod) || AllAxesInputLocked(plot.XAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Max.x : ImMax(plot.SelectStart.x, IO.MousePos.x);
-                plot.SelectRect.Min.y = ImHasFlag(IO.KeyMods, gp.InputMap.VerticalMod)   || AllAxesInputLocked(plot.YAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Min.y : ImMin(plot.SelectStart.y, IO.MousePos.y);
-                plot.SelectRect.Max.y = ImHasFlag(IO.KeyMods, gp.InputMap.VerticalMod)   || AllAxesInputLocked(plot.YAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Max.y : ImMax(plot.SelectStart.y, IO.MousePos.y);
+                plot.SelectRect.Min.x = ImHasFlag(IO.KeyMods, gp.InputMap.SelectHorzMod) || AllAxesInputLocked(plot.XAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Min.x : ImMin(plot.SelectStart.x, IO.MousePos.x);
+                plot.SelectRect.Max.x = ImHasFlag(IO.KeyMods, gp.InputMap.SelectHorzMod) || AllAxesInputLocked(plot.XAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Max.x : ImMax(plot.SelectStart.x, IO.MousePos.x);
+                plot.SelectRect.Min.y = ImHasFlag(IO.KeyMods, gp.InputMap.SelectVertMod)   || AllAxesInputLocked(plot.YAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Min.y : ImMin(plot.SelectStart.y, IO.MousePos.y);
+                plot.SelectRect.Max.y = ImHasFlag(IO.KeyMods, gp.InputMap.SelectVertMod)   || AllAxesInputLocked(plot.YAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Max.y : ImMax(plot.SelectStart.y, IO.MousePos.y);
                 plot.SelectRect.Min  -= plot.PlotRect.Min;
                 plot.SelectRect.Max  -= plot.PlotRect.Min;
                 plot.Selected = true;
@@ -2704,7 +2698,7 @@ void EndPlot() {
         bool legend_contextable = ShowLegendEntries(plot.Items, legend.Rect, legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, !legend_horz, DrawList)
                                 && !ImHasFlag(legend.Flags, ImPlotLegendFlags_NoMenus);
         // main ctx menu
-        if (legend_contextable && !ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && IO.MouseReleased[gp.InputMap.ContextMenuButton] && !plot.ContextLocked)
+        if (gp.OpenContextThisFrame && legend_contextable && !ImHasFlag(plot.Flags, ImPlotFlags_NoMenus))
             ImGui::OpenPopup("##LegendContext");
         ImGui::PopClipRect();
         if (ImGui::BeginPopup("##LegendContext")) {
@@ -2775,10 +2769,10 @@ void EndPlot() {
 
     ImGui::PushOverrideID(plot.ID);
 
-    const bool can_ctx = !ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && 
-                         !plot.Items.Legend.Hovered                  && 
-                         !plot.ContextLocked                         &&
-                         IO.MouseReleased[gp.InputMap.ContextMenuButton];
+    const bool can_ctx = gp.OpenContextThisFrame && 
+                         !ImHasFlag(plot.Flags, ImPlotFlags_NoMenus) && 
+                         !plot.Items.Legend.Hovered;
+                         
 
 
     // main ctx menu
@@ -2818,10 +2812,6 @@ void EndPlot() {
     }
 
     // CLEANUP ----------------------------------------------------------------
-
-    // resset context locked flag
-    if (plot.ContextLocked && IO.MouseReleased[gp.InputMap.BoxSelectButton])
-        plot.ContextLocked = false;
 
     // remove items
     if (gp.CurrentItems == &plot.Items)
@@ -3152,7 +3142,7 @@ void EndSubplots() {
         DrawList.AddRect(subplot.Items.Legend.Rect.Min, subplot.Items.Legend.Rect.Max, col_bd);
         bool legend_contextable = ShowLegendEntries(subplot.Items, subplot.Items.Legend.Rect, subplot.Items.Legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, !legend_horz, DrawList)
                                 && !ImHasFlag(subplot.Items.Legend.Flags, ImPlotLegendFlags_NoMenus);
-        if (legend_contextable && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoMenus) && ImGui::GetIO().MouseReleased[gp.InputMap.ContextMenuButton])
+        if (legend_contextable && !ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoMenus) && ImGui::GetIO().MouseReleased[gp.InputMap.Menu])
             ImGui::OpenPopup("##LegendContext");
         ImGui::PopClipRect();
         if (ImGui::BeginPopup("##LegendContext")) {
@@ -3179,15 +3169,6 @@ void EndSubplots() {
     ImGui::Dummy(subplot.FrameRect.GetSize());
     ResetCtxForNextSubplot(GImPlot);
 
-}
-
-//-----------------------------------------------------------------------------
-// MISC API
-//-----------------------------------------------------------------------------
-
-
-ImPlotInputMap& GetInputMap() {
-    return GImPlot->InputMap;
 }
 
 //-----------------------------------------------------------------------------
@@ -3714,7 +3695,7 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
 bool BeginDragDropSourcePlot(ImGuiDragDropFlags flags) {
     SetupLock();
     ImPlotPlot* plot = GImPlot->CurrentPlot;
-    if (GImGui->IO.KeyMods == GImPlot->InputMap.DragDropMod || GImGui->DragDropPayload.SourceId == plot->ID)    
+    if (GImGui->IO.KeyMods == GImPlot->InputMap.OverrideMod || GImGui->DragDropPayload.SourceId == plot->ID)    
         return ImGui::ItemAdd(plot->PlotRect, plot->ID) && ImGui::BeginDragDropSource(flags);
     return false;
 }
@@ -3722,7 +3703,7 @@ bool BeginDragDropSourcePlot(ImGuiDragDropFlags flags) {
 bool BeginDragDropSourceAxis(ImAxis idx, ImGuiDragDropFlags flags) {
     SetupLock();
     ImPlotAxis* axis = GImPlot->CurrentPlot->GetAxis(idx);
-    if (GImGui->IO.KeyMods == GImPlot->InputMap.DragDropMod || GImGui->DragDropPayload.SourceId == axis->ID)    
+    if (GImGui->IO.KeyMods == GImPlot->InputMap.OverrideMod || GImGui->DragDropPayload.SourceId == axis->ID)    
         return ImGui::ItemAdd(axis->HoverRect, axis->ID) && ImGui::BeginDragDropSource(flags);
     return false;
 }
@@ -3783,6 +3764,7 @@ void EndAlignedPlots() {
 //-----------------------------------------------------------------------------
 
 ImPlotStyle& GetStyle() {
+    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     ImPlotContext& gp = *GImPlot;
     return gp.Style;
 }
@@ -4150,6 +4132,48 @@ bool ColormapButton(const char* label, const ImVec2& size_arg, ImPlotColormap cm
     ImGui::PopStyleColor(4);
     ImGui::PopStyleVar(1);
     return pressed;
+}
+
+//-----------------------------------------------------------------------------
+// [Section] Miscellaneous
+//-----------------------------------------------------------------------------
+
+ImPlotInputMap& GetInputMap() {
+    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
+    ImPlotContext& gp = *GImPlot;
+    return gp.InputMap;
+}
+
+void MapInputDefault(ImPlotInputMap* dst) {
+    ImPlotInputMap& map = dst ? *dst : GetInputMap();
+    map.Pan             = ImGuiMouseButton_Left;
+    map.PanMod                = ImGuiKeyModFlags_None;
+    map.Fit = ImGuiMouseButton_Left;
+    map.Menu     = ImGuiMouseButton_Right;
+    map.Select       = ImGuiMouseButton_Right;
+    map.SelectMod          = ImGuiKeyModFlags_None;
+    map.SelectCancel = ImGuiMouseButton_Left;
+    map.SelectHorzMod         = ImGuiKeyModFlags_Alt;
+    map.SelectVertMod           = ImGuiKeyModFlags_Shift;
+    map.OverrideMod           = ImGuiKeyModFlags_Ctrl;
+    map.ZoomMod = ImGuiKeyModFlags_None;
+    map.ZoomRate              = 0.1f;
+}
+
+void MapInputReverse(ImPlotInputMap* dst) {
+    ImPlotInputMap& map = dst ? *dst : GetInputMap();
+    map.Pan             = ImGuiMouseButton_Left;
+    map.PanMod                = ImGuiKeyModFlags_None;
+    map.Fit = ImGuiMouseButton_Left;
+    map.Menu     = ImGuiMouseButton_Right;
+    map.Select       = ImGuiMouseButton_Right;
+    map.SelectMod          = ImGuiKeyModFlags_None;
+    map.SelectCancel = ImGuiMouseButton_Left;
+    map.SelectHorzMod         = ImGuiKeyModFlags_Alt;
+    map.SelectVertMod           = ImGuiKeyModFlags_Shift;
+    map.OverrideMod           = ImGuiKeyModFlags_Ctrl;
+    map.ZoomMod = ImGuiKeyModFlags_None;
+    map.ZoomRate              = 0.1f;
 }
 
 //-----------------------------------------------------------------------------
