@@ -1659,7 +1659,7 @@ template IMPLOT_API void PlotStems<double>(const char* label_id, const double* x
 template <typename T>
 void PlotVLines(const char* label_id, const T* xs, int count, int offset, int stride) {
     if (BeginItem(label_id, ImPlotCol_Line)) {
-        const ImLimitsXY lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
+        const ImBounds lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
         GetterXsYRef<T> get_min(xs,lims.Y.Min,count,offset,stride);
         GetterXsYRef<T> get_max(xs,lims.Y.Max,count,offset,stride);
         if (FitThisFrame()) {
@@ -1697,7 +1697,7 @@ template IMPLOT_API void PlotVLines<double>(const char* label_id, const double* 
 template <typename T>
 void PlotHLines(const char* label_id, const T* ys, int count, int offset, int stride) {
     if (BeginItem(label_id, ImPlotCol_Line)) {
-        const ImLimitsXY lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
+        const ImBounds lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
         GetterXRefYs<T> get_min(lims.X.Min,ys,count,offset,stride);
         GetterXRefYs<T> get_max(lims.X.Max,ys,count,offset,stride);
         if (FitThisFrame()) {
@@ -1989,7 +1989,7 @@ template IMPLOT_API void PlotHeatmap<double>(const char* label_id, const double*
 //-----------------------------------------------------------------------------
 
 template <typename T>
-double PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale) {
+double PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale) {
 
     if (count <= 0 || bins == 0)
         return 0;
@@ -2059,23 +2059,23 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
     return max_count;
 }
 
-template IMPLOT_API double PlotHistogram<ImS8>(const char* label_id, const ImS8* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImU8>(const char* label_id, const ImU8* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImS16>(const char* label_id, const ImS16* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImU16>(const char* label_id, const ImU16* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImS32>(const char* label_id, const ImS32* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImU32>(const char* label_id, const ImU32* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImS64>(const char* label_id, const ImS64* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImU64>(const char* label_id, const ImU64* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<float>(const char* label_id, const float* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<double>(const char* label_id, const double* values, int count, int bins, bool cumulative, bool density, ImLimits range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<ImS8>(const char* label_id, const ImS8* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<ImU8>(const char* label_id, const ImU8* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<ImS16>(const char* label_id, const ImS16* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<ImU16>(const char* label_id, const ImU16* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<ImS32>(const char* label_id, const ImS32* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<ImU32>(const char* label_id, const ImU32* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<ImS64>(const char* label_id, const ImS64* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<ImU64>(const char* label_id, const ImU64* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<float>(const char* label_id, const float* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<double>(const char* label_id, const double* values, int count, int bins, bool cumulative, bool density, ImRange range, bool outliers, double bar_scale);
 
 //-----------------------------------------------------------------------------
 // PLOT HISTOGRAM 2D
 //-----------------------------------------------------------------------------
 
 template <typename T>
-double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers) {
+double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers) {
 
     if (count <= 0 || x_bins == 0 || y_bins == 0)
         return 0;
@@ -2148,16 +2148,16 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
     return max_count;
 }
 
-template IMPLOT_API double PlotHistogram2D<ImS8>(const char* label_id,   const ImS8*   xs, const ImS8*   ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImU8>(const char* label_id,   const ImU8*   xs, const ImU8*   ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImS16>(const char* label_id,  const ImS16*  xs, const ImS16*  ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImU16>(const char* label_id,  const ImU16*  xs, const ImU16*  ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImS32>(const char* label_id,  const ImS32*  xs, const ImS32*  ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImU32>(const char* label_id,  const ImU32*  xs, const ImU32*  ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImS64>(const char* label_id,  const ImS64*  xs, const ImS64*  ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImU64>(const char* label_id,  const ImU64*  xs, const ImU64*  ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<float>(const char* label_id,  const float*  xs, const float*  ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<double>(const char* label_id, const double* xs, const double* ys, int count, int x_bins, int y_bins, bool density, ImLimitsXY range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<ImS8>(const char* label_id,   const ImS8*   xs, const ImS8*   ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<ImU8>(const char* label_id,   const ImU8*   xs, const ImU8*   ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<ImS16>(const char* label_id,  const ImS16*  xs, const ImS16*  ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<ImU16>(const char* label_id,  const ImU16*  xs, const ImU16*  ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<ImS32>(const char* label_id,  const ImS32*  xs, const ImS32*  ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<ImU32>(const char* label_id,  const ImU32*  xs, const ImU32*  ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<ImS64>(const char* label_id,  const ImS64*  xs, const ImS64*  ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<ImU64>(const char* label_id,  const ImU64*  xs, const ImU64*  ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<float>(const char* label_id,  const float*  xs, const float*  ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<double>(const char* label_id, const double* xs, const double* ys, int count, int x_bins, int y_bins, bool density, ImBounds range, bool outliers);
 
 //-----------------------------------------------------------------------------
 // PLOT DIGITAL

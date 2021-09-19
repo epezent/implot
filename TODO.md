@@ -66,6 +66,9 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - rework DragLine/Point to use ButtonBehavior
 - make query a tool -> `DragRect`
 - remove tag from drag line/point -> add `AxisTag` tool
+- `SetupAxisColor()`
+- `SetupAxisConstraints()`
+- `SetupAxisHome()`   
 
 ## Optimizations
 
@@ -73,3 +76,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - reduce number of calls to `PushClipRect`
 - explore SIMD operations for high density plot items
 
+## Bugs
+
+- legend items can be hovered even if plot is not
+- change colormap not working demo

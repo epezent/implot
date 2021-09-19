@@ -134,7 +134,7 @@ enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_LinkRows    = 1 << 6,  // link the y-axis limits of all plots in each row (does not apply auxiliary y-axes)
     ImPlotSubplotFlags_LinkCols    = 1 << 7,  // link the x-axis limits of all plots in each column
     ImPlotSubplotFlags_LinkAllX    = 1 << 8,  // link the x-axis limits in every plot in the subplot
-    ImPlotSubplotFlags_LinkAllY    = 1 << 9 , // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
+    ImPlotSubplotFlags_LinkAllY    = 1 << 9,  // link the y-axis limits in every plot in the subplot (does not apply to auxiliary y-axes)
     ImPlotSubplotFlags_ColMajor    = 1 << 10  // subplots are added in column major order instead of the default row major order
 };
 
@@ -147,7 +147,6 @@ enum ImPlotLegendFlags_ {
     ImPlotLegendFlags_NoMenus         = 1 << 3, // the user will not be able to open context menus with right-click
     ImPlotLegendFlags_Outside         = 1 << 4, // legend will be rendered outside of the plot area
     ImPlotLegendFlags_Horizontal      = 1 << 5, // legend entries will be displayed horizontally
-    // ImPlotLegendFlags_SortItems       = 1 << 6, // legend entries will be sorted in alpha-numeric order (does not affect item render order)
 };
 
 // Plot styling colors.
@@ -293,24 +292,25 @@ struct ImPoint {
 #endif
 };
 
-// Range limits defined by a min/max value. Used for plot axes limits.
-struct ImLimits {
+// Range defined by a min/max value.
+struct ImRange {
     double Min, Max;
-    ImLimits()                            { Min = 0; Max = 0;                    }
-    ImLimits(double _min, double _max)    { Min = _min; Max = _max;              }
-    bool Contains(double value) const     { return value >= Min && value <= Max; }
-    double Size() const                   { return Max - Min;                    }
+    ImRange()                            { Min = 0; Max = 0;                    }
+    ImRange(double _min, double _max)    { Min = _min; Max = _max;              }
+    bool Contains(double value) const    { return value >= Min && value <= Max; }
+    double Size() const                  { return Max - Min;                    }
 };
 
 // Combination of two range limits for X and Y axes. Also an AABB defined by Min()/Max().
-struct ImLimitsXY {
-    ImLimits X, Y;
-    ImLimitsXY()                                                       {                                                               }
-    ImLimitsXY(double x_min, double x_max, double y_min, double y_max) { X.Min = x_min; X.Max = x_max; Y.Min = y_min; Y.Max = y_max;   }
-    bool Contains(const ImPoint& p) const                              { return Contains(p.x, p.y);                                    }
-    bool Contains(double x, double y) const                            { return X.Contains(x) && Y.Contains(y);                        }
-    ImPoint Min() const                                                { return ImPoint(X.Min, Y.Min);                                 }
-    ImPoint Max() const                                                { return ImPoint(X.Max, Y.Max);                                 }
+struct ImBounds {
+    ImRange X, Y;
+    ImBounds()                                                       {                                                               }
+    ImBounds(double x_min, double x_max, double y_min, double y_max) { X.Min = x_min; X.Max = x_max; Y.Min = y_min; Y.Max = y_max;   }
+    bool Contains(const ImPoint& p) const                            { return Contains(p.x, p.y);                                    }
+    bool Contains(double x, double y) const                          { return X.Contains(x) && Y.Contains(y);                        }
+    ImPoint Size() const                                             { return ImPoint(X.Size(), Y.Size());                           }
+    ImPoint Min() const                                              { return ImPoint(X.Min, Y.Min);                                 }
+    ImPoint Max() const                                              { return ImPoint(X.Max, Y.Max);                                 }
 };
 
 // Plot style structure
@@ -444,8 +444,9 @@ IMPLOT_API void EndPlot();
 //
 // Produces:
 //
-// [0][1][2]
-// [3][4][5]
+// [0] | [1] | [2]
+// ----|-----|----
+// [3] | [4] | [5]
 //
 // Important notes:
 //
@@ -507,33 +508,24 @@ IMPLOT_API void EndSubplots();
 //   Do NOT call Setup code after you begin plotting or after you make
 //   any non-Setup API calls (e.g. utils like PlotToPixels also lock Setup)
 // - Calling SetupFinish is OPTIONAL, but probably good practice. If you do not
-//   call it yourself, then the first subsequent plotting function will call it
-//   for you. 
+//   call it yourself, then the first subsequent plotting or utility function will 
+//   call it for you. 
 
 // TODO:
-// - fix drag lines labels
 // - format mouse text
-// - fix subplots linking
+// - fix subplots alignment (linking?)
 // - fix padding alignment
 // - make legend an item
 // - clean up DND w/ new button behaviors
 // - equal axis demo bug
 // - input mapping
 
-// Sets the primary X and Y axes range limits. If ImGuiCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
-IMPLOT_API void SetupPlotLimits(float x_min, float x_max, float y_min, float y_max, ImGuiCond cond = ImGuiCond_Once);
-
 // Enables an axis or sets the label and/or flags for an existing axis. Leave #label = NULL for no label.
 IMPLOT_API void SetupAxis(ImAxis axis, const char* label = NULL, ImPlotAxisFlags flags = ImPlotAxisFlags_None);
 // Sets an axis range limits. If ImGuiCond_Always is used, the axes limits will be locked.
-IMPLOT_API void SetupAxisLimits(ImAxis axis, double min_lim, double max_lim, ImGuiCond cond = ImGuiCond_Once);
+IMPLOT_API void SetupAxisLimits(ImAxis axis, double v1, double v2, ImGuiCond cond = ImGuiCond_Once);
 // Links an axis range limits to external values. Set to NULL for no linkage. The pointer data must remain valid until EndPlot.
 IMPLOT_API void SetupAxisLinks(ImAxis axis, double* min_lnk, double* max_lnk);
-
-IMPLOT_API void SetupAxisColor(ImAxis axis);       // TODO
-IMPLOT_API void SetupAxisConstraints(ImAxis axis); // TODO
-IMPLOT_API void SetupAxisHome(ImAxis axis);        // TODO
-
 // Sets the format of numeric axis labels via formater specifier (default="%g"). Formated values will be double (i.e. use %f).
 IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
 // Sets the format of numeric axis labels via formatter callback. Given #value, write a label into #buff. Optionally pass user data.
@@ -542,6 +534,11 @@ IMPLOT_API void SetupAxisFormat(ImAxis axis, void (*formatter)(double value, cha
 IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
 // Sets an axis' ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
 IMPLOT_API void SetupAxisTicks(ImAxis axis, double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
+
+// Sets the label and/or flags for primary X and Y axes (shorthand for two calls to SetupAxis).
+IMPLOT_API void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFlags x_flags = ImPlotAxisFlags_None, ImPlotAxisFlags y_flags = ImPlotAxisFlags_None);
+// Sets the primary X and Y axes range limits. If ImGuiCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
+IMPLOT_API void SetupAxesLimits(double x1, double x2, double y1, double y2, ImGuiCond cond = ImGuiCond_Once);
 
 // Sets up the plot legend.
 IMPLOT_API void SetupLegend(ImPlotLocation location, ImPlotLegendFlags flags = ImPlotLegendFlags_None);
@@ -656,12 +653,12 @@ template <typename T> IMPLOT_API void PlotHeatmap(const char* label_id, const T*
 // Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBin_ method. If #cumulative is true, each bin contains its count plus the counts of all previous bins.
 // If #density is true, the PDF is visualized. If both are true, the CDF is visualized. If #range is left unspecified, the min/max of #values will be used as the range.
 // If #range is specified, outlier values outside of the range are not binned. However, outliers still count toward normalizing and cumulative counts unless #outliers is false. The largest bin count or density is returned.
-template <typename T> IMPLOT_API double PlotHistogram(const char* label_id, const T* values, int count, int bins=ImPlotBin_Sturges, bool cumulative=false, bool density=false, ImLimits range=ImLimits(), bool outliers=true, double bar_scale=1.0);
+template <typename T> IMPLOT_API double PlotHistogram(const char* label_id, const T* values, int count, int bins=ImPlotBin_Sturges, bool cumulative=false, bool density=false, ImRange range=ImRange(), bool outliers=true, double bar_scale=1.0);
 
 // Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBin. If #density is true, the PDF is visualized.
-// If #range is left unspecified, the min/max of #xs an #ys will be used as the ranges. If #range is specified, outlier values outside of range are not binned.
+// If #bounds is left unspecified, the min/max of #xs an #ys will be used as the ranges. If #bounds is specified, outlier values outside of range are not binned.
 // However, outliers still count toward the normalizing count for density plots unless #outliers is false. The largest bin count or density is returned.
-template <typename T> IMPLOT_API double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins=ImPlotBin_Sturges, int y_bins=ImPlotBin_Sturges, bool density=false, ImLimitsXY range=ImLimitsXY(), bool outliers=true);
+template <typename T> IMPLOT_API double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins=ImPlotBin_Sturges, int y_bins=ImPlotBin_Sturges, bool density=false, ImBounds range=ImBounds(), bool outliers=true);
 
 // Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
 template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
@@ -692,12 +689,15 @@ IMPLOT_API void AnnotateClamped(double x, double y, const ImVec2& pix_offset, co
 IMPLOT_API void AnnotateClampedV(double x, double y, const ImVec2& pix_offset, const char* fmt, va_list args)                      IM_FMTLIST(4);
 IMPLOT_API void AnnotateClampedV(double x, double y, const ImVec2& pix_offset, const ImVec4& color, const char* fmt, va_list args) IM_FMTLIST(5);
 
+// Shows a draggable point at x,y. #col defaults to ImGuiCol_Text.
+IMPLOT_API bool DragPoint(const char* id, double* x, double* y, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 4);
 // Shows a draggable vertical guide line at an x-value. #col defaults to ImGuiCol_Text.
 IMPLOT_API bool DragLineX(const char* id, double* x_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
 // Shows a draggable horizontal guide line at a y-value. #col defaults to ImGuiCol_Text.
 IMPLOT_API bool DragLineY(const char* id, double* y_value, const ImVec4& col = IMPLOT_AUTO_COL, float thickness = 1);
-// Shows a draggable point at x,y. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragPoint(const char* id, double* x, double* y, const ImVec4& col = IMPLOT_AUTO_COL, float radius = 4);
+// Shows a draggable and resizeable rectangle.
+IMPLOT_API bool DragRect(const char* id, double* x_min, double* y_min, double* x_max, double* y_max, const ImVec4& col);
+IMPLOT_API bool DragRect(const char* id, ImBounds* bounds, const ImVec4& col);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Utils
@@ -706,6 +706,10 @@ IMPLOT_API bool DragPoint(const char* id, double* x, double* y, const ImVec4& co
 // Select which axis/axes will be used for subsequent plot elements.
 IMPLOT_API void SetAxis(ImAxis axis);
 IMPLOT_API void SetAxes(ImAxis x_axis, ImAxis y_axis);
+
+// Cause an axis to fit to its data. This must be called BEFORE any item PlotX calls you wish to contribute to the fit.
+IMPLOT_API void FitAxis(ImAxis axis);
+IMPLOT_API void FitAxes();
 
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
 IMPLOT_API ImPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
@@ -723,7 +727,7 @@ IMPLOT_API ImVec2 GetPlotSize();
 // Returns the mouse position in x,y coordinates of the current plot. 
 IMPLOT_API ImPoint GetPlotMousePos(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 // Returns the current plot axis range. 
-IMPLOT_API ImLimitsXY GetPlotLimits(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImBounds GetPlotLimits(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Returns true if the plot area in the current plot is hovered.
 IMPLOT_API bool IsPlotHovered();
@@ -735,7 +739,7 @@ IMPLOT_API bool IsSubplotsHovered();
 // Returns true if the current plot is being box selected.
 IMPLOT_API bool IsPlotSelected();
 // Returns the current plot box selection bounds.
-IMPLOT_API ImLimitsXY GetPlotSelection(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImBounds GetPlotSelection(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Hides or shows the next plot item (i.e. as if it were toggled from the legend).
 // Use ImGuiCond_Always if you need to forcefully set this every frame.
@@ -1042,6 +1046,6 @@ IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max,
 IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotFormatX(const char* fmt) );
 IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotFormatY(const char* fmt, ImAxis y_axis = ImAxis_Y1) );
 
-#endif
-
 } // namespace ImPlot
+
+#endif
