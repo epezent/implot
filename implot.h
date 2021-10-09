@@ -266,15 +266,17 @@ enum ImPlotBin_ {
     ImPlotBin_Scott   = -4, // w = 3.49 * sigma / cbrt(n)
 };
 
-// Axis indices. You are STRONGLY encouraged to use the enums 
-// provided here instead of hardcoding integer values.
+// Axis indices.
 enum ImAxis_ {
-    ImAxis_X1 = 0, // first horizontal axis  (enabled by default)
-    ImAxis_X2 = 1, // second horizontal axis (disabled by default)
-    ImAxis_X3 = 2, // third horizontal axis  (disabled by default)
-    ImAxis_Y1 = 3, // first vertical axis    (enabled by default)
-    ImAxis_Y2 = 4, // second vertical axis   (disabled by default)
-    ImAxis_Y3 = 5, // third vertical axis    (disabled by default)
+    // horizontal axes
+    ImAxis_X1 = 0, // enabled by default
+    ImAxis_X2,     // disabled by default
+    ImAxis_X3,     // disabled by default
+    // vertical axes
+    ImAxis_Y1,     // enabled by default
+    ImAxis_Y2,     // disabled by default
+    ImAxis_Y3,     // disabled by default
+    // bookeeping
     ImAxis_COUNT
 };
 

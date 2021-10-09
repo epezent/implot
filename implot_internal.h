@@ -47,6 +47,15 @@
 #define GetBufSize GetSize
 #endif
 
+#if (false)
+#error The number of ImAxis_X and and ImAxis_Y must be equal
+#else
+#define IMPLOT_MAX_AXES ImAxis_COUNT/2
+#endif
+
+#define IMPLOT_FOR_AXES_X(i) for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
+#define IMPLOT_FOR_AXES_Y(i) for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
+
 //-----------------------------------------------------------------------------
 // [SECTION] Constants
 //-----------------------------------------------------------------------------
@@ -54,8 +63,6 @@
 // Constants can be changed unless stated otherwise. We may move some of these
 // to ImPlotStyleVar_ over time.
 
-// The maximum number of supported y-axes (DO NOT CHANGE THIS)
-#define IMPLOT_MAX_AXES 3
 // Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
 #define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
@@ -607,8 +614,8 @@ struct ImPlotAxis
         Flags            = PreviousFlags = ImPlotAxisFlags_None;
         Range.Min        = 0;
         Range.Max        = 1;
-        Hovered    = false;
-        Held       = false;
+        Hovered         = false;
+        Held            = false;
         LinkedMin        = LinkedMax = NULL;
         PickerLevel      = 0;
         ColorMaj         = ColorMin = ColorTxt = ColorHov = ColorAct = 0;
@@ -897,7 +904,10 @@ struct ImPlotPlot
     inline const char* GetTitle() const { return TextBuffer.Buf.Data + TitleOffset; }
 
     inline ImPlotAxis* GetAxis(ImAxis axis) {
-        return XAxis + axis;
+        if (axis < ImAxis_Y1)
+            return &XAxis[axis];
+        else
+            return &YAxis[axis - ImAxis_Y1];
     }
 
     inline int GetAxisIdxX(ImAxis axis) {
@@ -933,6 +943,7 @@ struct ImPlotPlot
             axis.LabelOffset = -1;
         }
     }
+
     inline const char* GetAxisLabel(const ImPlotAxis& axis) const { return TextBuffer.Buf.Data + axis.LabelOffset; } 
 };
 

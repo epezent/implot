@@ -1730,32 +1730,36 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     plot.Held = plot.Held && can_pan;
 
-    bool x_click[IMPLOT_MAX_AXES];
-    bool y_click[IMPLOT_MAX_AXES];
-    bool x_held[IMPLOT_MAX_AXES];
-    bool y_held[IMPLOT_MAX_AXES];
-    bool x_hov[IMPLOT_MAX_AXES];
-    bool y_hov[IMPLOT_MAX_AXES];
+    bool x_click[IMPLOT_MAX_AXES] = {false};
+    bool y_click[IMPLOT_MAX_AXES] = {false};
+    bool x_held[IMPLOT_MAX_AXES] = {false};
+    bool y_held[IMPLOT_MAX_AXES] = {false};
+    bool x_hov[IMPLOT_MAX_AXES] = {false};
+    bool y_hov[IMPLOT_MAX_AXES] = {false};
 
     for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
         // x buttons
         ImPlotAxis& xax = plot.XAxis[i];
-        ImGui::KeepAliveID(xax.ID);
-        x_click[i]  = ImGui::ButtonBehavior(xax.HoverRect,xax.ID,&xax.Hovered,&xax.Held, axis_button_flags);
-        if (x_click[i] && IO.MouseDoubleClicked[gp.InputMap.Fit])
-            gp.FitThisFrame = gp.FitX[i] = true;
-        xax.Held  = xax.Held && can_pan;
-        x_hov[i]  = xax.Hovered || plot.Hovered;
-        x_held[i] = xax.Held    || plot.Held;
+        if (xax.Enabled) {
+            ImGui::KeepAliveID(xax.ID);
+            x_click[i]  = ImGui::ButtonBehavior(xax.HoverRect,xax.ID,&xax.Hovered,&xax.Held, axis_button_flags);
+            if (x_click[i] && IO.MouseDoubleClicked[gp.InputMap.Fit])
+                gp.FitThisFrame = gp.FitX[i] = true;
+            xax.Held  = xax.Held && can_pan;
+            x_hov[i]  = xax.Hovered || plot.Hovered;
+            x_held[i] = xax.Held    || plot.Held;
+        }
         // y buttons
         ImPlotAxis& yax = plot.YAxis[i];
-        ImGui::KeepAliveID(yax.ID);
-        y_click[i]  = ImGui::ButtonBehavior(yax.HoverRect,yax.ID,&yax.Hovered,&yax.Held, axis_button_flags);
-        if (y_click[i] && IO.MouseDoubleClicked[gp.InputMap.Pan])
-            gp.FitThisFrame = gp.FitY[i] = true;
-        yax.Held  = yax.Held && can_pan;
-        y_hov[i]  = yax.Hovered || plot.Hovered;
-        y_held[i] = yax.Held    || plot.Held;
+        if (yax.Enabled) {
+            ImGui::KeepAliveID(yax.ID);
+            y_click[i]  = ImGui::ButtonBehavior(yax.HoverRect,yax.ID,&yax.Hovered,&yax.Held, axis_button_flags);
+            if (y_click[i] && IO.MouseDoubleClicked[gp.InputMap.Pan])
+                gp.FitThisFrame = gp.FitY[i] = true;
+            yax.Held  = yax.Held && can_pan;
+            y_hov[i]  = yax.Hovered || plot.Hovered;
+            y_held[i] = yax.Held    || plot.Held;
+        }
     }
 
     // cancel due to DND activity
@@ -1970,8 +1974,6 @@ void ApplyNextPlotData(ImAxis idx) {
 //-----------------------------------------------------------------------------
 // Setup
 //-----------------------------------------------------------------------------
-
-
 
 void SetupAxis(ImAxis idx, const char* label, ImPlotAxisFlags flags) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
@@ -2410,14 +2412,14 @@ void SetupFinish() {
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
         if (plot.XAxis[i].WillRender()) {
             for (int t = 0; t < gp.XTicks[i].Size; t++) {
-                ImPlotTick *xt = &gp.XTicks[i].Ticks[t];
-                xt->PixelPos = IM_ROUND(PlotToPixels(xt->PlotPos, 0, ImAxis_X1+i, ImAxis_Y1).x);
+                ImPlotTick& xt = gp.XTicks[i].Ticks[t];
+                xt.PixelPos = IM_ROUND(PlotToPixels(xt.PlotPos, 0, ImAxis_X1+i, ImAxis_Y1).x);
             }
         }
         if (plot.YAxis[i].WillRender()) {
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
-                ImPlotTick *yt = &gp.YTicks[i].Ticks[t];
-                yt->PixelPos = IM_ROUND(PlotToPixels(0, yt->PlotPos, ImAxis_X1, ImAxis_Y1+i).y);
+                ImPlotTick& yt = gp.YTicks[i].Ticks[t];
+                yt.PixelPos = IM_ROUND(PlotToPixels(0, yt.PlotPos, ImAxis_X1, ImAxis_Y1+i).y);
             }
         }
     }
@@ -2427,7 +2429,7 @@ void SetupFinish() {
         if (plot.XAxis[i].Enabled && plot.XAxis[i].HasGridLines() && !plot.XAxis[i].IsForeground())
             RenderGridLinesX(DrawList, gp.XTicks[i], plot.PlotRect, plot.XAxis[i].ColorMaj, plot.XAxis[i].ColorMin, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
         if (plot.YAxis[i].Enabled && plot.YAxis[i].HasGridLines() && !plot.YAxis[i].IsForeground())
-            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis[i].ColorMaj,  plot.YAxis[i].ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
+            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis[i].ColorMaj, plot.YAxis[i].ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
     }
 
     // clear legend (TODO: put elsewhere)
@@ -4628,6 +4630,17 @@ void ShowUserGuide() {
     ImGui::BulletText("Click legend label icons to show/hide plot items.");
 }
 
+void ShowContextMetrics(const ImPlotContext& ctx) {
+    ImGui::Text("FitThisFrame: %s", ctx.FitThisFrame ? "true" : "false");
+    for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
+        // ImGui::Text("FitX[%d]: %s", i, ctx.FitX[i] ? "true" : "false");
+        // ImGui::Text("FitY[%d]: %s", i, ctx.FitY[i] ? "true" : "false");
+        // ImGui::Text("Mx[%d]: %f", i, ctx.Mx[i]);
+        // ImGui::Text("My[%d]: %f", i, ctx.My[i]);
+        ImGui::Text("PixelRange[%d]: [%.3f,%.3f,%.3f,%.3f]", i, ctx.PixelRange[i].Min.x, ctx.PixelRange[i].Min.y, ctx.PixelRange[i].Max.x, ctx.PixelRange[i].Max.y);
+    }
+}
+
 void ShowAxisMetrics(const ImPlotPlot& plot, const ImPlotAxis& axis) {
     ImGui::Bullet(); ImGui::Text("Label: %s", axis.LabelOffset == -1 ? "none" : plot.GetAxisLabel(axis));
     ImGui::Bullet(); ImGui::Text("Flags: %d", axis.Flags);
@@ -4705,6 +4718,10 @@ void ShowMetricsWindow(bool* p_popen) {
             fg.AddRect(subplot->FrameRect.Min, subplot->FrameRect.Max, IM_COL32(255,0,0,255));
         if (show_subplot_grid_rects)
             fg.AddRect(subplot->GridRect.Min, subplot->GridRect.Max, IM_COL32(0,0,255,255));
+    }
+    if (ImGui::TreeNode("Context")) {
+        ShowContextMetrics(gp);
+        ImGui::TreePop();
     }
     if (ImGui::TreeNode("Plots","Plots (%d)", n_plots)) {
         for (int p = 0; p < n_plots; ++p) {
