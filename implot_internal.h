@@ -47,14 +47,6 @@
 #define GetBufSize GetSize
 #endif
 
-#if (false)
-#error The number of ImAxis_X and and ImAxis_Y must be equal
-#else
-#define IMPLOT_MAX_AXES ImAxis_COUNT/2
-#endif
-
-#define IMPLOT_FOR_AXES_X(i) for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
-#define IMPLOT_FOR_AXES_Y(i) for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
 
 //-----------------------------------------------------------------------------
 // [SECTION] Constants
@@ -77,6 +69,11 @@
 //-----------------------------------------------------------------------------
 // [SECTION] Macros
 //-----------------------------------------------------------------------------
+
+#define IMPLOT_MAX_AXES (ImAxis_COUNT/2)
+#define IMPLOT_FOR_AXES_X(i) for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
+#define IMPLOT_FOR_AXES_Y(i) for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
+
 
 // Split ImU32 color into RGB components [0 255]
 #define IM_COL32_SPLIT_RGB(col,r,g,b) \
@@ -904,10 +901,15 @@ struct ImPlotPlot
     inline const char* GetTitle() const { return TextBuffer.Buf.Data + TitleOffset; }
 
     inline ImPlotAxis* GetAxis(ImAxis axis) {
-        if (axis < ImAxis_Y1)
-            return &XAxis[axis];
-        else
-            return &YAxis[axis - ImAxis_Y1];
+        switch (axis) {
+            case ImAxis_X1 : return &XAxis[0];
+            case ImAxis_X2 : return &XAxis[1];
+            case ImAxis_X3 : return &XAxis[2];
+            case ImAxis_Y1 : return &YAxis[0];
+            case ImAxis_Y2 : return &YAxis[1];
+            case ImAxis_Y3 : return &YAxis[2];
+        }
+        return NULL;
     }
 
     inline int GetAxisIdxX(ImAxis axis) {
