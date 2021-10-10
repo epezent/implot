@@ -252,9 +252,9 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
             }
             if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightAxis)) {
                 if (gp.CurrentPlot->EnabledAxesX() > 1)
-                    gp.CurrentPlot->XAxis[gp.CurrentPlot->CurrentX].ColorHiLi = item->Color;
+                    gp.CurrentPlot->Axes[gp.CurrentPlot->CurrentX].ColorHiLi = item->Color;
                 if (gp.CurrentPlot->EnabledAxesY() > 1)
-                    gp.CurrentPlot->YAxis[gp.CurrentPlot->CurrentY].ColorHiLi = item->Color;
+                    gp.CurrentPlot->Axes[gp.CurrentPlot->CurrentY].ColorHiLi = item->Color;
             }
         }
         // set render flags
@@ -483,20 +483,34 @@ struct TransformerLog {
 
 template <typename TransformerX, typename TransformerY>
 struct TransformerXY {
-    TransformerXY() :
-        XAxis(GetCurrentAxisX()),
-        YAxis(GetCurrentAxisY()),
-        Tx(GImPlot->PixelRange[YAxis].Min.x, GImPlot->CurrentPlot->XAxis[XAxis].Range.Min, GImPlot->CurrentPlot->XAxis[XAxis].Range.Max, GImPlot->Mx[XAxis], GImPlot->LogDenX[XAxis]),
-        Ty(GImPlot->PixelRange[YAxis].Min.y, GImPlot->CurrentPlot->YAxis[YAxis].Range.Min, GImPlot->CurrentPlot->YAxis[YAxis].Range.Max, GImPlot->My[YAxis], GImPlot->LogDenY[YAxis])
+    TransformerXY(const ImPlotAxis& x_axis, const ImPlotAxis& y_axis) :
+
+        Tx(x_axis.PixelMin, 
+           x_axis.Range.Min, 
+           x_axis.Range.Max, 
+           x_axis.LinM, 
+           x_axis.LogD),
+        Ty(y_axis.PixelMin, 
+           y_axis.Range.Min, 
+           y_axis.Range.Max, 
+           y_axis.LinM, 
+           y_axis.LogD)
     { }
+
+    TransformerXY(const ImPlotPlot& plot) :
+        TransformerXY(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]) 
+    { }
+
+    TransformerXY() :
+        TransformerXY(*GImPlot->CurrentPlot)
+    { }
+
     template <typename P> IMPLOT_INLINE ImVec2 operator()(const P& plt) const {
         ImVec2 out;
         out.x = Tx(plt.x);
         out.y = Ty(plt.y);
         return out;
     }
-    int XAxis;
-    int YAxis;
     TransformerX Tx;
     TransformerY Ty;
 };
@@ -2172,7 +2186,10 @@ IMPLOT_INLINE void PlotDigitalEx(const char* label_id, Getter getter) {
         ImDrawList& DrawList = *GetPlotDrawList();
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1 && s.RenderFill) {
-            const int y_axis = GetCurrentAxisY();
+            ImPlotPlot& plot   = *gp.CurrentPlot;
+            ImPlotAxis& x_axis = plot.Axes[plot.CurrentX];
+            ImPlotAxis& y_axis = plot.Axes[plot.CurrentY];
+
             int pixYMax = 0;
             ImPoint itemData1 = getter(0);
             for (int i = 0; i < getter.Count; ++i) {
@@ -2191,8 +2208,8 @@ IMPLOT_INLINE void PlotDigitalEx(const char* label_id, Getter getter) {
                 ImVec2 pMin = PlotToPixels(itemData1,IMPLOT_AUTO,IMPLOT_AUTO);
                 ImVec2 pMax = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO);
                 int pixY_Offset = 20; //20 pixel from bottom due to mouse cursor label
-                pMin.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
-                pMax.y = (gp.PixelRange[y_axis].Min.y) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
+                pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
+                pMax.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
                 //plot only one rectangle for same digital state
                 while (((i+2) < getter.Count) && (itemData1.y == itemData2.y)) {
                     const int in = (i + 1);
@@ -2202,10 +2219,10 @@ IMPLOT_INLINE void PlotDigitalEx(const char* label_id, Getter getter) {
                     i++;
                 }
                 //do not extend plot outside plot range
-                if (pMin.x < gp.PixelRange[y_axis].Min.x) pMin.x = gp.PixelRange[y_axis].Min.x;
-                if (pMax.x < gp.PixelRange[y_axis].Min.x) pMax.x = gp.PixelRange[y_axis].Min.x;
-                if (pMin.x > gp.PixelRange[y_axis].Max.x) pMin.x = gp.PixelRange[y_axis].Max.x;
-                if (pMax.x > gp.PixelRange[y_axis].Max.x) pMax.x = gp.PixelRange[y_axis].Max.x;
+                if (pMin.x < x_axis.PixelMin) pMin.x = x_axis.PixelMin;
+                if (pMax.x < x_axis.PixelMin) pMax.x = x_axis.PixelMin;
+                if (pMin.x > x_axis.PixelMax) pMin.x = x_axis.PixelMax;
+                if (pMax.x > x_axis.PixelMax) pMax.x = x_axis.PixelMax;
                 //plot a rectangle that extends up to x2 with y1 height
                 if ((pMax.x > pMin.x) && (gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                     // ImVec4 colAlpha = item->Color;

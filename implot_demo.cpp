@@ -939,10 +939,10 @@ void ShowDemo_MultipleYAxes() {
     static float xs[1001], xs2[1001], ys1[1001], ys2[1001], ys3[1001];
     for (int i = 0; i < 1001; ++i) {
         xs[i]  = (i*0.1f);
+        xs2[i] = xs[i] + 10.0f;
         ys1[i] = sinf(xs[i]) * 3 + 1;
         ys2[i] = cosf(xs[i]) * 0.2f + 0.5f;
         ys3[i] = sinf(xs[i]+0.5f) * 100 + 200;
-        xs2[i] = xs[i] + 10.0f;
     }
 
     static bool x2_axis = true;
@@ -957,9 +957,11 @@ void ShowDemo_MultipleYAxes() {
 
     if (ImPlot::BeginPlot("Multi-Axis Plot", ImVec2(-1,0))) {
         ImPlot::SetupAxes("X-Axis 1", "Y-Axis 1");
-        ImPlot::SetupAxesLimits(0.1, 100, 0, 10);
-        if (x2_axis) 
+        ImPlot::SetupAxesLimits(0, 100, 0, 10);
+        if (x2_axis) {
             ImPlot::SetupAxis(ImAxis_X2, "X-Axis 2",ImPlotAxisFlags_AuxDefault);
+            ImPlot::SetupAxisLimits(ImAxis_X2, 0, 100);
+        }
         if (y2_axis) {
             ImPlot::SetupAxis(ImAxis_Y2, "Y-Axis 2",ImPlotAxisFlags_AuxDefault);
             ImPlot::SetupAxisLimits(ImAxis_Y2, 0, 1);
@@ -970,17 +972,17 @@ void ShowDemo_MultipleYAxes() {
         }
 
         ImPlot::PlotLine("f(x) = x", xs, xs, 1001);
-        ImPlot::PlotLine("f(x) = sin(x)*3+1", xs, ys1, 1001);
         if (x2_axis) {
-            ImPlot::SetAxes(ImAxis_X1, ImAxis_Y1);
+            ImPlot::SetAxes(ImAxis_X2, ImAxis_Y1);
+            ImPlot::PlotLine("f(x) = sin(x)*3+1", xs2, ys1, 1001);
         }
         if (y2_axis) {
             ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
-            ImPlot::PlotLine("f(x) = cos(x)*.2+.5 (Y2)", xs, ys2, 1001);
+            ImPlot::PlotLine("f(x) = cos(x)*.2+.5", xs, ys2, 1001);
         }
         if (y3_axis) {
-            ImPlot::SetAxes(ImAxis_X1, ImAxis_Y3);
-            ImPlot::PlotLine("f(x) = sin(x+.5)*100+200 (Y3)", xs2, ys3, 1001);
+            ImPlot::SetAxes(ImAxis_X2, ImAxis_Y3);
+            ImPlot::PlotLine("f(x) = sin(x+.5)*100+200 ", xs2, ys3, 1001);
         }
         ImPlot::EndPlot();
     }

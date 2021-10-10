@@ -477,15 +477,6 @@ void ResetCtxForNextPlot(ImPlotContext* ctx) {
     // reset labels
     ctx->Annotations.Reset();
     // reset extents/fit
-    ctx->FitThisFrame = false;
-    for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        ctx->ExtentsX[i].Min = HUGE_VAL;
-        ctx->ExtentsX[i].Max = -HUGE_VAL;
-        ctx->FitX[i] = false;
-        ctx->ExtentsY[i].Min = HUGE_VAL;
-        ctx->ExtentsY[i].Max = -HUGE_VAL;
-        ctx->FitY[i] = false;
-    }
     ctx->OpenContextThisFrame = false;
     // reset digital plot items count
     ctx->DigitalPlotItemCnt = 0;
@@ -524,26 +515,6 @@ ImPlotPlot* GetCurrentPlot() {
 void BustPlotCache() {
     GImPlot->Plots.Clear();
     GImPlot->Subplots.Clear();
-}
-
-//-----------------------------------------------------------------------------
-// Coordinate Utils
-//-----------------------------------------------------------------------------
-
-void UpdateTransformCache() {
-    ImPlotContext& gp = *GImPlot;
-    ImPlotPlot& plot = *gp.CurrentPlot;
-    // get pixels for transforms
-    for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        gp.PixelRange[i] = ImRect(plot.XAxis[i].IsInverted() ? plot.PlotRect.Max.x : plot.PlotRect.Min.x,
-                                  plot.YAxis[i].IsInverted() ? plot.PlotRect.Min.y : plot.PlotRect.Max.y,
-                                  plot.XAxis[i].IsInverted() ? plot.PlotRect.Min.x : plot.PlotRect.Max.x,
-                                  plot.YAxis[i].IsInverted() ? plot.PlotRect.Max.y : plot.PlotRect.Min.y);
-        gp.Mx[i]      = (gp.PixelRange[i].Max.x - gp.PixelRange[i].Min.x) / plot.XAxis[i].Range.Size();
-        gp.My[i]      = (gp.PixelRange[i].Max.y - gp.PixelRange[i].Min.y) / plot.YAxis[i].Range.Size();
-        gp.LogDenX[i] = plot.XAxis[i].IsLog() ? ImLog10(plot.XAxis[i].Range.Max / plot.XAxis[i].Range.Min) : 0;
-        gp.LogDenY[i] = plot.YAxis[i].IsLog() ? ImLog10(plot.YAxis[i].Range.Max / plot.YAxis[i].Range.Min) : 0;
-    }
 }
 
 //-----------------------------------------------------------------------------
@@ -1433,24 +1404,24 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
     char buf[10] = {};
 
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        if (!plot.XAxis[i].Enabled || !plot.XAxis[i].HasMenus())
+        if (!plot.XAxis(i).Enabled || !plot.XAxis(i).HasMenus())
             continue;
         snprintf(buf, sizeof(buf) - 1, i == 0 ? "X-Axis" : "X-Axis %d", i + 1);
         if (ImGui::BeginMenu(buf)) {
             ImGui::PushID(i);
-            ShowAxisContextMenu(plot.XAxis[i], equal ? &plot.YAxis[i] : NULL, false);
+            ShowAxisContextMenu(plot.XAxis(i), equal ? &plot.YAxis(i) : NULL, false);
             ImGui::PopID();
             ImGui::EndMenu();
         }
     }
 
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        if (!plot.YAxis[i].Enabled || !plot.YAxis[i].HasMenus())
+        if (!plot.YAxis(i).Enabled || !plot.YAxis(i).HasMenus())
             continue;
         snprintf(buf, sizeof(buf) - 1, i == 0 ? "Y-Axis" : "Y-Axis %d", i + 1);
         if (ImGui::BeginMenu(buf)) {
             ImGui::PushID(i);
-            ShowAxisContextMenu(plot.YAxis[i], equal ? &plot.XAxis[i] : NULL, false);
+            ShowAxisContextMenu(plot.YAxis(i), equal ? &plot.XAxis(i) : NULL, false);
             ImGui::PopID();
             ImGui::EndMenu();
         }
@@ -1545,7 +1516,7 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B) {
     float last_B  = plot.AxesRect.Max.y;
 
     for (int i = IMPLOT_MAX_AXES; i-- > 0;) { // FYI: can iterate forward
-        ImPlotAxis& axis = plot.XAxis[i];
+        ImPlotAxis& axis = plot.XAxis(i);
         if (!axis.Enabled)
             continue;
         const bool label = axis.HasLabel();
@@ -1606,7 +1577,7 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R) {
     float last_R  = plot.AxesRect.Max.x;
 
     for (int i = IMPLOT_MAX_AXES; i-- > 0;) { // FYI: can iterate forward
-        ImPlotAxis& axis = plot.YAxis[i];
+        ImPlotAxis& axis = plot.YAxis(i);
         if (!axis.Enabled)
             continue;
         const bool label = axis.HasLabel();
@@ -1720,9 +1691,9 @@ bool UpdateInput(ImPlotPlot& plot) {
             plot.SelectRect  = ImRect(0,0,0,0);
         }
         if (IO.MouseDoubleClicked[gp.InputMap.Fit]) {
-            gp.FitThisFrame = true;
+            plot.FitThisFrame = true;
             for (int i = 0; i < IMPLOT_MAX_AXES; ++i) 
-                gp.FitX[i] = gp.FitY[i] = true;
+                plot.XAxis(i).FitThisFrame = plot.YAxis(i).FitThisFrame = true;
         }
     }
 
@@ -1739,23 +1710,23 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
         // x buttons
-        ImPlotAxis& xax = plot.XAxis[i];
+        ImPlotAxis& xax = plot.XAxis(i);
         if (xax.Enabled) {
             ImGui::KeepAliveID(xax.ID);
             x_click[i]  = ImGui::ButtonBehavior(xax.HoverRect,xax.ID,&xax.Hovered,&xax.Held, axis_button_flags);
             if (x_click[i] && IO.MouseDoubleClicked[gp.InputMap.Fit])
-                gp.FitThisFrame = gp.FitX[i] = true;
+                plot.FitThisFrame = xax.FitThisFrame = true;
             xax.Held  = xax.Held && can_pan;
             x_hov[i]  = xax.Hovered || plot.Hovered;
             x_held[i] = xax.Held    || plot.Held;
         }
         // y buttons
-        ImPlotAxis& yax = plot.YAxis[i];
+        ImPlotAxis& yax = plot.YAxis(i);
         if (yax.Enabled) {
             ImGui::KeepAliveID(yax.ID);
             y_click[i]  = ImGui::ButtonBehavior(yax.HoverRect,yax.ID,&yax.Hovered,&yax.Held, axis_button_flags);
             if (y_click[i] && IO.MouseDoubleClicked[gp.InputMap.Pan])
-                gp.FitThisFrame = gp.FitY[i] = true;
+                plot.FitThisFrame = yax.FitThisFrame = true;
             yax.Held  = yax.Held && can_pan;
             y_hov[i]  = yax.Hovered || plot.Hovered;
             y_held[i] = yax.Held    || plot.Held;
@@ -1767,10 +1738,10 @@ bool UpdateInput(ImPlotPlot& plot) {
         return false;
     }
 
-    const bool any_x_hov  = plot.Hovered || AnyAxesHovered(plot.XAxis, IMPLOT_MAX_AXES);
-    const bool any_y_hov  = plot.Hovered || AnyAxesHovered(plot.YAxis, IMPLOT_MAX_AXES);
-    const bool any_x_held = plot.Held    || AnyAxesHeld(plot.XAxis, IMPLOT_MAX_AXES);
-    const bool any_y_held = plot.Held    || AnyAxesHeld(plot.YAxis, IMPLOT_MAX_AXES);
+    const bool any_x_hov  = plot.Hovered || AnyAxesHovered(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
+    const bool any_y_hov  = plot.Hovered || AnyAxesHovered(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
+    const bool any_x_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
+    const bool any_y_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
     const bool axis_equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
 
     // CONTEXT-----------------------------------------------------------------
@@ -1780,45 +1751,44 @@ bool UpdateInput(ImPlotPlot& plot) {
     // DRAG INPUT -------------------------------------------------------------
 
     if ((any_x_held || any_y_held) && !plot.Selecting) {
-        UpdateTransformCache();
         for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
             // special case for axis equal and both x and y0 hovered
-            if (axis_equal && !plot.XAxis[i].IsInputLocked() && x_held[i] && !plot.YAxis[i].IsInputLocked() && y_held[i]) {
+            if (axis_equal && !plot.XAxis(i).IsInputLocked() && x_held[i] && !plot.YAxis(i).IsInputLocked() && y_held[i]) {
                 ImPoint plot_tl = PixelsToPlot(plot.PlotRect.Min - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1+i);
                 ImPoint plot_br = PixelsToPlot(plot.PlotRect.Max - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1+i);
-                plot.XAxis[i].SetMin(plot.XAxis[i].IsInverted() ? plot_br.x : plot_tl.x);
-                plot.XAxis[i].SetMax(plot.XAxis[i].IsInverted() ? plot_tl.x : plot_br.x);
-                plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
-                plot.YAxis[i].SetMax(plot.YAxis[i].IsInverted() ? plot_br.y : plot_tl.y);
-                double xar = plot.XAxis[i].GetAspect();
-                double yar = plot.YAxis[i].GetAspect();
-                if (!ImAlmostEqual(xar,yar) && !plot.YAxis[i].IsInputLocked())
-                    plot.XAxis[i].SetAspect(yar);
+                plot.XAxis(i).SetMin(plot.XAxis(i).IsInverted() ? plot_br.x : plot_tl.x);
+                plot.XAxis(i).SetMax(plot.XAxis(i).IsInverted() ? plot_tl.x : plot_br.x);
+                plot.YAxis(i).SetMin(plot.YAxis(i).IsInverted() ? plot_tl.y : plot_br.y);
+                plot.YAxis(i).SetMax(plot.YAxis(i).IsInverted() ? plot_br.y : plot_tl.y);
+                double xar = plot.XAxis(i).GetAspect();
+                double yar = plot.YAxis(i).GetAspect();
+                if (!ImAlmostEqual(xar,yar) && !plot.YAxis(i).IsInputLocked())
+                    plot.XAxis(i).SetAspect(yar);
                 continue;
             }
-            if (!plot.XAxis[i].IsInputLocked() && x_held[i]) {
+            if (!plot.XAxis(i).IsInputLocked() && x_held[i]) {
                 ImPoint plot_tl = PixelsToPlot(plot.PlotRect.Min - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1);
                 ImPoint plot_br = PixelsToPlot(plot.PlotRect.Max - IO.MouseDelta, ImAxis_X1+i, ImAxis_Y1);
-                plot.XAxis[i].SetMin(plot.XAxis[i].IsInverted() ? plot_br.x : plot_tl.x);
-                plot.XAxis[i].SetMax(plot.XAxis[i].IsInverted() ? plot_tl.x : plot_br.x);
+                plot.XAxis(i).SetMin(plot.XAxis(i).IsInverted() ? plot_br.x : plot_tl.x);
+                plot.XAxis(i).SetMax(plot.XAxis(i).IsInverted() ? plot_tl.x : plot_br.x);
                 if (axis_equal)
-                    plot.YAxis[i].SetAspect(plot.XAxis[i].GetAspect());
+                    plot.YAxis(i).SetAspect(plot.XAxis(i).GetAspect());
             }
-            if (!plot.YAxis[i].IsInputLocked() && y_held[i]) {
+            if (!plot.YAxis(i).IsInputLocked() && y_held[i]) {
                 ImPoint plot_tl = PixelsToPlot(plot.PlotRect.Min - IO.MouseDelta, ImAxis_X1, ImAxis_Y1+i);
                 ImPoint plot_br = PixelsToPlot(plot.PlotRect.Max - IO.MouseDelta, ImAxis_X1, ImAxis_Y1+i);
-                plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
-                plot.YAxis[i].SetMax(plot.YAxis[i].IsInverted() ? plot_br.y : plot_tl.y);
+                plot.YAxis(i).SetMin(plot.YAxis(i).IsInverted() ? plot_tl.y : plot_br.y);
+                plot.YAxis(i).SetMax(plot.YAxis(i).IsInverted() ? plot_br.y : plot_tl.y);
                 if (axis_equal)
-                    plot.XAxis[i].SetAspect(plot.YAxis[i].GetAspect());
+                    plot.XAxis(i).SetAspect(plot.YAxis(i).GetAspect());
             }
         }
         // Set the mouse cursor based on which axes are moving.
         int direction = 0;
          for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-            if (plot.XAxis[i].Enabled && x_held[i] && !plot.XAxis[i].IsInputLocked())
+            if (plot.XAxis(i).Enabled && x_held[i] && !plot.XAxis(i).IsInputLocked())
                 direction |= (1 << 1);
-            if (plot.YAxis[i].Enabled && y_held[i] && !plot.YAxis[i].IsInputLocked())
+            if (plot.YAxis(i).Enabled && y_held[i] && !plot.YAxis(i).IsInputLocked())
                 direction |= (1 << 2);
 
         }
@@ -1837,7 +1807,6 @@ bool UpdateInput(ImPlotPlot& plot) {
     // SCROLL INPUT -----------------------------------------------------------
 
     if ((any_x_hov || any_y_hov) && IO.MouseWheel != 0 && ImHasFlag(IO.KeyMods, gp.InputMap.ZoomMod)) {
-        UpdateTransformCache();
         float zoom_rate = gp.InputMap.ZoomRate;
         if (IO.MouseWheel > 0)
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));
@@ -1846,34 +1815,34 @@ bool UpdateInput(ImPlotPlot& plot) {
         bool equal_zoomed = false;
         for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
             // special case for axis equal and both x and y0 hovered
-            if (axis_equal && x_hov[i] && !plot.XAxis[i].IsInputLocked() && y_hov[i] && !plot.YAxis[i].IsInputLocked()) {
+            if (axis_equal && x_hov[i] && !plot.XAxis(i).IsInputLocked() && y_hov[i] && !plot.YAxis(i).IsInputLocked()) {
                 const ImPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), ImAxis_X1+i, ImAxis_Y1+i);
                 const ImPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), ImAxis_X1+i, ImAxis_Y1+i);
-                plot.XAxis[i].SetMin(plot.XAxis[i].IsInverted() ? plot_br.x : plot_tl.x);
-                plot.XAxis[i].SetMax(plot.XAxis[i].IsInverted() ? plot_tl.x : plot_br.x);
-                plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
-                plot.YAxis[i].SetMax(plot.YAxis[i].IsInverted() ? plot_br.y : plot_tl.y);
-                double xar = plot.XAxis[i].GetAspect();
-                double yar = plot.YAxis[i].GetAspect();
-                if (!ImAlmostEqual(xar,yar) && !plot.YAxis[i].IsInputLocked())
-                    plot.XAxis[i].SetAspect(yar);
+                plot.XAxis(i).SetMin(plot.XAxis(i).IsInverted() ? plot_br.x : plot_tl.x);
+                plot.XAxis(i).SetMax(plot.XAxis(i).IsInverted() ? plot_tl.x : plot_br.x);
+                plot.YAxis(i).SetMin(plot.YAxis(i).IsInverted() ? plot_tl.y : plot_br.y);
+                plot.YAxis(i).SetMax(plot.YAxis(i).IsInverted() ? plot_br.y : plot_tl.y);
+                double xar = plot.XAxis(i).GetAspect();
+                double yar = plot.YAxis(i).GetAspect();
+                if (!ImAlmostEqual(xar,yar) && !plot.YAxis(i).IsInputLocked())
+                    plot.XAxis(i).SetAspect(yar);
                 equal_zoomed = true;
             }
-            if (x_hov[i] && !plot.XAxis[i].IsInputLocked() && !equal_zoomed) {
+            if (x_hov[i] && !plot.XAxis(i).IsInputLocked() && !equal_zoomed) {
                 const ImPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), ImAxis_X1+i, ImAxis_Y1);
                 const ImPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), ImAxis_X1+i, ImAxis_Y1);
-                plot.XAxis[i].SetMin(plot.XAxis[i].IsInverted() ? plot_br.x : plot_tl.x);
-                plot.XAxis[i].SetMax(plot.XAxis[i].IsInverted() ? plot_tl.x : plot_br.x);
+                plot.XAxis(i).SetMin(plot.XAxis(i).IsInverted() ? plot_br.x : plot_tl.x);
+                plot.XAxis(i).SetMax(plot.XAxis(i).IsInverted() ? plot_tl.x : plot_br.x);
                 if (axis_equal)
-                    plot.YAxis[i].SetAspect(plot.XAxis[i].GetAspect());
+                    plot.YAxis(i).SetAspect(plot.XAxis(i).GetAspect());
             }
-            if (y_hov[i] && !plot.YAxis[i].IsInputLocked() && !equal_zoomed) {
+            if (y_hov[i] && !plot.YAxis(i).IsInputLocked() && !equal_zoomed) {
                 const ImPoint& plot_tl = PixelsToPlot(plot.PlotRect.Min - plot.PlotRect.GetSize() * ImVec2(tx * zoom_rate, ty * zoom_rate), ImAxis_X1, ImAxis_Y1+i);
                 const ImPoint& plot_br = PixelsToPlot(plot.PlotRect.Max + plot.PlotRect.GetSize() * ImVec2((1 - tx) * zoom_rate, (1 - ty) * zoom_rate), ImAxis_X1, ImAxis_Y1+i);
-                plot.YAxis[i].SetMin(plot.YAxis[i].IsInverted() ? plot_tl.y : plot_br.y);
-                plot.YAxis[i].SetMax(plot.YAxis[i].IsInverted() ? plot_br.y : plot_tl.y);
+                plot.YAxis(i).SetMin(plot.YAxis(i).IsInverted() ? plot_tl.y : plot_br.y);
+                plot.YAxis(i).SetMax(plot.YAxis(i).IsInverted() ? plot_br.y : plot_tl.y);
                 if (axis_equal)
-                    plot.XAxis[i].SetAspect(plot.YAxis[i].GetAspect());
+                    plot.XAxis(i).SetAspect(plot.YAxis(i).GetAspect());
             }
         }
     }
@@ -1881,7 +1850,6 @@ bool UpdateInput(ImPlotPlot& plot) {
     // BOX-SELECTION ----------------------------------------------------------
 
     if (plot.Selecting) {
-        UpdateTransformCache();
         const ImVec2 d = plot.SelectStart - IO.MousePos;
         const bool x_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.SelectHorzMod) && ImFabs(d.x) > 2;
         const bool y_can_change = !ImHasFlag(IO.KeyMods,gp.InputMap.SelectVertMod)   && ImFabs(d.y) > 2;
@@ -1889,17 +1857,17 @@ bool UpdateInput(ImPlotPlot& plot) {
         if (IO.MouseReleased[gp.InputMap.Select]) {
 
             for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-                if (!plot.XAxis[i].IsInputLocked() && x_can_change) {
+                if (!plot.XAxis(i).IsInputLocked() && x_can_change) {
                     ImPoint p1 = PixelsToPlot(plot.SelectStart, ImAxis_X1+i, ImAxis_Y1);
                     ImPoint p2 = PixelsToPlot(IO.MousePos, ImAxis_X1+i, ImAxis_Y1);
-                    plot.XAxis[i].SetMin(ImMin(p1.x, p2.x));
-                    plot.XAxis[i].SetMax(ImMax(p1.x, p2.x));
+                    plot.XAxis(i).SetMin(ImMin(p1.x, p2.x));
+                    plot.XAxis(i).SetMax(ImMax(p1.x, p2.x));
                 }
-                if (!plot.YAxis[i].IsInputLocked() && y_can_change) {
+                if (!plot.YAxis(i).IsInputLocked() && y_can_change) {
                     ImPoint p1 = PixelsToPlot(plot.SelectStart, ImAxis_X1, ImAxis_Y1+i);
                     ImPoint p2 = PixelsToPlot(IO.MousePos, ImAxis_X1, ImAxis_Y1+i);
-                    plot.YAxis[i].SetMin(ImMin(p1.y, p2.y));
-                    plot.YAxis[i].SetMax(ImMax(p1.y, p2.y));
+                    plot.YAxis(i).SetMin(ImMin(p1.y, p2.y));
+                    plot.YAxis(i).SetMax(ImMax(p1.y, p2.y));
                 }
             }
             if (x_can_change || y_can_change || (ImHasFlag(IO.KeyMods,gp.InputMap.SelectHorzMod) && ImHasFlag(IO.KeyMods,gp.InputMap.SelectVertMod)))
@@ -1920,10 +1888,10 @@ bool UpdateInput(ImPlotPlot& plot) {
             }
             else {
                 // TODO: Handle only min or max locked cases
-                plot.SelectRect.Min.x = ImHasFlag(IO.KeyMods, gp.InputMap.SelectHorzMod) || AllAxesInputLocked(plot.XAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Min.x : ImMin(plot.SelectStart.x, IO.MousePos.x);
-                plot.SelectRect.Max.x = ImHasFlag(IO.KeyMods, gp.InputMap.SelectHorzMod) || AllAxesInputLocked(plot.XAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Max.x : ImMax(plot.SelectStart.x, IO.MousePos.x);
-                plot.SelectRect.Min.y = ImHasFlag(IO.KeyMods, gp.InputMap.SelectVertMod)   || AllAxesInputLocked(plot.YAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Min.y : ImMin(plot.SelectStart.y, IO.MousePos.y);
-                plot.SelectRect.Max.y = ImHasFlag(IO.KeyMods, gp.InputMap.SelectVertMod)   || AllAxesInputLocked(plot.YAxis, IMPLOT_MAX_AXES) ? plot.PlotRect.Max.y : ImMax(plot.SelectStart.y, IO.MousePos.y);
+                plot.SelectRect.Min.x = ImHasFlag(IO.KeyMods, gp.InputMap.SelectHorzMod) || AllAxesInputLocked(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES) ? plot.PlotRect.Min.x : ImMin(plot.SelectStart.x, IO.MousePos.x);
+                plot.SelectRect.Max.x = ImHasFlag(IO.KeyMods, gp.InputMap.SelectHorzMod) || AllAxesInputLocked(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES) ? plot.PlotRect.Max.x : ImMax(plot.SelectStart.x, IO.MousePos.x);
+                plot.SelectRect.Min.y = ImHasFlag(IO.KeyMods, gp.InputMap.SelectVertMod) || AllAxesInputLocked(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES) ? plot.PlotRect.Min.y : ImMin(plot.SelectStart.y, IO.MousePos.y);
+                plot.SelectRect.Max.y = ImHasFlag(IO.KeyMods, gp.InputMap.SelectVertMod) || AllAxesInputLocked(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES) ? plot.PlotRect.Max.y : ImMax(plot.SelectStart.y, IO.MousePos.y);
                 plot.SelectRect.Min  -= plot.PlotRect.Min;
                 plot.SelectRect.Max  -= plot.PlotRect.Min;
                 plot.Selected = true;
@@ -1945,7 +1913,7 @@ bool UpdateInput(ImPlotPlot& plot) {
 void ApplyNextPlotData(ImAxis idx) {
     ImPlotContext& gp = *GImPlot;
     ImPlotPlot& plot  = *GImPlot->CurrentPlot;
-    ImPlotAxis& axis  = *plot.GetAxis(idx);
+    ImPlotAxis& axis  = plot.Axes[idx];
     if (!axis.Enabled)
         return;
     double*     npd_lmin = gp.NextPlotData.LinkedMin[idx];
@@ -1984,7 +1952,7 @@ void SetupAxis(ImAxis idx, const char* label, ImPlotAxisFlags flags) {
                          "Y axes cannot display time formatted labels!");
     // get plot and axis
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
-    ImPlotAxis& axis = *plot.GetAxis(idx);
+    ImPlotAxis& axis = plot.Axes[idx];
     // set ID
     axis.ID = plot.ID + idx + 1;
     // check and set flags
@@ -2003,7 +1971,7 @@ void SetupAxisLimits(ImAxis idx, double min_lim, double max_lim, ImGuiCond cond)
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");    // get plot and axis
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
-    ImPlotAxis& axis = *plot.GetAxis(idx);
+    ImPlotAxis& axis = plot.Axes[idx];
     IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
     if (!plot.Initialized || cond == ImGuiCond_Always)
         axis.SetRange(min_lim, max_lim);
@@ -2015,7 +1983,7 @@ void SetupAxisFormat(ImAxis idx, const char* fmt) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
-    ImPlotAxis& axis = *plot.GetAxis(idx);
+    ImPlotAxis& axis = plot.Axes[idx];
     IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
     axis.HasFormatSpec = fmt != NULL;
     if (fmt != NULL)
@@ -2026,7 +1994,7 @@ void SetupAxisLinks(ImAxis idx, double* min_lnk, double* max_lnk) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
-    ImPlotAxis& axis = *plot.GetAxis(idx);
+    ImPlotAxis& axis = plot.Axes[idx];
     IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
     axis.LinkedMin = min_lnk;
     axis.LinkedMax = max_lnk;
@@ -2037,7 +2005,7 @@ void SetupAxisFormat(ImAxis idx, void (*formatter)(double value, char* buff, int
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
-    ImPlotAxis& axis = *plot.GetAxis(idx);
+    ImPlotAxis& axis = plot.Axes[idx];
     IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
     axis.Formatter = formatter;
     axis.FormatterData = data;
@@ -2047,7 +2015,7 @@ void SetupAxisTicks(ImAxis idx, const double* values, int n_ticks, const char* c
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                         "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
-    ImPlotAxis& axis = *plot.GetAxis(idx);
+    ImPlotAxis& axis = plot.Axes[idx];
     IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
     axis.ShowDefaultTicks = show_default;
     AddTicksCustom(values, 
@@ -2148,15 +2116,17 @@ bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
 
     // reset axes
     for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-        plot.XAxis[i].Reset();
-        plot.YAxis[i].Reset();
-        UpdateAxisColors(plot.XAxis[i]);
-        UpdateAxisColors(plot.YAxis[i]);
+        plot.XAxis(i).Reset();
+        plot.YAxis(i).Reset();
+        UpdateAxisColors(plot.XAxis(i));
+        UpdateAxisColors(plot.YAxis(i));
     }    
     // ensure first axes enabled
-    plot.XAxis[0].Enabled = plot.YAxis[0].Enabled = true;
+    plot.Axes[ImAxis_X1].Enabled = true;
+    plot.Axes[ImAxis_Y1].Enabled = true;
     // set initial axes
-    plot.CurrentX = plot.CurrentY = 0;
+    plot.CurrentX = ImAxis_X1;
+    plot.CurrentY = ImAxis_Y1;
 
     // process next plot data (legacy)
     for (int i = 0; i < ImAxis_COUNT; ++i)
@@ -2215,7 +2185,6 @@ void SetupFinish() {
     ImPlotContext& gp       = *GImPlot;
     ImGuiContext& G         = *GImGui;
     ImDrawList& DrawList    = *G.CurrentWindow->DrawList;
-    const ImGuiIO&    IO    = ImGui::GetIO();
     const ImGuiStyle& Style = G.Style;
 
     ImPlotPlot &plot  = *gp.CurrentPlot;
@@ -2225,21 +2194,21 @@ void SetupFinish() {
 
     // finalize axes
     for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-        ImPlotAxis& xax = plot.XAxis[i];
-        ImPlotAxis& yax = plot.YAxis[i];
+        ImPlotAxis& xax = plot.XAxis(i);
+        ImPlotAxis& yax = plot.YAxis(i);
         xax.Constrain();
         yax.Constrain();
         if (!plot.Initialized && xax.CanInitFit())
-            gp.FitThisFrame = gp.FitX[i] = true;
+            plot.FitThisFrame = xax.FitThisFrame = true;
         if (!plot.Initialized && yax.CanInitFit())
-            gp.FitThisFrame = gp.FitY[i] = true;
+            plot.FitThisFrame = yax.FitThisFrame = true;
     }
 
     // constrain axis (maybe move to finish setup?)
 
     // canvas/axes bb
-    plot.CanvasRect      = ImRect(plot.FrameRect.Min + gp.Style.PlotPadding, plot.FrameRect.Max - gp.Style.PlotPadding);
-    plot.AxesRect        = plot.FrameRect;
+    plot.CanvasRect = ImRect(plot.FrameRect.Min + gp.Style.PlotPadding, plot.FrameRect.Max - gp.Style.PlotPadding);
+    plot.AxesRect   = plot.FrameRect;
 
     // outside legend adjustments
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Items.GetLegendCount() > 0 && ImHasFlag(plot.Items.Legend.Flags, ImPlotLegendFlags_Outside)) { 
@@ -2291,7 +2260,7 @@ void SetupFinish() {
 
     // (2) get y tick labels (needed for left/right pad)
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        ImPlotAxis& axis = plot.YAxis[i];
+        ImPlotAxis& axis = plot.YAxis(i);
         if (axis.WillRender() && axis.ShowDefaultTicks) {
             if (axis.IsLog())
                 AddTicksLogarithmic(axis.Range,
@@ -2321,7 +2290,7 @@ void SetupFinish() {
 
     // (4) get x ticks
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        ImPlotAxis& axis = plot.XAxis[i];
+        ImPlotAxis& axis = plot.XAxis(i);
         if (axis.WillRender() && axis.ShowDefaultTicks) {
             if (axis.IsTime())
                 AddTicksTime(axis.Range, plot_width, gp.XTicks[i]);
@@ -2343,20 +2312,27 @@ void SetupFinish() {
     }
 
     // (5) calc plot bb
-    plot.PlotRect  = ImRect(plot.CanvasRect.Min + ImVec2(pad_left, pad_top), plot.CanvasRect.Max - ImVec2(pad_right, pad_bot));
+    plot.PlotRect = ImRect(plot.CanvasRect.Min + ImVec2(pad_left, pad_top), plot.CanvasRect.Max - ImVec2(pad_right, pad_bot));
 
     // HOVER------------------------------------------------------------
 
-    // axes hover rect, aspect ratio
+    // axes hover rect, pixel ranges
     for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-        ImPlotAxis& xax = plot.XAxis[i];
+        ImPlotAxis& xax = plot.XAxis(i);
+        ImPlotAxis& yax = plot.YAxis(i);
+
         xax.HoverRect   = ImRect(ImVec2(plot.PlotRect.Min.x, ImMin(xax.Datum1,xax.Datum2)),
                                  ImVec2(plot.PlotRect.Max.x, ImMax(xax.Datum1,xax.Datum2)));
-        xax.Pixels      = plot.PlotRect.GetWidth();
-        ImPlotAxis& yax = plot.YAxis[i];
         yax.HoverRect   = ImRect(ImVec2(ImMin(yax.Datum1,yax.Datum2),plot.PlotRect.Min.y),
                                  ImVec2(ImMax(yax.Datum1,yax.Datum2),plot.PlotRect.Max.y));
-        yax.Pixels      = plot.PlotRect.GetHeight();
+
+        xax.PixelMin = xax.IsInverted() ? plot.PlotRect.Max.x : plot.PlotRect.Min.x,
+        xax.PixelMax = xax.IsInverted() ? plot.PlotRect.Min.x : plot.PlotRect.Max.x,
+        yax.PixelMin = yax.IsInverted() ? plot.PlotRect.Min.y : plot.PlotRect.Max.y,
+        yax.PixelMax = yax.IsInverted() ? plot.PlotRect.Max.y : plot.PlotRect.Min.y;
+
+        xax.UpdateTransformCache();
+        yax.UpdateTransformCache();
     }
 
     // Equal axis constraint. Must happen after we set Pixels
@@ -2364,39 +2340,34 @@ void SetupFinish() {
     // constrains x to y since x pixel size depends on y labels width, and causes feedback loops in opposite case
     if (ImHasFlag(plot.Flags, ImPlotFlags_Equal)) {
         for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-            double xar = plot.XAxis[i].GetAspect();
-            double yar = plot.YAxis[i].GetAspect();
+            double xar = plot.XAxis(i).GetAspect();
+            double yar = plot.YAxis(i).GetAspect();
             // edge case: user has set x range this frame, so fit y to x so that we honor their request for x range
             // NB: because of feedback across several frames, the user's x request may not be perfectly honored
-            if (plot.XAxis[i].HasRange) {
-                plot.YAxis[i].SetAspect(xar);
+            if (plot.XAxis(i).HasRange) {
+                plot.YAxis(i).SetAspect(xar);
             }
             else {
-                if (!ImAlmostEqual(xar,yar) && !plot.YAxis[i].IsInputLocked())
-                    plot.XAxis[i].SetAspect(yar);
+                if (!ImAlmostEqual(xar,yar) && !plot.YAxis(i).IsInputLocked())
+                    plot.XAxis(i).SetAspect(yar);
             }
         }
     }
 
     // INPUT ------------------------------------------------------------------
-    UpdateInput(plot);
-    UpdateTransformCache();
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoInput))
+        UpdateInput(plot);    
 
     // fit from FitNextPlotAxes or auto fit
     for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-        if (gp.NextPlotData.Fit[ImAxis_X1+i] || plot.XAxis[i].IsAutoFitting()) {
-            gp.FitThisFrame = true;
-            gp.FitX[i]      = true;
+        if (gp.NextPlotData.Fit[ImAxis_X1+i] || plot.XAxis(i).IsAutoFitting()) {
+            plot.FitThisFrame = true;
+            plot.XAxis(i).FitThisFrame = true;
         }
-        if (gp.NextPlotData.Fit[ImAxis_Y1+i] || plot.YAxis[i].IsAutoFitting()) {
-            gp.FitThisFrame = true;
-            gp.FitY[i]      = true;
+        if (gp.NextPlotData.Fit[ImAxis_Y1+i] || plot.YAxis(i).IsAutoFitting()) {
+            plot.FitThisFrame = true;
+            plot.YAxis(i).FitThisFrame = true;
         }
-    }
-
-    // set mouse position
-    for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        gp.MousePos[i] = PixelsToPlot(IO.MousePos, ImAxis_X1+i, ImAxis_Y1+i);
     }
 
     // RENDER -----------------------------------------------------------------
@@ -2410,13 +2381,13 @@ void SetupFinish() {
     // transform ticks (TODO: Move this into ImPlotTickCollection)
 
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        if (plot.XAxis[i].WillRender()) {
+        if (plot.XAxis(i).WillRender()) {
             for (int t = 0; t < gp.XTicks[i].Size; t++) {
                 ImPlotTick& xt = gp.XTicks[i].Ticks[t];
                 xt.PixelPos = IM_ROUND(PlotToPixels(xt.PlotPos, 0, ImAxis_X1+i, ImAxis_Y1).x);
             }
         }
-        if (plot.YAxis[i].WillRender()) {
+        if (plot.YAxis(i).WillRender()) {
             for (int t = 0; t < gp.YTicks[i].Size; t++) {
                 ImPlotTick& yt = gp.YTicks[i].Ticks[t];
                 yt.PixelPos = IM_ROUND(PlotToPixels(0, yt.PlotPos, ImAxis_X1, ImAxis_Y1+i).y);
@@ -2426,10 +2397,10 @@ void SetupFinish() {
 
     // render grid (background)
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        if (plot.XAxis[i].Enabled && plot.XAxis[i].HasGridLines() && !plot.XAxis[i].IsForeground())
-            RenderGridLinesX(DrawList, gp.XTicks[i], plot.PlotRect, plot.XAxis[i].ColorMaj, plot.XAxis[i].ColorMin, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
-        if (plot.YAxis[i].Enabled && plot.YAxis[i].HasGridLines() && !plot.YAxis[i].IsForeground())
-            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis[i].ColorMaj, plot.YAxis[i].ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
+        if (plot.XAxis(i).Enabled && plot.XAxis(i).HasGridLines() && !plot.XAxis(i).IsForeground())
+            RenderGridLinesX(DrawList, gp.XTicks[i], plot.PlotRect, plot.XAxis(i).ColorMaj, plot.XAxis(i).ColorMin, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
+        if (plot.YAxis(i).Enabled && plot.YAxis(i).HasGridLines() && !plot.YAxis(i).IsForeground())
+            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis(i).ColorMaj, plot.YAxis(i).ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
     }
 
     // clear legend (TODO: put elsewhere)
@@ -2459,17 +2430,17 @@ void EndPlot() {
 
     const float txt_height     = ImGui::GetTextLineHeight();
     const bool  render_border  = gp.Style.PlotBorderSize > 0 && gp.Style.Colors[ImPlotCol_PlotBorder].z > 0;
-    const bool  any_x_held     = plot.Held || AnyAxesHeld(plot.XAxis, IMPLOT_MAX_AXES);
-    const bool  any_y_held     = plot.Held || AnyAxesHeld(plot.YAxis, IMPLOT_MAX_AXES);
+    const bool any_x_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
+    const bool any_y_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
 
     ImGui::PushClipRect(plot.FrameRect.Min, plot.FrameRect.Max, true);
 
     // render grid (foreground)
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        if (plot.XAxis[i].Enabled && plot.XAxis[i].HasGridLines() && plot.XAxis[i].IsForeground())
-            RenderGridLinesX(DrawList, gp.XTicks[i], plot.PlotRect, plot.XAxis[i].ColorMaj, plot.XAxis[i].ColorMaj, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
-        if (plot.YAxis[i].Enabled && plot.YAxis[i].HasGridLines() && plot.YAxis[i].IsForeground())
-            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis[i].ColorMaj,  plot.YAxis[i].ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
+        if (plot.XAxis(i).Enabled && plot.XAxis(i).HasGridLines() && plot.XAxis(i).IsForeground())
+            RenderGridLinesX(DrawList, gp.XTicks[i], plot.PlotRect, plot.XAxis(i).ColorMaj, plot.XAxis(i).ColorMaj, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
+        if (plot.YAxis(i).Enabled && plot.YAxis(i).HasGridLines() && plot.YAxis(i).IsForeground())
+            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis(i).ColorMaj,  plot.YAxis(i).ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
     }
 
 
@@ -2482,7 +2453,7 @@ void EndPlot() {
     // render x hover, labels, ticks and tick labels
     int count_B = 0, count_T = 0;
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        const ImPlotAxis& ax = plot.XAxis[i];
+        const ImPlotAxis& ax = plot.XAxis(i);
         if (!ax.Enabled)
             continue;
         if ((ax.Hovered || ax.Held) && !plot.Held)
@@ -2534,7 +2505,7 @@ void EndPlot() {
     // render y hover, labels, ticks and tick labels
     int count_L = 0, count_R = 0;
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        const ImPlotAxis& ax = plot.YAxis[i];
+        const ImPlotAxis& ax = plot.YAxis(i);
         if (!ax.Enabled)
             continue;
         if ((ax.Hovered || ax.Held) && !plot.Held)
@@ -2729,51 +2700,30 @@ void EndPlot() {
 
     // FIT DATA --------------------------------------------------------------
     const bool axis_equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
-    if (gp.FitThisFrame) {
+    if (plot.FitThisFrame) {
         for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-            ImPlotAxis& xax = plot.XAxis[i];
-            ImPlotAxis& yax = plot.YAxis[i];
-            if (gp.FitX[i]) {
-                const double ext_size = gp.ExtentsX[i].Size() * 0.5;
-                gp.ExtentsX[i].Min -= ext_size * gp.Style.FitPadding.x;
-                gp.ExtentsX[i].Max += ext_size * gp.Style.FitPadding.x;
-                if (!xax.IsLockedMin() && !ImNanOrInf(gp.ExtentsX[i].Min))
-                    xax.Range.Min = (gp.ExtentsX[i].Min);
-                if (!xax.IsLockedMax() && !ImNanOrInf(gp.ExtentsX[i].Max))
-                    xax.Range.Max = (gp.ExtentsX[i].Max);
-                if (ImAlmostEqual(xax.Range.Max, xax.Range.Min))  {
-                    xax.Range.Max += 0.5;
-                    xax.Range.Min -= 0.5;
-                }
-                xax.Constrain();
-                if (axis_equal && !gp.FitY[0])
+            ImPlotAxis& xax = plot.XAxis(i);
+            ImPlotAxis& yax = plot.YAxis(i);
+            if (xax.FitThisFrame) {
+                xax.ApplyFit(gp.Style.FitPadding.x);
+                if (axis_equal && !yax.FitThisFrame)
                     yax.SetAspect(xax.GetAspect());
             }
-
-            if (gp.FitY[i]) {
-                const double ext_size = gp.ExtentsY[i].Size() * 0.5;
-                gp.ExtentsY[i].Min -= ext_size * gp.Style.FitPadding.y;
-                gp.ExtentsY[i].Max += ext_size * gp.Style.FitPadding.y;
-                if (!yax.IsLockedMin() && !ImNanOrInf(gp.ExtentsY[i].Min))
-                    yax.Range.Min = (gp.ExtentsY[i].Min);
-                if (!yax.IsLockedMax() && !ImNanOrInf(gp.ExtentsY[i].Max))
-                    yax.Range.Max = (gp.ExtentsY[i].Max);
-                if (ImAlmostEqual(yax.Range.Max, yax.Range.Min)) {
-                    yax.Range.Max += 0.5;
-                    yax.Range.Min -= 0.5;
-                }
-                yax.Constrain();
-                if (axis_equal && !gp.FitX)
-                    plot.XAxis[i].SetAspect(yax.GetAspect());
+            if (yax.FitThisFrame) {
+                yax.ApplyFit(gp.Style.FitPadding.y);
+                if (axis_equal && !xax.FitThisFrame)
+                    plot.XAxis(i).SetAspect(yax.GetAspect());
             }
-
             // was outside loop
-            if (axis_equal && gp.FitX[i] && gp.FitY[i]) {
+            if (axis_equal && xax.FitThisFrame && yax.FitThisFrame) {
                 double aspect = ImMax(xax.GetAspect(), yax.GetAspect());
                 xax.SetAspect(aspect);
                 yax.SetAspect(aspect);
             }
+            xax.ResetFit();
+            yax.ResetFit();
         }
+        plot.FitThisFrame = false;
     }
 
     // CONTEXT MENUS -----------------------------------------------------------
@@ -2797,18 +2747,18 @@ void EndPlot() {
     // axes ctx menus
     for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
         ImGui::PushID(i);
-        if (can_ctx && plot.XAxis[i].Hovered && plot.XAxis[i].HasMenus()) // TODO: clicked
+        if (can_ctx && plot.XAxis(i).Hovered && plot.XAxis(i).HasMenus()) // TODO: clicked
             ImGui::OpenPopup("##XContext");
         if (ImGui::BeginPopup("##XContext")) {
             ImGui::Text(i == 0 ? "X-Axis" : "X-Axis %d", i + 1); ImGui::Separator();
-            ShowAxisContextMenu(plot.XAxis[i], ImHasFlag(plot.Flags, ImPlotFlags_Equal) ? &plot.YAxis[i] : NULL, true);
+            ShowAxisContextMenu(plot.XAxis(i), ImHasFlag(plot.Flags, ImPlotFlags_Equal) ? &plot.YAxis(i) : NULL, true);
             ImGui::EndPopup();
         }
-        if (can_ctx && plot.YAxis[i].Hovered && plot.YAxis[i].HasMenus()) // TODO: clicked
+        if (can_ctx && plot.YAxis(i).Hovered && plot.YAxis(i).HasMenus()) // TODO: clicked
             ImGui::OpenPopup("##YContext");
         if (ImGui::BeginPopup("##YContext")) {
             ImGui::Text(i == 0 ? "Y-Axis" : "Y-Axis %d", i + 1); ImGui::Separator();
-            ShowAxisContextMenu(plot.YAxis[i], ImHasFlag(plot.Flags, ImPlotFlags_Equal) ? &plot.XAxis[i] : NULL, false);
+            ShowAxisContextMenu(plot.YAxis(i), ImHasFlag(plot.Flags, ImPlotFlags_Equal) ? &plot.XAxis(i) : NULL, false);
             ImGui::EndPopup();
         }
         ImGui::PopID();
@@ -2818,8 +2768,8 @@ void EndPlot() {
     // LINKED AXES ------------------------------------------------------------
 
     for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-        plot.XAxis[i].PushLinks();
-        plot.YAxis[i].PushLinks();
+        plot.XAxis(i).PushLinks();
+        plot.YAxis(i).PushLinks();
     }
 
     // CLEANUP ----------------------------------------------------------------
@@ -3189,89 +3139,70 @@ void EndSubplots() {
 void SetAxis(ImAxis axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetAxis() needs to be called between BeginPlot() and EndPlot()!");
-    IM_ASSERT_USER_ERROR(axis >= ImAxis_X1 && axis < ImAxis_COUNT, "Axis indices out of bounds!");
+    IM_ASSERT_USER_ERROR(axis >= ImAxis_X1 && axis < ImAxis_COUNT, "Axis index out of bounds!");
     SetupLock();
     if (axis < ImAxis_Y1)
         gp.CurrentPlot->CurrentX = axis;
     else
-        gp.CurrentPlot->CurrentY = axis % IMPLOT_MAX_AXES;
+        gp.CurrentPlot->CurrentY = axis;
 }
 
-void SetAxes(ImAxis x_axis, ImAxis y_axis) {
+void SetAxes(ImAxis x_idx, ImAxis y_idx) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "SetAxes() needs to be called between BeginPlot() and EndPlot()!");
-    IM_ASSERT_USER_ERROR(x_axis >= ImAxis_X1 && x_axis < ImAxis_Y1 && y_axis >= ImAxis_Y1 && y_axis < ImAxis_COUNT, "Axis indices out of bounds!");
+    IM_ASSERT_USER_ERROR(x_idx >= ImAxis_X1 && x_idx < ImAxis_Y1, "X-Axis index out of bounds!");
+    IM_ASSERT_USER_ERROR(y_idx >= ImAxis_Y1 && y_idx < ImAxis_COUNT, "Y-Axis index out of bounds!");
     SetupLock();
-    gp.CurrentPlot->CurrentX = x_axis;
-    gp.CurrentPlot->CurrentY = y_axis % IMPLOT_MAX_AXES;
+    gp.CurrentPlot->CurrentX = x_idx;
+    gp.CurrentPlot->CurrentY = y_idx;
 }
 
 void FitAxis(ImAxis axis) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "FitAxis() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(axis >= ImAxis_X1 && axis < ImAxis_COUNT, "Axis indices out of bounds!");
-    gp.FitThisFrame = true;
-    *(gp.FitX + axis) = true;
+    gp.CurrentPlot->FitThisFrame = true;
+    gp.CurrentPlot->Axes[axis].FitThisFrame = true;
 }
 
 void FitAxes() {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() needs to be called between BeginPlot() and EndPlot()!");
-    gp.FitThisFrame = true;
-    for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
-        gp.FitX[i] = gp.FitY[i] = true;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "FitAxes() needs to be called between BeginPlot() and EndPlot()!");
+    gp.CurrentPlot->FitThisFrame = true;
+    for (int i = 0; i < ImAxis_COUNT; ++i)
+        gp.CurrentPlot->Axes[i].FitThisFrame = true;
 }
 
-ImPoint PixelsToPlot(float x, float y, ImAxis x_axis, ImAxis y_axis) {
+ImPoint PixelsToPlot(float x, float y, ImAxis x_idx, ImAxis y_idx) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(x_idx == IMPLOT_AUTO || (x_idx >= ImAxis_X1 && x_idx < ImAxis_Y1),    "X-Axis index out of bounds!");
+    IM_ASSERT_USER_ERROR(y_idx == IMPLOT_AUTO || (y_idx >= ImAxis_Y1 && y_idx < ImAxis_COUNT), "Y-Axis index out of bounds!");
     SetupLock();
-    ImPlotPlot& plot = *gp.CurrentPlot;
-    const int ix = plot.GetAxisIdxX(x_axis);
-    const int iy = plot.GetAxisIdxY(y_axis);
-    ImPoint plt;
-    plt.x = (x - gp.PixelRange[iy].Min.x) / gp.Mx[ix] + plot.XAxis[ix].Range.Min;
-    plt.y = (y - gp.PixelRange[iy].Min.y) / gp.My[iy] + plot.YAxis[iy].Range.Min;
-    if (plot.XAxis[ix].IsLog()) {
-        double t = (plt.x - plot.XAxis[ix].Range.Min) / plot.XAxis[ix].Range.Size();
-        plt.x = ImPow(10, t * gp.LogDenX[ix]) * plot.XAxis[ix].Range.Min;
-    }
-    if (plot.YAxis[iy].IsLog()) {
-        double t = (plt.y - plot.YAxis[iy].Range.Min) / plot.YAxis[iy].Range.Size();
-        plt.y = ImPow(10, t * gp.LogDenY[iy]) * plot.YAxis[iy].Range.Min;
-    }
-    return plt;
+    ImPlotPlot& plot   = *gp.CurrentPlot;
+    ImPlotAxis& x_axis = x_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentX] : plot.Axes[x_idx];
+    ImPlotAxis& y_axis = y_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentY] : plot.Axes[y_idx];
+    return ImPoint( x_axis.PixelsToPlot(x), y_axis.PixelsToPlot(y) );
 }
 
-ImPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis, ImAxis y_axis) {
-    return PixelsToPlot(pix.x, pix.y, x_axis, y_axis);
+ImPoint PixelsToPlot(const ImVec2& pix, ImAxis x_idx, ImAxis y_idx) {
+    return PixelsToPlot(pix.x, pix.y, x_idx, y_idx);
 }
 
-ImVec2 PlotToPixels(double x, double y, ImAxis x_axis, ImAxis y_axis) {
+ImVec2 PlotToPixels(double x, double y, ImAxis x_idx, ImAxis y_idx) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotToPixels() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(x_idx == IMPLOT_AUTO || (x_idx >= ImAxis_X1 && x_idx < ImAxis_Y1),    "X-Axis index out of bounds!");
+    IM_ASSERT_USER_ERROR(y_idx == IMPLOT_AUTO || (y_idx >= ImAxis_Y1 && y_idx < ImAxis_COUNT), "Y-Axis index out of bounds!");
     SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
-    const int ix = plot.GetAxisIdxX(x_axis);
-    const int iy = plot.GetAxisIdxY(y_axis);
-    ImVec2 pix;
-    if (plot.XAxis[ix].IsLog()) {
-        x        = x <= 0.0 ? IMPLOT_LOG_ZERO : x;
-        double t = ImLog10(x / gp.CurrentPlot->XAxis[ix].Range.Min) / gp.LogDenX[ix];
-        x        = ImLerp(gp.CurrentPlot->XAxis[ix].Range.Min, gp.CurrentPlot->XAxis[ix].Range.Max, (float)t);
-    }
-    if (plot.YAxis[iy].IsLog()) {
-        y        = y <= 0.0 ? IMPLOT_LOG_ZERO : y;
-        double t = ImLog10(y / gp.CurrentPlot->YAxis[iy].Range.Min) / gp.LogDenY[iy];
-        y        = ImLerp(gp.CurrentPlot->YAxis[iy].Range.Min, gp.CurrentPlot->YAxis[iy].Range.Max, (float)t);
-    }
-    pix.x = (float)(gp.PixelRange[iy].Min.x + gp.Mx[ix] * (x - gp.CurrentPlot->XAxis[ix].Range.Min));
-    pix.y = (float)(gp.PixelRange[iy].Min.y + gp.My[iy] * (y - gp.CurrentPlot->YAxis[iy].Range.Min));
-    return pix;
+    ImPlotAxis& x_axis = x_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentX] : plot.Axes[x_idx];
+    ImPlotAxis& y_axis = y_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentY] : plot.Axes[y_idx];
+    return ImVec2( x_axis.PlotToPixels(x), y_axis.PlotToPixels(y) );
 }
 
-ImVec2 PlotToPixels(const ImPoint& plt, ImAxis x_axis, ImAxis y_axis) {
-    return PlotToPixels(plt.x, plt.y, x_axis, y_axis);
+ImVec2 PlotToPixels(const ImPoint& plt, ImAxis x_idx, ImAxis y_idx) {
+    return PlotToPixels(plt.x, plt.y, x_idx, y_idx);
 }
 
 ImVec2 GetPlotPos() {
@@ -3288,25 +3219,24 @@ ImVec2 GetPlotSize() {
     return gp.CurrentPlot->PlotRect.GetSize();
 }
 
-ImPoint GetPlotMousePos(ImAxis x_axis, ImAxis y_axis) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotMousePos() needs to be called between BeginPlot() and EndPlot()!");
+ImPoint GetPlotMousePos(ImAxis x_idx, ImAxis y_idx) {
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "GetPlotMousePos() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
-    const int ix = gp.CurrentPlot->GetAxisIdxX(x_axis);
-    const int iy = gp.CurrentPlot->GetAxisIdxY(y_axis);
-    return ImPoint(gp.MousePos[ix].x, gp.MousePos[iy].y);
+    return PixelsToPlot(ImGui::GetMousePos(), x_idx, y_idx);
 }
 
-ImBounds GetPlotLimits(ImAxis x_axis, ImAxis y_axis) {
+ImBounds GetPlotLimits(ImAxis x_idx, ImAxis y_idx) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotLimits() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(x_idx == IMPLOT_AUTO || (x_idx >= ImAxis_X1 && x_idx < ImAxis_Y1),    "X-Axis index out of bounds!");
+    IM_ASSERT_USER_ERROR(y_idx == IMPLOT_AUTO || (y_idx >= ImAxis_Y1 && y_idx < ImAxis_COUNT), "Y-Axis index out of bounds!");
     SetupLock();
-    const int ix = gp.CurrentPlot->GetAxisIdxX(x_axis);
-    const int iy = gp.CurrentPlot->GetAxisIdxY(y_axis);
     ImPlotPlot& plot = *gp.CurrentPlot;
+    ImPlotAxis& x_axis = x_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentX] : plot.Axes[x_idx];
+    ImPlotAxis& y_axis = y_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentY] : plot.Axes[y_idx];
     ImBounds limits;
-    limits.X = plot.XAxis[ix].Range;
-    limits.Y = plot.YAxis[iy].Range;
+    limits.X = x_axis.Range;
+    limits.Y = y_axis.Range;
     return limits;
 }
 
@@ -3321,7 +3251,7 @@ bool IsAxisHovered(ImAxis axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "IsPlotXAxisHovered() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
-    return gp.CurrentPlot->GetAxis(axis)->Hovered;
+    return gp.CurrentPlot->Axes[axis].Hovered;
 }
 
 bool IsSubplotsHovered() {
@@ -3337,16 +3267,15 @@ bool IsPlotSelected() {
     return gp.CurrentPlot->Selected;
 }
 
-ImBounds GetPlotSelection(ImAxis x_axis, ImAxis y_axis) {
+ImBounds GetPlotSelection(ImAxis x_idx, ImAxis y_idx) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotSelection() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     if (!plot.Selected)
         return ImBounds(0,0,0,0);
-    UpdateTransformCache();
-    ImPoint p1 = PixelsToPlot(plot.SelectRect.Min + plot.PlotRect.Min, x_axis, y_axis);
-    ImPoint p2 = PixelsToPlot(plot.SelectRect.Max + plot.PlotRect.Min, x_axis, y_axis);
+    ImPoint p1 = PixelsToPlot(plot.SelectRect.Min + plot.PlotRect.Min, x_idx, y_idx);
+    ImPoint p2 = PixelsToPlot(plot.SelectRect.Max + plot.PlotRect.Min, x_idx, y_idx);
     ImBounds result;
     result.X.Min = ImMin(p1.x, p2.x);
     result.X.Max = ImMax(p1.x, p2.x);
@@ -3712,8 +3641,8 @@ bool BeginDragDropTargetPlot() {
 
 bool BeginDragDropTargetAxis(ImAxis axis) {
     SetupLock();
-    ImPlotAxis* ax = GImPlot->CurrentPlot->GetAxis(axis);
-    return BeginDragDropTargetEx(ax->ID, ax->HoverRect);
+    ImPlotAxis& ax = GImPlot->CurrentPlot->Axes[axis];
+    return BeginDragDropTargetEx(ax.ID, ax.HoverRect);
 }
 
 bool BeginDragDropTargetLegend() {
@@ -3790,9 +3719,9 @@ bool BeginDragDropSourcePlot(ImGuiDragDropFlags flags) {
 
 bool BeginDragDropSourceAxis(ImAxis idx, ImGuiDragDropFlags flags) {
     SetupLock();
-    ImPlotAxis* axis = GImPlot->CurrentPlot->GetAxis(idx);
-    if (GImGui->IO.KeyMods == GImPlot->InputMap.OverrideMod || GImGui->DragDropPayload.SourceId == axis->ID)    
-        return ImGui::ItemAdd(axis->HoverRect, axis->ID) && ImGui::BeginDragDropSource(flags);
+    ImPlotAxis& axis = GImPlot->CurrentPlot->Axes[idx];
+    if (GImGui->IO.KeyMods == GImPlot->InputMap.OverrideMod || GImGui->DragDropPayload.SourceId == axis.ID)    
+        return ImGui::ItemAdd(axis.HoverRect, axis.ID) && ImGui::BeginDragDropSource(flags);
     return false;
 }
 
@@ -4630,22 +4559,18 @@ void ShowUserGuide() {
     ImGui::BulletText("Click legend label icons to show/hide plot items.");
 }
 
-void ShowContextMetrics(const ImPlotContext& ctx) {
-    ImGui::Text("FitThisFrame: %s", ctx.FitThisFrame ? "true" : "false");
-    for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-        // ImGui::Text("FitX[%d]: %s", i, ctx.FitX[i] ? "true" : "false");
-        // ImGui::Text("FitY[%d]: %s", i, ctx.FitY[i] ? "true" : "false");
-        // ImGui::Text("Mx[%d]: %f", i, ctx.Mx[i]);
-        // ImGui::Text("My[%d]: %f", i, ctx.My[i]);
-        ImGui::Text("PixelRange[%d]: [%.3f,%.3f,%.3f,%.3f]", i, ctx.PixelRange[i].Min.x, ctx.PixelRange[i].Min.y, ctx.PixelRange[i].Max.x, ctx.PixelRange[i].Max.y);
-    }
-}
+// void ShowContextMetrics(const ImPlotContext& ctx) {
+
+// }
 
 void ShowAxisMetrics(const ImPlotPlot& plot, const ImPlotAxis& axis) {
     ImGui::Bullet(); ImGui::Text("Label: %s", axis.LabelOffset == -1 ? "none" : plot.GetAxisLabel(axis));
     ImGui::Bullet(); ImGui::Text("Flags: %d", axis.Flags);
     ImGui::Bullet(); ImGui::Text("Range: [%f,%f]",axis.Range.Min, axis.Range.Max);
-    ImGui::Bullet(); ImGui::Text("Pixels: %f", axis.Pixels);
+    ImGui::Bullet(); ImGui::Text("PixelMin: %f", axis.PixelMin);
+    ImGui::Bullet(); ImGui::Text("PixelMax: %f", axis.PixelMax);
+    ImGui::Bullet(); ImGui::Text("LinM: %f", axis.LinM);
+    ImGui::Bullet(); ImGui::Text("LogD: %f", axis.LogD);
     ImGui::Bullet(); ImGui::Text("Aspect: %f", axis.GetAspect());
     ImGui::Bullet(); ImGui::Text("Hovered: %s", axis.Hovered ? "true" : "false");
     ImGui::Bullet(); ImGui::Text("Held: %s", axis.Held ? "true" : "false");
@@ -4673,6 +4598,7 @@ void ShowMetricsWindow(bool* p_popen) {
     ImGui::Begin("ImPlot Metrics", p_popen);
     ImGui::Text("ImPlot " IMPLOT_VERSION);
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+    ImGui::Text("Mouse Position: [%.0f,%.0f]", io.MousePos.x, io.MousePos.y);
     ImGui::Separator();
     if (ImGui::TreeNode("Tools")) {
         if (ImGui::Button("Bust Plot Cache"))
@@ -4687,7 +4613,6 @@ void ShowMetricsWindow(bool* p_popen) {
         ImGui::Checkbox("Show Axis Rects",  &show_axis_rects);
         ImGui::Checkbox("Show Subplot Frame Rects",  &show_subplot_frame_rects);
         ImGui::Checkbox("Show Subplot Grid Rects",  &show_subplot_grid_rects);
-
         ImGui::TreePop();
     }
     const int n_plots = gp.Plots.GetBufSize();
@@ -4705,10 +4630,10 @@ void ShowMetricsWindow(bool* p_popen) {
             fg.AddRect(plot->AxesRect.Min, plot->AxesRect.Max, IM_COL32(0,255,128,255));
         if (show_axis_rects) {
             for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-                if (plot->XAxis[i].Enabled)
-                    fg.AddRect(plot->XAxis[i].HoverRect.Min, plot->XAxis[i].HoverRect.Max, IM_COL32(0,255,0,255));
-                if (plot->YAxis[i].Enabled)
-                    fg.AddRect(plot->YAxis[i].HoverRect.Min, plot->YAxis[i].HoverRect.Max, IM_COL32(0,255,0,255));
+                if (plot->XAxis(i).Enabled)
+                    fg.AddRect(plot->XAxis(i).HoverRect.Min, plot->XAxis(i).HoverRect.Max, IM_COL32(0,255,0,255));
+                if (plot->YAxis(i).Enabled)
+                    fg.AddRect(plot->YAxis(i).HoverRect.Min, plot->YAxis(i).HoverRect.Max, IM_COL32(0,255,0,255));
             }
         }
     }
@@ -4719,10 +4644,10 @@ void ShowMetricsWindow(bool* p_popen) {
         if (show_subplot_grid_rects)
             fg.AddRect(subplot->GridRect.Min, subplot->GridRect.Max, IM_COL32(0,0,255,255));
     }
-    if (ImGui::TreeNode("Context")) {
-        ShowContextMetrics(gp);
-        ImGui::TreePop();
-    }
+    // if (ImGui::TreeNode("Context")) {
+    //     ShowContextMetrics(gp);
+    //     ImGui::TreePop();
+    // }
     if (ImGui::TreeNode("Plots","Plots (%d)", n_plots)) {
         for (int p = 0; p < n_plots; ++p) {
             // plot
@@ -4753,13 +4678,13 @@ void ShowMetricsWindow(bool* p_popen) {
                 char buff[16];
                 for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
                     snprintf(buff,16,"X-Axis %d", i+1);
-                    if (plot.XAxis[i].Enabled && ImGui::TreeNode(buff, "X-Axis %d [ID=0x%08X]", i+1, plot.XAxis[i].ID)) {
-                        ShowAxisMetrics(plot, plot.XAxis[i]);
+                    if (plot.XAxis(i).Enabled && ImGui::TreeNode(buff, "X-Axis %d [ID=0x%08X]", i+1, plot.XAxis(i).ID)) {
+                        ShowAxisMetrics(plot, plot.XAxis(i));
                         ImGui::TreePop();
                     }
                     snprintf(buff,16,"Y-Axis %d", i+1);
-                    if (plot.YAxis[i].Enabled && ImGui::TreeNode(buff, "Y-Axis %d [ID=0x%08X]", i+1, plot.YAxis[i].ID)) {
-                        ShowAxisMetrics(plot, plot.YAxis[i]);
+                    if (plot.YAxis(i).Enabled && ImGui::TreeNode(buff, "Y-Axis %d [ID=0x%08X]", i+1, plot.YAxis(i).ID)) {
+                        ShowAxisMetrics(plot, plot.YAxis(i));
                         ImGui::TreePop();
                     }
                 }

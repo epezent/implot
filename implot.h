@@ -89,13 +89,14 @@ enum ImPlotFlags_ {
     ImPlotFlags_None          = 0,      // default
     ImPlotFlags_NoTitle       = 1 << 0, // the plot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MyPlot")
     ImPlotFlags_NoLegend      = 1 << 1, // the legend will not be displayed
-    ImPlotFlags_NoMenus       = 1 << 2, // the user will not be able to open context menus with right-click
-    ImPlotFlags_NoBoxSelect   = 1 << 3, // the user will not be able to box-select with right-click drag
-    ImPlotFlags_NoMouseText   = 1 << 4, // the mouse position, in plot coordinates, will not be displayed inside of the plot
-    ImPlotFlags_NoChild       = 1 << 5, // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_Equal         = 1 << 6, // primary x and y axes will be constrained to have the same units/pixel (does not apply to auxiliary y-axes)
-    ImPlotFlags_Crosshairs    = 1 << 7, // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased   = 1 << 8, // plot lines will be software anti-aliased (not recommended for high density plots, prefer MSAA)
+    ImPlotFlags_NoMouseText   = 1 << 2, // the mouse position, in plot coordinates, will not be displayed inside of the plot
+    ImPlotFlags_NoInput       = 1 << 3, // the user will not be able to interact with the plot at all
+    ImPlotFlags_NoMenus       = 1 << 4, // the user will not be able to open context menus with right-click
+    ImPlotFlags_NoBoxSelect   = 1 << 5, // the user will not be able to box-select with right-click drag
+    ImPlotFlags_NoChild       = 1 << 6, // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
+    ImPlotFlags_Equal         = 1 << 7, // primary x and y axes will be constrained to have the same units/pixel (does not apply to auxiliary y-axes)
+    ImPlotFlags_Crosshairs    = 1 << 8, // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_AntiAliased   = 1 << 9, // plot lines will be software anti-aliased (not recommended for high density plots, prefer MSAA)
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText
 };
 
