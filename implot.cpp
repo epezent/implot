@@ -469,11 +469,6 @@ void ResetCtxForNextPlot(ImPlotContext* ctx) {
     // reset the next plot/item data
     ctx->NextPlotData.Reset();
     ctx->NextItemData.Reset();
-    // reset ticks/labels
-    for (int i = 0; i < IMPLOT_MAX_AXES; ++i) {
-        ctx->XTicks[i].Reset();
-        ctx->YTicks[i].Reset();
-    }
     // reset labels
     ctx->Annotations.Reset();
     // reset extents/fit
@@ -1529,7 +1524,7 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B) {
             if (label)
                 pad_T += T + P;
             if (ticks)
-                pad_T += ImMax(T, gp.XTicks[i].MaxHeight) + P + (time ? T + P : 0);
+                pad_T += ImMax(T, axis.Ticks.MaxHeight) + P + (time ? T + P : 0);
             axis.Datum1 = plot.CanvasRect.Min.y + pad_T;
             axis.Datum2 = last_T;
             last_T = axis.Datum1;
@@ -1540,7 +1535,7 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B) {
             if (label)
                 pad_B += T + P;
             if (ticks)
-                pad_B += ImMax(T, gp.XTicks[i].MaxHeight) + P + (time ? T + P : 0);
+                pad_B += ImMax(T, axis.Ticks.MaxHeight) + P + (time ? T + P : 0);
             axis.Datum1 = plot.CanvasRect.Max.y - pad_B;
             axis.Datum2 = last_B;
             last_B = axis.Datum1;
@@ -1589,7 +1584,7 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R) {
             if (label)
                 pad_R += T + P;
             if (ticks)
-                pad_R += gp.YTicks[i].MaxWidth + P;
+                pad_R += axis.Ticks.MaxWidth + P;
             axis.Datum1 = plot.CanvasRect.Max.x - pad_R;
             axis.Datum2 = last_R;
             last_R = axis.Datum1;
@@ -1600,7 +1595,7 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R) {
             if (label)
                 pad_L += T + P;
             if (ticks)
-                pad_L += gp.YTicks[i].MaxWidth + P;
+                pad_L += axis.Ticks.MaxWidth + P;
             axis.Datum1 = plot.CanvasRect.Min.x + pad_L;
             axis.Datum2 = last_L;
             last_L = axis.Datum1;
@@ -2021,7 +2016,7 @@ void SetupAxisTicks(ImAxis idx, const double* values, int n_ticks, const char* c
     AddTicksCustom(values, 
                   labels, 
                   n_ticks, 
-                  *(GImPlot->XTicks + idx), // FIXME
+                  axis.Ticks,
                   axis.Formatter ? axis.Formatter : DefaultFormatter,
                   axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
 }
@@ -2266,14 +2261,14 @@ void SetupFinish() {
                 AddTicksLogarithmic(axis.Range,
                                     plot_height,
                                     true,
-                                    gp.YTicks[i],
+                                    axis.Ticks,
                                     axis.Formatter     ? axis.Formatter  : DefaultFormatter,
                                     axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
             else
                 AddTicksDefault(axis.Range,
                                 plot_height,
                                 true,
-                                gp.YTicks[i],
+                                axis.Ticks,
                                 axis.Formatter     ? axis.Formatter  : DefaultFormatter,
                                 axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
         }
@@ -2293,19 +2288,19 @@ void SetupFinish() {
         ImPlotAxis& axis = plot.XAxis(i);
         if (axis.WillRender() && axis.ShowDefaultTicks) {
             if (axis.IsTime())
-                AddTicksTime(axis.Range, plot_width, gp.XTicks[i]);
+                AddTicksTime(axis.Range, plot_width, axis.Ticks);
             else if (axis.IsLog())
                 AddTicksLogarithmic(axis.Range,
                                     plot_width,
                                     false,
-                                    gp.XTicks[i],
+                                    axis.Ticks,
                                     axis.Formatter     ? axis.Formatter  : DefaultFormatter,
                                     axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
             else
                 AddTicksDefault(axis.Range,
                                 plot_width,
                                 false,
-                                gp.XTicks[i],
+                                axis.Ticks,
                                 axis.Formatter     ? axis.Formatter  : DefaultFormatter,
                                 axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
         }
@@ -2381,15 +2376,17 @@ void SetupFinish() {
     // transform ticks (TODO: Move this into ImPlotTickCollection)
 
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
-        if (plot.XAxis(i).WillRender()) {
-            for (int t = 0; t < gp.XTicks[i].Size; t++) {
-                ImPlotTick& xt = gp.XTicks[i].Ticks[t];
+        ImPlotAxis& x_axis = plot.XAxis(i);
+        if (x_axis.WillRender()) {
+            for (int t = 0; t < x_axis.Ticks.Size; t++) {
+                ImPlotTick& xt = x_axis.Ticks.Ticks[t];
                 xt.PixelPos = IM_ROUND(PlotToPixels(xt.PlotPos, 0, ImAxis_X1+i, ImAxis_Y1).x);
             }
         }
-        if (plot.YAxis(i).WillRender()) {
-            for (int t = 0; t < gp.YTicks[i].Size; t++) {
-                ImPlotTick& yt = gp.YTicks[i].Ticks[t];
+        ImPlotAxis& y_axis = plot.YAxis(i);
+        if (y_axis.WillRender()) {
+            for (int t = 0; t < y_axis.Ticks.Size; t++) {
+                ImPlotTick& yt = y_axis.Ticks.Ticks[t];
                 yt.PixelPos = IM_ROUND(PlotToPixels(0, yt.PlotPos, ImAxis_X1, ImAxis_Y1+i).y);
             }
         }
@@ -2398,9 +2395,9 @@ void SetupFinish() {
     // render grid (background)
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
         if (plot.XAxis(i).Enabled && plot.XAxis(i).HasGridLines() && !plot.XAxis(i).IsForeground())
-            RenderGridLinesX(DrawList, gp.XTicks[i], plot.PlotRect, plot.XAxis(i).ColorMaj, plot.XAxis(i).ColorMin, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
+            RenderGridLinesX(DrawList, plot.XAxis(i).Ticks, plot.PlotRect, plot.XAxis(i).ColorMaj, plot.XAxis(i).ColorMin, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
         if (plot.YAxis(i).Enabled && plot.YAxis(i).HasGridLines() && !plot.YAxis(i).IsForeground())
-            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis(i).ColorMaj, plot.YAxis(i).ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
+            RenderGridLinesY(DrawList, plot.YAxis(i).Ticks, plot.PlotRect,  plot.YAxis(i).ColorMaj, plot.YAxis(i).ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
     }
 
     // clear legend (TODO: put elsewhere)
@@ -2438,9 +2435,9 @@ void EndPlot() {
     // render grid (foreground)
     for (int i = 0; i < IMPLOT_MAX_AXES; i++) {
         if (plot.XAxis(i).Enabled && plot.XAxis(i).HasGridLines() && plot.XAxis(i).IsForeground())
-            RenderGridLinesX(DrawList, gp.XTicks[i], plot.PlotRect, plot.XAxis(i).ColorMaj, plot.XAxis(i).ColorMaj, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
+            RenderGridLinesX(DrawList, plot.XAxis(i).Ticks, plot.PlotRect, plot.XAxis(i).ColorMaj, plot.XAxis(i).ColorMaj, gp.Style.MajorGridSize.x, gp.Style.MinorGridSize.x);
         if (plot.YAxis(i).Enabled && plot.YAxis(i).HasGridLines() && plot.YAxis(i).IsForeground())
-            RenderGridLinesY(DrawList, gp.YTicks[i], plot.PlotRect,  plot.YAxis(i).ColorMaj,  plot.YAxis(i).ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
+            RenderGridLinesY(DrawList, plot.YAxis(i).Ticks, plot.PlotRect,  plot.YAxis(i).ColorMaj,  plot.YAxis(i).ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
     }
 
 
@@ -2460,13 +2457,13 @@ void EndPlot() {
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.Held ? ax.ColorAct : ax.ColorHov);
         else if (ax.ColorHiLi != IM_COL32_BLACK)
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorHiLi);
-        const ImPlotTickCollection& tkc = gp.XTicks[i];
+        const ImPlotTickCollection& tkc = ax.Ticks;
         const bool opp = ax.IsOpposite();
         const bool aux = ((opp && count_T > 0)||(!opp && count_B > 0));
         if (ax.HasLabel()) {
             const char* label        = plot.GetAxisLabel(ax);
             const ImVec2 label_size  = ImGui::CalcTextSize(label);
-            const float label_offset = (ax.HasTickLabels() ? gp.XTicks[i].MaxHeight + gp.Style.LabelPadding.y : 0.0f)
+            const float label_offset = (ax.HasTickLabels() ? ax.Ticks.MaxHeight + gp.Style.LabelPadding.y : 0.0f)
                                      + (ax.IsTime() ? txt_height + gp.Style.LabelPadding.y : 0)
                                      + gp.Style.LabelPadding.y;
             const ImVec2 label_pos(plot.PlotRect.GetCenter().x - label_size.x * 0.5f,
@@ -2512,13 +2509,13 @@ void EndPlot() {
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.Held ? ax.ColorAct : ax.ColorHov);
         else if (ax.ColorHiLi != IM_COL32_BLACK)
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorHiLi);
-        const ImPlotTickCollection& tkc = gp.YTicks[i];
+        const ImPlotTickCollection& tkc = ax.Ticks;
         const bool opp = ax.IsOpposite();
         const bool aux = ((opp && count_R > 0)||(!opp && count_L > 0));
         if (ax.HasLabel()) {
             const char* label        = plot.GetAxisLabel(ax);
             const ImVec2 label_size  = CalcTextSizeVertical(label);
-            const float label_offset = (ax.HasTickLabels() ? gp.YTicks[i].MaxWidth + gp.Style.LabelPadding.x : 0.0f)
+            const float label_offset = (ax.HasTickLabels() ? ax.Ticks.MaxWidth + gp.Style.LabelPadding.x : 0.0f)
                                      + gp.Style.LabelPadding.x;
             const ImVec2 label_pos(opp ? ax.Datum1 + label_offset : ax.Datum1 - label_offset - label_size.x,
                                    plot.PlotRect.GetCenter().y + label_size.y * 0.5f);
@@ -5274,34 +5271,34 @@ void FitNextPlotAxes(bool x, bool y, bool y2, bool y3) {
     gp.NextPlotData.Fit[ImAxis_Y3] = y3;
 }
 
-void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[], bool show_default) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksX() needs to be called before BeginPlot()!");
-    gp.NextPlotData.ShowDefaultTicks[ImAxis_X1] = show_default;
-    AddTicksCustom(values, labels, n_ticks, gp.XTicks[0], DefaultFormatter, gp.NextPlotData.HasFmt[ImAxis_X1] ? gp.NextPlotData.Fmt[ImAxis_X1] : IMPLOT_LABEL_FORMAT);
-}
+// void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[], bool show_default) {
+//     ImPlotContext& gp = *GImPlot;
+//     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksX() needs to be called before BeginPlot()!");
+//     gp.NextPlotData.ShowDefaultTicks[ImAxis_X1] = show_default;
+//     AddTicksCustom(values, labels, n_ticks, gp.XTicks[0], DefaultFormatter, gp.NextPlotData.HasFmt[ImAxis_X1] ? gp.NextPlotData.Fmt[ImAxis_X1] : IMPLOT_LABEL_FORMAT);
+// }
 
-void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[], bool show_default) {
-    IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
-    static ImVector<double> buffer;
-    FillRange(buffer, n_ticks, x_min, x_max);
-    SetNextPlotTicksX(&buffer[0], n_ticks, labels, show_default);
-}
+// void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[], bool show_default) {
+//     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
+//     static ImVector<double> buffer;
+//     FillRange(buffer, n_ticks, x_min, x_max);
+//     SetNextPlotTicksX(&buffer[0], n_ticks, labels, show_default);
+// }
 
-void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[], bool show_default, ImAxis y_axis) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksY() needs to be called before BeginPlot()!");
-    IM_ASSERT_USER_ERROR(y_axis >= ImAxis_Y1 && y_axis < ImAxis_COUNT, "y_axis out of range!");
-    gp.NextPlotData.ShowDefaultTicks[y_axis] = show_default;
-    AddTicksCustom(values, labels, n_ticks, gp.YTicks[y_axis%IMPLOT_MAX_AXES], DefaultFormatter, gp.NextPlotData.HasFmt[y_axis] ? gp.NextPlotData.Fmt[y_axis] : IMPLOT_LABEL_FORMAT);
-}
+// void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[], bool show_default, ImAxis y_axis) {
+//     ImPlotContext& gp = *GImPlot;
+//     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksY() needs to be called before BeginPlot()!");
+//     IM_ASSERT_USER_ERROR(y_axis >= ImAxis_Y1 && y_axis < ImAxis_COUNT, "y_axis out of range!");
+//     gp.NextPlotData.ShowDefaultTicks[y_axis] = show_default;
+//     AddTicksCustom(values, labels, n_ticks, gp.YTicks[y_axis%IMPLOT_MAX_AXES], DefaultFormatter, gp.NextPlotData.HasFmt[y_axis] ? gp.NextPlotData.Fmt[y_axis] : IMPLOT_LABEL_FORMAT);
+// }
 
-void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[], bool show_default, ImAxis y_axis) {
-    IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
-    static ImVector<double> buffer;
-    FillRange(buffer, n_ticks, y_min, y_max);
-    SetNextPlotTicksY(&buffer[0], n_ticks, labels, show_default,y_axis);
-}
+// void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[], bool show_default, ImAxis y_axis) {
+//     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
+//     static ImVector<double> buffer;
+//     FillRange(buffer, n_ticks, y_min, y_max);
+//     SetNextPlotTicksY(&buffer[0], n_ticks, labels, show_default,y_axis);
+// }
 
 void SetNextPlotFormatX(const char* fmt){
     ImPlotContext& gp = *GImPlot;

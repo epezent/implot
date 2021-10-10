@@ -73,8 +73,6 @@
 #define IMPLOT_NUM_X_AXES ImAxis_Y1
 #define IMPLOT_NUM_Y_AXES (ImAxis_COUNT - IMPLOT_NUM_X_AXES)
 #define IMPLOT_MAX_AXES (ImAxis_COUNT/2)
-#define IMPLOT_FOR_AXES_X(i) for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
-#define IMPLOT_FOR_AXES_Y(i) for (int i = 0; i < IMPLOT_MAX_AXES; ++i)
 
 // Split ImU32 color into RGB components [0 255]
 #define IM_COL32_SPLIT_RGB(col,r,g,b) \
@@ -581,36 +579,37 @@ struct ImPlotTickCollection {
 // Axis state information that must persist after EndPlot
 struct ImPlotAxis
 {
-    ImGuiID         ID;
-    bool            Enabled;
-    ImPlotAxisFlags Flags;
-    ImPlotAxisFlags PreviousFlags;
-    ImRange         Range;
-    float           PixelMin;
-    float           PixelMax;
-    double          LinM;
-    double          LogD;
-    bool            Vertical;
-    bool            Hovered;
-    bool            Held;
-    bool            HasRange;
-    double*         LinkedMin;
-    double*         LinkedMax;
-    ImPlotTime      PickerTimeMin, PickerTimeMax;
-    int             PickerLevel;
-    ImU32           ColorMaj, ColorMin, ColorTxt, ColorHov, ColorAct, ColorHiLi;
-    ImGuiCond       RangeCond;
-    ImRect          HoverRect;
-    float           Datum1;
-    float           Datum2;
-    int             LabelOffset;
-    char            FormatSpec[16];
-    bool            HasFormatSpec;
-    void            (*Formatter)(double, char*, int, void*);
-    void*           FormatterData;
-    bool            ShowDefaultTicks;
-    bool            FitThisFrame;
-    ImRange         FitExtents;
+    ImGuiID              ID;
+    bool                 Enabled;
+    ImPlotAxisFlags      Flags;
+    ImPlotAxisFlags      PreviousFlags;
+    ImRange              Range;
+    float                PixelMin;
+    float                PixelMax;
+    double               LinM;
+    double               LogD;
+    bool                 Vertical;
+    bool                 Hovered;
+    bool                 Held;
+    bool                 HasRange;
+    double*              LinkedMin;
+    double*              LinkedMax;
+    ImPlotTime           PickerTimeMin, PickerTimeMax;
+    int                  PickerLevel;
+    ImU32                ColorMaj, ColorMin, ColorTxt, ColorHov, ColorAct, ColorHiLi;
+    ImGuiCond            RangeCond;
+    ImRect               HoverRect;
+    float                Datum1;
+    float                Datum2;
+    int                  LabelOffset;
+    char                 FormatSpec[16];
+    bool                 HasFormatSpec;
+    void                 (*Formatter)(double, char*, int, void*);
+    void*                FormatterData;
+    bool                 ShowDefaultTicks;
+    bool                 FitThisFrame;
+    ImRange              FitExtents;
+    ImPlotTickCollection Ticks;
 
     ImPlotAxis() {
         Enabled          = false;
@@ -641,6 +640,7 @@ struct ImPlotAxis
         FitThisFrame     = false;
         FitExtents.Min   = HUGE_VAL;
         FitExtents.Max   = -HUGE_VAL;
+        Ticks.Reset();
     }
 
     inline bool SetMin(double _min, bool force=false) {
@@ -819,6 +819,25 @@ struct ImPlotAxis
         if (LinkedMax) { SetMax(*LinkedMax,true); }
     }
 };
+
+struct ImPlotAxisIterator {
+    ImPlotAxisIterator(ImPlotAxis* head, int count) {
+        Head = head;
+        Count = count;
+        Idx = 0;
+    }
+    ImPlotAxis* Next() {  
+        if (Idx == Count) {
+            Idx = 0;
+            return nullptr;
+        }
+        return Head + Idx++; 
+    }
+    ImPlotAxis* Head;
+    int         Count;
+    int         Idx;
+};
+
 
 // Align plots group data
 struct ImPlotAlignmentData {
@@ -1024,8 +1043,8 @@ struct ImPlotSubplot {
     ImVector<ImPlotAlignmentData> ColAlignmentData;
     ImVector<float>               RowRatios;
     ImVector<float>               ColRatios;
-    ImVector<ImRange>            RowLinkData;
-    ImVector<ImRange>            ColLinkData;
+    ImVector<ImRange>             RowLinkData;
+    ImVector<ImRange>             ColLinkData;
     float                         TempSizes[2];
     bool                          FrameHovered;
 
@@ -1107,8 +1126,6 @@ struct ImPlotContext {
 
     // Tick Marks and Labels
     ImPlotTickCollection CTicks;
-    ImPlotTickCollection XTicks[IMPLOT_MAX_AXES];
-    ImPlotTickCollection YTicks[IMPLOT_MAX_AXES];
 
     // Annotation and User Labels
     ImPlotAnnotationCollection Annotations;

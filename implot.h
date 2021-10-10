@@ -1042,10 +1042,10 @@ IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotLimitsX(double xmin, double xmax, 
 IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, ImAxis y_axis = ImAxis_Y1) );
 IMPLOT_DEPRECATED( IMPLOT_API void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2 = NULL, double* ymax2 = NULL, double* ymin3 = NULL, double* ymax3 = NULL) );
 IMPLOT_DEPRECATED( IMPLOT_API void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true) );
-IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false) );
-IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false) );
-IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1) );
-IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1) );
+// IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false) );
+// IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false) );
+// IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1) );
+// IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1) );
 IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotFormatX(const char* fmt) );
 IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotFormatY(const char* fmt, ImAxis y_axis = ImAxis_Y1) );
 
