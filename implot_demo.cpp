@@ -247,32 +247,28 @@ void InputMapping(const char* label, ImGuiMouseButton* b, ImGuiKeyModFlags* k) {
     }
 }
 
+void ShowInputMapping() {
+    ImPlotInputMap& map = ImPlot::GetInputMap();  
+    InputMapping("Pan",&map.Pan,&map.PanMod);
+    InputMapping("Fit",&map.Fit,NULL);
+    InputMapping("Select",&map.Select,&map.SelectMod);
+    InputMapping("SelectHorzMod",NULL,&map.SelectHorzMod);
+    InputMapping("SelectVertMod",NULL,&map.SelectVertMod);
+    InputMapping("SelectCancel",&map.SelectCancel,NULL);
+    InputMapping("Menu",&map.Menu,NULL);
+    InputMapping("OverrideMod",NULL,&map.OverrideMod);
+    InputMapping("ZoomMod",NULL,&map.ZoomMod);
+    ImGui::SliderFloat("ZoomRate",&map.ZoomRate,-1,1);
+}
+
 void ShowDemo_Config() {
     ImGui::ShowFontSelector("Font");
     ImGui::ShowStyleSelector("ImGui Style");
     ImPlot::ShowStyleSelector("ImPlot Style");
     ImPlot::ShowColormapSelector("ImPlot Colormap");
+    ImPlot::ShowInputMapSelector("Input Map");
     ImGui::Separator();
     ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines);
-    ImGui::Separator();
-
-    ImPlot::ShowInputMapSelector("Input Map");
-    if (ImGui::TreeNode("Customize")) {
-        ImPlotInputMap& map = ImPlot::GetInputMap();  
-        InputMapping("Pan",&map.Pan,&map.PanMod);
-        InputMapping("Fit",&map.Fit,NULL);
-        InputMapping("Select",&map.Select,&map.SelectMod);
-        InputMapping("SelectHorzMod",NULL,&map.SelectHorzMod);
-        InputMapping("SelectVertMod",NULL,&map.SelectVertMod);
-        InputMapping("SelectCancel",&map.SelectCancel,NULL);
-        InputMapping("Menu",&map.Menu,NULL);
-        InputMapping("OverrideMod",NULL,&map.OverrideMod);
-        InputMapping("ZoomMod",NULL,&map.ZoomMod);
-        ImGui::SliderFloat("ZoomRate",&map.ZoomRate,-1,1);
-        ImGui::TreePop();
-    }
-
-    ImGui::Separator();
     ImGui::Checkbox("Use Local Time", &ImPlot::GetStyle().UseLocalTime);
     ImGui::Checkbox("Use ISO 8601", &ImPlot::GetStyle().UseISO8601);
     ImGui::Checkbox("Use 24 Hour Clock", &ImPlot::GetStyle().Use24HourClock);
@@ -290,7 +286,6 @@ void ShowDemo_Config() {
         }
         ImPlot::EndPlot();
     }
-
 }
 
 //-----------------------------------------------------------------------------
@@ -938,7 +933,7 @@ void ShowDemo_TimeAxes() {
     }
 }
 
-void ShowDemo_MultipleYAxes() {
+void ShowDemo_MultipleAxes() {
     static float xs[1001], xs2[1001], ys1[1001], ys2[1001], ys3[1001];
     for (int i = 0; i < 1001; ++i) {
         xs[i]  = (i*0.1f);
@@ -1069,7 +1064,7 @@ ImPoint SinewaveGetter(void* data, int i) {
 }
 
 void ShowDemo_SubplotsSizing() {
-
+        
     static ImPlotSubplotFlags flags = ImPlotSubplotFlags_None;
     ImGui::CheckboxFlags("ImPlotSubplotFlags_NoResize", (unsigned int*)&flags, ImPlotSubplotFlags_NoResize);
     ImGui::CheckboxFlags("ImPlotSubplotFlags_NoTitle", (unsigned int*)&flags, ImPlotSubplotFlags_NoTitle);
@@ -1084,14 +1079,11 @@ void ShowDemo_SubplotsSizing() {
     ImGui::DragScalarN("Col Ratios",ImGuiDataType_Float,cratios,cols,0.01f,0);
     if (ImPlot::BeginSubplots("My Subplots", rows, cols, ImVec2(-1,400), flags, rratios, cratios)) {
         for (int i = 0; i < rows*cols; ++i) {
-            if (ImPlot::BeginPlot("")) {                
-                ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_NoTickLabels,ImPlotAxisFlags_NoTickLabels);
-                char buffer[16];
+            if (ImPlot::BeginPlot("",ImVec2(),ImPlotFlags_NoLegend)) {                
+                ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations);
                 float fi = 0.01f * (i+1);
-                sprintf(buffer, "data%d", i);
-                if (i == 0)
-                    ImPlot::SetNextLineStyle(ImVec4(0,1,0,1));
-                ImPlot::PlotLineG(buffer,SinewaveGetter,&fi,1000);
+                ImPlot::SetNextLineStyle(SampleColormap((float)i/(float)(rows*cols-1),ImPlotColormap_Jet));
+                ImPlot::PlotLineG("data",SinewaveGetter,&fi,1000);
                 ImPlot::EndPlot();
             }
         }
@@ -1653,20 +1645,21 @@ void ShowDemo_CustomDataAndGetters() {
     }
 }
 
-void MetricFormatter(double value, char* buff, int size, void*) {
+void MetricFormatter(double value, char* buff, int size, void* data) {
+    const char* unit = (const char*)data;
     static double v[]      = {1000000000,1000000,1000,1,0.001,0.000001,0.000000001};
     static const char* p[] = {"G","M","k","","m","u","n"};
     if (value == 0) {
-        snprintf(buff,size,"0 Hz");
+        snprintf(buff,size,"0 %s", unit);
         return;
     }
     for (int i = 0; i < 7; ++i) {
         if (fabs(value) >= v[i]) {
-            snprintf(buff,size,"%.0f %sHz",value/v[i],p[i]);
+            snprintf(buff,size,"%.0f %s%s",value/v[i],p[i],unit);
             return;
         }
     }
-    snprintf(buff,size,"%.0f %sHz",value/v[6],p[6]);
+    snprintf(buff,size,"%.0f %s%s",value/v[6],p[6],unit);
 }
 
 void ShowDemo_TickLabels()  {
@@ -1693,9 +1686,9 @@ void ShowDemo_TickLabels()  {
         ImPlot::SetupAxis(ImAxis_Y3, NULL, ImPlotAxisFlags_AuxDefault);
         if (custom_fmt) {
             ImPlot::SetupAxisFormat(ImAxis_X1, "%g ms");
-            ImPlot::SetupAxisFormat(ImAxis_Y1, MetricFormatter);
+            ImPlot::SetupAxisFormat(ImAxis_Y1, MetricFormatter, "Hz");
             ImPlot::SetupAxisFormat(ImAxis_Y2, "%g dB");
-            ImPlot::SetupAxisFormat(ImAxis_Y3, "%g km");
+            ImPlot::SetupAxisFormat(ImAxis_Y3, MetricFormatter, "m");
         }
         if (custom_ticks) {
             ImPlot::SetupAxisTicks(ImAxis_X1, &pi,1,custom_labels ? pi_str : NULL, true);
@@ -1940,8 +1933,8 @@ void ShowDemoWindow(bool* p_open) {
                 ShowDemo_LogAxes();
             if (ImGui::CollapsingHeader("Time Axes"))
                 ShowDemo_TimeAxes();
-            if (ImGui::CollapsingHeader("Multiple Y-Axes"))
-                ShowDemo_MultipleYAxes();
+            if (ImGui::CollapsingHeader("Multiple Axes"))
+                ShowDemo_MultipleAxes();
             if (ImGui::CollapsingHeader("Tick Labels"))
                 ShowDemo_TickLabels();
             if (ImGui::CollapsingHeader("Linked Axes"))

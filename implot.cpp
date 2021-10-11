@@ -1724,28 +1724,40 @@ bool UpdateInput(ImPlotPlot& plot) {
     }
 
     // cancel due to DND activity
-    if (GImGui->DragDropActive || (IO.KeyMods == gp.InputMap.OverrideMod) && gp.InputMap.OverrideMod != 0) {
+    if (GImGui->DragDropActive || (IO.KeyMods == gp.InputMap.OverrideMod && gp.InputMap.OverrideMod != 0))
         return false;
-    }
 
-    const bool any_x_hov  = plot.Hovered || AnyAxesHovered(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
-    const bool any_x_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
-    const bool any_y_hov  = plot.Hovered || AnyAxesHovered(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
-    const bool any_y_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
-    const bool axis_equal = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
+    // STATE -------------------------------------------------------------------
+   
+    const bool axis_equal      = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
 
-     // CONTEXT-----------------------------------------------------------------
+    const bool any_x_hov       = plot.Hovered || AnyAxesHovered(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
+    const bool any_x_held      = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
+    const bool any_y_hov       = plot.Hovered || AnyAxesHovered(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
+    const bool any_y_held      = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
+    const bool any_hov         = any_x_hov    || any_y_hov;
+    const bool any_held        = any_x_held   || any_y_held;
+    
+    const ImVec2 select_drag   = ImGui::GetMouseDragDelta(gp.InputMap.Select);
+    const ImVec2 pan_drag      = ImGui::GetMouseDragDelta(gp.InputMap.Pan);
+    const float select_drag_sq = ImLengthSqr(select_drag);
+    const float pan_drag_sq    = ImLengthSqr(pan_drag);
+    const bool selecting       = plot.Selecting && select_drag_sq > MOUSE_CURSOR_DRAG_THRESHOLD;
+    const bool panning         = any_held       && pan_drag_sq    > MOUSE_CURSOR_DRAG_THRESHOLD;
+
+    // CONTEXT MENU -----------------------------------------------------------
 
     if (IO.MouseReleased[gp.InputMap.Menu] && !plot.ContextLocked) 
-        gp.OpenContextThisFrame = true;   
-    if ((any_x_held || any_y_held) && IO.MouseDragMaxDistanceSqr[gp.InputMap.Pan] > MOUSE_CURSOR_DRAG_THRESHOLD)  
+        gp.OpenContextThisFrame = true;  
+
+    if (selecting || panning)  
         plot.ContextLocked = true;
-    else 
+    else if (!(IO.MouseDown[gp.InputMap.Menu] || IO.MouseReleased[gp.InputMap.Menu]))
         plot.ContextLocked = false;    
 
     // DRAG INPUT -------------------------------------------------------------
 
-    if ((any_x_held || any_y_held) && !plot.Selecting) {
+    if (any_held && !plot.Selecting) {
         int drag_direction = 0;
         for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
             ImPlotAxis& x_axis = plot.XAxis(i);
@@ -1783,7 +1795,7 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     // SCROLL INPUT -----------------------------------------------------------
 
-    if ((any_x_hov || any_y_hov) && IO.MouseWheel != 0 && ImHasFlag(IO.KeyMods, gp.InputMap.ZoomMod)) {
+    if (any_hov && IO.MouseWheel != 0 && ImHasFlag(IO.KeyMods, gp.InputMap.ZoomMod)) {
 
         float zoom_rate = gp.InputMap.ZoomRate;
         if (IO.MouseWheel > 0)
@@ -2001,7 +2013,7 @@ void SetupAxisTicks(ImAxis idx, const double* values, int n_ticks, const char* c
                   n_ticks,
                   axis.Ticks,
                   axis.Formatter ? axis.Formatter : DefaultFormatter,
-                  axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
+                  (axis.Formatter && axis.FormatterData) ? axis.FormatterData : axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
 }
 
 void SetupAxisTicks(ImAxis idx, double x_min, double x_max, int n_ticks, const char* const labels[], bool show_default) {
@@ -2261,14 +2273,14 @@ void SetupFinish() {
                                     true,
                                     axis.Ticks,
                                     axis.Formatter     ? axis.Formatter  : DefaultFormatter,
-                                    axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
+                                    (axis.Formatter && axis.FormatterData) ? axis.FormatterData : axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
             else
                 AddTicksDefault(axis.Range,
                                 plot_height,
                                 true,
                                 axis.Ticks,
                                 axis.Formatter     ? axis.Formatter  : DefaultFormatter,
-                                axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
+                                (axis.Formatter && axis.FormatterData) ? axis.FormatterData : axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
         }
     }
 
@@ -2347,7 +2359,7 @@ void SetupFinish() {
     }
 
     // INPUT ------------------------------------------------------------------
-    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoInput))
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoInputs))
         UpdateInput(plot);
 
     // fit from FitNextPlotAxes or auto fit

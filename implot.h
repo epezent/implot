@@ -90,7 +90,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoTitle       = 1 << 0, // the plot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MyPlot")
     ImPlotFlags_NoLegend      = 1 << 1, // the legend will not be displayed
     ImPlotFlags_NoMouseText   = 1 << 2, // the mouse position, in plot coordinates, will not be displayed inside of the plot
-    ImPlotFlags_NoInput       = 1 << 3, // the user will not be able to interact with the plot at all
+    ImPlotFlags_NoInputs      = 1 << 3, // the user will not be able to interact with the plot at all
     ImPlotFlags_NoMenus       = 1 << 4, // the user will not be able to open context menus with right-click
     ImPlotFlags_NoBoxSelect   = 1 << 5, // the user will not be able to box-select with right-click drag
     ImPlotFlags_NoChild       = 1 << 6, // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
@@ -952,9 +952,12 @@ IMPLOT_API void BustColorCache(const char* plot_title_id = NULL);
 // [SECTION] Input Mapping
 //-----------------------------------------------------------------------------
 
-// Setup input mappings
+// Provides access to input mapping structure for permanant modifications to controls for pan, select, etc.
 IMPLOT_API ImPlotInputMap& GetInputMap();
+
+// Default input mapping: pan = LMB drag, box select = RMB drag, fit = LMB double click, context menu = RMB click, zoom = scroll.
 IMPLOT_API void MapInputDefault(ImPlotInputMap* dst = NULL);
+// Reverse input mapping: pan = RMB drag, box select = LMB drag, fit = LMB double click, context menu = RMB click, zoom = scroll.
 IMPLOT_API void MapInputReverse(ImPlotInputMap* dst = NULL);
 
 //-----------------------------------------------------------------------------
