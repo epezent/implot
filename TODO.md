@@ -42,7 +42,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 ## Styling
 
 - support gradient and/or colormap sampled fills (e.g. ImPlotFillStyle_)
-- add hover/active color for plot
+- add hover/active color for plot axes
 - API for setting different fonts for plot elements
 
 ## Colormaps
@@ -66,6 +66,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - rework DragLine/Point to use ButtonBehavior
 - make query a tool -> `DragRect`
 - remove tag from drag line/point -> add `AxisTag` tool
+- add box selection to axes
 - `SetupAxisColor()`
 - `SetupAxisConstraints()`
 - `SetupAxisHome()`   

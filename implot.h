@@ -520,8 +520,9 @@ IMPLOT_API void EndSubplots();
 // - fix padding alignment
 // - make legend an item
 // - clean up DND w/ new button behaviors
-// - equal axis demo bug
 // - input mapping
+// - axis button hides dnd outline
+// - hide axis label checkbox if no provided
 
 // Enables an axis or sets the label and/or flags for an existing axis. Leave #label = NULL for no label.
 IMPLOT_API void SetupAxis(ImAxis axis, const char* label = NULL, ImPlotAxisFlags flags = ImPlotAxisFlags_None);
@@ -549,7 +550,7 @@ IMPLOT_API void SetupLegend(ImPlotLocation location, ImPlotLegendFlags flags = I
 IMPLOT_API void SetupMouseText(ImPlotLocation location);
 
 // Explicitly finalize plot setup. Once you call this, you cannot make anymore Setup calls for the current plot!
-// Note that this function is completely optional, and will be called by the first subsequent setup-locking API call.
+// Note that calling this function is OPTIONAL; it will be called by the first subsequent setup-locking API call.
 IMPLOT_API void SetupFinish();
 
 //-----------------------------------------------------------------------------
@@ -951,7 +952,7 @@ IMPLOT_API void BustColorCache(const char* plot_title_id = NULL);
 // [SECTION] Input Mapping
 //-----------------------------------------------------------------------------
 
-// Setup input mappings (TODO)
+// Setup input mappings
 IMPLOT_API ImPlotInputMap& GetInputMap();
 IMPLOT_API void MapInputDefault(ImPlotInputMap* dst = NULL);
 IMPLOT_API void MapInputReverse(ImPlotInputMap* dst = NULL);
@@ -976,6 +977,8 @@ IMPLOT_API void PopPlotClipRect();
 IMPLOT_API bool ShowStyleSelector(const char* label);
 // Shows ImPlot colormap selector dropdown menu.
 IMPLOT_API bool ShowColormapSelector(const char* label);
+// Shows ImPlot input map selector dropdown menu.
+IMPLOT_API bool ShowInputMapSelector(const char* label);
 // Shows ImPlot style editor block (not a window).
 IMPLOT_API void ShowStyleEditor(ImPlotStyle* ref = NULL);
 // Add basic help/info block for end users (not a window).

@@ -215,13 +215,13 @@ void ShowDemo_Help() {
 
 void ButtonSelector(const char* label, ImGuiMouseButton* b) {
     ImGui::PushID(label);
-    if (ImGui::RadioButton("Left",*b == ImGuiMouseButton_Left))
+    if (ImGui::RadioButton("LMB",*b == ImGuiMouseButton_Left))
         *b = ImGuiMouseButton_Left;
     ImGui::SameLine();
-    if (ImGui::RadioButton("Right",*b == ImGuiMouseButton_Right))
+    if (ImGui::RadioButton("RMB",*b == ImGuiMouseButton_Right))
         *b = ImGuiMouseButton_Right;
     ImGui::SameLine();
-    if (ImGui::RadioButton("Middle",*b == ImGuiMouseButton_Middle))
+    if (ImGui::RadioButton("MMB",*b == ImGuiMouseButton_Middle))
         *b = ImGuiMouseButton_Middle;
     ImGui::PopID();
 }
@@ -238,11 +238,11 @@ void ModSelector(const char* label, ImGuiKeyModFlags* k) {
 void InputMapping(const char* label, ImGuiMouseButton* b, ImGuiKeyModFlags* k) {
     ImGui::LabelText("##",label); 
     if (b != NULL) {
-        ImGui::SameLine(150);
+        ImGui::SameLine(100);
         ButtonSelector(label,b); 
     }    
     if (k != NULL) {
-        ImGui::SameLine(350);
+        ImGui::SameLine(300);
         ModSelector(label,k);
     }
 }
@@ -255,18 +255,22 @@ void ShowDemo_Config() {
     ImGui::Separator();
     ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines);
     ImGui::Separator();
-    ImPlotInputMap& map = ImPlot::GetInputMap();
-    
-    InputMapping("Pan",&map.Pan,&map.PanMod);
-    InputMapping("Fit",&map.Fit,NULL);
-    InputMapping("Select",&map.Select,&map.SelectMod);
-    InputMapping("SelectCancel",&map.SelectCancel,NULL);
-    InputMapping("SelectHorzMod",NULL,&map.SelectHorzMod);
-    InputMapping("SelectVertMod",NULL,&map.SelectVertMod);
-    InputMapping("Menu",&map.Menu,NULL);
-    InputMapping("OverrideMod",NULL,&map.OverrideMod);
-    InputMapping("ZoomMod",NULL,&map.ZoomMod);
-    ImGui::SliderFloat("ZoomRate",&map.ZoomRate,-1,1);
+
+    ImPlot::ShowInputMapSelector("Input Map");
+    if (ImGui::TreeNode("Customize")) {
+        ImPlotInputMap& map = ImPlot::GetInputMap();  
+        InputMapping("Pan",&map.Pan,&map.PanMod);
+        InputMapping("Fit",&map.Fit,NULL);
+        InputMapping("Select",&map.Select,&map.SelectMod);
+        InputMapping("SelectHorzMod",NULL,&map.SelectHorzMod);
+        InputMapping("SelectVertMod",NULL,&map.SelectVertMod);
+        InputMapping("SelectCancel",&map.SelectCancel,NULL);
+        InputMapping("Menu",&map.Menu,NULL);
+        InputMapping("OverrideMod",NULL,&map.OverrideMod);
+        InputMapping("ZoomMod",NULL,&map.ZoomMod);
+        ImGui::SliderFloat("ZoomRate",&map.ZoomRate,-1,1);
+        ImGui::TreePop();
+    }
 
     ImGui::Separator();
     ImGui::Checkbox("Use Local Time", &ImPlot::GetStyle().UseLocalTime);
@@ -451,11 +455,11 @@ void ShowDemo_BarPlots() {
 
     if (ImPlot::BeginPlot("Bar Plot"))
     {
+        ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside); 
         if (horz) {
             ImPlot::SetupAxesLimits(0, 110, -0.5, 9.5, ImGuiCond_Always);
             ImPlot::SetupAxes("Score","Student",0,ImPlotAxisFlags_Invert);
             ImPlot::SetupAxisTicks(ImAxis_Y1,positions, 10, labels);
-            ImPlot::SetupLegend(ImPlotLocation_West); 
             ImPlot::PlotBarsH("Midterm Exam", midtm, 10, 0.2, -0.2);
             ImPlot::PlotBarsH("Final Exam",   final, 10, 0.2,    0);
             ImPlot::PlotBarsH("Course Grade", grade, 10, 0.2,  0.2);
@@ -464,7 +468,6 @@ void ShowDemo_BarPlots() {
             ImPlot::SetupAxesLimits(-0.5, 9.5, 0, 110, ImGuiCond_Always);
             ImPlot::SetupAxes("Student","Score");
             ImPlot::SetupAxisTicks(ImAxis_X1,positions, 10, labels);
-            ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Horizontal); 
             ImPlot::PlotBars("Midterm Exam", midtm, 10, 0.2, -0.2);
             ImPlot::PlotBars("Final Exam",   final, 10, 0.2,    0);
             ImPlot::PlotBars("Course Grade", grade, 10, 0.2,  0.2);
