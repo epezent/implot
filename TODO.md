@@ -30,6 +30,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - give each axis an ID, remove ad-hoc DND solution
 - make ImPlotFlags_Equal not a flag -> `SetupEqual(ImAxis x, ImAxis y)`
 - allow axis to be drag to opposite side (ala ImGui Table headers)
+- allow inverted arguments `SetAxes` to transpose data?
 
 ## Plot Items
 
@@ -57,16 +58,17 @@ The list below represents a combination of high-priority work, nice-to-have feat
     - `_Scroll`
     - `_NoButtons`
 - improve legend icons (e.g. adopt markers, gradients, etc)
+- make legend frame use ButtonBehavior
 
 ## Tools / Misc.
 
 - add `IsPlotChanging` to detect change in limits
 - add ability to extend plot/axis context menus
 - add LTTB downsampling for lines
-- rework DragLine/Point to use ButtonBehavior
-- make query a tool -> `DragRect`
 - remove tag from drag line/point -> add `AxisTag` tool
 - add box selection to axes
+- fix frame delay on DragX tools
+- first frame render delay might fix "fit pop" effect
 - `SetupAxisColor()`
 - `SetupAxisConstraints()`
 - `SetupAxisHome()`   
@@ -81,3 +83,8 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 - legend items can be hovered even if plot is not
 - change colormap not working demo
+
+
+## Completed
+- make query a tool -> `DragRect`
+- rework DragLine/Point to use ButtonBehavior

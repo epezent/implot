@@ -215,42 +215,6 @@ static inline ImU32 ImAlphaU32(ImU32 col, float alpha) {
     return col & ~((ImU32)((1.0f-alpha)*255)<<IM_COL32_A_SHIFT);
 }
 
-// Character buffer writer helper (FIXME: Can't we replace this with ImGuiTextBuffer?)
-struct ImBufferWriter
-{
-    char*  Buffer;
-    int Size;
-    int Pos;
-
-    ImBufferWriter(char* buffer, int size) {
-        Buffer = buffer;
-        Size = size;
-        Pos = 0;
-    }
-
-    void Write(const char* fmt, ...) {
-        va_list args;
-        va_start(args, fmt);
-        WriteV(fmt, args);
-        va_end(args);
-    }
-
-    void WriteV(const char* fmt, va_list args) {
-        const int written = ::vsnprintf(&Buffer[Pos], Size - Pos - 1, fmt, args);
-        if (written > 0)
-          Pos += ImMin(written, Size-Pos-1);
-    }
-};
-
-// Fixed size point array
-template <int N>
-struct ImPointArray {
-    inline ImPoint&       operator[](int i)       { return Data[i]; }
-    inline const ImPoint& operator[](int i) const { return Data[i]; }
-    inline int Size()                                 { return N; }
-    ImPoint Data[N];
-};
-
 //-----------------------------------------------------------------------------
 // [SECTION] ImPlot Enums
 //-----------------------------------------------------------------------------
@@ -550,7 +514,7 @@ struct ImPlotTickCollection {
         return Ticks.back();
     }
 
-    const ImPlotTick& Append(double value, bool major, bool show_label, void (*formatter)(double, char*, int, void*), void* data) {
+    const ImPlotTick& Append(double value, bool major, bool show_label, ImPlotFormatter formatter, void* data) {
         ImPlotTick tick(value, major, show_label);
         if (show_label && formatter != NULL) {
             char buff[IMPLOT_LABEL_MAX_SIZE];
@@ -596,7 +560,7 @@ struct ImPlotAxis
     int                  LabelOffset;
     ImU32                ColorMaj, ColorMin, ColorTxt, ColorHov, ColorAct, ColorHiLi;
     char                 FormatSpec[16];
-    void                 (*Formatter)(double, char*, int, void*);
+    ImPlotFormatter      Formatter;
     void*                FormatterData;  
     bool                 Enabled;
     bool                 Vertical;
@@ -619,6 +583,7 @@ struct ImPlotAxis
         Datum1           = Datum2 = 0;  
         LabelOffset      = -1;
         ColorMaj         = ColorMin = ColorTxt = ColorHov = ColorAct = 0;
+        ColorHiLi        = IM_COL32_BLACK_TRANS;
         Formatter        = NULL;
         FormatterData    = NULL;
         Enabled          = Hovered = Held = FitThisFrame = HasRange = HasFormatSpec = false;
@@ -830,6 +795,7 @@ struct ImPlotItem
 {
     ImGuiID      ID;
     ImU32        Color;
+    ImRect       LegendHoverRect;
     int          NameOffset;
     bool         Show;
     bool         LegendHovered;
@@ -857,12 +823,13 @@ struct ImPlotLegend
     ImGuiTextBuffer   Labels;
     ImRect            Rect;
     bool              Hovered;
+    bool              Held;
     bool              CanGoInside;
 
     ImPlotLegend() {
         Flags        = PreviousFlags = ImPlotLegendFlags_None;
         CanGoInside  = true;
-        Hovered      = false;
+        Hovered      = Held = false;
         Location     = ImPlotLocation_NorthWest;
     }
 
@@ -1098,7 +1065,7 @@ struct ImPlotContext {
     // Annotation and User Labels
     ImPlotAnnotationCollection Annotations;
 
-    // Axis Locking Flags
+    // Flags
     bool ChildWindowMade;
 
     // Style and Colormaps
@@ -1121,6 +1088,7 @@ struct ImPlotContext {
     ImPlotNextItemData NextItemData;
     ImPlotInputMap     InputMap;
     bool               OpenContextThisFrame;
+    ImGuiTextBuffer    MousePosStringBuilder;
 
     // Align plots
     ImPool<ImPlotAlignmentData> AlignmentData;
@@ -1324,16 +1292,16 @@ static inline void DefaultFormatter(double value, char* buff, int size, void* da
 IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);
 
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
-IMPLOT_API void AddTicksDefault(const ImRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
+IMPLOT_API void AddTicksDefault(const ImRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
-IMPLOT_API void AddTicksLogarithmic(const ImRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
+IMPLOT_API void AddTicksLogarithmic(const ImRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
-IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks, void (*formatter)(double, char*, int, void*), void* data);
+IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
 // Populates a list of ImPlotTicks with time formatted ticks.
 IMPLOT_API void AddTicksTime(const ImRange& range, float plot_width, ImPlotTickCollection& ticks);
 
 // Create a a string label for a an axis value
-IMPLOT_API int LabelAxisValue(const ImPlotAxis& axis, const ImPlotTickCollection& ticks, double value, char* buff, int size);
+IMPLOT_API void LabelAxisValue(const ImPlotAxis& axis, double value, char* buff, int size, bool round = false);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Styling Utils

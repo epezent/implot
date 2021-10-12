@@ -1014,17 +1014,19 @@ void ShowDemo_LinkedAxes() {
 }
 
 void ShowDemo_EqualAxes() {
-    static double xs[1000], ys[1000];
-    for (int i = 0; i < 1000; ++i) {
-        double angle = i * 2 * PI / 999.0;
-        xs[i] = cos(angle); ys[i] = sin(angle);
+    static double xs1[360], ys1[360];
+    for (int i = 0; i < 360; ++i) {
+        double angle = i * 2 * PI / 359.0;
+        xs1[i] = cos(angle); ys1[i] = sin(angle);
     }
+    float xs2[] = {-1,0,1,0,-1};
+    float ys2[] = {0,1,0,-1,0};
     if (ImPlot::BeginPlot("##EqualAxes",ImVec2(-1,0),ImPlotFlags_Equal)) {
         ImPlot::SetupAxis(ImAxis_X2, NULL, ImPlotAxisFlags_AuxDefault);
         ImPlot::SetupAxis(ImAxis_Y2, NULL, ImPlotAxisFlags_AuxDefault);
-        ImPlot::PlotLine("Circle 11",xs,ys,1000);
+        ImPlot::PlotLine("Circle",xs1,ys1,360);
         ImPlot::SetAxes(ImAxis_X2, ImAxis_Y2);
-        ImPlot::PlotLine("Circle 22",xs,ys,1000);
+        ImPlot::PlotLine("Diamond",xs2,ys2,5);
         ImPlot::EndPlot();
     }
 }
@@ -1408,7 +1410,7 @@ void ShowDemo_DragAndDrop() {
 
     // child window to serve as initial source for our DND items
     ImGui::BeginChild("DND_LEFT",ImVec2(100,400));
-    if (ImGui::Button("Reset Data", ImVec2(100, 0))) {
+    if (ImGui::Button("Reset Data")) {
         for (int k = 0; k < k_dnd; ++k)
             dnd[k].Reset();
         dndx = dndy = NULL;
@@ -1485,8 +1487,6 @@ void ShowDemo_DragAndDrop() {
         ImPlot::EndPlot();
     }
     // plot 2 (Lissajous)
-    // ImPlot::PushStyleColor(ImPlotCol_XAxis, dndx == NULL ? ImPlot::GetStyle().Colors[ImPlotCol_XAxis] : dndx->Color);
-    // ImPlot::PushStyleColor(ImPlotCol_YAxis, dndy == NULL ? ImPlot::GetStyle().Colors[ImPlotCol_YAxis] : dndy->Color);
     if (ImPlot::BeginPlot("##DND2", ImVec2(-1,195))) {
         ImPlot::SetupAxes(dndx == NULL ? "[drop here]" : dndx->Label, dndy == NULL ? "[drop here]" : dndy->Label, flags, flags);
         if (dndx != NULL && dndy != NULL) {
@@ -1535,7 +1535,6 @@ void ShowDemo_DragAndDrop() {
         }
         ImPlot::EndPlot();
     }
-    // ImPlot::PopStyleColor(2);
     ImGui::EndChild();
 }
 

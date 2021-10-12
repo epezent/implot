@@ -26,6 +26,7 @@
 //
 // [SECTION] Macros and Defines
 // [SECTION] Enums and Types
+// [SECTION] Callbacks
 // [SECTION] Contexts
 // [SECTION] Begin/End Plot
 // [SECTION] Begin/End Subplot
@@ -376,6 +377,17 @@ struct ImPlotInputMap {
     IMPLOT_API ImPlotInputMap();
 };
 
+//-----------------------------------------------------------------------------
+// [SECTION] Callbacks
+//-----------------------------------------------------------------------------
+
+// Callback signature for axis tick label formatter.
+typedef void (*ImPlotFormatter)(double value, char* buff, int size, void* user_data);
+
+// Callback signature for data getter.
+typedef ImPoint (*ImPlotGetter)(void* user_data, int idx);
+
+
 namespace ImPlot {
 
 //-----------------------------------------------------------------------------
@@ -515,13 +527,8 @@ IMPLOT_API void EndSubplots();
 //   call it for you. 
 
 // TODO:
-// - format mouse text
 // - fix subplots alignment (linking?)
 // - fix padding alignment
-// - make legend an item
-// - clean up DND w/ new button behaviors
-// - input mapping
-// - axis button hides dnd outline
 // - hide axis label checkbox if no provided
 
 // Enables an axis or sets the label and/or flags for an existing axis. Leave #label = NULL for no label.
@@ -533,7 +540,7 @@ IMPLOT_API void SetupAxisLinks(ImAxis axis, double* min_lnk, double* max_lnk);
 // Sets the format of numeric axis labels via formater specifier (default="%g"). Formated values will be double (i.e. use %f).
 IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
 // Sets the format of numeric axis labels via formatter callback. Given #value, write a label into #buff. Optionally pass user data.
-IMPLOT_API void SetupAxisFormat(ImAxis axis, void (*formatter)(double value, char* buff, int buff_size, void* data), void* data = NULL);
+IMPLOT_API void SetupAxisFormat(ImAxis axis, ImPlotFormatter formatter, void* data = NULL);
 // Sets an axis' ticks and optionally the labels. To keep the default ticks, set #keep_default=true.
 IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
 // Sets an axis' ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
@@ -604,33 +611,33 @@ IMPLOT_API void SetupFinish();
 // Plots a standard 2D line plot.
 template <typename T> IMPLOT_API void PlotLine(const char* label_id, const T* values, int count, double xscale=1, double x0=0, int offset=0, int stride=sizeof(T));
 template <typename T> IMPLOT_API void PlotLine(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
-                      IMPLOT_API void PlotLineG(const char* label_id, ImPoint (*getter)(void* data, int idx), void* data, int count);
+                      IMPLOT_API void PlotLineG(const char* label_id, ImPlotGetter getter, void* data, int count);
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
 template <typename T> IMPLOT_API  void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double x0=0, int offset=0, int stride=sizeof(T));
 template <typename T> IMPLOT_API  void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
-                      IMPLOT_API  void PlotScatterG(const char* label_id, ImPoint (*getter)(void* data, int idx), void* data, int count);
+                      IMPLOT_API  void PlotScatterG(const char* label_id, ImPlotGetter getter, void* data, int count);
 
 // Plots a a stairstep graph. The y value is continued constantly from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i].
 template <typename T> IMPLOT_API void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double x0=0, int offset=0, int stride=sizeof(T));
 template <typename T> IMPLOT_API void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
-                      IMPLOT_API void PlotStairsG(const char* label_id, ImPoint (*getter)(void* data, int idx), void* data, int count);
+                      IMPLOT_API void PlotStairsG(const char* label_id, ImPlotGetter getter, void* data, int count);
 
 // Plots a shaded (filled) region between two lines, or a line and a horizontal reference. Set y_ref to +/-INFINITY for infinite fill extents.
 template <typename T> IMPLOT_API void PlotShaded(const char* label_id, const T* values, int count, double y_ref=0, double xscale=1, double x0=0, int offset=0, int stride=sizeof(T));
 template <typename T> IMPLOT_API void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref=0, int offset=0, int stride=sizeof(T));
 template <typename T> IMPLOT_API void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, int offset=0, int stride=sizeof(T));
-                      IMPLOT_API void PlotShadedG(const char* label_id, ImPoint (*getter1)(void* data, int idx), void* data1, ImPoint (*getter2)(void* data, int idx), void* data2, int count);
+                      IMPLOT_API void PlotShadedG(const char* label_id, ImPlotGetter getter1, void* data1, ImPlotGetter getter2, void* data2, int count);
 
 // Plots a vertical bar graph. #width and #shift are in X units.
 template <typename T> IMPLOT_API void PlotBars(const char* label_id, const T* values, int count, double width=0.67, double shift=0, int offset=0, int stride=sizeof(T));
 template <typename T> IMPLOT_API void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double width, int offset=0, int stride=sizeof(T));
-                      IMPLOT_API void PlotBarsG(const char* label_id, ImPoint (*getter)(void* data, int idx), void* data, int count, double width);
+                      IMPLOT_API void PlotBarsG(const char* label_id, ImPlotGetter getter, void* data, int count, double width);
 
 // Plots a horizontal bar graph. #height and #shift are in Y units.
 template <typename T> IMPLOT_API void PlotBarsH(const char* label_id, const T* values, int count, double height=0.67, double shift=0, int offset=0, int stride=sizeof(T));
 template <typename T> IMPLOT_API void PlotBarsH(const char* label_id, const T* xs, const T* ys, int count, double height, int offset=0, int stride=sizeof(T));
-                      IMPLOT_API void PlotBarsHG(const char* label_id, ImPoint (*getter)(void* data, int idx), void* data, int count, double height);
+                      IMPLOT_API void PlotBarsHG(const char* label_id, ImPlotGetter getter, void* data, int count, double height);
 
 // Plots vertical error bar. The label_id should be the same as the label_id of the associated line or bar plot.
 template <typename T> IMPLOT_API void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* err, int count, int offset=0, int stride=sizeof(T));
@@ -666,7 +673,7 @@ template <typename T> IMPLOT_API double PlotHistogram2D(const char* label_id, co
 
 // Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
 template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
-                      IMPLOT_API void PlotDigitalG(const char* label_id, ImPoint (*getter)(void* data, int idx), void* data, int count);
+                      IMPLOT_API void PlotDigitalG(const char* label_id, ImPlotGetter getter, void* data, int count);
 
 // Plots an axis-aligned image. #bounds_min/bounds_max are in plot coordinates (y-up) and #uv0/uv1 are in texture coordinates (y-down).
 IMPLOT_API void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPoint& bounds_min, const ImPoint& bounds_max, const ImVec2& uv0=ImVec2(0,0), const ImVec2& uv1=ImVec2(1,1), const ImVec4& tint_col=ImVec4(1,1,1,1));

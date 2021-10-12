@@ -1019,7 +1019,7 @@ template IMPLOT_API void PlotLine<float>(const char* label_id, const float* xs, 
 template IMPLOT_API void PlotLine<double>(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride);
 
 // custom
-void PlotLineG(const char* label_id, ImPoint (*getter_func)(void* data, int idx), void* data, int count) {
+void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count) {
     GetterFuncPtr getter(getter_func,data, count);
     return PlotLineEx(label_id, getter);
 }
@@ -1093,7 +1093,7 @@ template IMPLOT_API void PlotScatter<float>(const char* label_id, const float* x
 template IMPLOT_API void PlotScatter<double>(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride);
 
 // custom
-void PlotScatterG(const char* label_id, ImPoint (*getter_func)(void* data, int idx), void* data, int count) {
+void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, int count) {
     GetterFuncPtr getter(getter_func,data, count);
     return PlotScatterEx(label_id, getter);
 }
@@ -1174,7 +1174,7 @@ template IMPLOT_API void PlotStairs<float>(const char* label_id, const float* xs
 template IMPLOT_API void PlotStairs<double>(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride);
 
 // custom
-void PlotStairsG(const char* label_id, ImPoint (*getter_func)(void* data, int idx), void* data, int count) {
+void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int count) {
     GetterFuncPtr getter(getter_func,data, count);
     return PlotStairsEx(label_id, getter);
 }
@@ -1282,9 +1282,9 @@ template IMPLOT_API void PlotShaded<float>(const char* label_id, const float* xs
 template IMPLOT_API void PlotShaded<double>(const char* label_id, const double* xs, const double* ys1, const double* ys2, int count, int offset, int stride);
 
 // custom
-void PlotShadedG(const char* label_id, ImPoint (*g1)(void* data, int idx), void* data1, ImPoint (*g2)(void* data, int idx), void* data2, int count) {
-    GetterFuncPtr getter1(g1, data1, count);
-    GetterFuncPtr getter2(g2, data2, count);
+void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, ImPlotGetter getter_func2, void* data2, int count) {
+    GetterFuncPtr getter1(getter_func1, data1, count);
+    GetterFuncPtr getter2(getter_func2, data2, count);
     PlotShadedEx(label_id, getter1, getter2, true);
 }
 
@@ -1369,7 +1369,7 @@ template IMPLOT_API void PlotBars<float>(const char* label_id, const float* xs, 
 template IMPLOT_API void PlotBars<double>(const char* label_id, const double* xs, const double* ys, int count, double width, int offset, int stride);
 
 // custom
-void PlotBarsG(const char* label_id, ImPoint (*getter_func)(void* data, int idx), void* data, int count, double width) {
+void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, double width) {
     GetterFuncPtr getter(getter_func, data, count);
     PlotBarsEx(label_id, getter, width);
 }
@@ -1448,7 +1448,7 @@ template IMPLOT_API void PlotBarsH<float>(const char* label_id, const float* xs,
 template IMPLOT_API void PlotBarsH<double>(const char* label_id, const double* xs, const double* ys, int count, double height, int offset, int stride);
 
 // custom
-void PlotBarsHG(const char* label_id, ImPoint (*getter_func)(void* data, int idx), void* data, int count, double height) {
+void PlotBarsHG(const char* label_id, ImPlotGetter getter_func, void* data, int count, double height) {
     GetterFuncPtr getter(getter_func, data, count);
     PlotBarsHEx(label_id, getter, height);
 }
@@ -2257,7 +2257,7 @@ template IMPLOT_API void PlotDigital<float>(const char* label_id, const float* x
 template IMPLOT_API void PlotDigital<double>(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride);
 
 // custom
-void PlotDigitalG(const char* label_id, ImPoint (*getter_func)(void* data, int idx), void* data, int count) {
+void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, int count) {
     GetterFuncPtr getter(getter_func,data,count);
     return PlotDigitalEx(label_id, getter);
 }
