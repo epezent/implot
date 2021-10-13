@@ -241,7 +241,7 @@ bool BeginItem(const char* label_id, ImPlotCol recolor_from) {
         s.DigitalBitGap      = s.DigitalBitGap    < 0 ? gp.Style.DigitalBitGap    : s.DigitalBitGap;
         // apply alpha modifier(s)
         s.Colors[ImPlotCol_Fill].w       *= s.FillAlpha;
-        // s.Colors[ImPlotCol_MarkerFill].w *= s.FillAlpha; // TODO: this should be separate, if it at all
+        s.Colors[ImPlotCol_MarkerFill].w *= s.FillAlpha; // TODO: this should be separate, if it at all
         // apply highlight mods
         if (item->LegendHovered) {
             if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightItem)) {
@@ -485,20 +485,20 @@ template <typename TransformerX, typename TransformerY>
 struct TransformerXY {
     TransformerXY(const ImPlotAxis& x_axis, const ImPlotAxis& y_axis) :
 
-        Tx(x_axis.PixelMin, 
-           x_axis.Range.Min, 
-           x_axis.Range.Max, 
-           x_axis.LinM, 
+        Tx(x_axis.PixelMin,
+           x_axis.Range.Min,
+           x_axis.Range.Max,
+           x_axis.LinM,
            x_axis.LogD),
-        Ty(y_axis.PixelMin, 
-           y_axis.Range.Min, 
-           y_axis.Range.Max, 
-           y_axis.LinM, 
+        Ty(y_axis.PixelMin,
+           y_axis.Range.Min,
+           y_axis.Range.Max,
+           y_axis.LinM,
            y_axis.LogD)
     { }
 
     TransformerXY(const ImPlotPlot& plot) :
-        TransformerXY(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]) 
+        TransformerXY(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY])
     { }
 
     TransformerXY() :
@@ -2291,7 +2291,7 @@ void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPoint&
 // double
 void PlotText(const char* text, double x, double y, bool vertical, const ImVec2& pixel_offset) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
-    SetupLock();        
+    SetupLock();
     ImDrawList & DrawList = *GetPlotDrawList();
     PushPlotClipRect();
     ImU32 colTxt = GetStyleColorU32(ImPlotCol_InlayText);

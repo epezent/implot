@@ -550,18 +550,18 @@ struct ImPlotAxis
     ImRange              FitExtents;
     ImPlotAxis*          OrthoAxis;
     double*              LinkedMin;
-    double*              LinkedMax;   
+    double*              LinkedMax;
     int                  PickerLevel;
-    ImPlotTime           PickerTimeMin, PickerTimeMax; 
+    ImPlotTime           PickerTimeMin, PickerTimeMax;
     float                Datum1, Datum2;
     float                PixelMin, PixelMax;
     double               LinM, LogD;
     ImRect               HoverRect;
     int                  LabelOffset;
-    ImU32                ColorMaj, ColorMin, ColorTxt, ColorHov, ColorAct, ColorHiLi;
+    ImU32                ColorMaj, ColorMin, ColorTxt, ColorBg, ColorHov, ColorAct, ColorHiLi;
     char                 FormatSpec[16];
     ImPlotFormatter      Formatter;
-    void*                FormatterData;  
+    void*                FormatterData;
     bool                 Enabled;
     bool                 Vertical;
     bool                 FitThisFrame;
@@ -579,10 +579,10 @@ struct ImPlotAxis
         FitExtents.Max   = -HUGE_VAL;
         OrthoAxis        = NULL;
         LinkedMin        = LinkedMax = NULL;
-        PickerLevel      = 0;      
-        Datum1           = Datum2 = 0;  
+        PickerLevel      = 0;
+        Datum1           = Datum2 = 0;
         LabelOffset      = -1;
-        ColorMaj         = ColorMin = ColorTxt = ColorHov = ColorAct = 0;
+        ColorMaj         = ColorMin = ColorTxt = ColorBg = ColorHov = ColorAct = 0;
         ColorHiLi        = IM_COL32_BLACK_TRANS;
         Formatter        = NULL;
         FormatterData    = NULL;
@@ -700,7 +700,7 @@ struct ImPlotAxis
             plt      = plt <= 0.0 ? IMPLOT_LOG_ZERO : plt;
             double t = ImLog10(plt / Range.Min) / LogD;
             plt      = ImLerp(Range.Min, Range.Max, (float)t);
-        }   
+        }
         return (float)(PixelMin + LinM * (plt - Range.Min));
     }
 
@@ -739,20 +739,20 @@ struct ImPlotAxis
     inline bool HasLabel()          const { return LabelOffset != -1 && !ImHasFlag(Flags, ImPlotAxisFlags_NoLabel);                          }
     inline bool HasGridLines()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoGridLines);                                           }
     inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                                          }
-    inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                                           }                
-    inline bool WillRender()        const { return HasGridLines() || HasTickLabels() || HasTickMarks();                                      }                
+    inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                                           }
+    inline bool WillRender()        const { return HasGridLines() || HasTickLabels() || HasTickMarks();                                      }
     inline bool IsOpposite()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                                               }
     inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                                 }
-    inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }                
+    inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }
     inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                                }
     inline bool CanInitFit()        const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
-    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImPlotCond_Always;                                                }                
+    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImPlotCond_Always;                                                }
     inline bool IsLockedMin()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin);                 }
     inline bool IsLockedMax()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax);                 }
-    inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                                           }                
+    inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                                           }
     inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                                         }
     inline bool IsInputLockedMax()  const { return IsLockedMax() || IsAutoFitting();                                                         }
-    inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                                         }                
+    inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                                         }
     inline bool IsTime()            const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                                                   }
     inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                                               }
     inline bool HasMenus()          const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoMenus);                                               }
@@ -785,7 +785,7 @@ struct ImPlotAlignmentData {
         if (PadAMax < pad_a) { PadAMax = pad_a; }
         if (PadBMax < pad_b) { PadBMax = pad_b; }
         if (pad_a < PadA)    { pad_a = PadA; delta_a = pad_a - bak_a; } else { delta_a = 0; }
-        if (pad_b < PadB)    { pad_b = PadB; delta_b = pad_b - bak_b; } else { delta_b = 0; } 
+        if (pad_b < PadB)    { pad_b = PadB; delta_b = pad_b - bak_b; } else { delta_b = 0; }
     }
     void End()   { PadA = PadAMax; PadB = PadBMax;      }
     void Reset() { PadA = PadB = PadAMax = PadBMax = 0; }
@@ -884,17 +884,17 @@ struct ImPlotPlot
     bool            SetupLocked;
     bool            FitThisFrame;
     bool            Hovered;
-    bool            Held;    
+    bool            Held;
     bool            Selecting;
     bool            Selected;
     bool            ContextLocked;
 
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
-        for (int i = 0; i < IMPLOT_NUM_X_AXES; ++i) 
+        for (int i = 0; i < IMPLOT_NUM_X_AXES; ++i)
             XAxis(i).Vertical = false;
-        for (int i = 0; i < IMPLOT_NUM_Y_AXES; ++i) 
-            YAxis(i).Vertical = true;        
+        for (int i = 0; i < IMPLOT_NUM_Y_AXES; ++i)
+            YAxis(i).Vertical = true;
         SelectStart       = ImVec2(0,0);
         CurrentX          = ImAxis_X1;
         CurrentY          = ImAxis_Y1;
@@ -905,7 +905,7 @@ struct ImPlotPlot
         Hovered = Held = Selected = Selecting = ContextLocked = false;
     }
 
-    inline bool IsInputLocked() const { 
+    inline bool IsInputLocked() const {
         for (int i = 0; i < IMPLOT_NUM_X_AXES; ++i) {
             if (!XAxis(i).IsInputLocked())
                 return false;
@@ -915,7 +915,7 @@ struct ImPlotPlot
                 return false;
         }
         return true;
-    }        
+    }
 
     inline void ClearTextBuffer() { TextBuffer.Buf.shrink(0); }
 
@@ -938,14 +938,14 @@ struct ImPlotPlot
 
     inline int EnabledAxesX() {
         int cnt = 0;
-        for (int i = 0; i < IMPLOT_NUM_X_AXES; ++i) 
+        for (int i = 0; i < IMPLOT_NUM_X_AXES; ++i)
             cnt += XAxis(i).Enabled;
         return cnt;
     }
 
     inline int EnabledAxesY() {
         int cnt = 0;
-        for (int i = 0; i < IMPLOT_NUM_Y_AXES; ++i) 
+        for (int i = 0; i < IMPLOT_NUM_Y_AXES; ++i)
             cnt += YAxis(i).Enabled;
         return cnt;
     }
@@ -960,7 +960,7 @@ struct ImPlotPlot
         }
     }
 
-    inline const char* GetAxisLabel(const ImPlotAxis& axis) const { return TextBuffer.Buf.Data + axis.LabelOffset; } 
+    inline const char* GetAxisLabel(const ImPlotAxis& axis) const { return TextBuffer.Buf.Data + axis.LabelOffset; }
 };
 
 // Holds subplot data that must persist afer EndSubplot
@@ -1000,7 +1000,7 @@ struct ImPlotNextPlotData
     ImRange     Range[ImAxis_COUNT];
     bool        HasRange[ImAxis_COUNT];
     bool        Fit[ImAxis_COUNT];
-    double*     LinkedMin[ImAxis_COUNT];    
+    double*     LinkedMin[ImAxis_COUNT];
     double*     LinkedMax[ImAxis_COUNT];
 
     ImPlotNextPlotData() { Reset(); }
@@ -1138,10 +1138,10 @@ IMPLOT_API void ShowPlotContextMenu(ImPlotPlot& plot);
 //-----------------------------------------------------------------------------
 
 // Lock Setup and call SetupFinish if necessary.
-static inline void SetupLock() { 
+static inline void SetupLock() {
     if (!GImPlot->CurrentPlot->SetupLocked)
         SetupFinish();
-    GImPlot->CurrentPlot->SetupLocked = true; 
+    GImPlot->CurrentPlot->SetupLocked = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -1177,7 +1177,7 @@ IMPLOT_API void BustItemCache();
 //-----------------------------------------------------------------------------
 
 // Returns true if any enabled axis is locked from user input.
-static inline bool AnyAxesInputLocked(ImPlotAxis* axes, int count) { 
+static inline bool AnyAxesInputLocked(ImPlotAxis* axes, int count) {
     for (int i = 0; i < count; ++i) {
         if (axes[i].Enabled && axes[i].IsInputLocked())
             return true;
@@ -1186,7 +1186,7 @@ static inline bool AnyAxesInputLocked(ImPlotAxis* axes, int count) {
 }
 
 // Returns true if all enabled axes are locked from user input.
-static inline bool AllAxesInputLocked(ImPlotAxis* axes, int count) { 
+static inline bool AllAxesInputLocked(ImPlotAxis* axes, int count) {
     for (int i = 0; i < count; ++i) {
         if (axes[i].Enabled && !axes[i].IsInputLocked())
             return false;
@@ -1211,7 +1211,7 @@ static inline bool AnyAxesHovered(ImPlotAxis* axes, int count) {
 }
 
 // Gets the XY scale for the current plot and y-axis (TODO)
-static inline ImPlotScale GetCurrentScale() { 
+static inline ImPlotScale GetCurrentScale() {
     ImPlotPlot& plot = *GetCurrentPlot();
     ImPlotAxis& x = plot.Axes[plot.CurrentX];
     ImPlotAxis& y = plot.Axes[plot.CurrentY];
@@ -1226,8 +1226,8 @@ static inline ImPlotScale GetCurrentScale() {
 }
 
 // Returns true if the user has requested data to be fit.
-static inline bool FitThisFrame() { 
-    return GImPlot->CurrentPlot->FitThisFrame; 
+static inline bool FitThisFrame() {
+    return GImPlot->CurrentPlot->FitThisFrame;
 }
 
 // Extends the current plot's axes so that it encompasses a vertical line at x

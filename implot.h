@@ -110,7 +110,7 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_NoGridLines   = 1 << 1,  // no grid lines will be displayed
     ImPlotAxisFlags_NoTickMarks   = 1 << 2,  // no tick marks will be displayed
     ImPlotAxisFlags_NoTickLabels  = 1 << 3,  // no text labels will be displayed
-    ImPlotAxisFlags_NoInitialFit  = 1 << 4,  // axis will not be initially fit to data extents on the first rendered frame 
+    ImPlotAxisFlags_NoInitialFit  = 1 << 4,  // axis will not be initially fit to data extents on the first rendered frame
     ImPlotAxisFlags_NoMenus       = 1 << 5,  // the user will not be able to open context menus with right-click
     ImPlotAxisFlags_Opposite      = 1 << 6,  // axis ticks and labels will be rendered on conventionally opposite side (i.e, right or top)
     ImPlotAxisFlags_Foreground    = 1 << 7,  // grid lines will be displayed in the foreground (i.e. on top of data) in stead of the background
@@ -172,8 +172,9 @@ enum ImPlotCol_ {
     ImPlotCol_InlayText,     // color of text appearing inside of plots (defaults to ImGuiCol_Text)
     ImPlotCol_AxisText,      // axis label and tick lables color (defaults to ImGuiCol_Text)
     ImPlotCol_AxisGrid,      // axis grid and tick color (defaults to 25% ImPlotCol_XAxis)
-    ImPlotCol_AxisHovered,   // axis hover color (defaults to ImGuiCol_ButtonHovered)
-    ImPlotCol_AxisActive,    // axis active color (defaults to ImGuiCol_ButtonActive)S
+    ImPlotCol_AxisBg,        // background color of axis hover region (defaults to transparent)
+    ImPlotCol_AxisBgHovered, // axis hover color (defaults to ImGuiCol_ButtonHovered)
+    ImPlotCol_AxisBgActive,  // axis active color (defaults to ImGuiCol_ButtonActive)
     ImPlotCol_Selection,     // box-selection color (defaults to yellow)
     ImPlotCol_Crosshairs,    // crosshairs color (defaults to ImPlotCol_PlotBorder)
     ImPlotCol_COUNT
@@ -370,20 +371,20 @@ struct ImPlotStyle {
     IMPLOT_API ImPlotStyle();
 };
 
-// Input mapping structure, default values listed in the comments.
+// Input mapping structure. Default values listed. See also MapInputDefault, MapInputReverse.
 struct ImPlotInputMap {
-    ImGuiMouseButton Pan;           // LMB      enables panning when held,
-    ImGuiKeyModFlags PanMod;        // none     optional modifier that must be held for panning/fitting
-    ImGuiMouseButton Fit;           // LMB      initiates fit when double clicked
-    ImGuiMouseButton Select;        // RMB      begins box selection when pressed and confirms selection when released
-    ImGuiMouseButton SelectCancel;  // LMB      cancels active box selection when pressed; cannot be same as Select
-    ImGuiKeyModFlags SelectMod;     // none     optional modifier that must be held for box selection
-    ImGuiKeyModFlags SelectHorzMod; // Alt      expands active box selection horizontally to plot edge when held
-    ImGuiKeyModFlags SelectVertMod; // Shift    expands active box selection vertically to plot edge when held    
-    ImGuiMouseButton Menu;          // RMB      opens context menus (if enabled) when clicked     
-    ImGuiKeyModFlags OverrideMod;   // Ctrl     when held, all input is ignored; used to enable axis/plots as DND sources    
-    ImGuiKeyModFlags ZoomMod;       // none     optional modifier that must be held for scroll wheel zooming
-    float            ZoomRate;      // 0.1f     zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click); make negative to invert
+    ImGuiMouseButton Pan;           // LMB    enables panning when held,
+    ImGuiKeyModFlags PanMod;        // none   optional modifier that must be held for panning/fitting
+    ImGuiMouseButton Fit;           // LMB    initiates fit when double clicked
+    ImGuiMouseButton Select;        // RMB    begins box selection when pressed and confirms selection when released
+    ImGuiMouseButton SelectCancel;  // LMB    cancels active box selection when pressed; cannot be same as Select
+    ImGuiKeyModFlags SelectMod;     // none   optional modifier that must be held for box selection
+    ImGuiKeyModFlags SelectHorzMod; // Alt    expands active box selection horizontally to plot edge when held
+    ImGuiKeyModFlags SelectVertMod; // Shift  expands active box selection vertically to plot edge when held
+    ImGuiMouseButton Menu;          // RMB    opens context menus (if enabled) when clicked
+    ImGuiKeyModFlags OverrideMod;   // Ctrl   when held, all input is ignored; used to enable axis/plots as DND sources
+    ImGuiKeyModFlags ZoomMod;       // none   optional modifier that must be held for scroll wheel zooming
+    float            ZoomRate;      // 0.1f   zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click); make negative to invert
     IMPLOT_API ImPlotInputMap();
 };
 
@@ -518,7 +519,7 @@ IMPLOT_API void EndSubplots();
 // if (BeginPlot(...)) {                     1) begin a new plot
 //     SetupAxis(ImAxis_X1, "My X-Axis");    2) make Setup calls
 //     SetupAxis(ImAxis_Y1, "My Y-Axis");
-//     SetupLegend(ImPlotLocation_North);   
+//     SetupLegend(ImPlotLocation_North);
 //     ...
 //     SetupFinish();                        3) [optional] explicitly finish setup
 //     PlotLine(...);                        4) plot items
@@ -533,8 +534,8 @@ IMPLOT_API void EndSubplots();
 //   Do NOT call Setup code after you begin plotting or after you make
 //   any non-Setup API calls (e.g. utils like PlotToPixels also lock Setup)
 // - Calling SetupFinish is OPTIONAL, but probably good practice. If you do not
-//   call it yourself, then the first subsequent plotting or utility function will 
-//   call it for you. 
+//   call it yourself, then the first subsequent plotting or utility function will
+//   call it for you.
 
 // Enables an axis or sets the label and/or flags for an existing axis. Leave #label = NULL for no label.
 IMPLOT_API void SetupAxis(ImAxis axis, const char* label = NULL, ImPlotAxisFlags flags = ImPlotAxisFlags_None);
@@ -571,7 +572,7 @@ IMPLOT_API void SetupFinish();
 
 // Though you should default to the `Setup` API above, there are some scenarios
 // where (re)configuring a plot or axis before `BeginPlot` is needed (e.g. if
-// using a preceding button or slider widget to change the plot limits). In 
+// using a preceding button or slider widget to change the plot limits). In
 // this case, you can use the `SetNext` API below. While this is not as feature
 // rich as the Setup API, most common needs are provided. These functions can be
 // called anwhere except for inside of `Begin/EndPlot`. For example:
@@ -586,14 +587,19 @@ IMPLOT_API void SetupFinish();
 // Important notes:
 //
 // - You must still enable non-default axes with SetupAxis for these functions
-//   to work properly.  
+//   to work properly.
 
-// Sets the next axis range limits. If ImPlotCond_Always is used, the axes limits will be locked.
+// Sets an upcoming axis range limits. If ImPlotCond_Always is used, the axes limits will be locked.
 IMPLOT_API void SetNextAxisLimits(ImAxis axis, double v_min, double v_max, ImPlotCond cond = ImPlotCond_Once);
-// Links the next axis range limits to external values. Set to NULL for no linkage. The pointer data must remain valid until EndPlot.
+// Links an upcoming axis range limits to external values. Set to NULL for no linkage. The pointer data must remain valid until EndPlot!
 IMPLOT_API void SetNextAxisLinks(ImAxis axis, double* link_min, double* link_max);
-// Set the next axis to auto fit to its data.
+// Set an upcoming axis to auto fit to its data.
 IMPLOT_API void SetNextAxisToFit(ImAxis axis);
+
+// Sets the upcoming primary X and Y axes range limits. If ImPlotCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
+IMPLOT_API void SetNextAxesLimits(double x_min, double x_max, double y_min, double y_max, ImPlotCond cond = ImPlotCond_Once);
+// Sets all upcoming axes to auto fit to their data.
+IMPLOT_API void SetNextAxesToFit();
 
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Items
@@ -753,11 +759,11 @@ IMPLOT_API bool DragRect(const char* id, ImBounds* bounds, const ImVec4& col);
 IMPLOT_API void SetAxis(ImAxis axis);
 IMPLOT_API void SetAxes(ImAxis x_axis, ImAxis y_axis);
 
-// Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
+// Convert pixels to a position in the current plot's coordinate system. Passing IMPLOT_AUTO uses the current axes.
 IMPLOT_API ImPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 IMPLOT_API ImPoint PixelsToPlot(float x, float y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
-// Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
+// Convert a position in the current plot's coordinate system to pixels. Passing IMPLOT_AUTO uses the current axes.
 IMPLOT_API ImVec2 PlotToPixels(const ImPoint& plt, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
@@ -766,21 +772,21 @@ IMPLOT_API ImVec2 GetPlotPos();
 // Get the curent Plot size in pixels.
 IMPLOT_API ImVec2 GetPlotSize();
 
-// Returns the mouse position in x,y coordinates of the current plot. 
+// Returns the mouse position in x,y coordinates of the current plot. Passing IMPLOT_AUTO uses the current axes.
 IMPLOT_API ImPoint GetPlotMousePos(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
-// Returns the current plot axis range. 
+// Returns the current plot axis range.
 IMPLOT_API ImBounds GetPlotLimits(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Returns true if the plot area in the current plot is hovered.
 IMPLOT_API bool IsPlotHovered();
 // Returns true if the axis label area in the current plot is hovered.
-IMPLOT_API bool IsAxisHovered(ImAxis x_axis);
+IMPLOT_API bool IsAxisHovered(ImAxis axis);
 // Returns true if the bounding frame of a subplot is hovered.
 IMPLOT_API bool IsSubplotsHovered();
 
 // Returns true if the current plot is being box selected.
 IMPLOT_API bool IsPlotSelected();
-// Returns the current plot box selection bounds.
+// Returns the current plot box selection bounds. Passing IMPLOT_AUTO uses the current axes.
 IMPLOT_API ImBounds GetPlotSelection(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Hides or shows the next plot item (i.e. as if it were toggled from the legend).
@@ -792,7 +798,7 @@ IMPLOT_API void HideNextItem(bool hidden = true, ImPlotCond cond = ImPlotCond_On
 // accomplish the same behaviour by default. The functions below offer lower
 // level control of plot alignment.
 
-// Align axis padding over multiple plots in a single row or column. #group_id must 
+// Align axis padding over multiple plots in a single row or column. #group_id must
 // be unique. If this function returns true, EndAlignedPlots() must be called.
 IMPLOT_API bool BeginAlignedPlots(const char* group_id, bool vertical = true);
 // Only call EndAlignedPlots() if BeginAlignedPlots() returns true!
@@ -1028,7 +1034,7 @@ IMPLOT_API void ShowUserGuide();
 IMPLOT_API void ShowMetricsWindow(bool* p_popen = NULL);
 
 //-----------------------------------------------------------------------------
-// [SECTION] Demo 
+// [SECTION] Demo
 //-----------------------------------------------------------------------------
 
 // Shows the ImPlot demo window (add implot_demo.cpp to your sources!)
@@ -1040,9 +1046,9 @@ IMPLOT_API void ShowDemoWindow(bool* p_open = NULL);
 // [SECTION] Obsolete API
 //-----------------------------------------------------------------------------
 
-// The following functions will be removed! Keep your copy of implot up to date! 
+// The following functions will be removed! Keep your copy of implot up to date!
 // Occasionally set '#define IMPLOT_DISABLE_OBSOLETE_FUNCTIONS' to stay ahead.
-// If you absolutely must use these functions and do not want to receive compiler 
+// If you absolutely must use these functions and do not want to receive compiler
 // warnings, set '#define IMPLOT_DISABLE_OBSOLETE_WARNINGS'.
 
 #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
@@ -1063,7 +1069,7 @@ IMPLOT_API void ShowDemoWindow(bool* p_open = NULL);
 #endif
 
 enum ImPlotFlagsObsolete_ {
-    ImPlotFlags_YAxis2 = 1 << 10,  
+    ImPlotFlags_YAxis2 = 1 << 10,
     ImPlotFlags_YAxis3 = 1 << 11,
 };
 

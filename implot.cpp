@@ -65,7 +65,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
                       - GetPlotQuery, SetPlotQuery, IsPlotQueried -> use DragRect
                       - SetNextPlotTicksX, SetNextPlotTicksY      -> use SetupAxisTicks
                       - SetNextPlotFormatX, SetNextPlotFormatY    -> use SetupAxisFormat
-                      - SetNextPlotLimits                         
+                      - SetNextPlotLimits
                     - OBSOLETED:
                       - BeginPlot (original signature)            -> use new simpler signature + Setup API; will be removed in v1.0
 - 2021/07/30 (0.12) - The offset argument of `PlotXG` functions was been removed. Implement offsetting in your getter callback instead.
@@ -198,8 +198,9 @@ const char* GetStyleColorName(ImPlotCol col) {
         "InlayText",
         "AxisText",
         "AxisGrid",
-        "AxisHovered",
-        "AxisActive",
+        "AxisBg",
+        "AxisBgHovered",
+        "AxisBgActive",
         "Selection",
         "Crosshairs"
     };
@@ -241,8 +242,9 @@ ImVec4 GetAutoColor(ImPlotCol idx) {
         case ImPlotCol_InlayText:     return ImGui::GetStyleColorVec4(ImGuiCol_Text);
         case ImPlotCol_AxisText:      return ImGui::GetStyleColorVec4(ImGuiCol_Text);
         case ImPlotCol_AxisGrid:      return GetStyleColorVec4(ImPlotCol_AxisText) * ImVec4(1,1,1,0.25f);
-        case ImPlotCol_AxisHovered:   return ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
-        case ImPlotCol_AxisActive:    return ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
+        case ImPlotCol_AxisBg:        return ImVec4(0,0,0,0);
+        case ImPlotCol_AxisBgHovered: return ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
+        case ImPlotCol_AxisBgActive:  return ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
         case ImPlotCol_Selection:     return ImVec4(1,1,0,1);
         case ImPlotCol_Crosshairs:    return GetStyleColorVec4(ImPlotCol_PlotBorder);
         default: return col;
@@ -589,7 +591,7 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
         bool item_clk = ImHasFlag(items.Legend.Flags, ImPlotLegendFlags_NoButtons)
                       ? false
                       : ImGui::ButtonBehavior(button_bb, item->ID, &item_hov, &item_hld);
-                      
+
         if (item_clk)
             item->Show = !item->Show;
 
@@ -1490,11 +1492,11 @@ void LabelAxisValue(const ImPlotAxis& axis, double value, char* buff, int size, 
         FormatDateTime(ImPlotTime::FromDouble(value), buff, size, GetDateTimeFmt(TimeFormatMouseCursor, unit));
     }
     else {
-        if (round) 
-            value = RoundAxisValue(axis, value); 
+        if (round)
+            value = RoundAxisValue(axis, value);
         ImPlotFormatter formatter = axis.Formatter ? axis.Formatter : DefaultFormatter;
         void* data = (axis.Formatter && axis.FormatterData) ? axis.FormatterData : axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT;
-        formatter(value, buff, size, data);        
+        formatter(value, buff, size, data);
     }
 }
 
@@ -1503,9 +1505,10 @@ void UpdateAxisColors(ImPlotAxis& axis) {
     axis.ColorMaj         = ImGui::GetColorU32(col_grid);
     axis.ColorMin         = ImGui::GetColorU32(col_grid*ImVec4(1,1,1,GImPlot->Style.MinorAlpha));
     axis.ColorTxt         = GetStyleColorU32(ImPlotCol_AxisText);
-    axis.ColorHov         = GetStyleColorU32(ImPlotCol_AxisHovered);
-    axis.ColorAct         = GetStyleColorU32(ImPlotCol_AxisActive);
-    // axis.ColorHiLi        = IM_COL32_BLACK_TRANS;
+    axis.ColorBg          = GetStyleColorU32(ImPlotCol_AxisBg);
+    axis.ColorHov         = GetStyleColorU32(ImPlotCol_AxisBgHovered);
+    axis.ColorAct         = GetStyleColorU32(ImPlotCol_AxisBgActive);
+    // axis.ColorHiLi     = IM_COL32_BLACK_TRANS;
 }
 
 void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignmentData* align) {
@@ -1568,7 +1571,7 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
             else {
                 axis.Datum1 -= delta_B;
                 axis.Datum2 -= count_B++ > 1 ? delta_B : 0;
-            } 
+            }
         }
     }
 }
@@ -1650,7 +1653,7 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, ImPlotAlignm
             else {
                 axis.Datum1 += delta_L;
                 axis.Datum2 += count_L++ > 1 ? delta_L : 0;
-            } 
+            }
         }
     }
 }
@@ -1784,7 +1787,7 @@ bool UpdateInput(ImPlotPlot& plot) {
         return false;
 
     // STATE -------------------------------------------------------------------
-   
+
     const bool axis_equal      = ImHasFlag(plot.Flags, ImPlotFlags_Equal);
 
     const bool any_x_hov       = plot.Hovered || AnyAxesHovered(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
@@ -1793,7 +1796,7 @@ bool UpdateInput(ImPlotPlot& plot) {
     const bool any_y_held      = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
     const bool any_hov         = any_x_hov    || any_y_hov;
     const bool any_held        = any_x_held   || any_y_held;
-    
+
     const ImVec2 select_drag   = ImGui::GetMouseDragDelta(gp.InputMap.Select);
     const ImVec2 pan_drag      = ImGui::GetMouseDragDelta(gp.InputMap.Pan);
     const float select_drag_sq = ImLengthSqr(select_drag);
@@ -1803,13 +1806,13 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     // CONTEXT MENU -----------------------------------------------------------
 
-    if (IO.MouseReleased[gp.InputMap.Menu] && !plot.ContextLocked) 
-        gp.OpenContextThisFrame = true;  
+    if (IO.MouseReleased[gp.InputMap.Menu] && !plot.ContextLocked)
+        gp.OpenContextThisFrame = true;
 
-    if (selecting || panning)  
+    if (selecting || panning)
         plot.ContextLocked = true;
     else if (!(IO.MouseDown[gp.InputMap.Menu] || IO.MouseReleased[gp.InputMap.Menu]))
-        plot.ContextLocked = false;    
+        plot.ContextLocked = false;
 
     // DRAG INPUT -------------------------------------------------------------
 
@@ -2136,6 +2139,16 @@ void SetNextAxisToFit(ImAxis axis) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextAxisToFit() needs to be called before BeginPlot()!");
     gp.NextPlotData.Fit[axis] = true;
+}
+
+void SetNextAxesLimits(double x_min, double x_max, double y_min, double y_max, ImPlotCond cond) {
+    SetNextAxisLimits(ImAxis_X1, x_min, x_max, cond);
+    SetNextAxisLimits(ImAxis_Y1, y_min, y_max, cond);
+}
+
+void SetNextAxesToFit() {
+    for (int i = 0; i < ImAxis_COUNT; ++i)
+        SetNextAxisToFit(i);
 }
 
 //-----------------------------------------------------------------------------
@@ -2490,6 +2503,9 @@ void SetupFinish() {
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorHiLi);
             ax.ColorHiLi = IM_COL32_BLACK_TRANS;
         }
+        else if (ax.ColorBg != IM_COL32_BLACK_TRANS) {
+            DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorBg);
+        }
         const ImPlotTickCollection& tkc = ax.Ticks;
         const bool opp = ax.IsOpposite();
         if (ax.HasLabel()) {
@@ -2514,7 +2530,7 @@ void SetupFinish() {
             }
         }
     }
-    
+
     // render y axis button, label, tick labels
     for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
         ImPlotAxis& ax = plot.YAxis(i);
@@ -2525,6 +2541,9 @@ void SetupFinish() {
         else if (ax.ColorHiLi != IM_COL32_BLACK_TRANS) {
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorHiLi);
             ax.ColorHiLi = IM_COL32_BLACK_TRANS;
+        }
+        else if (ax.ColorBg != IM_COL32_BLACK_TRANS) {
+            DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorBg);
         }
         const ImPlotTickCollection& tkc = ax.Ticks;
         const bool opp = ax.IsOpposite();
@@ -2771,17 +2790,17 @@ void EndPlot() {
             if (x_axis.Held && plot.PlotRect.Contains(mouse_pos)) {
                 const bool opp = ImHasFlag(x_axis.Flags, ImPlotAxisFlags_Opposite);
                 if (!opp) {
-                    ImRect rect(plot.PlotRect.Min.x - 5, plot.PlotRect.Min.y - 5, 
-                                plot.PlotRect.Max.x + 5, plot.PlotRect.Min.y + 5);    
-                    if (mouse_pos.y < plot.PlotRect.Max.y - 10)            
+                    ImRect rect(plot.PlotRect.Min.x - 5, plot.PlotRect.Min.y - 5,
+                                plot.PlotRect.Max.x + 5, plot.PlotRect.Min.y + 5);
+                    if (mouse_pos.y < plot.PlotRect.Max.y - 10)
                         DrawList.AddRectFilled(rect.Min, rect.Max, x_axis.ColorHov);
-                    if (rect.Contains(mouse_pos)) 
-                        x_axis.Flags |= ImPlotAxisFlags_Opposite;                    
+                    if (rect.Contains(mouse_pos))
+                        x_axis.Flags |= ImPlotAxisFlags_Opposite;
                 }
                 else {
-                    ImRect rect(plot.PlotRect.Min.x - 5, plot.PlotRect.Max.y - 5, 
-                                plot.PlotRect.Max.x + 5, plot.PlotRect.Max.y + 5); 
-                    if (mouse_pos.y > plot.PlotRect.Min.y + 10)           
+                    ImRect rect(plot.PlotRect.Min.x - 5, plot.PlotRect.Max.y - 5,
+                                plot.PlotRect.Max.x + 5, plot.PlotRect.Max.y + 5);
+                    if (mouse_pos.y > plot.PlotRect.Min.y + 10)
                         DrawList.AddRectFilled(rect.Min, rect.Max, x_axis.ColorHov);
                     if (rect.Contains(mouse_pos))
                         x_axis.Flags &= ~ImPlotAxisFlags_Opposite;
@@ -2793,17 +2812,17 @@ void EndPlot() {
             if (y_axis.Held && plot.PlotRect.Contains(mouse_pos)) {
                 const bool opp = ImHasFlag(y_axis.Flags, ImPlotAxisFlags_Opposite);
                 if (!opp) {
-                    ImRect rect(plot.PlotRect.Max.x - 5, plot.PlotRect.Min.y - 5, 
-                                plot.PlotRect.Max.x + 5, plot.PlotRect.Max.y + 5);                
-                    if (mouse_pos.x > plot.PlotRect.Min.x + 10)            
+                    ImRect rect(plot.PlotRect.Max.x - 5, plot.PlotRect.Min.y - 5,
+                                plot.PlotRect.Max.x + 5, plot.PlotRect.Max.y + 5);
+                    if (mouse_pos.x > plot.PlotRect.Min.x + 10)
                         DrawList.AddRectFilled(rect.Min, rect.Max, y_axis.ColorHov);
-                    if (rect.Contains(mouse_pos)) 
-                        y_axis.Flags |= ImPlotAxisFlags_Opposite;                    
+                    if (rect.Contains(mouse_pos))
+                        y_axis.Flags |= ImPlotAxisFlags_Opposite;
                 }
                 else {
-                    ImRect rect(plot.PlotRect.Min.x - 5, plot.PlotRect.Min.y - 5, 
-                                plot.PlotRect.Min.x + 5, plot.PlotRect.Max.y + 5);              
-                    if (mouse_pos.x < plot.PlotRect.Max.x - 10)            
+                    ImRect rect(plot.PlotRect.Min.x - 5, plot.PlotRect.Min.y - 5,
+                                plot.PlotRect.Min.x + 5, plot.PlotRect.Max.y + 5);
+                    if (mouse_pos.x < plot.PlotRect.Max.x - 10)
                         DrawList.AddRectFilled(rect.Min, rect.Max, y_axis.ColorHov);
                     if (rect.Contains(mouse_pos))
                         y_axis.Flags &= ~ImPlotAxisFlags_Opposite;
@@ -2840,7 +2859,7 @@ void EndPlot() {
         DrawList.AddRect(legend.Rect.Min, legend.Rect.Max, col_bd);
         bool legend_contextable = ShowLegendEntries(plot.Items, legend.Rect, legend.Hovered, gp.Style.LegendInnerPadding, gp.Style.LegendSpacing, !legend_horz, DrawList)
                                 && !ImHasFlag(legend.Flags, ImPlotLegendFlags_NoMenus);
-        
+
         // main ctx menu
         if (gp.OpenContextThisFrame && legend_contextable && !ImHasFlag(plot.Flags, ImPlotFlags_NoMenus))
             ImGui::OpenPopup("##LegendContext");
@@ -5247,8 +5266,9 @@ void StyleColorsAuto(ImPlotStyle* dst) {
     colors[ImPlotCol_PlotBorder]    = IMPLOT_AUTO_COL;
     colors[ImPlotCol_AxisText]      = IMPLOT_AUTO_COL;
     colors[ImPlotCol_AxisGrid]      = IMPLOT_AUTO_COL;
-    colors[ImPlotCol_AxisHovered]   = IMPLOT_AUTO_COL;
-    colors[ImPlotCol_AxisActive]    = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_AxisBg]        = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_AxisBgHovered] = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_AxisBgActive]  = IMPLOT_AUTO_COL;
     colors[ImPlotCol_Selection]     = IMPLOT_AUTO_COL;
     colors[ImPlotCol_Crosshairs]    = IMPLOT_AUTO_COL;
 }
@@ -5274,8 +5294,9 @@ void StyleColorsClassic(ImPlotStyle* dst) {
     colors[ImPlotCol_InlayText]     = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
     colors[ImPlotCol_AxisText]      = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
     colors[ImPlotCol_AxisGrid]      = ImVec4(0.90f, 0.90f, 0.90f, 0.25f);
-    colors[ImPlotCol_AxisHovered]   = IMPLOT_AUTO_COL; // TODO
-    colors[ImPlotCol_AxisActive]    = IMPLOT_AUTO_COL; // TODO
+    colors[ImPlotCol_AxisBg]        = IMPLOT_AUTO_COL; // TODO
+    colors[ImPlotCol_AxisBgHovered] = IMPLOT_AUTO_COL; // TODO
+    colors[ImPlotCol_AxisBgActive]  = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_Selection]     = ImVec4(0.97f, 0.97f, 0.39f, 1.00f);
     colors[ImPlotCol_Crosshairs]    = ImVec4(0.50f, 0.50f, 0.50f, 0.75f);
 }
@@ -5301,8 +5322,9 @@ void StyleColorsDark(ImPlotStyle* dst) {
     colors[ImPlotCol_InlayText]     = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImPlotCol_AxisText]      = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImPlotCol_AxisGrid]      = ImVec4(1.00f, 1.00f, 1.00f, 0.25f);
-    colors[ImPlotCol_AxisHovered]   = IMPLOT_AUTO_COL; // TODO
-    colors[ImPlotCol_AxisActive]    = IMPLOT_AUTO_COL; // TODO
+    colors[ImPlotCol_AxisBg]        = IMPLOT_AUTO_COL; // TODO
+    colors[ImPlotCol_AxisBgHovered] = IMPLOT_AUTO_COL; // TODO
+    colors[ImPlotCol_AxisBgActive]  = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_Selection]     = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
     colors[ImPlotCol_Crosshairs]    = ImVec4(1.00f, 1.00f, 1.00f, 0.50f);
 }
@@ -5328,8 +5350,9 @@ void StyleColorsLight(ImPlotStyle* dst) {
     colors[ImPlotCol_InlayText]     = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_AxisText]      = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_AxisGrid]      = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-    colors[ImPlotCol_AxisHovered]   = IMPLOT_AUTO_COL; // TODO
-    colors[ImPlotCol_AxisActive]    = IMPLOT_AUTO_COL; // TODO
+    colors[ImPlotCol_AxisBg]        = IMPLOT_AUTO_COL; // TODO
+    colors[ImPlotCol_AxisBgHovered] = IMPLOT_AUTO_COL; // TODO
+    colors[ImPlotCol_AxisBgActive]  = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_Selection]     = ImVec4(0.82f, 0.64f, 0.03f, 1.00f);
     colors[ImPlotCol_Crosshairs]    = ImVec4(0.00f, 0.00f, 0.00f, 0.50f);
 }
