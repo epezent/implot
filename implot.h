@@ -31,6 +31,7 @@
 // [SECTION] Begin/End Plot
 // [SECTION] Begin/End Subplot
 // [SECTION] Setup
+// [SECTION] SetNext
 // [SECTION] Plot Items
 // [SECTION] Plot Tools
 // [SECTION] Plot Utils
@@ -84,6 +85,7 @@ typedef int ImPlotColormap;     // -> enum ImPlotColormap_
 typedef int ImPlotLocation;     // -> enum ImPlotLocation_
 typedef int ImAxis;             // -> enum ImAxis_
 typedef int ImPlotBin;          // -> enum ImPlotBin_
+typedef int ImPlotCond;         // -> enum ImPlotCond_
 
 // Options for plots (see BeginPlot).
 enum ImPlotFlags_ {
@@ -108,7 +110,7 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_NoGridLines   = 1 << 1,  // no grid lines will be displayed
     ImPlotAxisFlags_NoTickMarks   = 1 << 2,  // no tick marks will be displayed
     ImPlotAxisFlags_NoTickLabels  = 1 << 3,  // no text labels will be displayed
-    ImPlotAxisFlags_NoInitialFit  = 1 << 4,  // axis will not be initially fit to data extents on the first rendered frame (also the case if SetNextPlotLimits explicitly called)
+    ImPlotAxisFlags_NoInitialFit  = 1 << 4,  // axis will not be initially fit to data extents on the first rendered frame 
     ImPlotAxisFlags_NoMenus       = 1 << 5,  // the user will not be able to open context menus with right-click
     ImPlotAxisFlags_Opposite      = 1 << 6,  // axis ticks and labels will be rendered on conventionally opposite side (i.e, right or top)
     ImPlotAxisFlags_Foreground    = 1 << 7,  // grid lines will be displayed in the foreground (i.e. on top of data) in stead of the background
@@ -280,6 +282,14 @@ enum ImAxis_ {
     ImAxis_Y3,     // disabled by default
     // bookeeping
     ImAxis_COUNT
+};
+
+// Represents a condition for SetAxisLimits etc. (same as ImGuiCond, but we only support a subset of those enums)
+enum ImPlotCond_
+{
+    ImPlotCond_None   = ImGuiCond_None,    // No condition (always set the variable), same as _Always
+    ImPlotCond_Always = ImGuiCond_Always,  // No condition (always set the variable)
+    ImPlotCond_Once   = ImGuiCond_Once,    // Set the variable once per runtime session (only the first call will succeed)
 };
 
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
@@ -526,17 +536,12 @@ IMPLOT_API void EndSubplots();
 //   call it yourself, then the first subsequent plotting or utility function will 
 //   call it for you. 
 
-// TODO:
-// - fix subplots alignment (linking?)
-// - fix padding alignment
-// - hide axis label checkbox if no provided
-
 // Enables an axis or sets the label and/or flags for an existing axis. Leave #label = NULL for no label.
 IMPLOT_API void SetupAxis(ImAxis axis, const char* label = NULL, ImPlotAxisFlags flags = ImPlotAxisFlags_None);
-// Sets an axis range limits. If ImGuiCond_Always is used, the axes limits will be locked.
-IMPLOT_API void SetupAxisLimits(ImAxis axis, double v1, double v2, ImGuiCond cond = ImGuiCond_Once);
+// Sets an axis range limits. If ImPlotCond_Always is used, the axes limits will be locked.
+IMPLOT_API void SetupAxisLimits(ImAxis axis, double v_min, double v_max, ImPlotCond cond = ImPlotCond_Once);
 // Links an axis range limits to external values. Set to NULL for no linkage. The pointer data must remain valid until EndPlot.
-IMPLOT_API void SetupAxisLinks(ImAxis axis, double* min_lnk, double* max_lnk);
+IMPLOT_API void SetupAxisLinks(ImAxis axis, double* link_min, double* link_max);
 // Sets the format of numeric axis labels via formater specifier (default="%g"). Formated values will be double (i.e. use %f).
 IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
 // Sets the format of numeric axis labels via formatter callback. Given #value, write a label into #buff. Optionally pass user data.
@@ -544,12 +549,12 @@ IMPLOT_API void SetupAxisFormat(ImAxis axis, ImPlotFormatter formatter, void* da
 // Sets an axis' ticks and optionally the labels. To keep the default ticks, set #keep_default=true.
 IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
 // Sets an axis' ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
-IMPLOT_API void SetupAxisTicks(ImAxis axis, double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
+IMPLOT_API void SetupAxisTicks(ImAxis axis, double v_min, double v_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false);
 
 // Sets the label and/or flags for primary X and Y axes (shorthand for two calls to SetupAxis).
 IMPLOT_API void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFlags x_flags = ImPlotAxisFlags_None, ImPlotAxisFlags y_flags = ImPlotAxisFlags_None);
-// Sets the primary X and Y axes range limits. If ImGuiCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
-IMPLOT_API void SetupAxesLimits(double x1, double x2, double y1, double y2, ImGuiCond cond = ImGuiCond_Once);
+// Sets the primary X and Y axes range limits. If ImPlotCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
+IMPLOT_API void SetupAxesLimits(double x_min, double x_max, double y_min, double y_max, ImPlotCond cond = ImPlotCond_Once);
 
 // Sets up the plot legend.
 IMPLOT_API void SetupLegend(ImPlotLocation location, ImPlotLegendFlags flags = ImPlotLegendFlags_None);
@@ -559,6 +564,36 @@ IMPLOT_API void SetupMouseText(ImPlotLocation location);
 // Explicitly finalize plot setup. Once you call this, you cannot make anymore Setup calls for the current plot!
 // Note that calling this function is OPTIONAL; it will be called by the first subsequent setup-locking API call.
 IMPLOT_API void SetupFinish();
+
+//-----------------------------------------------------------------------------
+// [SECTION] SetNext
+//-----------------------------------------------------------------------------
+
+// Though you should default to the `Setup` API above, there are some scenarios
+// where (re)configuring a plot or axis before `BeginPlot` is needed (e.g. if
+// using a preceding button or slider widget to change the plot limits). In 
+// this case, you can use the `SetNext` API below. While this is not as feature
+// rich as the Setup API, most common needs are provided. These functions can be
+// called anwhere except for inside of `Begin/EndPlot`. For example:
+
+// if (ImGui::Button("Center Plot"))
+//     ImPlot::SetNextPlotLimits(-1,1,-1,1);
+// if (ImPlot::BeginPlot(...)) {
+//     ...
+//     ImPlot::EndPlot();
+// }
+//
+// Important notes:
+//
+// - You must still enable non-default axes with SetupAxis for these functions
+//   to work properly.  
+
+// Sets the next axis range limits. If ImPlotCond_Always is used, the axes limits will be locked.
+IMPLOT_API void SetNextAxisLimits(ImAxis axis, double v_min, double v_max, ImPlotCond cond = ImPlotCond_Once);
+// Links the next axis range limits to external values. Set to NULL for no linkage. The pointer data must remain valid until EndPlot.
+IMPLOT_API void SetNextAxisLinks(ImAxis axis, double* link_min, double* link_max);
+// Set the next axis to auto fit to its data.
+IMPLOT_API void SetNextAxisToFit(ImAxis axis);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Items
@@ -718,10 +753,6 @@ IMPLOT_API bool DragRect(const char* id, ImBounds* bounds, const ImVec4& col);
 IMPLOT_API void SetAxis(ImAxis axis);
 IMPLOT_API void SetAxes(ImAxis x_axis, ImAxis y_axis);
 
-// Cause an axis to fit to its data. This must be called BEFORE any item PlotX calls you wish to contribute to the fit.
-IMPLOT_API void FitAxis(ImAxis axis);
-IMPLOT_API void FitAxes();
-
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (ImAxis_Y1 initially).
 IMPLOT_API ImPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 IMPLOT_API ImPoint PixelsToPlot(float x, float y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
@@ -753,8 +784,8 @@ IMPLOT_API bool IsPlotSelected();
 IMPLOT_API ImBounds GetPlotSelection(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Hides or shows the next plot item (i.e. as if it were toggled from the legend).
-// Use ImGuiCond_Always if you need to forcefully set this every frame.
-IMPLOT_API void HideNextItem(bool hidden = true, ImGuiCond cond = ImGuiCond_Once);
+// Use ImPlotCond_Always if you need to forcefully set this every frame.
+IMPLOT_API void HideNextItem(bool hidden = true, ImPlotCond cond = ImPlotCond_Once);
 
 // Use the following around calls to Begin/EndPlot to align l/r/t/b padding.
 // Consider using Begin/EndSubplots first. They are more feature rich and
@@ -1050,17 +1081,6 @@ IMPLOT_DEPRECATED( IMPLOT_API bool BeginPlot(const char* title_id,
                                              ImPlotAxisFlags y3_flags = ImPlotAxisFlags_AuxDefault,
                                              const char* y2_label     = NULL,
                                              const char* y3_label     = NULL) );
-IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotLimits(double xmin, double xmax, double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once) );
-IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotLimitsX(double xmin, double xmax, ImGuiCond cond = ImGuiCond_Once) );
-IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotLimitsY(double ymin, double ymax, ImGuiCond cond = ImGuiCond_Once, ImAxis y_axis = ImAxis_Y1) );
-IMPLOT_DEPRECATED( IMPLOT_API void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2 = NULL, double* ymax2 = NULL, double* ymin3 = NULL, double* ymax3 = NULL) );
-IMPLOT_DEPRECATED( IMPLOT_API void FitNextPlotAxes(bool x = true, bool y = true, bool y2 = true, bool y3 = true) );
-// IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false) );
-// IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false) );
-// IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1) );
-// IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[] = NULL, bool keep_default = false, ImAxis y_axis = ImAxis_Y1) );
-IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotFormatX(const char* fmt) );
-IMPLOT_DEPRECATED( IMPLOT_API void SetNextPlotFormatY(const char* fmt, ImAxis y_axis = ImAxis_Y1) );
 
 } // namespace ImPlot
 

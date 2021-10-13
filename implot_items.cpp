@@ -2207,7 +2207,7 @@ IMPLOT_INLINE void PlotDigitalEx(const char* label_id, Getter getter) {
                 pixYMax = ImMax(pixYMax, pixY_chPosOffset);
                 ImVec2 pMin = PlotToPixels(itemData1,IMPLOT_AUTO,IMPLOT_AUTO);
                 ImVec2 pMax = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO);
-                int pixY_Offset = 20; //20 pixel from bottom due to mouse cursor label
+                int pixY_Offset = 0; //20 pixel from bottom due to mouse cursor label
                 pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
                 pMax.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
                 //plot only one rectangle for same digital state

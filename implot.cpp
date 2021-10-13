@@ -33,36 +33,41 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 
 - 2021/08/XX (0.13) MAJOR API OVERHAUL! See #xxx for more details!
-                    - RENAMED/MOVED:
+                    - RENAMED:
                       - ImPlotPoint                               -> ImPoint
                       - ImPlotRange                               -> ImRange
                       - ImPlotLimits                              -> ImBounds
                       - ImPlotYAxis_                              -> ImAxis_
                       - SetPlotYAxis                              -> SetAxis
-                      - IsPlotXAxisHovered/IsPlotXYAxisHovered    -> IsAxisHovered
-                      - BeginDragDropTargetX/BeginDragDropTargetY -> BeginDragDropTargetAxis
-                      - BeginDragDropSourceX/BeginDragDropSourceY -> BeginDragDropSourceAxis
                       - BeginDragDropTarget                       -> BeginDragDropTargetPlot
                       - BeginDragDropSource                       -> BeginDragDropSourcePlot
+                      - ImPlotFlags_NoMousePos                    -> ImPlotFlags_NoMouseText
+                    - MODIFIED:
+                      - PixelsToPlot/PlotToPixels                 -> now takes optional X-Axis arg
+                      - GetPlotMousePos                           -> now takes optional X-Axis arg
+                      - GetPlotLimits                             -> now takes optional X-Axis arg
+                      - GetPlotSelection                          -> now takes optional X-Axis arg
+                      - DragLineX/Y/DragPoint                     -> removed labels; render with annotations/tags instead
+                    - REWORKED:
+                      - IsPlotXAxisHovered/IsPlotXYAxisHovered    -> IsAxisHovered(ImAxis)
+                      - BeginDragDropTargetX/BeginDragDropTargetY -> BeginDragDropTargetAxis(ImAxis)
+                      - BeginDragDropSourceX/BeginDragDropSourceY -> BeginDragDropSourceAxis(ImAxis)
+                      - ImPlotCol_XAxis, ImPlotCol_YAxis1, etc.   -> ImPlotCol_AxisText (push/pop this around SetupAxis to style individual axes)
+                      - ImPlotCol_XAxisGrid, ImPlotCol_Y1AxisGrid -> ImPlotCol_AxisGrid (push/pop this around SetupAxis to style individual axes)
+                      - SetNextPlotLimits/X/Y                     -> SetNextAxisLimits(ImAxis)
+                      - LinkNextPlotLimits                        -> SetNextAxisLinks(ImAxis)
+                      - FitNextPlotAxes                           -> SetNextAxisToFit(ImAxis)
                       - SetLegendLocation                         -> SetupLegend
                       - SetMousePosLocation                       -> SetupMouseText
                       - ImPlotFlags_NoHighlight                   -> ImPlotLegendFlags_NoHighlight
-                      - ImPlotFlags_NoMousePos                    -> ImPlotFlags_NoMouseText
-                      - ImPlotCol_XAxis, ImPlotCol_YAxis1, etc.   -> ImPlotCol_AxisText
-                      - ImPlotCol_XAxisGrid, ImPlotCol_Y1AxisGrid -> ImPlotCol_AxisGrid
-                    - MODIFIED:
-                      - PixelsToPlot, PlotToPixels, GetPlotMousePos, GetPlotLimits, GetPlotSelection now expect a Y-Axis and X-Axis
-                      - BeginDragDropSourcePlot/Axis no longer accept key mod flags (defaults to ImPlotInputMap.OverrideMod)
-                      - DragLineX/Y, DragPoint no longer have the option to show labels. Render yourself via annotation and/or tag tools.
-                    - OBSOLETED:
-                      - BeginPlot (original signature)
-                      - SetNextPlotLimits, SetNextPlotLimitsX, SetNextPlotLimitsY, LinkNextPlotLimits, FitNextPlotAxes,
-                        SetNextPlotFormatX, SetNextPlotFormatY
+                      - ImPlotOrientation                         -> ImPlotLegendFlags_Horizontal
                     - REMOVED:
-                      - ImPlotOrientation,
-                      - GetPlotQuery, SetPlotQuery, IsPlotQueried, ImPlotCol_Query (use DragRect)
-                      - SetNextPlotTicksX, SetNextPlotTicksY                       (use SetupAxisTicks)
-
+                      - GetPlotQuery, SetPlotQuery, IsPlotQueried -> use DragRect
+                      - SetNextPlotTicksX, SetNextPlotTicksY      -> use SetupAxisTicks
+                      - SetNextPlotFormatX, SetNextPlotFormatY    -> use SetupAxisFormat
+                      - SetNextPlotLimits                         
+                    - OBSOLETED:
+                      - BeginPlot (original signature)            -> use new simpler signature + Setup API; will be removed in v1.0
 - 2021/07/30 (0.12) - The offset argument of `PlotXG` functions was been removed. Implement offsetting in your getter callback instead.
 - 2021/03/08 (0.9)  - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support. LerpColormap was changed to SampleColormap.
                       ShowColormapScale was changed to ColormapScale and requires additional arguments.
@@ -1444,8 +1449,10 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
             ImFlipFlag(plot.Flags, ImPlotFlags_Equal);
         if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)))
             ImFlipFlag(plot.Flags, ImPlotFlags_NoBoxSelect);
-        if (ImGui::MenuItem("Title",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoTitle)))
+        BeginDisabledControls(plot.TitleOffset == -1);
+        if (ImGui::MenuItem("Title",NULL,plot.HasTitle()))
             ImFlipFlag(plot.Flags, ImPlotFlags_NoTitle);
+        EndDisabledControls(plot.TitleOffset == -1);
         if (ImGui::MenuItem("Mouse Position",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoMouseText)))
             ImFlipFlag(plot.Flags, ImPlotFlags_NoMouseText);
         if (ImGui::MenuItem("Crosshairs",NULL,ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs)))
@@ -1501,7 +1508,7 @@ void UpdateAxisColors(ImPlotAxis& axis) {
     // axis.ColorHiLi        = IM_COL32_BLACK_TRANS;
 }
 
-void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B) {
+void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignmentData* align) {
 
     ImPlotContext& gp = *GImPlot;
 
@@ -1545,9 +1552,28 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B) {
             last_B = axis.Datum1;
         }
     }
+
+    if (align) {
+        count_T = count_B = 0;
+        float delta_T, delta_B;
+        align->Update(pad_T,pad_B,delta_T,delta_B);
+        for (int i = IMPLOT_NUM_X_AXES; i-- > 0;) {
+            ImPlotAxis& axis = plot.XAxis(i);
+            if (!axis.Enabled)
+                continue;
+            if (axis.IsOpposite()) {
+                axis.Datum1 += delta_T;
+                axis.Datum2 += count_T++ > 1 ? delta_T : 0;
+            }
+            else {
+                axis.Datum1 -= delta_B;
+                axis.Datum2 -= count_B++ > 1 ? delta_B : 0;
+            } 
+        }
+    }
 }
 
-void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R) {
+void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, ImPlotAlignmentData* align) {
 
     //   [   pad_L   ]                 [   pad_R   ]
     //   .................CanvasRect................
@@ -1608,6 +1634,25 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R) {
 
     plot.PlotRect.Min.x = plot.CanvasRect.Min.x + pad_L;
     plot.PlotRect.Max.x = plot.CanvasRect.Max.x - pad_R;
+
+    if (align) {
+        count_L = count_R = 0;
+        float delta_L, delta_R;
+        align->Update(pad_L,pad_R,delta_L,delta_R);
+        for (int i = IMPLOT_NUM_Y_AXES; i-- > 0;) {
+            ImPlotAxis& axis = plot.YAxis(i);
+            if (!axis.Enabled)
+                continue;
+            if (axis.IsOpposite()) {
+                axis.Datum1 -= delta_R;
+                axis.Datum2 -= count_R++ > 1 ? delta_R : 0;
+            }
+            else {
+                axis.Datum1 += delta_L;
+                axis.Datum2 += count_L++ > 1 ? delta_L : 0;
+            } 
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -1926,24 +1971,17 @@ void ApplyNextPlotData(ImAxis idx) {
     double*     npd_lmin = gp.NextPlotData.LinkedMin[idx];
     double*     npd_lmax = gp.NextPlotData.LinkedMax[idx];
     bool        npd_rngh = gp.NextPlotData.HasRange[idx];
-    ImGuiCond   npd_rngc = gp.NextPlotData.RangeCond[idx];
-    ImRange    npd_rngv = gp.NextPlotData.Range[idx];
-    bool        npd_fmth = gp.NextPlotData.HasFmt[idx];
-    char*       npd_fmtc = gp.NextPlotData.Fmt[idx];
-    bool        npd_deft = gp.NextPlotData.ShowDefaultTicks[idx];
+    ImPlotCond  npd_rngc = gp.NextPlotData.RangeCond[idx];
+    ImRange     npd_rngv = gp.NextPlotData.Range[idx];
     axis.LinkedMin = npd_lmin;
     axis.LinkedMax = npd_lmax;
     axis.PullLinks();
     if (npd_rngh) {
-        if (!plot.Initialized || npd_rngc == ImGuiCond_Always)
+        if (!plot.Initialized || npd_rngc == ImPlotCond_Always)
             axis.SetRange(npd_rngv);
     }
     axis.HasRange         = npd_rngh;
     axis.RangeCond        = npd_rngc;
-    axis.ShowDefaultTicks = npd_deft;
-    axis.HasFormatSpec = npd_fmth != NULL;
-    if (npd_fmth)
-        ImStrncpy(axis.FormatSpec,npd_fmtc,sizeof(axis.FormatSpec));
 }
 
 //-----------------------------------------------------------------------------
@@ -1974,13 +2012,13 @@ void SetupAxis(ImAxis idx, const char* label, ImPlotAxisFlags flags) {
     UpdateAxisColors(axis);
 }
 
-void SetupAxisLimits(ImAxis idx, double min_lim, double max_lim, ImGuiCond cond) {
+void SetupAxisLimits(ImAxis idx, double min_lim, double max_lim, ImPlotCond cond) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");    // get plot and axis
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
     ImPlotAxis& axis = plot.Axes[idx];
     IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
-    if (!plot.Initialized || cond == ImGuiCond_Always)
+    if (!plot.Initialized || cond == ImPlotCond_Always)
         axis.SetRange(min_lim, max_lim);
     axis.HasRange  = true;
     axis.RangeCond = cond;
@@ -2033,11 +2071,11 @@ void SetupAxisTicks(ImAxis idx, const double* values, int n_ticks, const char* c
                   (axis.Formatter && axis.FormatterData) ? axis.FormatterData : axis.HasFormatSpec ? axis.FormatSpec : IMPLOT_LABEL_FORMAT);
 }
 
-void SetupAxisTicks(ImAxis idx, double x_min, double x_max, int n_ticks, const char* const labels[], bool show_default) {
+void SetupAxisTicks(ImAxis idx, double v_min, double v_max, int n_ticks, const char* const labels[], bool show_default) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
-    FillRange(GImPlot->Temp1, n_ticks, x_min, x_max);
+    FillRange(GImPlot->Temp1, n_ticks, v_min, v_max);
     SetupAxisTicks(idx, GImPlot->Temp1.Data, n_ticks, labels, show_default);
 }
 
@@ -2046,7 +2084,7 @@ void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFlags x_flags
     SetupAxis(ImAxis_Y1, y_label, y_flags);
 }
 
-void SetupAxesLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond) {
+void SetupAxesLimits(double x_min, double x_max, double y_min, double y_max, ImPlotCond cond) {
     SetupAxisLimits(ImAxis_X1, x_min, x_max, cond);
     SetupAxisLimits(ImAxis_Y1, y_min, y_max, cond);
 }
@@ -2071,6 +2109,33 @@ void SetupMouseText(ImPlotLocation location) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     GImPlot->CurrentPlot->MousePosLocation = location;
+}
+
+//-----------------------------------------------------------------------------
+// SetNext
+//-----------------------------------------------------------------------------
+
+void SetNextAxisLimits(ImAxis axis, double v_min, double v_max, ImPlotCond cond) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextAxisLimits() needs to be called before BeginPlot()!");
+    IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
+    gp.NextPlotData.HasRange[axis]  = true;
+    gp.NextPlotData.RangeCond[axis] = cond;
+    gp.NextPlotData.Range[axis].Min = v_min;
+    gp.NextPlotData.Range[axis].Max = v_max;
+}
+
+void SetNextAxisLinks(ImAxis axis, double* link_min, double* link_max) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextAxisLinks() needs to be called before BeginPlot()!");
+    gp.NextPlotData.LinkedMin[axis] = link_min;
+    gp.NextPlotData.LinkedMax[axis] = link_max;
+}
+
+void SetNextAxisToFit(ImAxis axis) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextAxisToFit() needs to be called before BeginPlot()!");
+    gp.NextPlotData.Fit[axis] = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -2272,11 +2337,9 @@ void SetupFinish() {
     }
 
     // (1) calc addition top padding and bot padding
-    PadAndDatumAxesX(plot,pad_top,pad_bot);
+    PadAndDatumAxesX(plot,pad_top,pad_bot,gp.CurrentAlignmentH);
 
-    // (1*) align plots group (TODO: account for outside legends!)
-    if (gp.CurrentAlignmentH)
-        gp.CurrentAlignmentH->Update(pad_top,pad_bot);
+
 
     const float plot_height = plot.CanvasRect.GetHeight() - pad_top - pad_bot;
 
@@ -2302,11 +2365,7 @@ void SetupFinish() {
     }
 
     // (3) calc left/right pad
-    PadAndDatumAxesY(plot,pad_left,pad_right);
-
-    // (3*) align plots group (TODO: account for outside legends!)
-    if (gp.CurrentAlignmentV)
-        gp.CurrentAlignmentV->Update(pad_left,pad_right);
+    PadAndDatumAxesY(plot,pad_left,pad_right,gp.CurrentAlignmentV);
 
     const float plot_width = plot.CanvasRect.GetWidth() - pad_left - pad_right;
 
@@ -2493,7 +2552,7 @@ void SetupFinish() {
 
     // clear legend (TODO: put elsewhere)
     plot.Items.Legend.Reset();
-    // push ID to set item hashes (TODO: SetupFinish?)
+    // push ID to set item hashes
     ImGui::PushOverrideID(gp.CurrentItems->ID);
 }
 
@@ -2950,10 +3009,11 @@ void SubplotSetCell(int row, int col) {
     const bool ly = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkAllY);
     const bool lr = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkRows);
     const bool lc = ImHasFlag(subplot.Flags, ImPlotSubplotFlags_LinkCols);
-    LinkNextPlotLimits(lx ? &subplot.ColLinkData[0].Min : lc ? &subplot.ColLinkData[col].Min : NULL,
-                       lx ? &subplot.ColLinkData[0].Max : lc ? &subplot.ColLinkData[col].Max : NULL,
-                       ly ? &subplot.RowLinkData[0].Min : lr ? &subplot.RowLinkData[row].Min : NULL,
-                       ly ? &subplot.RowLinkData[0].Max : lr ? &subplot.RowLinkData[row].Max : NULL);
+
+    SetNextAxisLinks(ImAxis_X1, lx ? &subplot.ColLinkData[0].Min : lc ? &subplot.ColLinkData[col].Min : NULL,
+                                lx ? &subplot.ColLinkData[0].Max : lc ? &subplot.ColLinkData[col].Max : NULL);
+    SetNextAxisLinks(ImAxis_Y1, ly ? &subplot.RowLinkData[0].Min : lr ? &subplot.RowLinkData[row].Min : NULL,
+                                ly ? &subplot.RowLinkData[0].Max : lr ? &subplot.RowLinkData[row].Max : NULL);
     // setup alignment
     if (!ImHasFlag(subplot.Flags, ImPlotSubplotFlags_NoAlign)) {
         gp.CurrentAlignmentH = &subplot.RowAlignmentData[row];
@@ -3178,7 +3238,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
 
     // set initial cursor pos
     Window->DC.CursorPos = subplot.GridRect.Min;
-    // begin alignrmnts
+    // begin alignments
     for (int r = 0; r < subplot.Rows; ++r)
         subplot.RowAlignmentData[r].Begin();
     for (int c = 0; c < subplot.Cols; ++c)
@@ -3277,22 +3337,6 @@ void SetAxes(ImAxis x_idx, ImAxis y_idx) {
     SetupLock();
     gp.CurrentPlot->CurrentX = x_idx;
     gp.CurrentPlot->CurrentY = y_idx;
-}
-
-void FitAxis(ImAxis axis) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "FitAxis() needs to be called between BeginPlot() and EndPlot()!");
-    IM_ASSERT_USER_ERROR(axis >= ImAxis_X1 && axis < ImAxis_COUNT, "Axis indices out of bounds!");
-    gp.CurrentPlot->FitThisFrame = true;
-    gp.CurrentPlot->Axes[axis].FitThisFrame = true;
-}
-
-void FitAxes() {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "FitAxes() needs to be called between BeginPlot() and EndPlot()!");
-    gp.CurrentPlot->FitThisFrame = true;
-    for (int i = 0; i < ImAxis_COUNT; ++i)
-        gp.CurrentPlot->Axes[i].FitThisFrame = true;
 }
 
 ImPoint PixelsToPlot(float x, float y, ImAxis x_idx, ImAxis y_idx) {
@@ -3406,7 +3450,7 @@ ImBounds GetPlotSelection(ImAxis x_idx, ImAxis y_idx) {
     return result;
 }
 
-void HideNextItem(bool hidden, ImGuiCond cond) {
+void HideNextItem(bool hidden, ImPlotCond cond) {
     ImPlotContext& gp = *GImPlot;
     gp.NextItemData.HasHidden  = true;
     gp.NextItemData.Hidden     = hidden;
@@ -5313,101 +5357,7 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
     if (ImHasFlag(flags, ImPlotFlags_YAxis3))
         SetupAxis(ImAxis_Y3, y3_label, y3_flags);
 
-    // SetupFinish();
-
     return true;
-}
-
-void SetNextPlotLimits(double x_min, double x_max, double y_min, double y_max, ImGuiCond cond) {
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot == NULL, "SetNextPlotLimits() needs to be called before BeginPlot()!");
-    SetNextPlotLimitsX(x_min, x_max, cond);
-    SetNextPlotLimitsY(y_min, y_max, cond);
-}
-
-void SetNextPlotLimitsX(double x_min, double x_max, ImGuiCond cond) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotLSetNextPlotLimitsXimitsY() needs to be called before BeginPlot()!");
-    IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
-    gp.NextPlotData.HasRange[ImAxis_X1]  = true;
-    gp.NextPlotData.RangeCond[ImAxis_X1] = cond;
-    gp.NextPlotData.Range[ImAxis_X1].Min = x_min;
-    gp.NextPlotData.Range[ImAxis_X1].Max = x_max;
-}
-
-void SetNextPlotLimitsY(double y_min, double y_max, ImGuiCond cond, ImAxis y_axis) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotLimitsY() needs to be called before BeginPlot()!");
-    IM_ASSERT_USER_ERROR(y_axis >= ImAxis_Y1 && y_axis < ImAxis_COUNT, "y_axis out of range!");
-    IM_ASSERT(cond == 0 || ImIsPowerOfTwo(cond)); // Make sure the user doesn't attempt to combine multiple condition flags.
-    gp.NextPlotData.HasRange[y_axis] = true;
-    gp.NextPlotData.RangeCond[y_axis] = cond;
-    gp.NextPlotData.Range[y_axis].Min = y_min;
-    gp.NextPlotData.Range[y_axis].Max = y_max;
-}
-
-void LinkNextPlotLimits(double* xmin, double* xmax, double* ymin, double* ymax, double* ymin2, double* ymax2, double* ymin3, double* ymax3) {
-    ImPlotContext& gp = *GImPlot;
-    gp.NextPlotData.LinkedMin[ImAxis_X1] = xmin;
-    gp.NextPlotData.LinkedMax[ImAxis_X1] = xmax;
-    gp.NextPlotData.LinkedMin[ImAxis_Y1] = ymin;
-    gp.NextPlotData.LinkedMax[ImAxis_Y1] = ymax;
-    gp.NextPlotData.LinkedMin[ImAxis_Y2] = ymin2;
-    gp.NextPlotData.LinkedMax[ImAxis_Y2] = ymax2;
-    gp.NextPlotData.LinkedMin[ImAxis_Y3] = ymin3;
-    gp.NextPlotData.LinkedMax[ImAxis_Y3] = ymax3;
-}
-
-void FitNextPlotAxes(bool x, bool y, bool y2, bool y3) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "FitNextPlotAxes() needs to be called before BeginPlot()!");
-    gp.NextPlotData.Fit[ImAxis_X1] = x;
-    gp.NextPlotData.Fit[ImAxis_Y1] = y;
-    gp.NextPlotData.Fit[ImAxis_Y2] = y2;
-    gp.NextPlotData.Fit[ImAxis_Y3] = y3;
-}
-
-// void SetNextPlotTicksX(const double* values, int n_ticks, const char* const labels[], bool show_default) {
-//     ImPlotContext& gp = *GImPlot;
-//     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksX() needs to be called before BeginPlot()!");
-//     gp.NextPlotData.ShowDefaultTicks[ImAxis_X1] = show_default;
-//     AddTicksCustom(values, labels, n_ticks, gp.XTicks[0], DefaultFormatter, gp.NextPlotData.HasFmt[ImAxis_X1] ? gp.NextPlotData.Fmt[ImAxis_X1] : IMPLOT_LABEL_FORMAT);
-// }
-
-// void SetNextPlotTicksX(double x_min, double x_max, int n_ticks, const char* const labels[], bool show_default) {
-//     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
-//     static ImVector<double> buffer;
-//     FillRange(buffer, n_ticks, x_min, x_max);
-//     SetNextPlotTicksX(&buffer[0], n_ticks, labels, show_default);
-// }
-
-// void SetNextPlotTicksY(const double* values, int n_ticks, const char* const labels[], bool show_default, ImAxis y_axis) {
-//     ImPlotContext& gp = *GImPlot;
-//     IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotTicksY() needs to be called before BeginPlot()!");
-//     IM_ASSERT_USER_ERROR(y_axis >= ImAxis_Y1 && y_axis < ImAxis_COUNT, "y_axis out of range!");
-//     gp.NextPlotData.ShowDefaultTicks[y_axis] = show_default;
-//     AddTicksCustom(values, labels, n_ticks, gp.YTicks[y_axis%IMPLOT_MAX_AXES], DefaultFormatter, gp.NextPlotData.HasFmt[y_axis] ? gp.NextPlotData.Fmt[y_axis] : IMPLOT_LABEL_FORMAT);
-// }
-
-// void SetNextPlotTicksY(double y_min, double y_max, int n_ticks, const char* const labels[], bool show_default, ImAxis y_axis) {
-//     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
-//     static ImVector<double> buffer;
-//     FillRange(buffer, n_ticks, y_min, y_max);
-//     SetNextPlotTicksY(&buffer[0], n_ticks, labels, show_default,y_axis);
-// }
-
-void SetNextPlotFormatX(const char* fmt){
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotFormatX() needs to be called before BeginPlot()!");
-    gp.NextPlotData.HasFmt[ImAxis_X1] = true;
-    ImStrncpy(gp.NextPlotData.Fmt[ImAxis_X1], fmt, 16);
-}
-
-void SetNextPlotFormatY(const char* fmt, ImAxis y_axis) {
-    ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot == NULL, "SetNextPlotFormatY() needs to be called before BeginPlot()!");
-    IM_ASSERT_USER_ERROR(y_axis >= ImAxis_Y1 && y_axis < ImAxis_COUNT, "y_axis out of range!");
-    gp.NextPlotData.HasFmt[y_axis] = true;
-    ImStrncpy(gp.NextPlotData.Fmt[y_axis], fmt, 16);
 }
 
 #endif

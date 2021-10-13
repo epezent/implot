@@ -544,7 +544,7 @@ struct ImPlotAxis
     ImGuiID              ID;
     ImPlotAxisFlags      Flags;
     ImPlotAxisFlags      PreviousFlags;
-    ImGuiCond            RangeCond;
+    ImPlotCond            RangeCond;
     ImPlotTickCollection Ticks;
     ImRange              Range;
     ImRange              FitExtents;
@@ -740,13 +740,13 @@ struct ImPlotAxis
     inline bool HasGridLines()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoGridLines);                                           }
     inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                                          }
     inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                                           }                
-    inline bool WillRender()        const { return HasGridLines() || HasTickMarks() || HasTickMarks();                                       }                
+    inline bool WillRender()        const { return HasGridLines() || HasTickLabels() || HasTickMarks();                                      }                
     inline bool IsOpposite()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                                               }
     inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                                 }
     inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }                
     inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                                }
     inline bool CanInitFit()        const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
-    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImGuiCond_Always;                                                }                
+    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImPlotCond_Always;                                                }                
     inline bool IsLockedMin()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin);                 }
     inline bool IsLockedMax()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax);                 }
     inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                                           }                
@@ -780,11 +780,12 @@ struct ImPlotAlignmentData {
         PadA = PadB = PadAMax = PadBMax = 0;
     }
     void Begin() { PadAMax = PadBMax = 0; }
-    void Update(float& pad_a, float& pad_b) {
-        if (PadAMax < pad_a) PadAMax = pad_a;
-        if (pad_a < PadA)    pad_a   = PadA;
-        if (PadBMax < pad_b) PadBMax = pad_b;
-        if (pad_b < PadB)    pad_b   = PadB;
+    void Update(float& pad_a, float& pad_b, float& delta_a, float& delta_b) {
+        float bak_a = pad_a; float bak_b = pad_b;
+        if (PadAMax < pad_a) { PadAMax = pad_a; }
+        if (PadBMax < pad_b) { PadBMax = pad_b; }
+        if (pad_a < PadA)    { pad_a = PadA; delta_a = pad_a - bak_a; } else { delta_a = 0; }
+        if (pad_b < PadB)    { pad_b = PadB; delta_b = pad_b - bak_b; } else { delta_b = 0; } 
     }
     void End()   { PadA = PadAMax; PadB = PadBMax;      }
     void Reset() { PadA = PadB = PadAMax = PadBMax = 0; }
@@ -995,12 +996,9 @@ struct ImPlotSubplot {
 // Temporary data storage for upcoming plot
 struct ImPlotNextPlotData
 {
-    ImGuiCond   RangeCond[ImAxis_COUNT];
+    ImPlotCond  RangeCond[ImAxis_COUNT];
     ImRange     Range[ImAxis_COUNT];
     bool        HasRange[ImAxis_COUNT];
-    bool        ShowDefaultTicks[ImAxis_COUNT];
-    char        Fmt[ImAxis_COUNT][16];
-    bool        HasFmt[ImAxis_COUNT];
     bool        Fit[ImAxis_COUNT];
     double*     LinkedMin[ImAxis_COUNT];    
     double*     LinkedMax[ImAxis_COUNT];
@@ -1010,8 +1008,6 @@ struct ImPlotNextPlotData
     void Reset() {
         for (int i = 0; i < ImAxis_COUNT; ++i) {
             HasRange[i]                 = false;
-            ShowDefaultTicks[i]         = true;
-            HasFmt[i]                   = false;
             Fit[i]                      = false;
             LinkedMin[i] = LinkedMax[i] = NULL;
         }
@@ -1037,7 +1033,7 @@ struct ImPlotNextItemData {
     bool         RenderMarkerFill;
     bool         HasHidden;
     bool         Hidden;
-    ImGuiCond    HiddenCond;
+    ImPlotCond    HiddenCond;
     ImPlotNextItemData() { Reset(); }
     void Reset() {
         for (int i = 0; i < 5; ++i)

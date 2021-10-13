@@ -641,12 +641,17 @@ void ShowDemo_Histogram() {
         ImGui::SetNextItemWidth(200);
         ImGui::SliderInt("##Bins", &bins, 1, 100);
     }
-    bool need_refit = false;
     if (ImGui::Checkbox("Density", &density))
-        need_refit = true;
+    {
+        ImPlot::SetNextAxisToFit(ImAxis_X1);
+        ImPlot::SetNextAxisToFit(ImAxis_Y1);
+    }
     ImGui::SameLine();
     if (ImGui::Checkbox("Cumulative", &cumulative))
-        need_refit = true;
+    {
+        ImPlot::SetNextAxisToFit(ImAxis_X1);
+        ImPlot::SetNextAxisToFit(ImAxis_Y1);
+    }
     ImGui::SameLine();
     static bool range = false;
     ImGui::Checkbox("Range", &range);
@@ -677,8 +682,6 @@ void ShowDemo_Histogram() {
     }
 
     if (ImPlot::BeginPlot("##Histograms")) {
-        if (need_refit)
-            ImPlot::FitAxes();
         ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5f);
         ImPlot::PlotHistogram("Empirical", dist.Data, 10000, bins, cumulative, density, range ? ImRange(rmin,rmax) : ImRange(), outliers);
         if (density && outliers)
