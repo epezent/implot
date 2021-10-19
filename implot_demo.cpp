@@ -236,7 +236,7 @@ void ModSelector(const char* label, ImGuiKeyModFlags* k) {
 }
 
 void InputMapping(const char* label, ImGuiMouseButton* b, ImGuiKeyModFlags* k) {
-    ImGui::LabelText("##",label);
+    ImGui::LabelText("##","%s",label);
     if (b != NULL) {
         ImGui::SameLine(100);
         ButtonSelector(label,b);
@@ -930,7 +930,7 @@ void ShowDemo_TimeAxes() {
         double t_now = (double)time(0);
         double y_now = HugeTimeData::GetY(t_now);
         ImPlot::PlotScatter("Now",&t_now,&y_now,1);
-        ImPlot::Annotate(t_now,y_now,ImVec2(10,10),ImPlot::GetLastItemColor(),"Now");
+        ImPlot::Annotation(t_now,y_now,ImPlot::GetLastItemColor(),ImVec2(10,10),false,"Now");
         ImPlot::EndPlot();
     }
 }
@@ -1162,65 +1162,6 @@ void ShowDemo_SubplotAxisLinking() {
     }
 }
 
-/*
-void ShowDemo_Querying() {
-    static ImVector<ImPoint> data;
-    static ImBounds range, query, select;
-    static bool init = true;
-    if (init) {
-        for (int i = 0; i < 50; ++i)
-        {
-            double x = RandomRange(0.0, 1.0);
-            double y = RandomRange(0.0, 1.0);
-            data.push_back(ImPoint(x,y));
-        }
-        init = false;
-    }
-
-    ImGui::BulletText("Middle click (or Ctrl + right click) and drag to create a query rect.");
-    ImGui::Indent();
-        ImGui::BulletText("Hold Alt to expand query horizontally.");
-        ImGui::BulletText("Hold Shift to expand query vertically.");
-        ImGui::BulletText("The query rect can be dragged after it's created.");
-    ImGui::Unindent();
-    ImGui::BulletText("Ctrl + click in the plot area to draw points.");
-
-    ImPlot::SetNextPlotLimits(0,1,0,1);
-    if (ImPlot::BeginPlot("##Centroid", NULL, NULL, ImVec2(-1,0), ImPlotFlags_Query)) {
-        if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) {
-            ImPoint pt = ImPlot::GetPlotMousePos();
-            data.push_back(pt);
-        }
-        if (data.size() > 0)
-            ImPlot::PlotScatter("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(double));
-        if (ImPlot::IsPlotQueried() && data.size() > 0) {
-            ImBounds range2 = ImPlot::GetPlotQuery();
-            int cnt = 0;
-            ImPoint avg;
-            for (int i = 0; i < data.size(); ++i) {
-                if (range2.Contains(data[i].x, data[i].y)) {
-                    avg.x += data[i].x;
-                    avg.y += data[i].y;
-                    cnt++;
-                }
-            }
-            if (cnt > 0) {
-                avg.x = avg.x / cnt;
-                avg.y = avg.y / cnt;
-                ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
-                ImPlot::PlotScatter("Centroid", &avg.x, &avg.y, 1);
-            }
-        }
-        range  = ImPlot::GetPlotLimits();
-        query  = ImPlot::GetPlotQuery();
-        select = ImPlot::GetPlotSelection();
-        ImPlot::EndPlot();
-    }
-    ImGui::Text("Limits: [%g,%g,%g,%g]", range.X.Min, range.X.Max, range.Y.Min, range.Y.Max);
-    ImGui::Text("Query: [%g,%g,%g,%g]", query.X.Min, query.X.Max, query.Y.Min, query.Y.Max);
-    ImGui::Text("Selection: [%g,%g,%g,%g]", select.X.Min, select.X.Max, select.Y.Min, select.Y.Max);
-}
-*/
 
 void ShowDemo_LegendOptions() {
     static ImPlotLocation loc = ImPlotLocation_East;
@@ -1255,12 +1196,21 @@ void ShowDemo_LegendOptions() {
 
 void ShowDemo_DragPoints() {
     ImGui::BulletText("Click and drag each point.");
-    static bool show_labels = true;
-    ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
+    static ImPlotDragToolFlags flags = ImPlotDragToolFlags_None;
+    ImGui::CheckboxFlags("NoCursors", (unsigned int*)&flags, ImPlotDragToolFlags_NoCursors); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
+    ImPlotAxisFlags ax_flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
     if (ImPlot::BeginPlot("##Bezier",ImVec2(-1,0),ImPlotFlags_CanvasOnly)) {
-        ImPlot::SetupAxes(0,0,flags,flags);
+        ImPlot::SetupAxes(0,0,ax_flags,ax_flags);
         ImPlot::SetupAxesLimits(0,1,0,1);
         static ImPoint P[] = {ImPoint(.05f,.05f), ImPoint(0.2,0.4),  ImPoint(0.8,0.6),  ImPoint(.95f,.95f)};
+
+        ImPlot::DragPoint(0,&P[0].x,&P[0].y, ImVec4(0,0.9f,0,1),4,flags);
+        ImPlot::DragPoint(1,&P[1].x,&P[1].y, ImVec4(1,0.5f,1,1),4,flags);
+        ImPlot::DragPoint(2,&P[2].x,&P[2].y, ImVec4(0,0.5f,1,1),4,flags);
+        ImPlot::DragPoint(3,&P[3].x,&P[3].y, ImVec4(0,0.9f,0,1),4,flags);
+
         static ImPoint B[100];
         for (int i = 0; i < 100; ++i) {
             double t  = i / 99.0;
@@ -1271,22 +1221,15 @@ void ShowDemo_DragPoints() {
             double w4 = t*t*t;
             B[i] = ImPoint(w1*P[0].x + w2*P[1].x + w3*P[2].x + w4*P[3].x, w1*P[0].y + w2*P[1].y + w3*P[2].y + w4*P[3].y);
         }
-        ImPlot::SetNextLineStyle(ImVec4(0,0.9f,0,1), 2);
-        ImPlot::PlotLine("##bez",&B[0].x, &B[0].y, 100, 0, sizeof(ImPoint));
+
+
         ImPlot::SetNextLineStyle(ImVec4(1,0.5f,1,1));
         ImPlot::PlotLine("##h1",&P[0].x, &P[0].y, 2, 0, sizeof(ImPoint));
         ImPlot::SetNextLineStyle(ImVec4(0,0.5f,1,1));
         ImPlot::PlotLine("##h2",&P[2].x, &P[2].y, 2, 0, sizeof(ImPoint));
-        ImPlot::DragPoint("P0",&P[0].x,&P[0].y, ImVec4(0,0.9f,0,1));
-        ImPlot::DragPoint("P1",&P[1].x,&P[1].y, ImVec4(1,0.5f,1,1));
-        ImPlot::DragPoint("P2",&P[2].x,&P[2].y, ImVec4(0,0.5f,1,1));
-        ImPlot::DragPoint("P3",&P[3].x,&P[3].y, ImVec4(0,0.9f,0,1));
-        for (int i = 0; i < 4; ++i)
-        {
-            P[i].x = P[i].x < 0.0 ? 0.0 : P[i].x > 1.0 ? 1.0 : P[i].x;
-            P[i].y = P[i].y < 0.0 ? 0.0 : P[i].y > 1.0 ? 1.0 : P[i].y;
+        ImPlot::SetNextLineStyle(ImVec4(0,0.9f,0,1), 2);
+        ImPlot::PlotLine("##bez",&B[0].x, &B[0].y, 100, 0, sizeof(ImPoint));
 
-        }
         ImPlot::EndPlot();
     }
 }
@@ -1298,21 +1241,23 @@ void ShowDemo_DragLines() {
     static double y1 = 0.25;
     static double y2 = 0.75;
     static double f = 0.1;
+    static ImPlotDragToolFlags flags = ImPlotDragToolFlags_None;
+    ImGui::CheckboxFlags("NoCursors", (unsigned int*)&flags, ImPlotDragToolFlags_NoCursors); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
     if (ImPlot::BeginPlot("##lines",ImVec2(-1,0))) {
         ImPlot::SetupAxesLimits(0,1,0,1);
-        ImPlot::SetupAxis(ImAxis_Y2);
-        ImPlot::DragLineX("x1",&x1);
-        ImPlot::DragLineX("x2",&x2);
-        ImPlot::DragLineY("y1",&y1);
-        ImPlot::DragLineY("y2",&y2);
+        ImPlot::DragLineX(0,&x1,ImVec4(1,1,1,1),1,flags);
+        ImPlot::DragLineX(1,&x2,ImVec4(1,1,1,1),1,flags);
+        ImPlot::DragLineY(2,&y1,ImVec4(1,1,1,1),1,flags);
+        ImPlot::DragLineY(3,&y2,ImVec4(1,1,1,1),1,flags);
         double xs[1000], ys[1000];
         for (int i = 0; i < 1000; ++i) {
             xs[i] = (x2+x1)/2+fabs(x2-x1)*(i/1000.0f - 0.5f);
             ys[i] = (y1+y2)/2+fabs(y2-y1)/2*sin(f*i/10);
         }
         ImPlot::PlotLine("Interactive Data", xs, ys, 1000);
-        ImPlot::SetAxis(ImAxis_Y2);
-        ImPlot::DragLineY("f",&f,ImVec4(1,0.5f,1,1));
+        ImPlot::DragLineY(120482,&f,ImVec4(1,0.5f,1,1),1,flags);
         ImPlot::EndPlot();
     }
 }
@@ -1334,22 +1279,99 @@ void ShowDemo_DragRects() {
         y_data3[i] = y_data2[i] * -0.6f + sinf(3 * arg) * 0.4f;
     }
     ImGui::BulletText("Click and drag the edges, corners, and center of the rect.");
-    static ImBounds view1(0.0025,0.0045,0,0.5);
+    static ImBounds rect(0.0025,0.0045,0,0.5);
+    static ImPlotDragToolFlags flags = ImPlotDragToolFlags_None;
+    ImGui::CheckboxFlags("NoCursors", (unsigned int*)&flags, ImPlotDragToolFlags_NoCursors); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
+
     if (ImPlot::BeginPlot("##Main",ImVec2(-1,150))) {
         ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_NoTickLabels,ImPlotAxisFlags_NoTickLabels);
         ImPlot::SetupAxesLimits(0,0.01,-1,1);
         ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
         ImPlot::PlotLine("Signal 2", x_data, y_data2, 512);
         ImPlot::PlotLine("Signal 3", x_data, y_data3, 512);
-        ImPlot::DragRect("view1",&view1,ImVec4(1,0,1,1));
+        ImPlot::DragRect(0,&rect.X.Min,&rect.Y.Min,&rect.X.Max,&rect.Y.Max,ImVec4(1,0,1,1),flags);
         ImPlot::EndPlot();
     }
-    if (ImPlot::BeginPlot("##View1",ImVec2(-1,150), ImPlotFlags_CanvasOnly)) {
+    if (ImPlot::BeginPlot("##rect",ImVec2(-1,150), ImPlotFlags_CanvasOnly)) {
         ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations);
-        ImPlot::SetupAxesLimits(view1.X.Min, view1.X.Max, view1.Y.Min, view1.Y.Max, ImGuiCond_Always);
+        ImPlot::SetupAxesLimits(rect.X.Min, rect.X.Max, rect.Y.Min, rect.Y.Max, ImGuiCond_Always);
         ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
         ImPlot::PlotLine("Signal 2", x_data, y_data2, 512);
         ImPlot::PlotLine("Signal 3", x_data, y_data3, 512);
+        ImPlot::EndPlot();
+    }
+}
+
+ImPoint FindCentroid(const ImVector<ImPoint>& data, ImBounds& bounds, int& cnt) {
+    cnt = 0;
+    ImPoint avg;
+    for (int i = 0; i < data.size(); ++i) {
+        if (bounds.Contains(data[i].x, data[i].y)) {
+            avg.x += data[i].x;
+            avg.y += data[i].y;
+            cnt++;
+        }
+    }
+    if (cnt > 0) {
+        avg.x = avg.x / cnt;
+        avg.y = avg.y / cnt;
+    }
+    return avg;
+}
+
+void ShowDemo_Querying() {
+    static ImVector<ImPoint> data;
+    static ImVector<ImBounds> rects;
+    static ImBounds limits, select;
+    static bool init = true;
+    if (init) {
+        for (int i = 0; i < 50; ++i)
+        {
+            double x = RandomRange(0.1, 0.9);
+            double y = RandomRange(0.1, 0.9);
+            data.push_back(ImPoint(x,y));
+        }
+        init = false;
+    }
+
+    ImGui::BulletText("Box select and left click mouse to create a new query rect.");
+    ImGui::BulletText("Ctrl + click in the plot area to draw points.");
+
+    if (ImGui::Button("Clear Queries"))
+        rects.shrink(0);
+
+    if (ImPlot::BeginPlot("##Centroid")) {
+        ImPlot::SetupAxesLimits(0,1,0,1);
+        if (ImPlot::IsPlotHovered() && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl) {
+            ImPoint pt = ImPlot::GetPlotMousePos();
+            data.push_back(pt);
+        }
+        ImPlot::PlotScatter("Points", &data[0].x, &data[0].y, data.size(), 0, 2 * sizeof(double));
+        if (ImPlot::IsPlotSelected()) {
+            select = ImPlot::GetPlotSelection();
+            int cnt;
+            ImPoint centroid = FindCentroid(data,select,cnt);
+            if (cnt > 0) {
+                ImPlot::SetNextMarkerStyle(ImPlotMarker_Square,6);
+                ImPlot::PlotScatter("Centroid", &centroid.x, &centroid.y, 1);
+            }
+            if (ImGui::IsMouseClicked(ImPlot::GetInputMap().SelectCancel)) {
+                CancelPlotSelection();
+                rects.push_back(select);
+            }
+        }
+        for (int i = 0; i < rects.size(); ++i) {
+            int cnt;
+            ImPoint centroid = FindCentroid(data,rects[i],cnt);
+            if (cnt > 0) {
+                ImPlot::SetNextMarkerStyle(ImPlotMarker_Square,6);
+                ImPlot::PlotScatter("Centroid", &centroid.x, &centroid.y, 1);
+            }
+            ImPlot::DragRect(i,&rects[i].X.Min,&rects[i].Y.Min,&rects[i].X.Max,&rects[i].Y.Max,ImVec4(1,0,1,1));
+        }
+        limits  = ImPlot::GetPlotLimits();
         ImPlot::EndPlot();
     }
 }
@@ -1362,17 +1384,39 @@ void ShowDemo_Annotations() {
         static float p[] = {0.25f, 0.25f, 0.75f, 0.75f, 0.25f};
         ImPlot::PlotScatter("##Points",&p[0],&p[1],4);
         ImVec4 col = GetLastItemColor();
-        clamp ? ImPlot::AnnotateClamped(0.25,0.25,ImVec2(-15,15),col,"BL") : ImPlot::Annotate(0.25,0.25,ImVec2(-15,15),col,"BL");
-        clamp ? ImPlot::AnnotateClamped(0.75,0.25,ImVec2(15,15),col,"BR") : ImPlot::Annotate(0.75,0.25,ImVec2(15,15),col,"BR");
-        clamp ? ImPlot::AnnotateClamped(0.75,0.75,ImVec2(15,-15),col,"TR") : ImPlot::Annotate(0.75,0.75,ImVec2(15,-15),col,"TR");
-        clamp ? ImPlot::AnnotateClamped(0.25,0.75,ImVec2(-15,-15),col,"TL") : ImPlot::Annotate(0.25,0.75,ImVec2(-15,-15),col,"TL");
-        clamp ? ImPlot::AnnotateClamped(0.5,0.5,ImVec2(0,0),col,"Center") : ImPlot::Annotate(0.5,0.5,ImVec2(0,0),col,"Center");
+        ImPlot::Annotation(0.25,0.25,col,ImVec2(-15,15),clamp,"BL");
+        ImPlot::Annotation(0.75,0.25,col,ImVec2(15,15),clamp,"BR");
+        ImPlot::Annotation(0.75,0.75,col,ImVec2(15,-15),clamp,"TR");
+        ImPlot::Annotation(0.25,0.75,col,ImVec2(-15,-15),clamp,"TL");
+        ImPlot::Annotation(0.5,0.5,col,ImVec2(0,0),clamp,"Center");
+
+        ImPlot::Annotation(1.25,0.75,ImVec4(0,1,0,1),ImVec2(0,0),clamp);
 
         float bx[] = {1.2f,1.5f,1.8f};
         float by[] = {0.25f, 0.5f, 0.75f};
         ImPlot::PlotBars("##Bars",bx,by,3,0.2);
         for (int i = 0; i < 3; ++i)
-            ImPlot::Annotate(bx[i],by[i],ImVec2(0,-5),"B[%d]=%.2f",i,by[i]);
+            ImPlot::Annotation(bx[i],by[i],ImVec4(0,0,0,0),ImVec2(0,-5),clamp,"B[%d]=%.2f",i,by[i]);
+        ImPlot::EndPlot();
+    }
+}
+
+void ShowDemo_Tags() {
+    static bool show = true;
+    ImGui::Checkbox("Show Tags",&show);
+    if (ImPlot::BeginPlot("##Tags")) {
+        ImPlot::SetupAxis(ImAxis_X2);
+        ImPlot::SetupAxis(ImAxis_Y2);
+        if (show) {
+            ImPlot::TagX(0.25, ImVec4(1,1,0,1));
+            ImPlot::TagY(0.75, ImVec4(1,1,0,1));
+            static double drag_tag = 0.25;
+            ImPlot::DragLineY(0,&drag_tag,ImVec4(1,0,0,1),1,ImPlotDragToolFlags_NoFit);
+            ImPlot::TagY(drag_tag, ImVec4(1,0,0,1), "Drag");
+            SetAxes(ImAxis_X2, ImAxis_Y2);
+            ImPlot::TagX(0.5, ImVec4(0,1,1,1), "%s", "MyTag");
+            ImPlot::TagY(0.5, ImVec4(0,1,1,1), "Tag: %d", 42);
+        }
         ImPlot::EndPlot();
     }
 }
@@ -1457,11 +1501,9 @@ void ShowDemo_DragAndDrop() {
             if (dnd[k].Plt == 1 && dnd[k].Data.size() > 0) {
                 ImPlot::SetAxis(dnd[k].Yax);
                 ImPlot::SetNextLineStyle(dnd[k].Color);
-                char label[32];
-                sprintf(label,"%s (Y%d)", dnd[k].Label, dnd[k].Yax-ImAxis_Y1+1);
-                ImPlot::PlotLine(label, &dnd[k].Data[0].x, &dnd[k].Data[0].y, dnd[k].Data.size(), 0, 2 * sizeof(float));
+                ImPlot::PlotLine(dnd[k].Label, &dnd[k].Data[0].x, &dnd[k].Data[0].y, dnd[k].Data.size(), 0, 2 * sizeof(float));
                 // allow legend item labels to be DND sources
-                if (ImPlot::BeginDragDropSourceItem(label)) {
+                if (ImPlot::BeginDragDropSourceItem(dnd[k].Label)) {
                     ImGui::SetDragDropPayload("MY_DND", &k, sizeof(int));
                     ImPlot::ItemIcon(dnd[k].Color); ImGui::SameLine();
                     ImGui::TextUnformatted(dnd[k].Label);
@@ -1698,9 +1740,9 @@ void ShowDemo_TickLabels()  {
         ImPlot::SetupAxis(ImAxis_Y3, NULL, ImPlotAxisFlags_AuxDefault);
         if (custom_fmt) {
             ImPlot::SetupAxisFormat(ImAxis_X1, "%g ms");
-            ImPlot::SetupAxisFormat(ImAxis_Y1, MetricFormatter, "Hz");
+            ImPlot::SetupAxisFormat(ImAxis_Y1, MetricFormatter, (void*)"Hz");
             ImPlot::SetupAxisFormat(ImAxis_Y2, "%g dB");
-            ImPlot::SetupAxisFormat(ImAxis_Y3, MetricFormatter, "m");
+            ImPlot::SetupAxisFormat(ImAxis_Y3, MetricFormatter, (void*)"m");
         }
         if (custom_ticks) {
             ImPlot::SetupAxisTicks(ImAxis_X1, &pi,1,custom_labels ? pi_str : NULL, true);
@@ -1960,18 +2002,18 @@ void ShowDemoWindow(bool* p_open) {
         if (ImGui::BeginTabItem("Tools")) {
             if (ImGui::CollapsingHeader("Offset and Stride"))
                 ShowDemo_OffsetAndStride();
-            // if (ImGui::CollapsingHeader("Querying"))
-            //     ShowDemo_Querying();
-            // if (ImGui::CollapsingHeader("Views"))
-            //     ShowDemo_Views();
             if (ImGui::CollapsingHeader("Drag Points"))
                 ShowDemo_DragPoints();
             if (ImGui::CollapsingHeader("Drag Lines"))
                 ShowDemo_DragLines();
             if (ImGui::CollapsingHeader("Drag Rects"))
                 ShowDemo_DragRects();
+            if (ImGui::CollapsingHeader("Querying"))
+                ShowDemo_Querying();
             if (ImGui::CollapsingHeader("Annotations"))
                 ShowDemo_Annotations();
+            if (ImGui::CollapsingHeader("Tags"))
+                ShowDemo_Tags();
             if (ImGui::CollapsingHeader("Drag and Drop"))
                 ShowDemo_DragAndDrop();
             if (ImGui::CollapsingHeader("Legend Options"))

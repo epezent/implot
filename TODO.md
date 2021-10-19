@@ -46,10 +46,11 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add `IsPlotChanging` to detect change in limits
 - add ability to extend plot/axis context menus
 - add LTTB downsampling for lines
-- remove tag from drag line/point -> add `AxisTag` tool
+- remove tag from drag line/point -> add `Tag` tool
 - add box selection to axes
-- fix frame delay on DragX tools
 - first frame render delay might fix "fit pop" effect
+- `implot_tools.cpp`
+- should Drag take ImAxis? or Annotate/Tag not take it? or DragLine(ImAxis)
 
 ## Optimizations
 
@@ -59,7 +60,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 ## Bugs
 
-- change colormap not working demo
+- change colormap not working demo?
 
 
 ## Completed
@@ -72,3 +73,4 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - give each axis an ID, remove ad-hoc DND solution
 - allow axis to be drag to opposite side (ala ImGui Table headers)
 - legend items can be hovered even if plot is not
+- fix frame delay on DragX tools

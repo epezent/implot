@@ -439,7 +439,7 @@ struct ImPlotAnnotationCollection {
 
     ImPlotAnnotationCollection() { Reset(); }
 
-    void AppendV(const ImVec2& pos, const ImVec2& off, ImU32 bg, ImU32 fg, bool clamp, const char* fmt,  va_list args) IM_FMTLIST(7) {
+    void AppendV(const ImVec2& pos, const ImVec2& off, ImU32 bg, ImU32 fg, bool clamp, const char* fmt,  va_list args) IM_FMTLIST(6) {
         ImPlotAnnotation an;
         an.Pos = pos; an.Offset = off;
         an.ColorBg = bg; an.ColorFg = fg;
@@ -452,7 +452,7 @@ struct ImPlotAnnotationCollection {
         Size++;
     }
 
-    void Append(const ImVec2& pos, const ImVec2& off, ImU32 bg, ImU32 fg, bool clamp, const char* fmt,  ...) IM_FMTARGS(7) {
+    void Append(const ImVec2& pos, const ImVec2& off, ImU32 bg, ImU32 fg, bool clamp, const char* fmt,  ...) IM_FMTARGS(6) {
         va_list args;
         va_start(args, fmt);
         AppendV(pos, off, bg, fg, clamp, fmt, args);
@@ -465,6 +465,54 @@ struct ImPlotAnnotationCollection {
 
     void Reset() {
         Annotations.shrink(0);
+        TextBuffer.Buf.shrink(0);
+        Size = 0;
+    }
+};
+
+struct ImPlotTag {
+    ImAxis Axis;
+    double Value;
+    ImU32  ColorBg;
+    ImU32  ColorFg;
+    int    TextOffset;
+};
+
+struct ImPlotTagCollection {
+
+    ImVector<ImPlotTag> Tags;
+    ImGuiTextBuffer     TextBuffer;
+    int                 Size;
+
+    ImPlotTagCollection() { Reset(); }
+
+    void AppendV(ImAxis axis, double value, ImU32 bg, ImU32 fg, const char* fmt, va_list args) IM_FMTLIST(6) {
+        ImPlotTag tag;
+        tag.Axis = axis;
+        tag.Value = value;
+        tag.ColorBg = bg;
+        tag.ColorFg = fg;
+        tag.TextOffset = TextBuffer.size();
+        Tags.push_back(tag);
+        TextBuffer.appendfv(fmt, args);
+        const char nul[] = "";
+        TextBuffer.append(nul,nul+1);
+        Size++;
+    }
+
+    void Append(ImAxis axis, double value, ImU32 bg, ImU32 fg, const char* fmt, ...) IM_FMTARGS(6) {
+        va_list args;
+        va_start(args, fmt);
+        AppendV(axis, value, bg, fg, fmt, args);
+        va_end(args);
+    }
+
+    const char* GetText(int idx) {
+        return TextBuffer.Buf.Data + Tags[idx].TextOffset;
+    }
+
+    void Reset() {
+        Tags.shrink(0);
         TextBuffer.Buf.shrink(0);
         Size = 0;
     }
@@ -494,20 +542,16 @@ struct ImPlotTick
 struct ImPlotTickCollection {
     ImVector<ImPlotTick> Ticks;
     ImGuiTextBuffer      TextBuffer;
-    float                TotalWidth;
-    float                TotalHeight;
-    float                MaxWidth;
-    float                MaxHeight;
+    ImVec2               MaxSize;
+    ImVec2               LateSize;
     int                  Size;
 
     ImPlotTickCollection() { Reset(); }
 
     const ImPlotTick& Append(const ImPlotTick& tick) {
         if (tick.ShowLabel) {
-            TotalWidth    += tick.ShowLabel ? tick.LabelSize.x : 0;
-            TotalHeight   += tick.ShowLabel ? tick.LabelSize.y : 0;
-            MaxWidth      =  tick.LabelSize.x > MaxWidth  ? tick.LabelSize.x : MaxWidth;
-            MaxHeight     =  tick.LabelSize.y > MaxHeight ? tick.LabelSize.y : MaxHeight;
+            MaxSize.x     =  tick.LabelSize.x > MaxSize.x ? tick.LabelSize.x : MaxSize.x;
+            MaxSize.y     =  tick.LabelSize.y > MaxSize.y ? tick.LabelSize.y : MaxSize.y;
         }
         Ticks.push_back(tick);
         Size++;
@@ -530,10 +574,21 @@ struct ImPlotTickCollection {
         return TextBuffer.Buf.Data + Ticks[idx].TextOffset;
     }
 
+    void OverrideSize(const ImVec2& size) {
+        MaxSize.x = size.x > MaxSize.x ? size.x : MaxSize.x;
+        MaxSize.y = size.y > MaxSize.y ? size.y : MaxSize.y;
+    }
+
+    void OverrideSizeLate(const ImVec2& size) {
+        LateSize.x = size.x > LateSize.x ? size.x : LateSize.x;
+        LateSize.y = size.y > LateSize.y ? size.y : LateSize.y;
+    }
+
     void Reset() {
         Ticks.shrink(0);
         TextBuffer.Buf.shrink(0);
-        TotalWidth = TotalHeight = MaxWidth = MaxHeight = 0;
+        MaxSize = LateSize;
+        LateSize = ImVec2(0,0);
         Size = 0;
     }
 };
@@ -863,31 +918,32 @@ struct ImPlotItemGroup
 // Holds Plot state information that must persist after EndPlot
 struct ImPlotPlot
 {
-    ImGuiID         ID;
-    ImPlotFlags     Flags;
-    ImPlotFlags     PreviousFlags;
-    ImPlotLocation  MousePosLocation;
-    ImPlotAxis      Axes[ImAxis_COUNT];
-    ImGuiTextBuffer TextBuffer;
-    ImPlotItemGroup Items;
-    ImAxis          CurrentX;
-    ImAxis          CurrentY;
-    ImRect          FrameRect;
-    ImRect          CanvasRect;
-    ImRect          PlotRect;
-    ImRect          AxesRect;
-    ImRect          SelectRect;
-    ImVec2          SelectStart;
-    int             TitleOffset;
-    bool            JustCreated;
-    bool            Initialized;
-    bool            SetupLocked;
-    bool            FitThisFrame;
-    bool            Hovered;
-    bool            Held;
-    bool            Selecting;
-    bool            Selected;
-    bool            ContextLocked;
+    ImGuiID              ID;
+    ImPlotFlags          Flags;
+    ImPlotFlags          PreviousFlags;
+    ImPlotLocation       MouseTextLocation;
+    ImPlotMouseTextFlags MouseTextFlags;
+    ImPlotAxis           Axes[ImAxis_COUNT];
+    ImGuiTextBuffer      TextBuffer;
+    ImPlotItemGroup      Items;
+    ImAxis               CurrentX;
+    ImAxis               CurrentY;
+    ImRect               FrameRect;
+    ImRect               CanvasRect;
+    ImRect               PlotRect;
+    ImRect               AxesRect;
+    ImRect               SelectRect;
+    ImVec2               SelectStart;
+    int                  TitleOffset;
+    bool                 JustCreated;
+    bool                 Initialized;
+    bool                 SetupLocked;
+    bool                 FitThisFrame;
+    bool                 Hovered;
+    bool                 Held;
+    bool                 Selecting;
+    bool                 Selected;
+    bool                 ContextLocked;
 
     ImPlotPlot() {
         Flags             = PreviousFlags = ImPlotFlags_None;
@@ -898,7 +954,8 @@ struct ImPlotPlot
         SelectStart       = ImVec2(0,0);
         CurrentX          = ImAxis_X1;
         CurrentY          = ImAxis_Y1;
-        MousePosLocation  = ImPlotLocation_South | ImPlotLocation_East;
+        MouseTextLocation  = ImPlotLocation_South | ImPlotLocation_East;
+        MouseTextFlags     = ImPlotMouseTextFlags_None;
         TitleOffset       = -1;
         JustCreated       = true;
         Initialized = SetupLocked = FitThisFrame = false;
@@ -983,6 +1040,7 @@ struct ImPlotSubplot {
     ImVector<ImRange>             ColLinkData;
     float                         TempSizes[2];
     bool                          FrameHovered;
+    bool                          HasTitle;
 
     ImPlotSubplot() {
         Rows = Cols = CurrentIdx  = 0;
@@ -990,6 +1048,7 @@ struct ImPlotSubplot {
         Items.Legend.Location     = ImPlotLocation_North;
         Items.Legend.Flags        = ImPlotLegendFlags_Horizontal|ImPlotLegendFlags_Outside;
         Items.Legend.CanGoInside  = false;
+        HasTitle                  = false;
     }
 };
 
@@ -1058,8 +1117,9 @@ struct ImPlotContext {
     // Tick Marks and Labels
     ImPlotTickCollection CTicks;
 
-    // Annotation and User Labels
+    // Annotation and Tabs
     ImPlotAnnotationCollection Annotations;
+    ImPlotTagCollection        Tags;
 
     // Flags
     bool ChildWindowMade;
@@ -1075,7 +1135,8 @@ struct ImPlotContext {
     tm Tm;
 
     // Temp data for general use
-    ImVector<double>   Temp1, Temp2;
+    ImVector<double>   TempDouble1, TempDouble2;
+    ImVector<int>      TempInt1;
 
     // Misc
     int                DigitalPlotItemCnt;
@@ -1327,7 +1388,7 @@ static inline ImVec2 CalcTextSizeVertical(const char *text) {
     return ImVec2(sz.y, sz.x);
 }
 // Returns white or black text given background color
-static inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299 + bg.y * 0.587 + bg.z * 0.114) > 0.5 ? IM_COL32_BLACK : IM_COL32_WHITE; }
+static inline ImU32 CalcTextColor(const ImVec4& bg) { return (bg.x * 0.299f + bg.y * 0.587f + bg.z * 0.114f) > 0.5f ? IM_COL32_BLACK : IM_COL32_WHITE; }
 static inline ImU32 CalcTextColor(ImU32 bg)         { return CalcTextColor(ImGui::ColorConvertU32ToFloat4(bg)); }
 // Lightens or darkens a color for hover
 static inline ImU32 CalcHoverColor(ImU32 col)       {  return ImMixU32(col, CalcTextColor(col), 32); }

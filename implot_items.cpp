@@ -2021,8 +2021,8 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
     else
         width = range.Size() / bins;
 
-    ImVector<double>& bin_centers = GImPlot->Temp1;
-    ImVector<double>& bin_counts  = GImPlot->Temp2;
+    ImVector<double>& bin_centers = GImPlot->TempDouble1;
+    ImVector<double>& bin_counts  = GImPlot->TempDouble2;
     bin_centers.resize(bins);
     bin_counts.resize(bins);
     int below = 0;
@@ -2119,7 +2119,7 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
 
     const int bins = x_bins * y_bins;
 
-    ImVector<double>& bin_counts = GImPlot->Temp1;
+    ImVector<double>& bin_counts = GImPlot->TempDouble1;
     bin_counts.resize(bins);
 
     for (int b = 0; b < bins; ++b)
@@ -2296,12 +2296,22 @@ void PlotText(const char* text, double x, double y, bool vertical, const ImVec2&
     PushPlotClipRect();
     ImU32 colTxt = GetStyleColorU32(ImPlotCol_InlayText);
     if (vertical) {
-        ImVec2 ctr = CalcTextSizeVertical(text) * 0.5f;
+        ImVec2 siz = CalcTextSizeVertical(text) * 0.5f;
+        ImVec2 ctr = siz * 0.5f;
         ImVec2 pos = PlotToPixels(ImPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) + ImVec2(-ctr.x, ctr.y) + pixel_offset;
+        if (FitThisFrame()) {
+            FitPoint(PixelsToPlot(pos));
+            FitPoint(PixelsToPlot(pos.x + siz.x, pos.y - siz.y));
+        }
         AddTextVertical(&DrawList, pos, colTxt, text);
     }
     else {
-        ImVec2 pos = PlotToPixels(ImPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) - ImGui::CalcTextSize(text) * 0.5f + pixel_offset;
+        ImVec2 siz = ImGui::CalcTextSize(text);
+        ImVec2 pos = PlotToPixels(ImPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) - siz * 0.5f + pixel_offset;
+        if (FitThisFrame()) {
+            FitPoint(PixelsToPlot(pos));
+            FitPoint(PixelsToPlot(pos+siz));
+        }
         DrawList.AddText(pos, colTxt, text);
     }
     PopPlotClipRect();
