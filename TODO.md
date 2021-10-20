@@ -7,12 +7,12 @@ The list below represents a combination of high-priority work, nice-to-have feat
 ## Axes
 
 - add flag to remove weekends on Time axis
-- pixel space scale, normalized space scale (see matplotlib)
-- make ImPlotFlags_Equal not a flag -> `SetupEqual(ImAxis x, ImAxis y)`
+- pixel space scale (`ImPlotTransform_Display`), normalized space scale (`ImPlotTransform_Axes`), data space scale (`ImPloTransform_Data`)
+- make ImPlotFlags_Equal not a flag -> `SetupEqual(ImPlotAxis x, ImPlotAxis y)`
 - allow inverted arguments `SetAxes` to transpose data?
-- `SetupAxisColor()`
+- `SetupAxisColors()`
 - `SetupAxisConstraints()`
-- `SetupAxisHome()`   
+- `SetupAxisHome()`
 
 ## Plot Items
 
@@ -35,9 +35,8 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 ## Legend
 
-- `ImPlotLegendFlags`
-    - `_SortItems`
-    - `_Scroll`
+- `ImPlotLegendFlags_SortItems`
+- `ImPlotLegendFlags_Scroll`
 - improve legend icons (e.g. adopt markers, gradients, etc)
 - make legend frame use ButtonBehavior (maybe impossible)
 
@@ -46,22 +45,15 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add `IsPlotChanging` to detect change in limits
 - add ability to extend plot/axis context menus
 - add LTTB downsampling for lines
-- remove tag from drag line/point -> add `Tag` tool
 - add box selection to axes
 - first frame render delay might fix "fit pop" effect
-- `implot_tools.cpp`
-- should Drag take ImAxis? or Annotate/Tag not take it? or DragLine(ImAxis)
+- move some code to new `implot_tools.cpp`
 
 ## Optimizations
 
 - find faster way to buffer data into ImDrawList (very slow)
 - reduce number of calls to `PushClipRect`
 - explore SIMD operations for high density plot items
-
-## Bugs
-
-- change colormap not working demo?
-
 
 ## Completed
 - make BeginPlot take fewer args:
@@ -74,3 +66,4 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - allow axis to be drag to opposite side (ala ImGui Table headers)
 - legend items can be hovered even if plot is not
 - fix frame delay on DragX tools
+- remove tag from drag line/point -> add `Tag` tool

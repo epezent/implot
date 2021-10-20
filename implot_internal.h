@@ -412,10 +412,10 @@ struct ImPlotColormapData {
 
 };
 
-// ImPoint with positive/negative error values
-struct ImPointError {
+// ImPlotPoint with positive/negative error values
+struct ImPlotPointError {
     double X, Y, Neg, Pos;
-    ImPointError(double x, double y, double neg, double pos) {
+    ImPlotPointError(double x, double y, double neg, double pos) {
         X = x; Y = y; Neg = neg; Pos = pos;
     }
 };
@@ -439,7 +439,7 @@ struct ImPlotAnnotationCollection {
 
     ImPlotAnnotationCollection() { Reset(); }
 
-    void AppendV(const ImVec2& pos, const ImVec2& off, ImU32 bg, ImU32 fg, bool clamp, const char* fmt,  va_list args) IM_FMTLIST(6) {
+    void AppendV(const ImVec2& pos, const ImVec2& off, ImU32 bg, ImU32 fg, bool clamp, const char* fmt,  va_list args) IM_FMTLIST(7) {
         ImPlotAnnotation an;
         an.Pos = pos; an.Offset = off;
         an.ColorBg = bg; an.ColorFg = fg;
@@ -452,7 +452,7 @@ struct ImPlotAnnotationCollection {
         Size++;
     }
 
-    void Append(const ImVec2& pos, const ImVec2& off, ImU32 bg, ImU32 fg, bool clamp, const char* fmt,  ...) IM_FMTARGS(6) {
+    void Append(const ImVec2& pos, const ImVec2& off, ImU32 bg, ImU32 fg, bool clamp, const char* fmt,  ...) IM_FMTARGS(7) {
         va_list args;
         va_start(args, fmt);
         AppendV(pos, off, bg, fg, clamp, fmt, args);
@@ -599,10 +599,10 @@ struct ImPlotAxis
     ImGuiID              ID;
     ImPlotAxisFlags      Flags;
     ImPlotAxisFlags      PreviousFlags;
-    ImPlotCond            RangeCond;
+    ImPlotCond           RangeCond;
     ImPlotTickCollection Ticks;
-    ImRange              Range;
-    ImRange              FitExtents;
+    ImPlotRange          Range;
+    ImPlotRange          FitExtents;
     ImPlotAxis*          OrthoAxis;
     double*              LinkedMin;
     double*              LinkedMax;
@@ -700,7 +700,7 @@ struct ImPlotAxis
         UpdateTransformCache();
     }
 
-    inline void SetRange(const ImRange& range) {
+    inline void SetRange(const ImPlotRange& range) {
         SetRange(range.Min, range.Max);
     }
 
@@ -1036,8 +1036,8 @@ struct ImPlotSubplot {
     ImVector<ImPlotAlignmentData> ColAlignmentData;
     ImVector<float>               RowRatios;
     ImVector<float>               ColRatios;
-    ImVector<ImRange>             RowLinkData;
-    ImVector<ImRange>             ColLinkData;
+    ImVector<ImPlotRange>         RowLinkData;
+    ImVector<ImPlotRange>         ColLinkData;
     float                         TempSizes[2];
     bool                          FrameHovered;
     bool                          HasTitle;
@@ -1056,7 +1056,7 @@ struct ImPlotSubplot {
 struct ImPlotNextPlotData
 {
     ImPlotCond  RangeCond[ImAxis_COUNT];
-    ImRange     Range[ImAxis_COUNT];
+    ImPlotRange Range[ImAxis_COUNT];
     bool        HasRange[ImAxis_COUNT];
     bool        Fit[ImAxis_COUNT];
     double*     LinkedMin[ImAxis_COUNT];
@@ -1092,7 +1092,7 @@ struct ImPlotNextItemData {
     bool         RenderMarkerFill;
     bool         HasHidden;
     bool         Hidden;
-    ImPlotCond    HiddenCond;
+    ImPlotCond   HiddenCond;
     ImPlotNextItemData() { Reset(); }
     void Reset() {
         for (int i = 0; i < 5; ++i)
@@ -1306,7 +1306,7 @@ static inline void FitPointY(double y) {
 }
 
 // Extends the current plot's axes so that it encompasses point p
-static inline void FitPoint(const ImPoint& p) {
+static inline void FitPoint(const ImPlotPoint& p) {
     ImPlotPlot& plot   = *GetCurrentPlot();
     ImPlotAxis& x_axis = plot.Axes[plot.CurrentX];
     ImPlotAxis& y_axis = plot.Axes[plot.CurrentY];
@@ -1315,7 +1315,7 @@ static inline void FitPoint(const ImPoint& p) {
 }
 
 // Returns true if two ranges overlap
-static inline bool RangesOverlap(const ImRange& r1, const ImRange& r2)
+static inline bool RangesOverlap(const ImPlotRange& r1, const ImPlotRange& r2)
 { return r1.Min <= r2.Max && r2.Min <= r1.Max; }
 
 // Shows an axis's context menu.
@@ -1349,13 +1349,13 @@ static inline void DefaultFormatter(double value, char* buff, int size, void* da
 IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);
 
 // Populates a list of ImPlotTicks with normal spaced and formatted ticks
-IMPLOT_API void AddTicksDefault(const ImRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
+IMPLOT_API void AddTicksDefault(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
 // Populates a list of ImPlotTicks with logarithmic space and formatted ticks
-IMPLOT_API void AddTicksLogarithmic(const ImRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
+IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
 // Populates a list of ImPlotTicks with custom spaced and labeled ticks
 IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
 // Populates a list of ImPlotTicks with time formatted ticks.
-IMPLOT_API void AddTicksTime(const ImRange& range, float plot_width, ImPlotTickCollection& ticks);
+IMPLOT_API void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks);
 
 // Create a a string label for a an axis value
 IMPLOT_API void LabelAxisValue(const ImPlotAxis& axis, double value, char* buff, int size, bool round = false);
@@ -1446,7 +1446,7 @@ void FillRange(ImVector<T>& buffer, int n, T vmin, T vmax) {
 
 // Calculate histogram bin counts and widths
 template <typename T>
-static inline void CalculateBins(const T* values, int count, ImPlotBin meth, const ImRange& range, int& bins_out, double& width_out) {
+static inline void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
     switch (meth) {
         case ImPlotBin_Sqrt:
             bins_out  = (int)ceil(sqrt(count));

@@ -74,13 +74,13 @@
 struct ImPlotContext;             // ImPlot context (opaque struct, see implot_internal.h)
 
 // Enums/Flags
+typedef int ImAxis;               // -> enum ImAxis_
 typedef int ImPlotFlags;          // -> enum ImPlotFlags_
 typedef int ImPlotAxisFlags;      // -> enum ImPlotAxisFlags_
 typedef int ImPlotSubplotFlags;   // -> enum ImPlotSubplotFlags_
 typedef int ImPlotLegendFlags;    // -> enum ImPlotLegendFlags_
 typedef int ImPlotMouseTextFlags; // -> enum ImPlotMouseTextFlags_
 typedef int ImPlotDragToolFlags;  // -> ImPlotDragToolFlags_
-typedef int ImAxis;               // -> enum ImAxis_
 typedef int ImPlotCond;           // -> enum ImPlotCond_
 typedef int ImPlotCol;            // -> enum ImPlotCol_
 typedef int ImPlotStyleVar;       // -> enum ImPlotStyleVar_
@@ -88,6 +88,20 @@ typedef int ImPlotMarker;         // -> enum ImPlotMarker_
 typedef int ImPlotColormap;       // -> enum ImPlotColormap_
 typedef int ImPlotLocation;       // -> enum ImPlotLocation_
 typedef int ImPlotBin;            // -> enum ImPlotBin_
+
+// Axis indices. The values assigned may change; NEVER hardcode these.
+enum ImAxis_ {
+    // horizontal axes
+    ImAxis_X1 = 0, // enabled by default
+    ImAxis_X2,     // disabled by default
+    ImAxis_X3,     // disabled by default
+    // vertical axes
+    ImAxis_Y1,     // enabled by default
+    ImAxis_Y2,     // disabled by default
+    ImAxis_Y3,     // disabled by default
+    // bookeeping
+    ImAxis_COUNT
+};
 
 // Options for plots (see BeginPlot).
 enum ImPlotFlags_ {
@@ -105,7 +119,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText
 };
 
-// Options for plot axes (see BeginPlot).
+// Options for plot axes (see SetupAxis).
 enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_None          = 0,       // default
     ImPlotAxisFlags_NoLabel       = 1 << 0,  // the axis label will not be displayed (axis labels also hidden if the supplied string name is NULL)
@@ -155,7 +169,7 @@ enum ImPlotLegendFlags_ {
     ImPlotLegendFlags_Horizontal      = 1 << 5, // legend entries will be displayed horizontally
 };
 
-// Options for mouse hover text
+// Options for mouse hover text (see SetupMouseText)
 enum ImPlotMouseTextFlags_ {
     ImPlotMouseTextFlags_None        = 0,      // default
     ImPlotMouseTextFlags_NoAuxAxes   = 1 << 0, // only show the mouse position for primary axes
@@ -172,23 +186,7 @@ enum ImPlotDragToolFlags_ {
     ImPlotDragToolFlags_Delayed   = 1 << 3, // tool rendering will be delayed one frame; useful when applying position-constraints
 };
 
-// Axis indices.
-// NB: It is theoretically possible to add or remove supported axes by extending this
-// enum list, so long as ImAxis_X1 and ImAxis_Y1 are preserved. Proceed with caution.
-enum ImAxis_ {
-    // horizontal axes
-    ImAxis_X1 = 0, // enabled by default
-    ImAxis_X2,     // disabled by default
-    ImAxis_X3,     // disabled by default
-    // vertical axes
-    ImAxis_Y1,     // enabled by default
-    ImAxis_Y2,     // disabled by default
-    ImAxis_Y3,     // disabled by default
-    // bookeeping
-    ImAxis_COUNT
-};
-
-// Represents a condition for SetAxisLimits etc. (same as ImGuiCond, but we only support a subset of those enums)
+// Represents a condition for SetupAxisLimits etc. (same as ImGuiCond, but we only support a subset of those enums)
 enum ImPlotCond_
 {
     ImPlotCond_None   = ImGuiCond_None,    // No condition (always set the variable), same as _Always
@@ -315,38 +313,41 @@ enum ImPlotBin_ {
 };
 
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
-struct ImPoint {
+struct ImPlotPoint {
     double x, y;
-    ImPoint()                             { x = y = 0.0;      }
-    ImPoint(double _x, double _y)         { x = _x; y = _y;   }
-    ImPoint(const ImVec2& p)              { x = p.x; y = p.y; }
+    ImPlotPoint()                         { x = y = 0.0;      }
+    ImPlotPoint(double _x, double _y)     { x = _x; y = _y;   }
+    ImPlotPoint(const ImVec2& p)          { x = p.x; y = p.y; }
     double  operator[] (size_t idx) const { return (&x)[idx]; }
     double& operator[] (size_t idx)       { return (&x)[idx]; }
-#ifdef IMPOINT_CLASS_EXTRA
-    IMPOINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h
-                            // to convert back and forth between your math types and ImPoint.
+#ifdef IMPLOT_POINT_CLASS_EXTRA
+    IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h
+                                 // to convert back and forth between your math types and ImPlotPoint.
 #endif
 };
 
 // Range defined by a min/max value.
-struct ImRange {
+struct ImPlotRange {
     double Min, Max;
-    ImRange()                            { Min = 0; Max = 0;                    }
-    ImRange(double _min, double _max)    { Min = _min; Max = _max;              }
-    bool Contains(double value) const    { return value >= Min && value <= Max; }
-    double Size() const                  { return Max - Min;                    }
+    ImPlotRange()                         { Min = 0; Max = 0;                                         }
+    ImPlotRange(double _min, double _max) { Min = _min; Max = _max;                                   }
+    bool Contains(double value) const     { return value >= Min && value <= Max;                      }
+    double Size() const                   { return Max - Min;                                         }
+    double Clamp(double value) const      { return (value < Min) ? Min : (value > Max) ? Max : value; }
 };
 
 // Combination of two range limits for X and Y axes. Also an AABB defined by Min()/Max().
-struct ImBounds {
-    ImRange X, Y;
-    ImBounds()                                                       {                                                               }
-    ImBounds(double x_min, double x_max, double y_min, double y_max) { X.Min = x_min; X.Max = x_max; Y.Min = y_min; Y.Max = y_max;   }
-    bool Contains(const ImPoint& p) const                            { return Contains(p.x, p.y);                                    }
-    bool Contains(double x, double y) const                          { return X.Contains(x) && Y.Contains(y);                        }
-    ImPoint Size() const                                             { return ImPoint(X.Size(), Y.Size());                           }
-    ImPoint Min() const                                              { return ImPoint(X.Min, Y.Min);                                 }
-    ImPoint Max() const                                              { return ImPoint(X.Max, Y.Max);                                 }
+struct ImPlotRect {
+    ImPlotRange X, Y;
+    ImPlotRect()                                                       {                                                               }
+    ImPlotRect(double x_min, double x_max, double y_min, double y_max) { X.Min = x_min; X.Max = x_max; Y.Min = y_min; Y.Max = y_max;   }
+    bool Contains(const ImPlotPoint& p) const                          { return Contains(p.x, p.y);                                    }
+    bool Contains(double x, double y) const                            { return X.Contains(x) && Y.Contains(y);                        }
+    ImPlotPoint Size() const                                           { return ImPlotPoint(X.Size(), Y.Size());                       }
+    ImPlotPoint Clamp(const ImPlotPoint& p)                            { return Clamp(p.x, p.y);                                       }
+    ImPlotPoint Clamp(double x, double y)                              { return ImPlotPoint(X.Clamp(x),Y.Clamp(y));                    }
+    ImPlotPoint Min() const                                            { return ImPlotPoint(X.Min, Y.Min);                             }
+    ImPlotPoint Max() const                                            { return ImPlotPoint(X.Max, Y.Max);                             }
 };
 
 // Plot style structure
@@ -417,8 +418,7 @@ struct ImPlotInputMap {
 typedef void (*ImPlotFormatter)(double value, char* buff, int size, void* user_data);
 
 // Callback signature for data getter.
-typedef ImPoint (*ImPlotGetter)(void* user_data, int idx);
-
+typedef ImPlotPoint (*ImPlotGetter)(void* user_data, int idx);
 
 namespace ImPlot {
 
@@ -651,9 +651,9 @@ IMPLOT_API void SetNextAxesToFit();
 //    an ImPlot function post-fixed with a G (e.g. PlotScatterG). This has a slight performance
 //    cost, but probably not enough to worry about unless your data is very large. Examples:
 //
-//    ImPoint MyDataGetter(void* data, int idx) {
+//    ImPlotPoint MyDataGetter(void* data, int idx) {
 //        MyData* my_data = (MyData*)data;
-//        ImPoint p;
+//        ImPlotPoint p;
 //        p.x = my_data->GetTime(idx);
 //        p.y = my_data->GetValue(idx);
 //        return p
@@ -661,7 +661,7 @@ IMPLOT_API void SetNextAxesToFit();
 //    ...
 //    auto my_lambda = [](void*, int idx) {
 //        double t = idx / 999.0;
-//        return ImPoint(t, 0.5+0.5*std::sin(2*PI*10*t));
+//        return ImPlotPoint(t, 0.5+0.5*std::sin(2*PI*10*t));
 //    };
 //    ...
 //    if (ImPlot::BeginPlot("MyPlot")) {
@@ -725,24 +725,24 @@ template <typename T> IMPLOT_API void PlotHLines(const char* label_id, const T* 
 template <typename T> IMPLOT_API void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, bool normalize=false, const char* label_fmt="%.1f", double angle0=90);
 
 // Plots a 2D heatmap chart. Values are expected to be in row-major order. Leave #scale_min and scale_max both at 0 for automatic color scaling, or set them to a predefined range. #label_fmt can be set to NULL for no labels.
-template <typename T> IMPLOT_API void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min=0, double scale_max=0, const char* label_fmt="%.1f", const ImPoint& bounds_min=ImPoint(0,0), const ImPoint& bounds_max=ImPoint(1,1));
+template <typename T> IMPLOT_API void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min=0, double scale_max=0, const char* label_fmt="%.1f", const ImPlotPoint& bounds_min=ImPlotPoint(0,0), const ImPlotPoint& bounds_max=ImPlotPoint(1,1));
 
 // Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBin_ method. If #cumulative is true, each bin contains its count plus the counts of all previous bins.
 // If #density is true, the PDF is visualized. If both are true, the CDF is visualized. If #range is left unspecified, the min/max of #values will be used as the range.
 // If #range is specified, outlier values outside of the range are not binned. However, outliers still count toward normalizing and cumulative counts unless #outliers is false. The largest bin count or density is returned.
-template <typename T> IMPLOT_API double PlotHistogram(const char* label_id, const T* values, int count, int bins=ImPlotBin_Sturges, bool cumulative=false, bool density=false, ImRange range=ImRange(), bool outliers=true, double bar_scale=1.0);
+template <typename T> IMPLOT_API double PlotHistogram(const char* label_id, const T* values, int count, int bins=ImPlotBin_Sturges, bool cumulative=false, bool density=false, ImPlotRange range=ImPlotRange(), bool outliers=true, double bar_scale=1.0);
 
 // Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBin. If #density is true, the PDF is visualized.
 // If #bounds is left unspecified, the min/max of #xs an #ys will be used as the ranges. If #bounds is specified, outlier values outside of range are not binned.
 // However, outliers still count toward the normalizing count for density plots unless #outliers is false. The largest bin count or density is returned.
-template <typename T> IMPLOT_API double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins=ImPlotBin_Sturges, int y_bins=ImPlotBin_Sturges, bool density=false, ImBounds range=ImBounds(), bool outliers=true);
+template <typename T> IMPLOT_API double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins=ImPlotBin_Sturges, int y_bins=ImPlotBin_Sturges, bool density=false, ImPlotRect range=ImPlotRect(), bool outliers=true);
 
 // Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
 template <typename T> IMPLOT_API void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
                       IMPLOT_API void PlotDigitalG(const char* label_id, ImPlotGetter getter, void* data, int count);
 
 // Plots an axis-aligned image. #bounds_min/bounds_max are in plot coordinates (y-up) and #uv0/uv1 are in texture coordinates (y-down).
-IMPLOT_API void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPoint& bounds_min, const ImPoint& bounds_max, const ImVec2& uv0=ImVec2(0,0), const ImVec2& uv1=ImVec2(1,1), const ImVec4& tint_col=ImVec4(1,1,1,1));
+IMPLOT_API void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, const ImVec2& uv0=ImVec2(0,0), const ImVec2& uv1=ImVec2(1,1), const ImVec4& tint_col=ImVec4(1,1,1,1));
 
 // Plots a centered text label at point x,y with an optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
 IMPLOT_API void PlotText(const char* text, double x, double y, bool vertical=false, const ImVec2& pix_offset=ImVec2(0,0));
@@ -774,12 +774,13 @@ IMPLOT_API void AnnotationV(double x, double y, const ImVec4& color, const ImVec
 
 // Shows a x-axis tag at the specified coordinate value.
 IMPLOT_API void TagX(double x, const ImVec4& color, bool round = false);
-IMPLOT_API void TagX(double x, const ImVec4& color, const char* fmt, ...);           IM_FMTARGS(3);
-IMPLOT_API void TagXV(double x, const ImVec4& color, const char* fmt, va_list args); IM_FMTLIST(3);
+IMPLOT_API void TagX(double x, const ImVec4& color, const char* fmt, ...)           IM_FMTARGS(3);
+IMPLOT_API void TagXV(double x, const ImVec4& color, const char* fmt, va_list args) IM_FMTLIST(3);
+
 // Shows a y-axis tag at the specified coordinate value.
 IMPLOT_API void TagY(double y, const ImVec4& color, bool round = false);
-IMPLOT_API void TagY(double y, const ImVec4& color, const char* fmt, ...);           IM_FMTARGS(3);
-IMPLOT_API void TagYV(double y, const ImVec4& color, const char* fmt, va_list args); IM_FMTLIST(3);
+IMPLOT_API void TagY(double y, const ImVec4& color, const char* fmt, ...)           IM_FMTARGS(3);
+IMPLOT_API void TagYV(double y, const ImVec4& color, const char* fmt, va_list args) IM_FMTLIST(3);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Utils
@@ -790,11 +791,11 @@ IMPLOT_API void SetAxis(ImAxis axis);
 IMPLOT_API void SetAxes(ImAxis x_axis, ImAxis y_axis);
 
 // Convert pixels to a position in the current plot's coordinate system. Passing IMPLOT_AUTO uses the current axes.
-IMPLOT_API ImPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
-IMPLOT_API ImPoint PixelsToPlot(float x, float y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotPoint PixelsToPlot(const ImVec2& pix, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotPoint PixelsToPlot(float x, float y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Convert a position in the current plot's coordinate system to pixels. Passing IMPLOT_AUTO uses the current axes.
-IMPLOT_API ImVec2 PlotToPixels(const ImPoint& plt, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImVec2 PlotToPixels(const ImPlotPoint& plt, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Get the current Plot position (top-left) in pixels.
@@ -803,9 +804,9 @@ IMPLOT_API ImVec2 GetPlotPos();
 IMPLOT_API ImVec2 GetPlotSize();
 
 // Returns the mouse position in x,y coordinates of the current plot. Passing IMPLOT_AUTO uses the current axes.
-IMPLOT_API ImPoint GetPlotMousePos(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotPoint GetPlotMousePos(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 // Returns the current plot axis range.
-IMPLOT_API ImBounds GetPlotLimits(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotRect GetPlotLimits(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 
 // Returns true if the plot area in the current plot is hovered.
 IMPLOT_API bool IsPlotHovered();
@@ -817,7 +818,7 @@ IMPLOT_API bool IsSubplotsHovered();
 // Returns true if the current plot is being box selected.
 IMPLOT_API bool IsPlotSelected();
 // Returns the current plot box selection bounds. Passing IMPLOT_AUTO uses the current axes.
-IMPLOT_API ImBounds GetPlotSelection(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
+IMPLOT_API ImPlotRect GetPlotSelection(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis = IMPLOT_AUTO);
 // Cancels a the current plot box selection.
 IMPLOT_API void CancelPlotSelection();
 

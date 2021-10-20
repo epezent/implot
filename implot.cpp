@@ -31,35 +31,32 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-
-- 2021/10/18 (0.13) MAJOR API OVERHAUL!
+- 2021/10/19 (0.13) MAJOR API OVERHAUL!
                     - TRIVIAL RENAME:
-                      - ImPlotPoint                               -> ImPoint
-                      - ImPlotRange                               -> ImRange
-                      - ImPlotLimits                              -> ImBounds
+                      - ImPlotLimits                              -> ImPlotRect
                       - ImPlotYAxis_                              -> ImAxis_
                       - SetPlotYAxis                              -> SetAxis
                       - BeginDragDropTarget                       -> BeginDragDropTargetPlot
                       - BeginDragDropSource                       -> BeginDragDropSourcePlot
                       - ImPlotFlags_NoMousePos                    -> ImPlotFlags_NoMouseText
                       - SetNextPlotLimits                         -> SetNextAxesLimits
+                      - SetMouseTextLocation                      -> SetupMouseText
                     - SIGNATURE MODIFIED:
-                      - PixelsToPlot/PlotToPixels                 -> now takes optional X-Axis arg
-                      - GetPlotMousePos                           -> now takes optional X-Axis arg
-                      - GetPlotLimits                             -> now takes optional X-Axis arg
-                      - GetPlotSelection                          -> now takes optional X-Axis arg
-                      - DragLineX/Y/DragPoint                     -> now takes int id; removed labels (ender with Annotation/Tag instead)
-                    - REWORKED:
+                      - PixelsToPlot/PlotToPixels                 -> added optional X-Axis arg
+                      - GetPlotMousePos                           -> added optional X-Axis arg
+                      - GetPlotLimits                             -> added optional X-Axis arg
+                      - GetPlotSelection                          -> added optional X-Axis arg
+                      - DragLineX/Y/DragPoint                     -> now takes int id; removed labels (render with Annotation/Tag instead)
+                    - REPLACED:
                       - IsPlotXAxisHovered/IsPlotXYAxisHovered    -> IsAxisHovered(ImAxis)
                       - BeginDragDropTargetX/BeginDragDropTargetY -> BeginDragDropTargetAxis(ImAxis)
                       - BeginDragDropSourceX/BeginDragDropSourceY -> BeginDragDropSourceAxis(ImAxis)
                       - ImPlotCol_XAxis, ImPlotCol_YAxis1, etc.   -> ImPlotCol_AxisText (push/pop this around SetupAxis to style individual axes)
                       - ImPlotCol_XAxisGrid, ImPlotCol_Y1AxisGrid -> ImPlotCol_AxisGrid (push/pop this around SetupAxis to style individual axes)
-                      - SetNextPlotLimits/X/Y                     -> SetNextAxisLimits(ImAxis)
+                      - SetNextPlotLimitsX/Y                      -> SetNextAxisLimits(ImAxis)
                       - LinkNextPlotLimits                        -> SetNextAxisLinks(ImAxis)
                       - FitNextPlotAxes                           -> SetNextAxisToFit(ImAxis)/SetNextAxesToFit
                       - SetLegendLocation                         -> SetupLegend
-                      - SetMouseTextLocation                      -> SetupMouseText
                       - ImPlotFlags_NoHighlight                   -> ImPlotLegendFlags_NoHighlight
                       - ImPlotOrientation                         -> ImPlotLegendFlags_Horizontal
                       - Annotate                                  -> Annotation
@@ -67,9 +64,9 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
                       - GetPlotQuery, SetPlotQuery, IsPlotQueried -> use DragRect
                       - SetNextPlotTicksX, SetNextPlotTicksY      -> use SetupAxisTicks
                       - SetNextPlotFormatX, SetNextPlotFormatY    -> use SetupAxisFormat
-                      - AnnotateClamped                           -> use Annotation
+                      - AnnotateClamped                           -> use Annotation(bool clamp = true)
                     - OBSOLETED:
-                      - BeginPlot (original signature)            -> use new simpler signature + Setup API; will be removed in v1.0
+                      - BeginPlot (original signature)            -> use simplified signature + Setup API
 - 2021/07/30 (0.12) - The offset argument of `PlotXG` functions was been removed. Implement offsetting in your getter callback instead.
 - 2021/03/08 (0.9)  - SetColormap and PushColormap(ImVec4*) were removed. Use AddColormap for custom colormap support. LerpColormap was changed to SampleColormap.
                       ShowColormapScale was changed to ColormapScale and requires additional arguments.
@@ -661,7 +658,7 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
 static const float TICK_FILL_X = 0.8f;
 static const float TICK_FILL_Y = 1.0f;
 
-void AddTicksDefault(const ImRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data) {
+void AddTicksDefault(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data) {
     const int idx0          = ticks.Size;
     const int nMinor        = 10;
     const int nMajor        = ImMax(2, (int)IM_ROUND(pix / (vertical ? 300.0f : 400.0f)));
@@ -699,7 +696,7 @@ void AddTicksDefault(const ImRange& range, float pix, bool vertical, ImPlotTickC
     }
 }
 
-void AddTicksLogarithmic(const ImRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data) {
+void AddTicksLogarithmic(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data) {
     if (range.Min <= 0 || range.Max <= 0)
         return;
     const int nMajor = vertical ? ImMax(2, (int)IM_ROUND(pix * 0.02f)) : ImMax(2, (int)IM_ROUND(pix * 0.01f));
@@ -1132,7 +1129,7 @@ inline ImPlotDateTimeFmt GetDateTimeFmt(const ImPlotDateTimeFmt* ctx, ImPlotTime
     return fmt;
 }
 
-void AddTicksTime(const ImRange& range, float plot_width, ImPlotTickCollection& ticks) {
+void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks) {
     // get units for level 0 and level 1 labels
     const ImPlotTimeUnit unit0 = GetUnitForRange(range.Size() / (plot_width / 100)); // level = 0 (top)
     const ImPlotTimeUnit unit1 = unit0 + 1;                                          // level = 1 (bottom)
@@ -2005,7 +2002,7 @@ void ApplyNextPlotData(ImAxis idx) {
     double*     npd_lmax = gp.NextPlotData.LinkedMax[idx];
     bool        npd_rngh = gp.NextPlotData.HasRange[idx];
     ImPlotCond  npd_rngc = gp.NextPlotData.RangeCond[idx];
-    ImRange     npd_rngv = gp.NextPlotData.Range[idx];
+    ImPlotRange     npd_rngv = gp.NextPlotData.Range[idx];
     axis.LinkedMin = npd_lmin;
     axis.LinkedMax = npd_lmax;
     axis.PullLinks();
@@ -3172,7 +3169,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
         subplot.RowRatios.resize(rows);
         for (int r = 0; r < rows; ++r) {
             subplot.RowAlignmentData[r].Reset();
-            subplot.RowLinkData[r] = ImRange(0,1);
+            subplot.RowLinkData[r] = ImPlotRange(0,1);
             subplot.RowRatios[r] = 1.0f / rows;
         }
         subplot.ColAlignmentData.resize(cols);
@@ -3180,7 +3177,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
         subplot.ColRatios.resize(cols);
         for (int c = 0; c < cols; ++c) {
             subplot.ColAlignmentData[c].Reset();
-            subplot.ColLinkData[c] = ImRange(0,1);
+            subplot.ColLinkData[c] = ImPlotRange(0,1);
             subplot.ColRatios[c] = 1.0f / cols;
         }
     }
@@ -3434,7 +3431,7 @@ void SetAxes(ImAxis x_idx, ImAxis y_idx) {
     gp.CurrentPlot->CurrentY = y_idx;
 }
 
-ImPoint PixelsToPlot(float x, float y, ImAxis x_idx, ImAxis y_idx) {
+ImPlotPoint PixelsToPlot(float x, float y, ImAxis x_idx, ImAxis y_idx) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PixelsToPlot() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(x_idx == IMPLOT_AUTO || (x_idx >= ImAxis_X1 && x_idx < ImAxis_Y1),    "X-Axis index out of bounds!");
@@ -3443,10 +3440,10 @@ ImPoint PixelsToPlot(float x, float y, ImAxis x_idx, ImAxis y_idx) {
     ImPlotPlot& plot   = *gp.CurrentPlot;
     ImPlotAxis& x_axis = x_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentX] : plot.Axes[x_idx];
     ImPlotAxis& y_axis = y_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentY] : plot.Axes[y_idx];
-    return ImPoint( x_axis.PixelsToPlot(x), y_axis.PixelsToPlot(y) );
+    return ImPlotPoint( x_axis.PixelsToPlot(x), y_axis.PixelsToPlot(y) );
 }
 
-ImPoint PixelsToPlot(const ImVec2& pix, ImAxis x_idx, ImAxis y_idx) {
+ImPlotPoint PixelsToPlot(const ImVec2& pix, ImAxis x_idx, ImAxis y_idx) {
     return PixelsToPlot(pix.x, pix.y, x_idx, y_idx);
 }
 
@@ -3462,7 +3459,7 @@ ImVec2 PlotToPixels(double x, double y, ImAxis x_idx, ImAxis y_idx) {
     return ImVec2( x_axis.PlotToPixels(x), y_axis.PlotToPixels(y) );
 }
 
-ImVec2 PlotToPixels(const ImPoint& plt, ImAxis x_idx, ImAxis y_idx) {
+ImVec2 PlotToPixels(const ImPlotPoint& plt, ImAxis x_idx, ImAxis y_idx) {
     return PlotToPixels(plt.x, plt.y, x_idx, y_idx);
 }
 
@@ -3480,13 +3477,13 @@ ImVec2 GetPlotSize() {
     return gp.CurrentPlot->PlotRect.GetSize();
 }
 
-ImPoint GetPlotMousePos(ImAxis x_idx, ImAxis y_idx) {
+ImPlotPoint GetPlotMousePos(ImAxis x_idx, ImAxis y_idx) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "GetPlotMousePos() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     return PixelsToPlot(ImGui::GetMousePos(), x_idx, y_idx);
 }
 
-ImBounds GetPlotLimits(ImAxis x_idx, ImAxis y_idx) {
+ImPlotRect GetPlotLimits(ImAxis x_idx, ImAxis y_idx) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotLimits() needs to be called between BeginPlot() and EndPlot()!");
     IM_ASSERT_USER_ERROR(x_idx == IMPLOT_AUTO || (x_idx >= ImAxis_X1 && x_idx < ImAxis_Y1),    "X-Axis index out of bounds!");
@@ -3495,7 +3492,7 @@ ImBounds GetPlotLimits(ImAxis x_idx, ImAxis y_idx) {
     ImPlotPlot& plot = *gp.CurrentPlot;
     ImPlotAxis& x_axis = x_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentX] : plot.Axes[x_idx];
     ImPlotAxis& y_axis = y_idx == IMPLOT_AUTO ? plot.Axes[plot.CurrentY] : plot.Axes[y_idx];
-    ImBounds limits;
+    ImPlotRect limits;
     limits.X = x_axis.Range;
     limits.Y = y_axis.Range;
     return limits;
@@ -3528,16 +3525,16 @@ bool IsPlotSelected() {
     return gp.CurrentPlot->Selected;
 }
 
-ImBounds GetPlotSelection(ImAxis x_idx, ImAxis y_idx) {
+ImPlotRect GetPlotSelection(ImAxis x_idx, ImAxis y_idx) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "GetPlotSelection() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
     if (!plot.Selected)
-        return ImBounds(0,0,0,0);
-    ImPoint p1 = PixelsToPlot(plot.SelectRect.Min + plot.PlotRect.Min, x_idx, y_idx);
-    ImPoint p2 = PixelsToPlot(plot.SelectRect.Max + plot.PlotRect.Min, x_idx, y_idx);
-    ImBounds result;
+        return ImPlotRect(0,0,0,0);
+    ImPlotPoint p1 = PixelsToPlot(plot.SelectRect.Min + plot.PlotRect.Min, x_idx, y_idx);
+    ImPlotPoint p2 = PixelsToPlot(plot.SelectRect.Max + plot.PlotRect.Min, x_idx, y_idx);
+    ImPlotRect result;
     result.X.Min = ImMin(p1.x, p2.x);
     result.X.Max = ImMax(p1.x, p2.x);
     result.Y.Min = ImMin(p1.y, p2.y);
@@ -3663,7 +3660,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     SetupLock();
 
     if (!ImHasFlag(flags,ImPlotDragToolFlags_NoFit) && FitThisFrame()) {
-        FitPoint(ImPoint(*x,*y));
+        FitPoint(ImPlotPoint(*x,*y));
     }
 
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
@@ -3808,8 +3805,8 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     SetupLock();
 
     if (!ImHasFlag(flags,ImPlotDragToolFlags_NoFit) && FitThisFrame()) {
-        FitPoint(ImPoint(*x_min,*y_min));
-        FitPoint(ImPoint(*x_max,*y_max));
+        FitPoint(ImPlotPoint(*x_min,*y_min));
+        FitPoint(ImPlotPoint(*x_max,*y_max));
     }
 
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
@@ -3850,7 +3847,7 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
     if (held && ImGui::IsMouseDragging(0)) {
         for (int i = 0; i < 4; ++i) {
-            ImPoint pp = PixelsToPlot(p[i] + ImGui::GetIO().MouseDelta,IMPLOT_AUTO,IMPLOT_AUTO);
+            ImPlotPoint pp = PixelsToPlot(p[i] + ImGui::GetIO().MouseDelta,IMPLOT_AUTO,IMPLOT_AUTO);
             *y[i] = pp.y;
             *x[i] = pp.x;
         }
@@ -3893,7 +3890,7 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
         }
         if (hovered && ImGui::IsMouseDoubleClicked(0))
         {
-            ImBounds b = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
+            ImPlotRect b = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
             if (h[i])
                 *y[i] = ((y[i] == y_min && *y_min < *y_max) || (y[i] == y_max && *y_max < *y_min)) ? b.Y.Min : b.Y.Max;
             else
@@ -3923,7 +3920,7 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     return dragging;
 }
 
-bool DragRect(int id, ImBounds* bounds, const ImVec4& col, ImPlotDragToolFlags flags) {
+bool DragRect(int id, ImPlotRect* bounds, const ImVec4& col, ImPlotDragToolFlags flags) {
     return DragRect(id, &bounds->X.Min, &bounds->Y.Min,&bounds->X.Max, &bounds->Y.Max, col, flags);
 }
 
@@ -4362,7 +4359,7 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
     if (frame_size.y < gp.Style.PlotMinSize.y && size.y < 0.0f)
         frame_size.y = gp.Style.PlotMinSize.y;
 
-    ImRange range(scale_min,scale_max);
+    ImPlotRange range(scale_min,scale_max);
     gp.CTicks.Reset();
     AddTicksDefault(range, frame_size.y, true, gp.CTicks, DefaultFormatter, (void*)fmt);
 
@@ -5556,19 +5553,14 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
                ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y1_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags,
                const char* y2_label, const char* y3_label)
 {
-    IM_ASSERT_USER_ERROR(GImPlot != NULL, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot == NULL, "Mismatched BeginPlot()/EndPlot()!");
-
     if (!BeginPlot(title, size, flags))
         return false;
-
     SetupAxis(ImAxis_X1, x_label, x_flags);
     SetupAxis(ImAxis_Y1, y1_label, y1_flags);
     if (ImHasFlag(flags, ImPlotFlags_YAxis2))
         SetupAxis(ImAxis_Y2, y2_label, y2_flags);
     if (ImHasFlag(flags, ImPlotFlags_YAxis3))
         SetupAxis(ImAxis_Y3, y3_label, y3_flags);
-
     return true;
 }
 
