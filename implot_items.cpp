@@ -90,16 +90,6 @@ template <> const ImGuiDataType ImGuiDataTypeGetter<ImU64>::Value  = ImGuiDataTy
 template <> const ImGuiDataType ImGuiDataTypeGetter<ImS64>::Value  = ImGuiDataType_S64;
 
 //-----------------------------------------------------------------------------
-// Utils
-//-----------------------------------------------------------------------------
-
-// Calc maximum index size of ImDrawIdx
-template <typename T>
-struct MaxIdx { static const unsigned int Value; };
-template <> const unsigned int MaxIdx<unsigned short>::Value = 65535;
-template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
-
-//-----------------------------------------------------------------------------
 // Item Utils
 //-----------------------------------------------------------------------------
 
