@@ -3558,6 +3558,13 @@ void HideNextItem(bool hidden, ImPlotCond cond) {
     gp.NextItemData.HiddenCond = cond;
 }
 
+bool GetLastItemHidden() {
+    ImPlotContext& gp = *GImPlot;
+    if (gp.PreviousItem)
+        return !gp.PreviousItem->Show;
+    return false;
+}
+
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Tools
 //-----------------------------------------------------------------------------
