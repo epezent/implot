@@ -176,9 +176,9 @@ ImPlotStyle::ImPlotStyle() {
 
     AntiAliasedLines = false;
 #ifdef IMPLOT_BACKEND_ENABLED
-    UseGpuAacceleration = true;
+    UseGpuAcceleration = true;
 #else
-    UseGpuAacceleration = false;
+    UseGpuAcceleration = false;
 #endif
 }
 
@@ -4665,7 +4665,7 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::Indent(ImGui::CalcItemWidth() - ImGui::GetFrameHeight());
             ImGui::Checkbox("AntiAliasedLines", &style.AntiAliasedLines);
 #ifdef IMPLOT_BACKEND_ENABLED
-            ImGui::Checkbox("UseGpuAacceleration", &style.UseGpuAacceleration);
+            ImGui::Checkbox("UseGpuAcceleration", &style.UseGpuAcceleration);
 #endif
             ImGui::Unindent(indent);
             ImGui::Text("Plot Styling");

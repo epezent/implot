@@ -1951,7 +1951,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
     const double yref = reverse_y ? bounds_max.y : bounds_min.y;
     const double ydir = reverse_y ? -1 : 1;
 #ifdef IMPLOT_BACKEND_HAS_HEATMAP
-    if (GImPlot->Style.UseGpuAacceleration) {
+    if (GImPlot->Style.UseGpuAcceleration) {
         ImVec2 bmin = transformer(bounds_min);
         ImVec2 bmax = transformer(bounds_max);
 
