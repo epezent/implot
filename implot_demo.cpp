@@ -437,38 +437,97 @@ void ShowDemo_StairstepPlots() {
 //-----------------------------------------------------------------------------
 
 void ShowDemo_BarPlots() {
-    static bool horz                = false;
-    static ImS8  midtm[10]          = {83, 67, 23, 89, 83, 78, 91, 82, 85, 90};
-    static ImS16 final[10]          = {80, 62, 56, 99, 55, 78, 88, 78, 90, 100};
-    static ImS32 grade[10]          = {80, 69, 52, 92, 72, 78, 75, 76, 89, 95};
+    static ImS8  data[10] = {1,2,3,4,5,6,7,8,9,10};
+    if (ImPlot::BeginPlot("Bar Plot")) {
+        ImPlot::PlotBars("Bars",data,10,0.7,1);
+        ImPlot::PlotBarsH("BarsH",data,10,0.4,1);
+        ImPlot::EndPlot();
+    }
+}
 
-    static const char*  labels[]    = {"S1","S2","S3","S4","S5","S6","S7","S8","S9","S10"};
+void ShowDemo_BarGroups() {
+    static ImS8  data[30] = {83, 67, 23, 89, 83, 78, 91, 82, 85, 90,  // midterm
+                             80, 62, 56, 99, 55, 78, 88, 78, 90, 100, // final
+                             80, 69, 52, 92, 72, 78, 75, 76, 89, 95}; // course
+
+    static const char*  ilabels[]   = {"Midterm Exam","Final Exam","Course Grade"};
+    static const char*  glabels[]   = {"S1","S2","S3","S4","S5","S6","S7","S8","S9","S10"};
     static const double positions[] = {0,1,2,3,4,5,6,7,8,9};
 
+    static int items  = 3;
+    static int groups = 10;
+    static float size = 0.67f;
+
+    static ImPlotBarGroupsFlags flags = 0;
+    static bool horz = false;
+
+    ImGui::CheckboxFlags("Stacked", (unsigned int*)&flags, ImPlotBarGroupsFlags_Stacked);
+    ImGui::SameLine();
     ImGui::Checkbox("Horizontal",&horz);
 
+    ImGui::SliderInt("Items",&items,1,3);
+    ImGui::SliderFloat("Size",&size,0,1);
 
-    if (ImPlot::BeginPlot("Bar Plot"))
-    {
+    if (ImPlot::BeginPlot("Bar Group")) {
         ImPlot::SetupLegend(ImPlotLocation_East, ImPlotLegendFlags_Outside);
         if (horz) {
-            ImPlot::SetupAxesLimits(0, 110, -0.5, 9.5, ImGuiCond_Always);
-            ImPlot::SetupAxes("Score","Student",0,ImPlotAxisFlags_Invert);
-            ImPlot::SetupAxisTicks(ImAxis_Y1,positions, 10, labels);
-            ImPlot::PlotBarsH("Midterm Exam", midtm, 10, 0.2, -0.2);
-            ImPlot::PlotBarsH("Final Exam",   final, 10, 0.2,    0);
-            ImPlot::PlotBarsH("Course Grade", grade, 10, 0.2,  0.2);
+            ImPlot::SetupAxes("Score","Student",ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit);
+            ImPlot::SetupAxisTicks(ImAxis_Y1,positions, groups, glabels);
+            ImPlot::PlotBarGroupsH(ilabels,data,items,groups,size,0,flags);
         }
         else {
-            ImPlot::SetupAxesLimits(-0.5, 9.5, 0, 110, ImGuiCond_Always);
-            ImPlot::SetupAxes("Student","Score");
-            ImPlot::SetupAxisTicks(ImAxis_X1,positions, 10, labels);
-            ImPlot::PlotBars("Midterm Exam", midtm, 10, 0.2, -0.2);
-            ImPlot::PlotBars("Final Exam",   final, 10, 0.2,    0);
-            ImPlot::PlotBars("Course Grade", grade, 10, 0.2,  0.2);
+            ImPlot::SetupAxes("Student","Score",ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit);
+            ImPlot::SetupAxisTicks(ImAxis_X1,positions, groups, glabels);
+            ImPlot::PlotBarGroups(ilabels,data,items,groups,size,0,flags);
         }
         ImPlot::EndPlot();
     }
+}
+
+void ShowDemo_BarStacks() {
+
+    static ImPlotColormap Liars = -1;
+    if (Liars == -1) {
+        static const ImU32 Liars_Data[6] = { 4282515870, 4282609140, 4287357182, 4294630301, 4294945280, 4294921472 };
+        Liars = ImPlot::AddColormap("Liars", Liars_Data, 6);
+    }
+
+    static bool diverging = true;
+    ImGui::Checkbox("Diverging",&diverging);
+
+    static const char* politicians[] = {"Trump","Bachman","Cruz","Gingrich","Palin","Santorum","Walker","Perry","Ryan","McCain","Rubio","Romney","Rand Paul","Christie","Biden","Kasich","Sanders","J Bush","H Clinton","Obama"};
+    static int data_reg[] = {18,26,7,14,10,8,6,11,4,4,3,8,6,8,6,5,0,3,1,2,                // Pants on Fire
+                             43,36,30,21,30,27,25,17,11,22,15,16,16,17,12,12,14,6,13,12,  // False
+                             16,13,28,22,15,21,15,18,30,17,24,18,13,10,14,15,17,22,14,12, // Mostly False
+                             17,10,13,25,12,22,19,26,23,17,22,27,20,26,29,17,18,22,21,27, // Half True
+                             5,7,16,10,10,12,23,13,17,20,22,16,23,19,20,26,36,29,27,26,   // Mostly True
+                             1,8,6,8,23,10,12,15,15,20,14,15,22,20,19,25,15,18,24,21};    // True
+    static const char* labels_reg[] = {"Pants on Fire","False","Mostly False","Half True","Mostly True","True"};
+
+
+    static int data_div[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,                                         // Pants on Fire (dummy, to order legend logically)
+                             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,                                         // False         (dummy, to order legend logically)
+                             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,                                         // Mostly False  (dummy, to order legend logically)
+                             -16,-13,-28,-22,-15,-21,-15,-18,-30,-17,-24,-18,-13,-10,-14,-15,-17,-22,-14,-12, // Mostly False
+                             -43,-36,-30,-21,-30,-27,-25,-17,-11,-22,-15,-16,-16,-17,-12,-12,-14,-6,-13,-12,  // False
+                             -18,-26,-7,-14,-10,-8,-6,-11,-4,-4,-3,-8,-6,-8,-6,-5,0,-3,-1,-2,                 // Pants on Fire
+                             17,10,13,25,12,22,19,26,23,17,22,27,20,26,29,17,18,22,21,27,                     // Half True
+                             5,7,16,10,10,12,23,13,17,20,22,16,23,19,20,26,36,29,27,26,                       // Mostly True
+                             1,8,6,8,23,10,12,15,15,20,14,15,22,20,19,25,15,18,24,21};                        // True
+    static const char* labels_div[] = {"Pants on Fire","False","Mostly False","Mostly False","False","Pants on Fire","Half True","Mostly True","True"};
+
+    ImPlot::PushColormap(Liars);
+    if (ImPlot::BeginPlot("PolitiFact: Who Lies More?",ImVec2(-1,400),ImPlotFlags_NoMouseText)) {
+        ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Outside|ImPlotLegendFlags_Horizontal);
+        ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_Invert);
+        ImPlot::SetupAxisTicks(ImAxis_Y1,0,19,20,politicians,false);
+        if (diverging)
+            ImPlot::PlotBarGroupsH(labels_div,data_div,9,20,0.75,0,ImPlotBarGroupsFlags_Stacked);
+        else
+            ImPlot::PlotBarGroupsH(labels_reg,data_reg,6,20,0.75,0,ImPlotBarGroupsFlags_Stacked);
+        ImPlot::EndPlot();
+    }
+    ImPlot::PopColormap();
 }
 
 //-----------------------------------------------------------------------------
@@ -1949,6 +2008,10 @@ void ShowDemoWindow(bool* p_open) {
                 ShowDemo_StairstepPlots();
             if (ImGui::CollapsingHeader("Bar Plots"))
                 ShowDemo_BarPlots();
+            if (ImGui::CollapsingHeader("Bar Groups"))
+                ShowDemo_BarGroups();
+            if (ImGui::CollapsingHeader("Bar Stacks"))
+                ShowDemo_BarStacks();
             if (ImGui::CollapsingHeader("Error Bars"))
                 ShowDemo_ErrorBars();
             if (ImGui::CollapsingHeader("Stem Plots##"))

@@ -613,7 +613,7 @@ struct ImPlotAxis
     double               LinM, LogD;
     ImRect               HoverRect;
     int                  LabelOffset;
-    ImU32                ColorMaj, ColorMin, ColorTxt, ColorBg, ColorHov, ColorAct, ColorHiLi;
+    ImU32                ColorMaj, ColorMin, ColorTick, ColorTxt, ColorBg, ColorHov, ColorAct, ColorHiLi;
     char                 FormatSpec[16];
     ImPlotFormatter      Formatter;
     void*                FormatterData;
@@ -637,7 +637,7 @@ struct ImPlotAxis
         PickerLevel      = 0;
         Datum1           = Datum2 = 0;
         LabelOffset      = -1;
-        ColorMaj         = ColorMin = ColorTxt = ColorBg = ColorHov = ColorAct = 0;
+        ColorMaj         = ColorMin = ColorTick = ColorTxt = ColorBg = ColorHov = ColorAct = 0;
         ColorHiLi        = IM_COL32_BLACK_TRANS;
         Formatter        = NULL;
         FormatterData    = NULL;

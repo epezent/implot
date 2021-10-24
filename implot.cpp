@@ -199,6 +199,7 @@ const char* GetStyleColorName(ImPlotCol col) {
         "InlayText",
         "AxisText",
         "AxisGrid",
+        "AxisTick",
         "AxisBg",
         "AxisBgHovered",
         "AxisBgActive",
@@ -243,6 +244,7 @@ ImVec4 GetAutoColor(ImPlotCol idx) {
         case ImPlotCol_InlayText:     return ImGui::GetStyleColorVec4(ImGuiCol_Text);
         case ImPlotCol_AxisText:      return ImGui::GetStyleColorVec4(ImGuiCol_Text);
         case ImPlotCol_AxisGrid:      return GetStyleColorVec4(ImPlotCol_AxisText) * ImVec4(1,1,1,0.25f);
+        case ImPlotCol_AxisTick:      return GetStyleColorVec4(ImPlotCol_AxisGrid);
         case ImPlotCol_AxisBg:        return ImVec4(0,0,0,0);
         case ImPlotCol_AxisBgHovered: return ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered);
         case ImPlotCol_AxisBgActive:  return ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
@@ -1531,6 +1533,7 @@ void UpdateAxisColors(ImPlotAxis& axis) {
     const ImVec4 col_grid = GetStyleColorVec4(ImPlotCol_AxisGrid);
     axis.ColorMaj         = ImGui::GetColorU32(col_grid);
     axis.ColorMin         = ImGui::GetColorU32(col_grid*ImVec4(1,1,1,GImPlot->Style.MinorAlpha));
+    axis.ColorTick        = GetStyleColorU32(ImPlotCol_AxisTick);
     axis.ColorTxt         = GetStyleColorU32(ImPlotCol_AxisText);
     axis.ColorBg          = GetStyleColorU32(ImPlotCol_AxisBg);
     axis.ColorHov         = GetStyleColorU32(ImPlotCol_AxisBgHovered);
@@ -2492,7 +2495,8 @@ void SetupFinish() {
     const float txt_height = ImGui::GetTextLineHeight();
 
     // render frame
-    ImGui::RenderFrame(plot.FrameRect.Min, plot.FrameRect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, Style.FrameRounding);
+    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoFrame))
+        ImGui::RenderFrame(plot.FrameRect.Min, plot.FrameRect.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, Style.FrameRounding);
 
     // grid bg
     DrawList.AddRectFilled(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBg));
@@ -2599,7 +2603,7 @@ void SetupFinish() {
 
     // clear legend (TODO: put elsewhere)
     plot.Items.Legend.Reset();
-    // push ID to set item hashes
+    // push ID to set item hashes (NB: !!!THIS PROBABLY NEEDS TO BE IN BEGIN PLOT!!!!)
     ImGui::PushOverrideID(gp.CurrentItems->ID);
 }
 
@@ -2622,7 +2626,7 @@ void EndPlot() {
 
     // FINAL RENDER -----------------------------------------------------------
 
-    const bool render_border  = gp.Style.PlotBorderSize > 0 && gp.Style.Colors[ImPlotCol_PlotBorder].z > 0;
+    const bool render_border  = gp.Style.PlotBorderSize > 0 && gp.Style.Colors[ImPlotCol_PlotBorder].w > 0;
     const bool any_x_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
     const bool any_y_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
 
@@ -2665,10 +2669,10 @@ void EndPlot() {
                 const ImVec2 start(tk.PixelPos, ax.Datum1);
                 const float len = (!aux && tk.Major) ? gp.Style.MajorTickLen.x  : gp.Style.MinorTickLen.x;
                 const float thk = (!aux && tk.Major) ? gp.Style.MajorTickSize.x : gp.Style.MinorTickSize.x;
-                DrawList.AddLine(start, start + ImVec2(0,direction*len), ax.ColorMaj, thk);
+                DrawList.AddLine(start, start + ImVec2(0,direction*len), ax.ColorTick, thk);
             }
             if (aux || !render_border)
-                DrawList.AddLine(ImVec2(plot.PlotRect.Min.x,ax.Datum1), ImVec2(plot.PlotRect.Max.x,ax.Datum1), ax.ColorMaj, gp.Style.MinorTickSize.x);
+                DrawList.AddLine(ImVec2(plot.PlotRect.Min.x,ax.Datum1), ImVec2(plot.PlotRect.Max.x,ax.Datum1), ax.ColorTick, gp.Style.MinorTickSize.x);
         }
         count_B += !opp;
         count_T +=  opp;
@@ -2692,10 +2696,10 @@ void EndPlot() {
                 const ImVec2 start(ax.Datum1, tk.PixelPos);
                 const float len = (!aux && tk.Major) ? gp.Style.MajorTickLen.y  : gp.Style.MinorTickLen.y;
                 const float thk = (!aux && tk.Major) ? gp.Style.MajorTickSize.y : gp.Style.MinorTickSize.y;
-                DrawList.AddLine(start, start + ImVec2(direction*len,0), ax.ColorMaj, thk);
+                DrawList.AddLine(start, start + ImVec2(direction*len,0), ax.ColorTick, thk);
             }
             if (aux || !render_border)
-                DrawList.AddLine(ImVec2(ax.Datum1, plot.PlotRect.Min.y), ImVec2(ax.Datum1, plot.PlotRect.Max.y), ax.ColorMaj, gp.Style.MinorTickSize.y);
+                DrawList.AddLine(ImVec2(ax.Datum1, plot.PlotRect.Min.y), ImVec2(ax.Datum1, plot.PlotRect.Max.y), ax.ColorTick, gp.Style.MinorTickSize.y);
         }
         count_L += !opp;
         count_R +=  opp;
@@ -5452,6 +5456,7 @@ void StyleColorsAuto(ImPlotStyle* dst) {
     colors[ImPlotCol_PlotBorder]    = IMPLOT_AUTO_COL;
     colors[ImPlotCol_AxisText]      = IMPLOT_AUTO_COL;
     colors[ImPlotCol_AxisGrid]      = IMPLOT_AUTO_COL;
+    colors[ImPlotCol_AxisTick]      = IMPLOT_AUTO_COL;
     colors[ImPlotCol_AxisBg]        = IMPLOT_AUTO_COL;
     colors[ImPlotCol_AxisBgHovered] = IMPLOT_AUTO_COL;
     colors[ImPlotCol_AxisBgActive]  = IMPLOT_AUTO_COL;
@@ -5480,6 +5485,7 @@ void StyleColorsClassic(ImPlotStyle* dst) {
     colors[ImPlotCol_InlayText]     = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
     colors[ImPlotCol_AxisText]      = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
     colors[ImPlotCol_AxisGrid]      = ImVec4(0.90f, 0.90f, 0.90f, 0.25f);
+    colors[ImPlotCol_AxisTick]      = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_AxisBg]        = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_AxisBgHovered] = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_AxisBgActive]  = IMPLOT_AUTO_COL; // TODO
@@ -5508,6 +5514,7 @@ void StyleColorsDark(ImPlotStyle* dst) {
     colors[ImPlotCol_InlayText]     = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImPlotCol_AxisText]      = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImPlotCol_AxisGrid]      = ImVec4(1.00f, 1.00f, 1.00f, 0.25f);
+    colors[ImPlotCol_AxisTick]      = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_AxisBg]        = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_AxisBgHovered] = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_AxisBgActive]  = IMPLOT_AUTO_COL; // TODO
@@ -5536,6 +5543,7 @@ void StyleColorsLight(ImPlotStyle* dst) {
     colors[ImPlotCol_InlayText]     = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_AxisText]      = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
     colors[ImPlotCol_AxisGrid]      = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    colors[ImPlotCol_AxisTick]      = ImVec4(0.00f, 0.00f, 0.00f, 0.25f);
     colors[ImPlotCol_AxisBg]        = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_AxisBgHovered] = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_AxisBgActive]  = IMPLOT_AUTO_COL; // TODO
