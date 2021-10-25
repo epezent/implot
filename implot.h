@@ -83,7 +83,23 @@ typedef int ImPlotSubplotFlags;   // -> enum ImPlotSubplotFlags_
 typedef int ImPlotLegendFlags;    // -> enum ImPlotLegendFlags_
 typedef int ImPlotMouseTextFlags; // -> enum ImPlotMouseTextFlags_
 typedef int ImPlotDragToolFlags;  // -> ImPlotDragToolFlags_
-typedef int ImPlotBarGroupsFlags; // -> ImPlotBarGroupsFlags_
+
+typedef int ImPlotLineFlags;      // -> ImPlotLineFlags_       
+typedef int ImPlotScatterFlags;   // -> ImPlotScatterFlags      
+typedef int ImPlotStairsFlags;    // -> ImPlotStairsFlags_      
+typedef int ImPlotShadedFlags;    // -> ImPlotShadedFlags_     
+typedef int ImPlotBarsFlags;      // -> ImPlotBarsFlags_      
+typedef int ImPlotBarGroupsFlags; // -> ImPlotBarGroupsFlags_ 
+typedef int ImPlotErrorBarsFlags; // -> ImPlotErrorBarsFlags_   
+typedef int ImPlotStemsFlags;     // -> ImPlotStemsFlags_      
+typedef int ImPlotInfLinesFlags;  // -> ImPlotInfLinesFlags_   
+typedef int ImPlotPieChartFlags;  // -> ImPlotPieChartFlags_   
+typedef int ImPlotHeatmapFlags;   // -> ImPlotHeatmapFlags_    
+typedef int ImPlotHistogramFlags; // -> ImPlotHistogramFlags_   
+typedef int ImPlotDigitalFlags;   // -> ImPlotDigitalFlags_    
+typedef int ImPlotImageFlags;     // -> ImPlotImageFlags_     
+typedef int ImPlotTextFlags;      // -> ImPlotTextFlags_      
+typedef int ImPlotDummyFlags;     // -> ImPlotDummyFlags_   
 
 typedef int ImPlotCond;           // -> enum ImPlotCond_
 typedef int ImPlotCol;            // -> enum ImPlotCol_
@@ -191,10 +207,100 @@ enum ImPlotDragToolFlags_ {
     ImPlotDragToolFlags_Delayed   = 1 << 3, // tool rendering will be delayed one frame; useful when applying position-constraints
 };
 
+// Flags for ImPlot::PlotLine (placeholder)
+enum ImPlotLineFlags_ { 
+    ImPlotLineFlags_None     = 0,      // default 
+    ImPlotLineFlags_Segments = 1 << 0, // a line segment will be rendered from every two consecutive points (TODO)
+    ImPlotLineFlags_Loop     = 1 << 1, // the last and first point will be connected to form a closed loop (TODO)
+    ImPlotLineFlags_SkipNaN  = 1 << 2, // NaNs will be treated as missing data and skipped, leaving a gap in the line (TODO)
+};
+
+// Flags for ImPlot:PlotScatter (placeholder)
+enum ImPlotScatterFlags_ { 
+    ImPlotScatterFlags_None = 0 // default 
+};
+
+// Flags for ImPlot::PlotStairs (placeholder)
+enum ImPlotStairsFlags_ { 
+    ImPlotStairsFlags_None = 0,     // default
+    ImPlotStairsFlags_Pre  = 1 << 0 // The y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
+};
+
+// Flags for ImPlot::PlotShaded (placeholder)
+enum ImPlotShadedFlags_ { 
+    ImPlotShadedFlags_None = 0 // default 
+};
+
+// Flags for ImPlot::PlotBars (placeholder)
+enum ImPlotBarsFlags_ { 
+    ImPlotBarsFlags_None       = 0,      // default 
+    ImPlotBarsFlags_Horizontal = 1 << 0  // bars will be rendered horizontally (TODO)
+};
+
 // Flags for ImPlot::PlotBarGroups
 enum ImPlotBarGroupsFlags_ {
-    ImPlotBarGroupsFlags_None     = 0,      // default
-    ImPlotBarGroupsFlags_Stacked  = 1 << 0, // items in a group will be stacked on top of each other
+    ImPlotBarGroupsFlags_None       = 0,      // default
+    ImPlotBarGroupsFlags_Horizontal = 1 << 0, // bars will be rendered horizontally (TODO)
+    ImPlotBarGroupsFlags_Stacked    = 1 << 1, // items in a group will be stacked on top of each other
+};
+
+// Flags for ImPlot::PlotErrorBars (placeholder)
+enum ImPlotErrorBarsFlags_ { 
+    ImPlotErrorBarsFlags_None       = 0,      // default 
+    ImPlotErrorBarsFlags_Horizontal = 1 << 0, // error bars will be rendered horizontally (TODO)
+};
+
+// Flags for ImPlot::PlotStems (placeholder)
+enum ImPlotStemsFlags_ { 
+    ImPlotStemsFlags_None      = 0,       // default 
+    ImPlotStemsFlags_Horizontal = 1 << 0, // stems will be rendered horizontally (TODO)
+};
+
+// Flags for ImPlot::PlotVLines and ImPlot::PlotHLines (placeholder)
+enum ImPlotInfLinesFlags_ { 
+    ImPlotInfLinesFlags_None = 0 // default 
+};
+
+// Flags for ImPlot::PlotPieChart (placeholder)
+enum ImPlotPieChartFlags_ { 
+    ImPlotPieChartFlags_None      = 0,     // default
+    ImPlotPieChartFlags_Normalize = 1 << 0 // 
+};
+
+// Flags for ImPlot::PlotHeatmap (placeholder)
+enum ImPlotHeatmapFlags_ { 
+    ImPlotHeatmapFlags_None     = 0,      // default 
+    ImPlotHeatmapFlags_ColMajor = 1 << 0,
+};
+
+// Flags for ImPlot::PlotHistogram and ImPlot::PlotHistogram2D
+enum ImPlotHistogramFlags_ {
+    ImPlotHistogramFlags_None       = 0,      // default 
+    ImPlotHistogramFlags_Cumulative = 1 << 0, // 
+    ImPlotHistogramFlags_Density    = 1 << 1,
+    ImPlotHistogramFlags_Outliers   = 1 << 2,
+    ImPlotHistogramFlags_ColMajor   = 1 << 3    
+};
+
+// Flags for ImPlot::PlotDigital (placeholder)
+enum ImPlotDigitalFlags_ { 
+    ImPlotDigitalFlags_None = 0 // default 
+};
+
+// Flags for ImPlot::PlotImage (placeholder)
+enum ImPlotImageFlags_ { 
+    ImPlotImageFlags_None = 0 // default 
+};
+
+// Flags for ImPlot::PlotText (placeholder)
+enum ImPlotTextFlags_ { 
+    ImPlotTextFlags_None = 0,  // default 
+    ImPlotTextFlags_Vertical   // text will be rendered vertically
+};
+
+// Flags for ImPlot::PlotDummy (placeholder)   
+enum ImPlotDummyFlags_ { 
+    ImPlotDummyFlags_None = 0 // default 
 };
 
 // Represents a condition for SetupAxisLimits etc. (same as ImGuiCond, but we only support a subset of those enums)
@@ -696,7 +802,7 @@ IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, do
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* data, int count);
 
-// Plots a a stairstep graph. The y value is continued constantly from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i].
+// Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double x0=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotStairsG(const char* label_id, ImPlotGetter getter, void* data, int count);
