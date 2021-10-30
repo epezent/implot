@@ -1271,7 +1271,7 @@ static inline bool AnyAxesHovered(ImPlotAxis* axes, int count) {
     return false;
 }
 
-// Gets the XY scale for the current plot and y-axis (TODO)
+// Gets the XY scale for the current plot and y-axis
 static inline ImPlotScale GetCurrentScale() {
     ImPlotPlot& plot = *GetCurrentPlot();
     ImPlotAxis& x = plot.Axes[plot.CurrentX];

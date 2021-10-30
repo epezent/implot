@@ -31,7 +31,9 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2021/10/19 (0.13) MAJOR API OVERHAUL!
+- 2021/10/XX (0.13) - PlotHistogram/PlotHistogram2D signatures changed; `cumulative`, `density`, and `outliers` options now specified via ImPlotHistogramFlags
+                    - PlotPieChart signature changed; `normalize` option now specified via ImPlotPieChartFlags
+- 2021/10/19 (0.13) - MAJOR API OVERHAUL! See #168 and #272
                     - TRIVIAL RENAME:
                       - ImPlotLimits                              -> ImPlotRect
                       - ImPlotYAxis_                              -> ImAxis_

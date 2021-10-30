@@ -392,27 +392,38 @@ struct GetterFuncPtr {
 
 template <typename TGetter>
 struct GetterOverrideX {
-    GetterOverrideX(const TGetter& getter, double x) : Getter(getter), X(x), Count(getter.Count) { }
+    GetterOverrideX(TGetter getter, double x) : Getter(getter), X(x), Count(getter.Count) { }
     template <typename I> IMPLOT_INLINE ImPlotPoint operator()(I idx) const {
         ImPlotPoint p = Getter(idx);
         p.x = X;
         return p;
     }
-    const TGetter& Getter;
+    const TGetter Getter;
     const double X;
     const int Count;
 };
 
 template <typename TGetter>
 struct GetterOverrideY {
-    GetterOverrideY(const TGetter& getter, double y) : Getter(getter), Y(y), Count(getter.Count) { }
+    GetterOverrideY(TGetter getter, double y) : Getter(getter), Y(y), Count(getter.Count) { }
     template <typename I> IMPLOT_INLINE ImPlotPoint operator()(I idx) const {
         ImPlotPoint p = Getter(idx);
         p.y = Y;
         return p;
     }
-    const TGetter& Getter;
+    const TGetter Getter;
     const double Y;
+    const int Count;
+};
+
+template <typename TGetter>
+struct GetterLoop {
+    GetterLoop(TGetter getter) : Getter(getter), Count(getter.Count + 1) { }
+    template <typename I> IMPLOT_INLINE ImPlotPoint operator()(I idx) const {
+        idx = idx % (Count - 1);
+        return Getter(idx);
+    }
+    const TGetter Getter;
     const int Count;
 };
 
@@ -597,9 +608,35 @@ struct LineStripRenderer {
     static const int VtxConsumed = 4;
 };
 
-template <typename TGetter1, typename TGetter2, typename TTransformer>
+template <typename TGetter, typename TTransformer>
 struct LineSegmentsRenderer {
-    IMPLOT_INLINE LineSegmentsRenderer(const TGetter1& getter1, const TGetter2& getter2, const TTransformer& transformer, ImU32 col, float weight) :
+    IMPLOT_INLINE LineSegmentsRenderer(const TGetter& getter, const TTransformer& transformer, ImU32 col, float weight) :
+        Getter(getter),
+        Transformer(transformer),
+        Prims(Getter.Count/2),
+        Col(col),
+        HalfWeight(weight/2)
+    { }
+    IMPLOT_INLINE bool operator()(ImDrawList& DrawList, const ImRect& cull_rect, const ImVec2& uv, int prim) const {
+        ImVec2 P1 = Transformer(Getter(prim*2+0));
+        ImVec2 P2 = Transformer(Getter(prim*2+1));
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
+            return false;
+        PrimLine(P1,P2,HalfWeight,Col,DrawList,uv);
+        return true;
+    }
+    const TGetter& Getter;
+    const TTransformer& Transformer;
+    const int Prims;
+    const ImU32 Col;
+    const float HalfWeight;
+    static const int IdxConsumed = 6;
+    static const int VtxConsumed = 4;
+};
+
+template <typename TGetter1, typename TGetter2, typename TTransformer>
+struct LineSegmentsRenderer2 {
+    IMPLOT_INLINE LineSegmentsRenderer2(const TGetter1& getter1, const TGetter2& getter2, const TTransformer& transformer, ImU32 col, float weight) :
         Getter1(getter1),
         Getter2(getter2),
         Transformer(transformer),
@@ -777,8 +814,25 @@ IMPLOT_INLINE void RenderLineStrip(const Getter& getter, const Transformer& tran
     }
 }
 
+template <typename Getter, typename Transformer>
+IMPLOT_INLINE void RenderLineSegments(const Getter& getter, const Transformer& transformer, ImDrawList& DrawList, float line_weight, ImU32 col) {
+    ImPlotContext& gp = *GImPlot;
+    if (ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased) || gp.Style.AntiAliasedLines) {
+        const int I = getter.Count / 2;
+        for (int i = 0; i < I; ++i) {
+            ImVec2 p1 = transformer(getter(2*i+0));
+            ImVec2 p2 = transformer(getter(2*i+1));
+            if (gp.CurrentPlot->PlotRect.Overlaps(ImRect(ImMin(p1, p2), ImMax(p1, p2))))
+                DrawList.AddLine(p1, p2, col, line_weight);
+        }
+    }
+    else {
+        RenderPrimitives(LineSegmentsRenderer<Getter,Transformer>(getter, transformer, col, line_weight), DrawList, gp.CurrentPlot->PlotRect);
+    }
+}
+
 template <typename Getter1, typename Getter2, typename Transformer>
-IMPLOT_INLINE void RenderLineSegments(const Getter1& getter1, const Getter2& getter2, const Transformer& transformer, ImDrawList& DrawList, float line_weight, ImU32 col) {
+IMPLOT_INLINE void RenderLineSegments2(const Getter1& getter1, const Getter2& getter2, const Transformer& transformer, ImDrawList& DrawList, float line_weight, ImU32 col) {
     ImPlotContext& gp = *GImPlot;
     if (ImHasFlag(gp.CurrentPlot->Flags, ImPlotFlags_AntiAliased) || gp.Style.AntiAliasedLines) {
         int I = ImMin(getter1.Count, getter2.Count);
@@ -790,7 +844,7 @@ IMPLOT_INLINE void RenderLineSegments(const Getter1& getter1, const Getter2& get
         }
     }
     else {
-        RenderPrimitives(LineSegmentsRenderer<Getter1,Getter2,Transformer>(getter1, getter2, transformer, col, line_weight), DrawList, gp.CurrentPlot->PlotRect);
+        RenderPrimitives(LineSegmentsRenderer2<Getter1,Getter2,Transformer>(getter1, getter2, transformer, col, line_weight), DrawList, gp.CurrentPlot->PlotRect);
     }
 }
 
@@ -929,7 +983,7 @@ IMPLOT_INLINE void RenderMarkers(Getter getter, Transformer transformer, ImDrawL
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
-IMPLOT_INLINE void PlotLineEx(const char* label_id, const Getter& getter) {
+IMPLOT_INLINE void PlotLineEx(const char* label_id, const Getter& getter, ImPlotLineFlags flags) {
     if (BeginItem(label_id, ImPlotCol_Line)) {
         if (FitThisFrame()) {
             for (int i = 0; i < getter.Count; ++i) {
@@ -941,11 +995,29 @@ IMPLOT_INLINE void PlotLineEx(const char* label_id, const Getter& getter) {
         ImDrawList& DrawList = *GetPlotDrawList();
         if (getter.Count > 1 && s.RenderLine) {
             const ImU32 col_line    = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-            switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderLineStrip(getter, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LogLin: RenderLineStrip(getter, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LinLog: RenderLineStrip(getter, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LogLog: RenderLineStrip(getter, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+            if (ImHasFlag(flags,ImPlotLineFlags_Segments)) {
+                switch (GetCurrentScale()) {
+                    case ImPlotScale_LinLin: RenderLineSegments(getter, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLin: RenderLineSegments(getter, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LinLog: RenderLineSegments(getter, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLog: RenderLineSegments(getter, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+                }
+            }
+            else if (ImHasFlag(flags, ImPlotLineFlags_Loop)) {
+                switch (GetCurrentScale()) {
+                    case ImPlotScale_LinLin: RenderLineStrip(GetterLoop<Getter>(getter), TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLin: RenderLineStrip(GetterLoop<Getter>(getter), TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LinLog: RenderLineStrip(GetterLoop<Getter>(getter), TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLog: RenderLineStrip(GetterLoop<Getter>(getter), TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+                }       
+            }
+            else {
+                switch (GetCurrentScale()) {
+                    case ImPlotScale_LinLin: RenderLineStrip(getter, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLin: RenderLineStrip(getter, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LinLog: RenderLineStrip(getter, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLog: RenderLineStrip(getter, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+                }
             }
         }
         // render markers
@@ -968,43 +1040,43 @@ IMPLOT_INLINE void PlotLineEx(const char* label_id, const Getter& getter) {
 
 
 template <typename T>
-void PlotLine(const char* label_id, const T* values, int count, double xscale, double x0, int offset, int stride) {
+void PlotLine(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride) {
     GetterXY<GetterLin,GetterIdx<T>> getter(GetterLin(xscale,x0),GetterIdx<T>(values,count,offset,stride),count);
-    PlotLineEx(label_id, getter);
+    PlotLineEx(label_id, getter, flags);
 }
 
-template IMPLOT_API void PlotLine<ImS8> (const char* label_id, const ImS8* values, int count, double xscale, double x0, int offset, int stride);
-template IMPLOT_API void PlotLine<ImU8> (const char* label_id, const ImU8* values, int count, double xscale, double x0, int offset, int stride);
-template IMPLOT_API void PlotLine<ImS16>(const char* label_id, const ImS16* values, int count, double xscale, double x0, int offset, int stride);
-template IMPLOT_API void PlotLine<ImU16>(const char* label_id, const ImU16* values, int count, double xscale, double x0, int offset, int stride);
-template IMPLOT_API void PlotLine<ImS32>(const char* label_id, const ImS32* values, int count, double xscale, double x0, int offset, int stride);
-template IMPLOT_API void PlotLine<ImU32>(const char* label_id, const ImU32* values, int count, double xscale, double x0, int offset, int stride);
-template IMPLOT_API void PlotLine<ImS64>(const char* label_id, const ImS64* values, int count, double xscale, double x0, int offset, int stride);
-template IMPLOT_API void PlotLine<ImU64>(const char* label_id, const ImU64* values, int count, double xscale, double x0, int offset, int stride);
-template IMPLOT_API void PlotLine<float>(const char* label_id, const float* values, int count, double xscale, double x0, int offset, int stride);
-template IMPLOT_API void PlotLine<double>(const char* label_id, const double* values, int count, double xscale, double x0, int offset, int stride);
+template IMPLOT_API void PlotLine<ImS8> (const char* label_id, const ImS8* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImU8> (const char* label_id, const ImU8* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImS16>(const char* label_id, const ImS16* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImU16>(const char* label_id, const ImU16* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImS32>(const char* label_id, const ImS32* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImU32>(const char* label_id, const ImU32* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImS64>(const char* label_id, const ImS64* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImU64>(const char* label_id, const ImU64* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<float>(const char* label_id, const float* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<double>(const char* label_id, const double* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
 
 template <typename T>
-void PlotLine(const char* label_id, const T* xs, const T* ys, int count, int offset, int stride) {
+void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags, int offset, int stride) {
     GetterXY<GetterIdx<T>,GetterIdx<T>> getter(GetterIdx<T>(xs,count,offset,stride),GetterIdx<T>(ys,count,offset,stride),count);
-    return PlotLineEx(label_id, getter);
+    return PlotLineEx(label_id, getter, flags);
 }
 
-template IMPLOT_API void PlotLine<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotLine<ImU8>(const char* label_id, const ImU8* xs, const ImU8* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotLine<ImS16>(const char* label_id, const ImS16* xs, const ImS16* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotLine<ImU16>(const char* label_id, const ImU16* xs, const ImU16* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotLine<ImS32>(const char* label_id, const ImS32* xs, const ImS32* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotLine<ImU32>(const char* label_id, const ImU32* xs, const ImU32* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotLine<ImS64>(const char* label_id, const ImS64* xs, const ImS64* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotLine<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotLine<float>(const char* label_id, const float* xs, const float* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotLine<double>(const char* label_id, const double* xs, const double* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotLine<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImU8>(const char* label_id, const ImU8* xs, const ImU8* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImS16>(const char* label_id, const ImS16* xs, const ImS16* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImU16>(const char* label_id, const ImU16* xs, const ImU16* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImS32>(const char* label_id, const ImS32* xs, const ImS32* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImU32>(const char* label_id, const ImU32* xs, const ImU32* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImS64>(const char* label_id, const ImS64* xs, const ImS64* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<ImU64>(const char* label_id, const ImU64* xs, const ImU64* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<float>(const char* label_id, const float* xs, const float* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+template IMPLOT_API void PlotLine<double>(const char* label_id, const double* xs, const double* ys, int count, ImPlotLineFlags flags, int offset, int stride);
 
 // custom
-void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count) {
+void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotLineFlags flags) {
     GetterFuncPtr getter(getter_func,data, count);
-    return PlotLineEx(label_id, getter);
+    return PlotLineEx(label_id, getter, flags);
 }
 
 //-----------------------------------------------------------------------------
@@ -1451,43 +1523,77 @@ void PlotBarsHG(const char* label_id, ImPlotGetter getter_func, void* data, int 
 //-----------------------------------------------------------------------------
 
 template <typename T>
-void PlotBarGroups(const char* const label_ids[], const T* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags) {
+void PlotBarGroups(const char* const label_ids[], const T* values, int item_count, int group_count, double group_size, double shift, ImPlotBarGroupsFlags flags) {
+    const bool horz = ImHasFlag(flags, ImPlotBarGroupsFlags_Horizontal);
+    const bool stack = ImHasFlag(flags, ImPlotBarGroupsFlags_Stacked);
     if (ImHasFlag(flags, ImPlotBarGroupsFlags_Stacked)) {
         SetupLock();
-        GImPlot->TempDouble1.resize(4*groups);
+        GImPlot->TempDouble1.resize(4*group_count);
         double* temp = GImPlot->TempDouble1.Data;
         double* neg =      &temp[0];
-        double* pos =      &temp[groups];
-        double* curr_min = &temp[groups*2];
-        double* curr_max = &temp[groups*3];
-        for (int g = 0; g < groups*2; ++g)
+        double* pos =      &temp[group_count];
+        double* curr_min = &temp[group_count*2];
+        double* curr_max = &temp[group_count*3];
+        for (int g = 0; g < group_count*2; ++g)
             temp[g] = 0;
-        for (int i = 0; i < items; ++i) {
-            if (!IsItemHidden(label_ids[i])) {
-                for (int g = 0; g < groups; ++g) {
-                    double v = (double)values[i*groups+g];
-                    if (v > 0) {
-                        curr_min[g] = pos[g];
-                        curr_max[g] = curr_min[g] + v;
-                        pos[g]      += v;
-                    }
-                    else {
-                        curr_max[g] = neg[g];
-                        curr_min[g] = curr_max[g] + v;
-                        neg[g]      += v;
+        if (horz) {
+            for (int i = 0; i < item_count; ++i) {
+                if (!IsItemHidden(label_ids[i])) {
+                    for (int g = 0; g < group_count; ++g) {
+                        double v = (double)values[i*group_count+g];
+                        if (v > 0) {
+                            curr_min[g] = pos[g];
+                            curr_max[g] = curr_min[g] + v;
+                            pos[g]      += v;
+                        }
+                        else {
+                            curr_max[g] = neg[g];
+                            curr_min[g] = curr_max[g] + v;
+                            neg[g]      += v;
+                        }
                     }
                 }
+                GetterXY<GetterIdx<double>,GetterLin> getter1(GetterIdx<double>(curr_min,group_count),GetterLin(1.0,shift),group_count);
+                GetterXY<GetterIdx<double>,GetterLin> getter2(GetterIdx<double>(curr_max,group_count),GetterLin(1.0,shift),group_count);
+                PlotBarsHEx(label_ids[i],getter1,getter2,group_size);
             }
-            GetterXY<GetterLin,GetterIdx<double>> getter1(GetterLin(1.0,shift),GetterIdx<double>(curr_min,groups),groups);
-            GetterXY<GetterLin,GetterIdx<double>> getter2(GetterLin(1.0,shift),GetterIdx<double>(curr_max,groups),groups);
-            PlotBarsEx(label_ids[i],getter1,getter2,width);
+        }
+        else {
+            for (int i = 0; i < item_count; ++i) {
+                if (!IsItemHidden(label_ids[i])) {
+                    for (int g = 0; g < group_count; ++g) {
+                        double v = (double)values[i*group_count+g];
+                        if (v > 0) {
+                            curr_min[g] = pos[g];
+                            curr_max[g] = curr_min[g] + v;
+                            pos[g]      += v;
+                        }
+                        else {
+                            curr_max[g] = neg[g];
+                            curr_min[g] = curr_max[g] + v;
+                            neg[g]      += v;
+                        }
+                    }
+                }
+                GetterXY<GetterLin,GetterIdx<double>> getter1(GetterLin(1.0,shift),GetterIdx<double>(curr_min,group_count),group_count);
+                GetterXY<GetterLin,GetterIdx<double>> getter2(GetterLin(1.0,shift),GetterIdx<double>(curr_max,group_count),group_count);
+                PlotBarsEx(label_ids[i],getter1,getter2,group_size);
+            }
         }
     }
     else {
-        const double subwidth = width / items;
-        for (int i = 0; i < items; ++i) {
-            const double subshift = (i+0.5)*subwidth - width/2;
-            PlotBars(label_ids[i],&values[i*groups],groups,subwidth,subshift+shift);
+        const double subsize = group_size / item_count;
+        if (horz) {
+            for (int i = 0; i < item_count; ++i) {
+                const double subshift = (i+0.5)*subsize - group_size/2;
+                PlotBarsH(label_ids[i],&values[i*group_count],group_count,subsize,subshift+shift);
+            }
+        }
+        else {
+            for (int i = 0; i < item_count; ++i) {
+                const double subshift = (i+0.5)*subsize - group_size/2;
+                PlotBars(label_ids[i],&values[i*group_count],group_count,subsize,subshift+shift);
+            }
         }
     }
 }
@@ -1502,59 +1608,6 @@ template IMPLOT_API void PlotBarGroups<ImS64>(const char* const label_ids[], con
 template IMPLOT_API void PlotBarGroups<ImU64>(const char* const label_ids[], const ImU64* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
 template IMPLOT_API void PlotBarGroups<float>(const char* const label_ids[], const float* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
 template IMPLOT_API void PlotBarGroups<double>(const char* const label_ids[], const double* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-
-template <typename T>
-void PlotBarGroupsH(const char* const label_ids[], const T* values, int items, int groups, double height, double shift, ImPlotBarGroupsFlags flags) {
-    if (ImHasFlag(flags, ImPlotBarGroupsFlags_Stacked)) {
-        SetupLock();
-        GImPlot->TempDouble1.resize(4*groups);
-        double* temp = GImPlot->TempDouble1.Data;
-        double* neg =      &temp[0];
-        double* pos =      &temp[groups];
-        double* curr_min = &temp[groups*2];
-        double* curr_max = &temp[groups*3];
-        for (int g = 0; g < groups*2; ++g)
-            temp[g] = 0;
-        for (int i = 0; i < items; ++i) {
-            if (!IsItemHidden(label_ids[i])) {
-                for (int g = 0; g < groups; ++g) {
-                    double v = (double)values[i*groups+g];
-                    if (v > 0) {
-                        curr_min[g] = pos[g];
-                        curr_max[g] = curr_min[g] + v;
-                        pos[g]      += v;
-                    }
-                    else {
-                        curr_max[g] = neg[g];
-                        curr_min[g] = curr_max[g] + v;
-                        neg[g]      += v;
-                    }
-                }
-            }
-            GetterXY<GetterIdx<double>,GetterLin> getter1(GetterIdx<double>(curr_min,groups),GetterLin(1.0,shift),groups);
-            GetterXY<GetterIdx<double>,GetterLin> getter2(GetterIdx<double>(curr_max,groups),GetterLin(1.0,shift),groups);
-            PlotBarsHEx(label_ids[i],getter1,getter2,height);
-        }
-    }
-    else {
-        const double subheight = height / items;
-        for (int i = 0; i < items; ++i) {
-            const double subshift = (i+0.5)*subheight - height/2;
-            PlotBarsH(label_ids[i],&values[i*groups],groups,subheight,subshift+shift);
-        }
-    }
-}
-
-template IMPLOT_API void PlotBarGroupsH<ImS8>(const char* const label_ids[], const ImS8* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-template IMPLOT_API void PlotBarGroupsH<ImU8>(const char* const label_ids[], const ImU8* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-template IMPLOT_API void PlotBarGroupsH<ImS16>(const char* const label_ids[], const ImS16* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-template IMPLOT_API void PlotBarGroupsH<ImU16>(const char* const label_ids[], const ImU16* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-template IMPLOT_API void PlotBarGroupsH<ImS32>(const char* const label_ids[], const ImS32* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-template IMPLOT_API void PlotBarGroupsH<ImU32>(const char* const label_ids[], const ImU32* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-template IMPLOT_API void PlotBarGroupsH<ImS64>(const char* const label_ids[], const ImS64* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-template IMPLOT_API void PlotBarGroupsH<ImU64>(const char* const label_ids[], const ImU64* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-template IMPLOT_API void PlotBarGroupsH<float>(const char* const label_ids[], const float* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-template IMPLOT_API void PlotBarGroupsH<double>(const char* const label_ids[], const double* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
 
 //-----------------------------------------------------------------------------
 // PLOT ERROR BARS
@@ -1709,10 +1762,10 @@ IMPLOT_INLINE void PlotStemsEx(const char* label_id, const GetterM& get_mark, co
         if (s.RenderLine) {
             const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
             switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderLineSegments(get_mark, get_base, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LogLin: RenderLineSegments(get_mark, get_base, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LinLog: RenderLineSegments(get_mark, get_base, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LogLog: RenderLineSegments(get_mark, get_base, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LinLin: RenderLineSegments2(get_mark, get_base, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLin: RenderLineSegments2(get_mark, get_base, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LinLog: RenderLineSegments2(get_mark, get_base, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                case ImPlotScale_LogLog: RenderLineSegments2(get_mark, get_base, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
             }
         }
         // render markers
@@ -1774,79 +1827,65 @@ template IMPLOT_API void PlotStems<double>(const char* label_id, const double* x
 //-----------------------------------------------------------------------------
 
 template <typename T>
-void PlotVLines(const char* label_id, const T* xs, int count, int offset, int stride) {
-    if (BeginItem(label_id, ImPlotCol_Line)) {
-        const ImPlotRect lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
-        GetterXY<GetterIdx<T>,GetterRef> get_min(GetterIdx<T>(xs,count,offset,stride),GetterRef(lims.Y.Min),count);
-        GetterXY<GetterIdx<T>,GetterRef> get_max(GetterIdx<T>(xs,count,offset,stride),GetterRef(lims.Y.Max),count);
-        if (FitThisFrame()) {
-            for (int i = 0; i < get_min.Count; ++i)
-                FitPointX(get_min(i).x);
-        }
-        const ImPlotNextItemData& s = GetItemData();
-        ImDrawList& DrawList = *GetPlotDrawList();
-        // render stems
-        if (s.RenderLine) {
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-            switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderLineSegments(get_min, get_max, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LogLin: RenderLineSegments(get_min, get_max, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LinLog: RenderLineSegments(get_min, get_max, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LogLog: RenderLineSegments(get_min, get_max, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLinesFlags flags, int offset, int stride) {
+    if (ImHasFlag(flags, ImPlotInfLinesFlags_Horizontal)) {
+        if (BeginItem(label_id, ImPlotCol_Line)) {
+            const ImPlotRect lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
+            GetterXY<GetterRef,GetterIdx<T>> get_min(GetterRef(lims.X.Min),GetterIdx<T>(values,count,offset,stride),count);
+            GetterXY<GetterRef,GetterIdx<T>> get_max(GetterRef(lims.X.Max),GetterIdx<T>(values,count,offset,stride),count);
+            if (FitThisFrame()) {
+                for (int i = 0; i < get_min.Count; ++i)
+                    FitPointY(get_min(i).y);
             }
+            const ImPlotNextItemData& s = GetItemData();
+            ImDrawList& DrawList = *GetPlotDrawList();
+            if (s.RenderLine) {
+                const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+                switch (GetCurrentScale()) {
+                    case ImPlotScale_LinLin: RenderLineSegments2(get_min, get_max, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLin: RenderLineSegments2(get_min, get_max, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LinLog: RenderLineSegments2(get_min, get_max, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLog: RenderLineSegments2(get_min, get_max, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+                }
+            }
+            EndItem();
         }
-        EndItem();
+    }
+    else {
+        if (BeginItem(label_id, ImPlotCol_Line)) {
+            const ImPlotRect lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
+            GetterXY<GetterIdx<T>,GetterRef> get_min(GetterIdx<T>(values,count,offset,stride),GetterRef(lims.Y.Min),count);
+            GetterXY<GetterIdx<T>,GetterRef> get_max(GetterIdx<T>(values,count,offset,stride),GetterRef(lims.Y.Max),count);
+            if (FitThisFrame()) {
+                for (int i = 0; i < get_min.Count; ++i)
+                    FitPointX(get_min(i).x);
+            }
+            const ImPlotNextItemData& s = GetItemData();
+            ImDrawList& DrawList = *GetPlotDrawList();
+            if (s.RenderLine) {
+                const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+                switch (GetCurrentScale()) {
+                    case ImPlotScale_LinLin: RenderLineSegments2(get_min, get_max, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLin: RenderLineSegments2(get_min, get_max, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LinLog: RenderLineSegments2(get_min, get_max, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
+                    case ImPlotScale_LogLog: RenderLineSegments2(get_min, get_max, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
+                }
+            }
+            EndItem();
+        }
     }
 }
 
-template IMPLOT_API void PlotVLines<ImS8>(const char* label_id, const ImS8* xs, int count, int offset, int stride);
-template IMPLOT_API void PlotVLines<ImU8>(const char* label_id, const ImU8* xs, int count, int offset, int stride);
-template IMPLOT_API void PlotVLines<ImS16>(const char* label_id, const ImS16* xs, int count, int offset, int stride);
-template IMPLOT_API void PlotVLines<ImU16>(const char* label_id, const ImU16* xs, int count, int offset, int stride);
-template IMPLOT_API void PlotVLines<ImS32>(const char* label_id, const ImS32* xs, int count, int offset, int stride);
-template IMPLOT_API void PlotVLines<ImU32>(const char* label_id, const ImU32* xs, int count, int offset, int stride);
-template IMPLOT_API void PlotVLines<ImS64>(const char* label_id, const ImS64* xs, int count, int offset, int stride);
-template IMPLOT_API void PlotVLines<ImU64>(const char* label_id, const ImU64* xs, int count, int offset, int stride);
-template IMPLOT_API void PlotVLines<float>(const char* label_id, const float* xs, int count, int offset, int stride);
-template IMPLOT_API void PlotVLines<double>(const char* label_id, const double* xs, int count, int offset, int stride);
-
-
-template <typename T>
-void PlotHLines(const char* label_id, const T* ys, int count, int offset, int stride) {
-    if (BeginItem(label_id, ImPlotCol_Line)) {
-        const ImPlotRect lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
-        GetterXY<GetterRef,GetterIdx<T>> get_min(GetterRef(lims.X.Min),GetterIdx<T>(ys,count,offset,stride),count);
-        GetterXY<GetterRef,GetterIdx<T>> get_max(GetterRef(lims.X.Max),GetterIdx<T>(ys,count,offset,stride),count);
-        if (FitThisFrame()) {
-            for (int i = 0; i < get_min.Count; ++i)
-                FitPointY(get_min(i).y);
-        }
-        const ImPlotNextItemData& s = GetItemData();
-        ImDrawList& DrawList = *GetPlotDrawList();
-        // render stems
-        if (s.RenderLine) {
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-            switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderLineSegments(get_min, get_max, TransformerLinLin(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LogLin: RenderLineSegments(get_min, get_max, TransformerLogLin(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LinLog: RenderLineSegments(get_min, get_max, TransformerLinLog(), DrawList, s.LineWeight, col_line); break;
-                case ImPlotScale_LogLog: RenderLineSegments(get_min, get_max, TransformerLogLog(), DrawList, s.LineWeight, col_line); break;
-            }
-        }
-        EndItem();
-    }
-}
-
-template IMPLOT_API void PlotHLines<ImS8>(const char* label_id, const ImS8* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotHLines<ImU8>(const char* label_id, const ImU8* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotHLines<ImS16>(const char* label_id, const ImS16* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotHLines<ImU16>(const char* label_id, const ImU16* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotHLines<ImS32>(const char* label_id, const ImS32* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotHLines<ImU32>(const char* label_id, const ImU32* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotHLines<ImS64>(const char* label_id, const ImS64* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotHLines<ImU64>(const char* label_id, const ImU64* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotHLines<float>(const char* label_id, const float* ys, int count, int offset, int stride);
-template IMPLOT_API void PlotHLines<double>(const char* label_id, const double* ys, int count, int offset, int stride);
+template IMPLOT_API void PlotInfLines<ImS8>(const char* label_id, const ImS8* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+template IMPLOT_API void PlotInfLines<ImU8>(const char* label_id, const ImU8* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+template IMPLOT_API void PlotInfLines<ImS16>(const char* label_id, const ImS16* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+template IMPLOT_API void PlotInfLines<ImU16>(const char* label_id, const ImU16* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+template IMPLOT_API void PlotInfLines<ImS32>(const char* label_id, const ImS32* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+template IMPLOT_API void PlotInfLines<ImU32>(const char* label_id, const ImU32* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+template IMPLOT_API void PlotInfLines<ImS64>(const char* label_id, const ImS64* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+template IMPLOT_API void PlotInfLines<ImU64>(const char* label_id, const ImU64* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+template IMPLOT_API void PlotInfLines<float>(const char* label_id, const float* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+template IMPLOT_API void PlotInfLines<double>(const char* label_id, const double* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
 
 //-----------------------------------------------------------------------------
 // PLOT PIE CHART
@@ -1866,13 +1905,13 @@ IMPLOT_INLINE void RenderPieSlice(ImDrawList& DrawList, const ImPlotPoint& cente
 }
 
 template <typename T>
-void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0) {
+void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & DrawList = *GetPlotDrawList();
     double sum = 0;
     for (int i = 0; i < count; ++i)
         sum += (double)values[i];
-    normalize = normalize || sum > 1.0;
+    const bool normalize = ImHasFlag(flags,ImPlotPieChartFlags_Normalize) || sum > 1.0;
     ImPlotPoint center(x,y);
     PushPlotClipRect();
     double a0 = angle0 * 2 * IM_PI / 360.0;
@@ -1919,16 +1958,16 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
     PopPlotClipRect();
 }
 
-template IMPLOT_API void PlotPieChart<ImS8>(const char* const label_ids[], const ImS8* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
-template IMPLOT_API void PlotPieChart<ImU8>(const char* const label_ids[], const ImU8* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
-template IMPLOT_API void PlotPieChart<ImS16>(const char* const label_ids[], const ImS16* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
-template IMPLOT_API void PlotPieChart<ImU16>(const char* const label_ids[], const ImU16* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
-template IMPLOT_API void PlotPieChart<ImS32>(const char* const label_ids[], const ImS32* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
-template IMPLOT_API void PlotPieChart<ImU32>(const char* const label_ids[], const ImU32* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
-template IMPLOT_API void PlotPieChart<ImS64>(const char* const label_ids[], const ImS64* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
-template IMPLOT_API void PlotPieChart<ImU64>(const char* const label_ids[], const ImU64* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
-template IMPLOT_API void PlotPieChart<float>(const char* const label_ids[], const float* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
-template IMPLOT_API void PlotPieChart<double>(const char* const label_ids[], const double* values, int count, double x, double y, double radius, bool normalize, const char* fmt, double angle0);
+template IMPLOT_API void PlotPieChart<ImS8>(const char* const label_ids[], const ImS8* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+template IMPLOT_API void PlotPieChart<ImU8>(const char* const label_ids[], const ImU8* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+template IMPLOT_API void PlotPieChart<ImS16>(const char* const label_ids[], const ImS16* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+template IMPLOT_API void PlotPieChart<ImU16>(const char* const label_ids[], const ImU16* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+template IMPLOT_API void PlotPieChart<ImS32>(const char* const label_ids[], const ImS32* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+template IMPLOT_API void PlotPieChart<ImU32>(const char* const label_ids[], const ImU32* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+template IMPLOT_API void PlotPieChart<ImS64>(const char* const label_ids[], const ImS64* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+template IMPLOT_API void PlotPieChart<ImU64>(const char* const label_ids[], const ImU64* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+template IMPLOT_API void PlotPieChart<float>(const char* const label_ids[], const float* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+template IMPLOT_API void PlotPieChart<double>(const char* const label_ids[], const double* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
 
 //-----------------------------------------------------------------------------
 // PLOT HEATMAP
@@ -2106,7 +2145,11 @@ template IMPLOT_API void PlotHeatmap<double>(const char* label_id, const double*
 //-----------------------------------------------------------------------------
 
 template <typename T>
-double PlotHistogram(const char* label_id, const T* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale) {
+double PlotHistogram(const char* label_id, const T* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags) {
+
+    const bool cumulative = ImHasFlag(flags, ImPlotHistogramFlags_Cumulative);
+    const bool density    = ImHasFlag(flags, ImPlotHistogramFlags_Density);
+    const bool outliers   = !ImHasFlag(flags, ImPlotHistogramFlags_NoOutliers);
 
     if (count <= 0 || bins == 0)
         return 0;
@@ -2172,27 +2215,34 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
             bin_counts[b] *= scale;
         max_count *= scale;
     }
-    PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width);
+    if (ImHasFlag(flags, ImPlotHistogramFlags_Horizontal))
+        PlotBarsH(label_id, &bin_counts.Data[0], &bin_centers.Data[0], bins, bar_scale*width);
+    else
+        PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width);
     return max_count;
 }
 
-template IMPLOT_API double PlotHistogram<ImS8>(const char* label_id, const ImS8* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImU8>(const char* label_id, const ImU8* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImS16>(const char* label_id, const ImS16* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImU16>(const char* label_id, const ImU16* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImS32>(const char* label_id, const ImS32* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImU32>(const char* label_id, const ImU32* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImS64>(const char* label_id, const ImS64* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<ImU64>(const char* label_id, const ImU64* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<float>(const char* label_id, const float* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
-template IMPLOT_API double PlotHistogram<double>(const char* label_id, const double* values, int count, int bins, bool cumulative, bool density, ImPlotRange range, bool outliers, double bar_scale);
+template IMPLOT_API double PlotHistogram<ImS8>(const char* label_id, const ImS8* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram<ImU8>(const char* label_id, const ImU8* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram<ImS16>(const char* label_id, const ImS16* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram<ImU16>(const char* label_id, const ImU16* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram<ImS32>(const char* label_id, const ImS32* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram<ImU32>(const char* label_id, const ImU32* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram<ImS64>(const char* label_id, const ImS64* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram<ImU64>(const char* label_id, const ImU64* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram<float>(const char* label_id, const float* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram<double>(const char* label_id, const double* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
 
 //-----------------------------------------------------------------------------
 // PLOT HISTOGRAM 2D
 //-----------------------------------------------------------------------------
 
 template <typename T>
-double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers) {
+double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags) {
+
+    // const bool cumulative = ImHasFlag(flags, ImPlotHistogramFlags_Cumulative); NOT SUPPORTED
+    const bool density    = ImHasFlag(flags, ImPlotHistogramFlags_Density);
+    const bool outliers   = !ImHasFlag(flags, ImPlotHistogramFlags_NoOutliers);
 
     if (count <= 0 || x_bins == 0 || y_bins == 0)
         return 0;
@@ -2265,16 +2315,16 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
     return max_count;
 }
 
-template IMPLOT_API double PlotHistogram2D<ImS8>(const char* label_id,   const ImS8*   xs, const ImS8*   ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImU8>(const char* label_id,   const ImU8*   xs, const ImU8*   ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImS16>(const char* label_id,  const ImS16*  xs, const ImS16*  ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImU16>(const char* label_id,  const ImU16*  xs, const ImU16*  ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImS32>(const char* label_id,  const ImS32*  xs, const ImS32*  ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImU32>(const char* label_id,  const ImU32*  xs, const ImU32*  ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImS64>(const char* label_id,  const ImS64*  xs, const ImS64*  ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<ImU64>(const char* label_id,  const ImU64*  xs, const ImU64*  ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<float>(const char* label_id,  const float*  xs, const float*  ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
-template IMPLOT_API double PlotHistogram2D<double>(const char* label_id, const double* xs, const double* ys, int count, int x_bins, int y_bins, bool density, ImPlotRect range, bool outliers);
+template IMPLOT_API double PlotHistogram2D<ImS8>(const char* label_id,   const ImS8*   xs, const ImS8*   ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram2D<ImU8>(const char* label_id,   const ImU8*   xs, const ImU8*   ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram2D<ImS16>(const char* label_id,  const ImS16*  xs, const ImS16*  ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram2D<ImU16>(const char* label_id,  const ImU16*  xs, const ImU16*  ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram2D<ImS32>(const char* label_id,  const ImS32*  xs, const ImS32*  ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram2D<ImU32>(const char* label_id,  const ImU32*  xs, const ImU32*  ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram2D<ImS64>(const char* label_id,  const ImS64*  xs, const ImS64*  ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram2D<ImU64>(const char* label_id,  const ImU64*  xs, const ImU64*  ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram2D<float>(const char* label_id,  const float*  xs, const float*  ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+template IMPLOT_API double PlotHistogram2D<double>(const char* label_id, const double* xs, const double* ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
 
 //-----------------------------------------------------------------------------
 // PLOT DIGITAL
@@ -2392,13 +2442,13 @@ void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPo
 //-----------------------------------------------------------------------------
 
 // double
-void PlotText(const char* text, double x, double y, bool vertical, const ImVec2& pixel_offset) {
+void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, ImPlotTextFlags flags) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     ImDrawList & DrawList = *GetPlotDrawList();
     PushPlotClipRect();
     ImU32 colTxt = GetStyleColorU32(ImPlotCol_InlayText);
-    if (vertical) {
+    if (ImHasFlag(flags,ImPlotTextFlags_Vertical)) {
         ImVec2 siz = CalcTextSizeVertical(text) * 0.5f;
         ImVec2 ctr = siz * 0.5f;
         ImVec2 pos = PlotToPixels(ImPlotPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) + ImVec2(-ctr.x, ctr.y) + pixel_offset;
