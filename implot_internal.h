@@ -120,6 +120,8 @@ template <typename T>
 static inline T ImRemap01(T x, T x0, T x1) { return (x - x0) / (x1 - x0); }
 // Returns always positive modulo (assumes r != 0)
 static inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
+// Returns true if val is NAN
+static inline bool ImNan(double val) { return isnan(val); }
 // Returns true if val is NAN or INFINITY
 static inline bool ImNanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
 // Turns NANs to 0s
