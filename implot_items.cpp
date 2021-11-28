@@ -504,6 +504,14 @@ struct TransformerXY {
         out.y = Ty(plt.y);
         return out;
     }
+
+    template <typename T> IMPLOT_INLINE ImVec2 operator()(T x, T y) const {
+        ImVec2 out;
+        out.x = Tx(x);
+        out.y = Ty(y);
+        return out;
+    }
+
     TransformerX Tx;
     TransformerY Ty;
 };
@@ -798,8 +806,9 @@ struct ShadedRenderer : RendererBase<6,5,_Transformer> {
     mutable ImVec2 P12;
 };
 
-struct RectInfo {
-    ImPlotPoint Min, Max;
+struct RectC {
+    ImPlotPoint Pos;
+    ImPlotPoint HalfSize;
     ImU32 Color;
 };
 
@@ -810,9 +819,9 @@ struct RectRenderer : RendererBase<6,4,_Transformer> {
         Getter(getter)
     {}
     IMPLOT_INLINE bool operator()(ImDrawList& draw_list, const ImRect& cull_rect, const ImVec2& uv, int prim) const {
-        RectInfo rect = Getter(prim);
-        ImVec2 P1 = this->Transformer(rect.Min);
-        ImVec2 P2 = this->Transformer(rect.Max);
+        RectC rect = Getter(prim);
+        ImVec2 P1 = this->Transformer(rect.Pos.x - rect.HalfSize.x , rect.Pos.y - rect.HalfSize.y);
+        ImVec2 P2 = this->Transformer(rect.Pos.x + rect.HalfSize.x , rect.Pos.y + rect.HalfSize.y);
         if ((rect.Color & IM_COL32_A_MASK) == 0 || !cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
             return false;
         PrimRectFilled(P1,P2,rect.Color,draw_list,uv);
@@ -1966,24 +1975,6 @@ template IMPLOT_API void PlotPieChart<double>(const char* const label_ids[], con
 // PLOT HEATMAP
 //-----------------------------------------------------------------------------
 
-
-
-struct ColorizerSolid {
-
-};
-
-struct ColorizerLerp {
-    ColorizerLerp(double scale_min, double scale_max) :
-        ScaleMin(scale_min),
-        ScaleMax(scale_max)
-    { }
-    template <typename I> IMPLOT_INLINE ImU32 operator()(double val) {
-        const float t = ImClamp((float)ImRemap01(val, ScaleMin, ScaleMax),0.0f,1.0f);
-        return GImPlot->ColormapData.LerpTable(GImPlot->Style.Colormap, t);
-    }
-    const double ScaleMin, ScaleMax;
-};
-
 template <typename T>
 struct GetterHeatmapRowMaj {
     GetterHeatmapRowMaj(const T* values, int rows, int cols, double scale_min, double scale_max, double width, double height, double xref, double yref, double ydir) :
@@ -2000,16 +1991,14 @@ struct GetterHeatmapRowMaj {
         YDir(ydir),
         HalfSize(Width*0.5, Height*0.5)
     { }
-    template <typename I> IMPLOT_INLINE RectInfo operator()(I idx) const {
+    template <typename I> IMPLOT_INLINE RectC operator()(I idx) const {
         double val = (double)Values[idx];
         const int r = idx / Cols;
         const int c = idx % Cols;
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
-        RectInfo rect;
-        rect.Min.x = p.x - HalfSize.x;
-        rect.Min.y = p.y - HalfSize.y;
-        rect.Max.x = p.x + HalfSize.x;
-        rect.Max.y = p.y + HalfSize.y;
+        RectC rect;
+        rect.Pos = p;
+        rect.HalfSize = HalfSize;
         const float t = ImClamp((float)ImRemap01(val, ScaleMin, ScaleMax),0.0f,1.0f);
         rect.Color = GImPlot->ColormapData.LerpTable(GImPlot->Style.Colormap, t);
         return rect;
@@ -2036,16 +2025,14 @@ struct GetterHeatmapColMaj {
         YDir(ydir),
         HalfSize(Width*0.5, Height*0.5)
     { }
-    template <typename I> IMPLOT_INLINE RectInfo operator()(I idx) const {
+    template <typename I> IMPLOT_INLINE RectC operator()(I idx) const {
         double val = (double)Values[idx];
         const int r = idx % Cols;
         const int c = idx / Cols;
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
-        RectInfo rect;
-        rect.Min.x = p.x - HalfSize.x;
-        rect.Min.y = p.y - HalfSize.y;
-        rect.Max.x = p.x + HalfSize.x;
-        rect.Max.y = p.y + HalfSize.y;
+        RectC rect;
+        rect.Pos = p;
+        rect.HalfSize = HalfSize;
         const float t = ImClamp((float)ImRemap01(val, ScaleMin, ScaleMax),0.0f,1.0f);
         rect.Color = GImPlot->ColormapData.LerpTable(GImPlot->Style.Colormap, t);
         return rect;
