@@ -80,7 +80,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 - 2020/09/10 (0.8)  - The single array versions of PlotLine, PlotScatter, PlotStems, and PlotShaded were given additional arguments for x-scale and x0.
 - 2020/09/07 (0.8)  - Plotting functions which accept a custom getter function pointer have been post-fixed with a G (e.g. PlotLineG)
 - 2020/09/06 (0.7)  - Several flags under ImPlotFlags and ImPlotAxisFlags were inverted (e.g. ImPlotFlags_Legend -> ImPlotFlags_NoLegend) so that the default flagset
-                      is simply 0. This more closely matches ImGui's style and makes it easier to enable non-default but commonly used flags (e.g. ImPlotAxisFlags_Time).
+                      is simply 0. This more closely matches ImGui's style and makes it easier to enable non-default but commonly used flags (e.g. ImPlotAxisFlags_TimeScale).
 - 2020/08/28 (0.5)  - ImPlotMarker_ can no longer be combined with bitwise OR, |. This features caused unecessary slow-down, and almost no one used it.
 - 2020/08/25 (0.5)  - ImPlotAxisFlags_Scientific was removed. Logarithmic axes automatically uses scientific notation.
 - 2020/08/17 (0.5)  - PlotText was changed so that text is centered horizontally and vertically about the desired point.
@@ -1355,9 +1355,9 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_all
     ImGui::CheckboxFlags("Log Scale",(unsigned int*)&axis.Flags, ImPlotAxisFlags_LogScale);
     EndDisabledControls(axis.IsTime() && time_allowed);
     if (time_allowed) {
-        BeginDisabledControls(axis.IsLog());
-        ImGui::CheckboxFlags("Time",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Time);
-        EndDisabledControls(axis.IsLog());
+        BeginDisabledControls(axis.IsLog() || axis.IsSymLog());
+        ImGui::CheckboxFlags("Time",(unsigned int*)&axis.Flags, ImPlotAxisFlags_TimeScale);
+        EndDisabledControls(axis.IsLog() || axis.IsSymLog());
     }
     ImGui::Separator();
     ImGui::CheckboxFlags("Invert",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Invert);
@@ -2026,9 +2026,9 @@ void ApplyNextPlotData(ImAxis idx) {
 void SetupAxis(ImAxis idx, const char* label, ImPlotAxisFlags flags) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
-    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_Time) && ImHasFlag(flags, ImPlotAxisFlags_LogScale)),
-                         "ImPlotAxisFlags_Time and ImPlotAxisFlags_LogScale cannot be enabled at the same time!");
-    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_Time) && idx >= ImAxis_Y1),
+    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_TimeScale) && ImHasFlag(flags, ImPlotAxisFlags_LogScale)),
+                         "ImPlotAxisFlags_TimeScale and ImPlotAxisFlags_LogScale cannot be enabled at the same time!");
+    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_TimeScale) && idx >= ImAxis_Y1),
                          "Y axes cannot display time formatted labels!");
     // get plot and axis
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
@@ -2393,7 +2393,7 @@ void SetupFinish() {
     for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
         ImPlotAxis& axis = plot.YAxis(i);
         if (axis.WillRender() && axis.ShowDefaultTicks) {
-            if (axis.IsLog())
+            if (axis.IsLog() || axis.IsSymLog())
                 AddTicksLogarithmic(axis.Range,
                                     plot_height,
                                     true,
@@ -2421,7 +2421,7 @@ void SetupFinish() {
         if (axis.WillRender() && axis.ShowDefaultTicks) {
             if (axis.IsTime())
                 AddTicksTime(axis.Range, plot_width, axis.Ticks);
-            else if (axis.IsLog())
+            else if (axis.IsLog() || axis.IsSymLog())
                 AddTicksLogarithmic(axis.Range,
                                     plot_width,
                                     false,
@@ -3705,7 +3705,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
 }
 
 bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPlotDragToolFlags flags) {
-    ImGui::PushID("#IMPLOT_DRAG_LINE_X");
+    // ImGui::PushID("#IMPLOT_DRAG_LINE_X");
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "DragLineX() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
@@ -3750,7 +3750,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     DrawList.AddLine(ImVec2(x,yb), ImVec2(x,yb-len), col32, 3*thickness);
     PopPlotClipRect();
 
-    ImGui::PopID();
+    // ImGui::PopID();
     return dragging;
 }
 
@@ -4918,8 +4918,8 @@ void ShowAxisMetrics(const ImPlotPlot& plot, const ImPlotAxis& axis) {
     if (ImGui::TreeNode("Transform")) {
         ImGui::BulletText("PixelMin: %f", axis.PixelMin);
         ImGui::BulletText("PixelMax: %f", axis.PixelMax);
-        ImGui::BulletText("LinM: %f", axis.LinM);
-        ImGui::BulletText("LogD: %f", axis.LogD);
+        ImGui::BulletText("ScaleToPixel: %f", axis.ScaleToPixel);
+        ImGui::BulletText("ScaleMax: %f", axis.ScaleMax);
         ImGui::TreePop();
     }
 

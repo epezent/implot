@@ -106,6 +106,10 @@ extern IMPLOT_API ImPlotContext* GImPlot; // Current implicit context pointer
 // Computes the common (base-10) logarithm
 static inline float  ImLog10(float x)  { return log10f(x); }
 static inline double ImLog10(double x) { return log10(x);  }
+static inline float  ImSinh(float x)   { return sinhf(x);  }
+static inline double ImSinh(double x)  { return sinh(x);   }
+static inline float  ImAsinh(float x)  { return asinhf(x); }
+static inline double ImAsinh(double x) { return asinh(x);  }
 // Returns true if a flag is set
 template <typename TSet, typename TFlag>
 static inline bool ImHasFlag(TSet set, TFlag flag) { return (set & flag) == flag; }
@@ -217,6 +221,12 @@ static inline ImU32 ImAlphaU32(ImU32 col, float alpha) {
     return col & ~((ImU32)((1.0f-alpha)*255)<<IM_COL32_A_SHIFT);
 }
 
+// Returns true of two ranges overlap
+template <typename T>
+static inline bool ImOverlaps(T min_a, T max_a, T min_b, T max_b) {
+    return min_a <= max_b && min_b <= max_a;
+}
+
 //-----------------------------------------------------------------------------
 // [SECTION] ImPlot Enums
 //-----------------------------------------------------------------------------
@@ -228,10 +238,15 @@ typedef int ImPlotTimeFmt;     // -> enum ImPlotTimeFmt_
 
 // XY axes scaling combinations
 enum ImPlotScale_ {
-    ImPlotScale_LinLin, // linear x, linear y
-    ImPlotScale_LogLin, // log x,    linear y
-    ImPlotScale_LinLog, // linear x, log y
-    ImPlotScale_LogLog  // log x,    log y
+    ImPlotScale_LinLin, 
+    ImPlotScale_LogLin, 
+    ImPlotScale_SymLin,
+    ImPlotScale_LinLog, 
+    ImPlotScale_LogLog,  
+    ImPlotScale_SymLog,
+    ImPlotScale_LinSym, 
+    ImPlotScale_LogSym,  
+    ImPlotScale_SymSym
 };
 
 enum ImPlotTimeUnit_ {
@@ -612,7 +627,8 @@ struct ImPlotAxis
     ImPlotTime           PickerTimeMin, PickerTimeMax;
     float                Datum1, Datum2;
     float                PixelMin, PixelMax;
-    double               LinM, LogD;
+    double               ScaleMin, ScaleMax;
+    double               ScaleToPixel;
     ImRect               HoverRect;
     int                  LabelOffset;
     ImU32                ColorMaj, ColorMin, ColorTick, ColorTxt, ColorBg, ColorHov, ColorAct, ColorHiLi;
@@ -667,7 +683,7 @@ struct ImPlotAxis
         _min = ImConstrainNan(ImConstrainInf(_min));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _min = ImConstrainLog(_min);
-        if (ImHasFlag(Flags, ImPlotAxisFlags_Time))
+        if (ImHasFlag(Flags, ImPlotAxisFlags_TimeScale))
             _min = ImConstrainTime(_min);
         if (_min >= Range.Max)
             return false;
@@ -683,7 +699,7 @@ struct ImPlotAxis
         _max = ImConstrainNan(ImConstrainInf(_max));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _max = ImConstrainLog(_max);
-        if (ImHasFlag(Flags, ImPlotAxisFlags_Time))
+        if (ImHasFlag(Flags, ImPlotAxisFlags_TimeScale))
             _max = ImConstrainTime(_max);
         if (_max <= Range.Min)
             return false;
@@ -739,26 +755,50 @@ struct ImPlotAxis
     }
 
     inline void UpdateTransformCache() {
-        LinM = (PixelMax - PixelMin) / Range.Size();
-        LogD = IsLog() ? ImLog10(Range.Max / Range.Min) : 0;
-    }
-
-    inline double PixelsToPlot(float pix) const {
-        double plt = (pix - PixelMin) / LinM + Range.Min;
+        ScaleToPixel = (PixelMax - PixelMin) / Range.Size();
         if (IsLog()) {
-            double t = (plt - Range.Min) / Range.Size();
-            plt = ImPow(10, t * LogD) * Range.Min;
+            ScaleMin = ImLog10(Range.Min);
+            ScaleMax = ImLog10(Range.Max);
         }
-        return plt;
+        else if (IsSymLog()) {
+            ScaleMin = 2.0 * ImAsinh(Range.Min / 2.0);
+            ScaleMax = 2.0 * ImAsinh(Range.Max / 2.0);
+        }
+        else {
+            ScaleMin = Range.Min; 
+            ScaleMax = Range.Max;
+        }
     }
 
     inline float PlotToPixels(double plt) const {
         if (IsLog()) {
             plt      = plt <= 0.0 ? IMPLOT_LOG_ZERO : plt;
-            double t = ImLog10(plt / Range.Min) / LogD;
-            plt      = ImLerp(Range.Min, Range.Max, (float)t);
+            double s = ImLog10(plt);
+            double t = (s - ScaleMin) / (ScaleMax - ScaleMin);
+            plt      = Range.Min + Range.Size() * t;
         }
-        return (float)(PixelMin + LinM * (plt - Range.Min));
+        else if (IsSymLog()) {
+            double s = 2.0 * ImAsinh(plt / 2.0);
+            double t = (s - ScaleMin) / (ScaleMax - ScaleMin);
+            plt      = Range.Min + Range.Size() * t;
+        }
+        return (float)(PixelMin + ScaleToPixel * (plt - Range.Min));
+    }
+
+    
+    inline double PixelsToPlot(float pix) const {
+        double plt = (pix - PixelMin) / ScaleToPixel + Range.Min;
+        if (IsLog()) {
+            double t = (plt - Range.Min) / Range.Size();
+            double s = t * (ScaleMax - ScaleMin) + ScaleMin;
+            plt = ImPow(10, s);
+        }
+        else if (IsSymLog()) {
+            double t = (plt - Range.Min) / Range.Size();
+            double s = t * (ScaleMax - ScaleMin) + ScaleMin;
+            plt = 2.0 * ImSinh(s / 2.0);
+        }
+        return plt;
     }
 
     inline void ExtendFit(double v) {
@@ -810,8 +850,9 @@ struct ImPlotAxis
     inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                                         }
     inline bool IsInputLockedMax()  const { return IsLockedMax() || IsAutoFitting();                                                         }
     inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                                         }
-    inline bool IsTime()            const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                                                   }
+    inline bool IsTime()            const { return ImHasFlag(Flags, ImPlotAxisFlags_TimeScale);                                              }
     inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                                               }
+    inline bool IsSymLog()          const { return ImHasFlag(Flags, ImPlotAxisFlags_SymLogScale);                                            }
     inline bool HasMenus()          const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoMenus);                                               }
 
     void PushLinks() {
@@ -1278,14 +1319,30 @@ static inline ImPlotScale GetCurrentScale() {
     ImPlotPlot& plot = *GetCurrentPlot();
     ImPlotAxis& x = plot.Axes[plot.CurrentX];
     ImPlotAxis& y = plot.Axes[plot.CurrentY];
-    if (!x.IsLog() && !y.IsLog())
-        return ImPlotScale_LinLin;
-    else if (x.IsLog() && !y.IsLog())
-        return ImPlotScale_LogLin;
-    else if (!x.IsLog() && y.IsLog())
-        return ImPlotScale_LinLog;
-    else
-        return ImPlotScale_LogLog;
+    if (x.IsLog()) {
+        if (y.IsLog())
+            return ImPlotScale_LogLog;
+        else if (y.IsSymLog())
+            return ImPlotScale_LogSym;
+        else 
+            return ImPlotScale_LogLin;
+    }
+    else if (x.IsSymLog()) {
+        if (y.IsLog())
+            return ImPlotScale_SymLog;
+        else if (y.IsSymLog())
+            return ImPlotScale_SymSym;
+        else 
+            return ImPlotScale_SymLin;
+    }
+    else {
+        if (y.IsLog())
+            return ImPlotScale_LinLog;
+        else if (y.IsSymLog())
+            return ImPlotScale_LinSym;
+        else 
+            return ImPlotScale_LinLin;
+    }
 }
 
 // Returns true if the user has requested data to be fit.
