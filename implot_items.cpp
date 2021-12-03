@@ -293,7 +293,7 @@ void EndItem() {
 // Offsets and strides a data buffer
 template <typename T>
 IMPLOT_INLINE T IndexData(const T* data, int idx, int count, int offset, int stride) {
-    const int s = ((offset == 0) << 0) | ((stride == sizeof(float)) << 1);
+    const int s = ((offset == 0) << 0) | ((stride == sizeof(T)) << 1);
     switch (s) {
         case 3 : return data[idx];
         case 2 : return data[(offset + idx) % count];
