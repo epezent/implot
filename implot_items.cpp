@@ -1195,11 +1195,11 @@ IMPLOT_INLINE void PlotShadedEx(const char* label_id, const Getter1& getter1, co
 template <typename T>
 void PlotShaded(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, int offset, int stride) {
     bool fit2 = true;
-    if (y_ref == -HUGE_VAL) {
+    if (!(y_ref > -DBL_MAX)) { // filters out nans too
         fit2 = false;
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;
     }
-    if (y_ref == HUGE_VAL) {
+    if (!(y_ref < DBL_MAX)) { // filters out nans too
         fit2 = false;
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
     }
@@ -1222,11 +1222,11 @@ template IMPLOT_API void PlotShaded<double>(const char* label_id, const double* 
 template <typename T>
 void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref, int offset, int stride) {
     bool fit2 = true;
-    if (y_ref == -HUGE_VAL) {
+    if (!(y_ref > -DBL_MAX)) { // filters out nans too
         fit2 = false;
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;
     }
-    if (y_ref == HUGE_VAL) {
+    if (!(y_ref < DBL_MAX)) { // filters out nans too
         fit2 = false;
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
     }
