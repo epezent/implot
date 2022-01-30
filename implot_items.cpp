@@ -25,10 +25,6 @@
 #include "implot.h"
 #include "implot_internal.h"
 
-#ifdef _MSC_VER
-#define sprintf sprintf_s
-#endif
-
 #define SQRT_1_2 0.70710678118f
 #define SQRT_3_2 0.86602540378f
 
@@ -1906,7 +1902,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
             double percent = normalize ? (double)values[i] / sum : (double)values[i];
             a1 = a0 + 2 * IM_PI * percent;
             if (item->Show) {
-                snprintf(buffer, 32, fmt, (double)values[i]);
+                ImFormatString(buffer, 32, fmt, (double)values[i]);
                 ImVec2 size = ImGui::CalcTextSize(buffer);
                 double angle = a0 + (a1 - a0) * 0.5;
                 ImVec2 pos = PlotToPixels(center.x + 0.5 * radius * cos(angle), center.y + 0.5 * radius * sin(angle),IMPLOT_AUTO,IMPLOT_AUTO);
@@ -2060,7 +2056,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& DrawList, const T* value
                 p.y = yref + ydir * (0.5*h + r*h);
                 ImVec2 px = transformer(p);
                 char buff[32];
-                sprintf(buff, 32, fmt, values[i]);
+                ImFormatString(buff, 32, fmt, values[i]);
                 ImVec2 size = ImGui::CalcTextSize(buff);
                 double t = ImClamp(ImRemap01((double)values[i], scale_min, scale_max),0.0,1.0);
                 ImVec4 color = SampleColormap((float)t);
