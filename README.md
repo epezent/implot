@@ -19,7 +19,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
     - line plots
     - shaded plots
     - scatter plots
-    - vertical/horizontal bars graphs
+    - vertical/horizontal/stacked bars graphs
     - vertical/horizontal error bars
     - stem plots
     - stair plots
