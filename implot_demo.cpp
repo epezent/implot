@@ -277,7 +277,7 @@ void ShowDemo_Config() {
     ImGui::Separator();
     if (ImPlot::BeginPlot("Preview")) {
         static double now = (double)time(0);
-        ImPlot::SetupAxis(ImAxis_X1,NULL,ImPlotAxisFlags_TimeScale);
+        ImPlot::SetupAxis(ImAxis_X1,NULL,ImPlotAxisFlags_Time);
         ImPlot::SetupAxisLimits(ImAxis_X1, now, now + 24*3600);
         for (int i = 0; i < 10; ++i) {
             double x[2] = {now, now + 24*3600};
@@ -1012,31 +1012,19 @@ void ShowDemo_LogAxes() {
 
 //-----------------------------------------------------------------------------
 
-template <typename T> int sign(T val) {
-    return (T(0) < val) - (val < T(0));
-}
-
 void ShowDemo_SymmetricLogAxes() {
-    static double xs[1001], xs1[1001], xs2[1001], xs3[1001], ys[1001];
+    static double xs[1001], ys1[1001], ys2[1001];
     for (int i = 0; i < 1001; ++i) {
         xs[i]  = i*0.1f-50;
-        xs1[i] = log10(xs[i]);
-        xs2[i] = sign(xs[i])*(log10(1+fabs(xs[i])/pow(10,0)));
-        xs3[i] = 2*asinh(xs[i]/2);
-        ys[i]  = sin(xs[i]) + 1; // i*0.1f;
+        ys1[i] = sin(xs[i]); 
+        ys2[i] = i*0.002 - 1;
     }
-    static ImPlotAxisFlags flags = 0;
+    static ImPlotAxisFlags flags = ImPlotAxisFlags_SymLogScale;
     CHECKBOX_FLAG(flags, ImPlotAxisFlags_SymLogScale);
     if (ImPlot::BeginPlot("SymLog Plot", ImVec2(-1,0))) {
         ImPlot::SetupAxis(ImAxis_X1, NULL, flags);
-        ImPlot::PlotLine("Data1",xs,ys,1001);
-        ImPlot::PlotLine("Data2",xs2,ys,1001);
-        ImPlot::PlotLine("Data3",xs3,ys,1001);
-        ImPlot::EndPlot();
-    }
-    if (ImPlot::BeginPlot("SymLog Plot2", ImVec2(-1,0))) {
-        ImPlot::SetupAxis(ImAxis_X1, NULL, ImPlotAxisFlags_LogScale);
-        ImPlot::PlotLine("Data1",xs,ys,1001);
+        ImPlot::PlotLine("f(x) = a*x+b",xs,ys2,1001);
+        ImPlot::PlotLine("f(x) = sin(x)",xs,ys1,1001);
         ImPlot::EndPlot();
     }
 }
@@ -1048,7 +1036,7 @@ void ShowDemo_TimeAxes() {
     static double t_min = 1609459200; // 01/01/2021 @ 12:00:00am (UTC)
     static double t_max = 1640995200; // 01/01/2022 @ 12:00:00am (UTC)
 
-    ImGui::BulletText("When ImPlotAxisFlags_TimeScale is enabled on the X-Axis, values are interpreted as\n"
+    ImGui::BulletText("When ImPlotAxisFlags_Time is enabled on the X-Axis, values are interpreted as\n"
                         "UNIX timestamps in seconds and axis labels are formated as date/time.");
     ImGui::BulletText("By default, labels are in UTC time but can be set to use local time instead.");
 
@@ -1068,7 +1056,7 @@ void ShowDemo_TimeAxes() {
     }
 
     if (ImPlot::BeginPlot("##Time", ImVec2(-1,0))) {
-        ImPlot::SetupAxis(ImAxis_X1, NULL, ImPlotAxisFlags_TimeScale);
+        ImPlot::SetupAxis(ImAxis_X1, NULL, ImPlotAxisFlags_Time);
         ImPlot::SetupAxesLimits(t_min,t_max,0,1);
         if (data != NULL) {
             // downsample our data
@@ -2020,7 +2008,7 @@ void ShowDemo_CustomPlottersAndTooltips()  {
     ImPlot::GetStyle().UseLocalTime = false;
 
     if (ImPlot::BeginPlot("Candlestick Chart",ImVec2(-1,0))) {
-        ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_TimeScale,ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_RangeFit);
+        ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_Time,ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_RangeFit);
         ImPlot::SetupAxesLimits(1546300800, 1571961600, 1250, 1600);
         ImPlot::SetupAxisFormat(ImAxis_Y1, "$%.0f");
         MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);

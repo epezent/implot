@@ -7,12 +7,13 @@ The list below represents a combination of high-priority work, nice-to-have feat
 ## Axes
 
 - add flag to remove weekends on Time axis
-- pixel space scale (`ImPlotTransform_Display`), normalized space scale (`ImPlotTransform_Axes`), data space scale (`ImPloTransform_Data`)
+- pixel space scale (`ImPlotTransform_Display`), normalized space scale (`ImPlotTransform_Axes`), data space scale (`ImPlotTransform_Data`)
 - make ImPlotFlags_Equal not a flag -> `SetupEqual(ImPlotAxis x, ImPlotAxis y)`
 - allow inverted arguments `SetAxes` to transpose data?
 - `SetupAxisColors()`
 - `SetupAxisConstraints()`
 - `SetupAxisHome()`
+- `SetupAxisScale()`
 
 ## Plot Items
 
@@ -21,6 +22,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add `PlotBubbles` (see MATLAB bubble chart)
 - add non-zero references for `PlotBars` etc.
 - add exploding to `PlotPieChart` (on hover-highlight?)
+- `PlotBars` restore outlines
 
 ## Styling
 
@@ -32,6 +34,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 - gradient editing tool
 - `RemoveColormap`
+- `enum ImPlotColorRule_ { Solid, Faded, XValue, YValue, ZValue }`
 
 ## Legend
 
@@ -54,6 +57,32 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - find faster way to buffer data into ImDrawList (very slow)
 - reduce number of calls to `PushClipRect`
 - explore SIMD operations for high density plot items
+
+## Plotter Pipeline
+
+Ideally every `PlotX` function should use our faster rendering pipeline when it is applicable.
+
+` User Data > Getter > Fitter > RenderPrimitives(Renderer)`
+
+|Plotter|Getter|Fitter|Renderer|RenderPrimitives|
+|---|:-:|:-:|:-:|:-:|
+|PlotLine|Yes|Yes|Mixed|Mixed|
+|PlotScatter|Yes|Yes|No|No|
+|PlotStairs|Yes|Yes|Mixed|Mixed|
+|PlotShaded|Yes|Yes|Yes|Yes|
+|PlotBars|Yes|Yes|Yes|Yes|
+|PlotBarGroups|.|.|.|.|
+|PlotHistogram|.|.|.|.|
+|PlotErrorBars|Yes|Yes|No|No|
+|PlotStems|Yes|Yes|Mixed|Mixed|
+|PlotInfLines|Yes|No|Yes|Yes|
+|PlotPieChart|No|No|No|No|
+|PlotHeatmap|Yes|No|Yes|Mixed|
+|PlotHistogram2D|.|.|.|.|
+|PlotDigital|Yes|No|No|No|
+|PlotImage|-|-|-|-|
+|PlotText|-|-|-|-|
+|PlotDummy|-|-|-|-|
 
 ## Completed
 - make BeginPlot take fewer args:

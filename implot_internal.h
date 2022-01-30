@@ -683,7 +683,7 @@ struct ImPlotAxis
         _min = ImConstrainNan(ImConstrainInf(_min));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _min = ImConstrainLog(_min);
-        if (ImHasFlag(Flags, ImPlotAxisFlags_TimeScale))
+        if (ImHasFlag(Flags, ImPlotAxisFlags_Time))
             _min = ImConstrainTime(_min);
         if (_min >= Range.Max)
             return false;
@@ -699,7 +699,7 @@ struct ImPlotAxis
         _max = ImConstrainNan(ImConstrainInf(_max));
         if (ImHasFlag(Flags, ImPlotAxisFlags_LogScale))
             _max = ImConstrainLog(_max);
-        if (ImHasFlag(Flags, ImPlotAxisFlags_TimeScale))
+        if (ImHasFlag(Flags, ImPlotAxisFlags_Time))
             _max = ImConstrainTime(_max);
         if (_max <= Range.Min)
             return false;
@@ -850,7 +850,7 @@ struct ImPlotAxis
     inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                                         }
     inline bool IsInputLockedMax()  const { return IsLockedMax() || IsAutoFitting();                                                         }
     inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                                         }
-    inline bool IsTime()            const { return ImHasFlag(Flags, ImPlotAxisFlags_TimeScale);                                              }
+    inline bool IsTime()            const { return ImHasFlag(Flags, ImPlotAxisFlags_Time);                                              }
     inline bool IsLog()             const { return ImHasFlag(Flags, ImPlotAxisFlags_LogScale);                                               }
     inline bool IsSymLog()          const { return ImHasFlag(Flags, ImPlotAxisFlags_SymLogScale);                                            }
     inline bool HasMenus()          const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoMenus);                                               }
@@ -1119,29 +1119,34 @@ struct ImPlotNextPlotData
 
 // Temporary data storage for upcoming item
 struct ImPlotNextItemData {
-    ImVec4       Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
-    float        LineWeight;
-    ImPlotMarker Marker;
-    float        MarkerSize;
-    float        MarkerWeight;
-    float        FillAlpha;
-    float        ErrorBarSize;
-    float        ErrorBarWeight;
-    float        DigitalBitHeight;
-    float        DigitalBitGap;
-    bool         RenderLine;
-    bool         RenderFill;
-    bool         RenderMarkerLine;
-    bool         RenderMarkerFill;
-    bool         HasHidden;
-    bool         Hidden;
-    ImPlotCond   HiddenCond;
+    ImVec4          Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
+    float           LineWeight;
+    ImPlotMarker    Marker;
+    float           MarkerSize;
+    float           MarkerWeight;
+    float           FillAlpha;
+    float           ErrorBarSize;
+    float           ErrorBarWeight;
+    float           DigitalBitHeight;
+    float           DigitalBitGap;
+    bool            RenderLine;
+    bool            RenderFill;
+    bool            RenderMarkerLine;
+    bool            RenderMarkerFill;
+    bool            HasHidden;
+    bool            Hidden;
+    ImPlotCond      HiddenCond;
+    ImPlotColorRule ColorRule;
+    double          ColorRuleMin;
+    double          ColorRuleMax;
     ImPlotNextItemData() { Reset(); }
     void Reset() {
         for (int i = 0; i < 5; ++i)
             Colors[i] = IMPLOT_AUTO_COL;
         LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker        = IMPLOT_AUTO;
+        ColorRule     = IMPLOT_AUTO;
+        ColorRuleMin  = ColorRuleMax = 0;
         HasHidden     = Hidden = false;
     }
 };
@@ -1263,7 +1268,20 @@ IMPLOT_API void ShowSubplotsContextMenu(ImPlotSubplot& subplot);
 //-----------------------------------------------------------------------------
 
 // Begins a new item. Returns false if the item should not be plotted. Pushes PlotClipRect.
-IMPLOT_API bool BeginItem(const char* label_id, ImPlotCol recolor_from = -1);
+IMPLOT_API bool BeginItem(const char* label_id, ImPlotItemFlags flags=0, ImPlotCol recolor_from=IMPLOT_AUTO);
+
+// Same as above but with fitting functionality.
+template <typename _Fitter>
+bool BeginItemEx(const char* label_id, const _Fitter& fitter, ImPlotItemFlags flags=0, ImPlotCol recolor_from=IMPLOT_AUTO) {
+    if (BeginItem(label_id, flags, recolor_from)) {
+        ImPlotPlot& plot = *GetCurrentPlot();
+        if (plot.FitThisFrame) 
+            fitter.Fit(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]);        
+        return true;
+    }
+    return false;
+}
+
 // Ends an item (call only if BeginItem returns true). Pops PlotClipRect.
 IMPLOT_API void EndItem();
 
@@ -1406,15 +1424,6 @@ static inline void DefaultFormatter(double value, char* buff, int size, void* da
 
 // Label a tick with time formatting.
 IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);
-
-// Populates a list of ImPlotTicks with normal spaced and formatted ticks
-IMPLOT_API void AddTicksDefault(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
-// Populates a list of ImPlotTicks with logarithmic space and formatted ticks
-IMPLOT_API void AddTicksLogarithmic(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
-// Populates a list of ImPlotTicks with custom spaced and labeled ticks
-IMPLOT_API void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data);
-// Populates a list of ImPlotTicks with time formatted ticks.
-IMPLOT_API void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollection& ticks);
 
 // Create a a string label for a an axis value
 IMPLOT_API void LabelAxisValue(const ImPlotAxis& axis, double value, char* buff, int size, bool round = false);

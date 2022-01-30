@@ -79,12 +79,12 @@ struct ImPlotContext;             // ImPlot context (opaque struct, see implot_i
 typedef int ImAxis;               // -> enum ImAxis_
 typedef int ImPlotFlags;          // -> enum ImPlotFlags_
 typedef int ImPlotAxisFlags;      // -> enum ImPlotAxisFlags_
-typedef int ImPlotAxisScale;      // -> enum ImPlotAxisScale_
 typedef int ImPlotSubplotFlags;   // -> enum ImPlotSubplotFlags_
 typedef int ImPlotLegendFlags;    // -> enum ImPlotLegendFlags_
 typedef int ImPlotMouseTextFlags; // -> enum ImPlotMouseTextFlags_
 typedef int ImPlotDragToolFlags;  // -> ImPlotDragToolFlags_
 
+typedef int ImPlotItemFlags;      // -> ImPlotItemFlags_
 typedef int ImPlotLineFlags;      // -> ImPlotLineFlags_       
 typedef int ImPlotScatterFlags;   // -> ImPlotScatterFlags      
 typedef int ImPlotStairsFlags;    // -> ImPlotStairsFlags_      
@@ -153,9 +153,9 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_NoMenus       = 1 << 5,  // the user will not be able to open context menus with right-click
     ImPlotAxisFlags_Opposite      = 1 << 6,  // axis ticks and labels will be rendered on the conventionally opposite side (i.e, right or top)
     ImPlotAxisFlags_Foreground    = 1 << 7,  // grid lines will be displayed in the foreground (i.e. on top of data) in stead of the background
-    ImPlotAxisFlags_LogScale      = 1 << 8,  // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_TimeScale and ImPlotAxisFlags_SymLogScale)
-    ImPlotAxisFlags_SymLogScale   = 1 << 9,  // (TODO)
-    ImPlotAxisFlags_TimeScale     = 1 << 10, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale)
+    ImPlotAxisFlags_LogScale      = 1 << 8,  // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time and ImPlotAxisFlags_SymLogScale)
+    ImPlotAxisFlags_SymLogScale   = 1 << 9,  // a symmetric log scale will be used (mutually exclusive with ImPlotAxisFlags_LogScale and ImPlotAxisFlags_Time)
+    ImPlotAxisFlags_Time          = 1 << 10, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale and ImPlotAxisFlags_SymLogScale)
     ImPlotAxisFlags_Invert        = 1 << 11, // the axis will be inverted
     ImPlotAxisFlags_AutoFit       = 1 << 12, // axis will be auto-fitting to data extents
     ImPlotAxisFlags_RangeFit      = 1 << 13, // axis will only fit points if the point is in the visible range of the **orthogonal** axis
@@ -164,15 +164,6 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
     ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels,
     ImPlotAxisFlags_AuxDefault    = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_Opposite
-};
-
-// Axis scaling options (see SetupAxisScale).
-enum ImPlotAxisScale_ {
-    ImPlotAxisScale_Linear = 0,
-    ImPlotAxisScale_Time   = 1,
-    ImPlotAxisScale_Log    = 2,
-    ImPlotAxisScale_SymLog = 3,
-    ImPlotAxisScale_Custom = 4
 };
 
 // Options for subplots (see BeginSubplot).
@@ -219,83 +210,90 @@ enum ImPlotDragToolFlags_ {
     ImPlotDragToolFlags_Delayed   = 1 << 3, // tool rendering will be delayed one frame; useful when applying position-constraints
 };
 
+// Flags for ANY PlotX function
+enum ImPlotItemFlags_ {
+    ImPlotItemFlags_None     = 0,
+    ImPlotItemFlags_NoLegend = 1 << 0, // the item won't have a legend entry displayed
+    ImPlotItemFlags_NoFit    = 1 << 1, // the item won't be considered for plot fits
+};
+
 // Flags for PlotLine
 enum ImPlotLineFlags_ { 
     ImPlotLineFlags_None     = 0,      // default 
-    ImPlotLineFlags_Segments = 1 << 0, // a line segment will be rendered from every two consecutive points
-    ImPlotLineFlags_Loop     = 1 << 1, // the last and first point will be connected to form a closed loop
-    ImPlotLineFlags_SkipNaN  = 1 << 2, // NaNs values will be skipped instead of rendered as missing data
-    ImPlotLineFlags_NoClip   = 1 << 3, // markers (if displayed) on the edge of a plot will not be clipped
+    ImPlotLineFlags_Segments = 1 << 10, // a line segment will be rendered from every two consecutive points
+    ImPlotLineFlags_Loop     = 1 << 11, // the last and first point will be connected to form a closed loop
+    ImPlotLineFlags_SkipNaN  = 1 << 12, // NaNs values will be skipped instead of rendered as missing data
+    ImPlotLineFlags_NoClip   = 1 << 13, // markers (if displayed) on the edge of a plot will not be clipped
 };
 
 // Flags for PlotScatter 
 enum ImPlotScatterFlags_ { 
-    ImPlotScatterFlags_None   = 0,      // default 
-    ImPlotScatterFlags_NoClip = 1 << 0, // markers on the edge of a plot will not be clipped
+    ImPlotScatterFlags_None   = 0,       // default 
+    ImPlotScatterFlags_NoClip = 1 << 10, // markers on the edge of a plot will not be clipped
 };
 
 // Flags for PlotStairs 
 enum ImPlotStairsFlags_ { 
-    ImPlotStairsFlags_None     = 0,     // default
-    ImPlotStairsFlags_PreStep  = 1 << 0 // The y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
+    ImPlotStairsFlags_None     = 0,      // default
+    ImPlotStairsFlags_PreStep  = 1 << 10 // The y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
 };
 
 // Flags for PlotShaded 
 enum ImPlotShadedFlags_ { 
-    ImPlotShadedFlags_None  = 0      // default 
+    ImPlotShadedFlags_None  = 0 // default 
 };
 
 // Flags for PlotBars
 enum ImPlotBarsFlags_ { 
-    ImPlotBarsFlags_None         = 0,      // default 
-    ImPlotBarsFlags_Horizontal   = 1 << 0, // bars will be rendered horizontally on the current y-axis
+    ImPlotBarsFlags_None         = 0,       // default 
+    ImPlotBarsFlags_Horizontal   = 1 << 10, // bars will be rendered horizontally on the current y-axis
 };
 
 // Flags for PlotBarGroups
 enum ImPlotBarGroupsFlags_ {
-    ImPlotBarGroupsFlags_None       = 0,      // default
-    ImPlotBarGroupsFlags_Horizontal = 1 << 0, // bar groups will be rendered horizontally on the current y-axis
-    ImPlotBarGroupsFlags_Stacked    = 1 << 1, // items in a group will be stacked on top of each other
+    ImPlotBarGroupsFlags_None       = 0,       // default
+    ImPlotBarGroupsFlags_Horizontal = 1 << 10, // bar groups will be rendered horizontally on the current y-axis
+    ImPlotBarGroupsFlags_Stacked    = 1 << 11, // items in a group will be stacked on top of each other
 };
 
 // Flags for PlotErrorBars
 enum ImPlotErrorBarsFlags_ { 
-    ImPlotErrorBarsFlags_None       = 0,      // default 
-    ImPlotErrorBarsFlags_Horizontal = 1 << 0, // error bars will be rendered horizontally on the current y-axis
+    ImPlotErrorBarsFlags_None       = 0,       // default 
+    ImPlotErrorBarsFlags_Horizontal = 1 << 10, // error bars will be rendered horizontally on the current y-axis
 };
 
 // Flags for PlotStems
 enum ImPlotStemsFlags_ { 
-    ImPlotStemsFlags_None       = 0,      // default 
-    ImPlotStemsFlags_Horizontal = 1 << 0, // stems will be rendered horizontally on the current y-axis (TODO)
+    ImPlotStemsFlags_None       = 0,       // default 
+    ImPlotStemsFlags_Horizontal = 1 << 10, // stems will be rendered horizontally on the current y-axis (TODO)
 };
 
 // Flags for PlotInfLines
 enum ImPlotInfLinesFlags_ { 
-    ImPlotInfLinesFlags_None       = 0,     // default
-    ImPlotInfLinesFlags_Horizontal = 1 << 0 // lines will be rendered horizontally on the current y-axis 
+    ImPlotInfLinesFlags_None       = 0,      // default
+    ImPlotInfLinesFlags_Horizontal = 1 << 10 // lines will be rendered horizontally on the current y-axis 
 };
 
 // Flags for PlotPieChart
 enum ImPlotPieChartFlags_ { 
-    ImPlotPieChartFlags_None      = 0,     // default
-    ImPlotPieChartFlags_Normalize = 1 << 0 // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
+    ImPlotPieChartFlags_None      = 0,      // default
+    ImPlotPieChartFlags_Normalize = 1 << 10 // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
 };
 
 // Flags for PlotHeatmap
 enum ImPlotHeatmapFlags_ { 
-    ImPlotHeatmapFlags_None     = 0,      // default 
-    ImPlotHeatmapFlags_ColMajor = 1 << 0, // data will be read in column major order
+    ImPlotHeatmapFlags_None     = 0,       // default 
+    ImPlotHeatmapFlags_ColMajor = 1 << 10, // data will be read in column major order
 };
 
 // Flags for PlotHistogram and PlotHistogram2D
 enum ImPlotHistogramFlags_ {
-    ImPlotHistogramFlags_None       = 0,      // default 
-    ImPlotHistogramFlags_Horizontal = 1 << 0, // histogram bars will be rendered horizontally (not supported by PlotHistogram2D)
-    ImPlotHistogramFlags_Cumulative = 1 << 1, // each bin will contain its count plus the counts of all previous bins (not supported by PlotHistogram2D)
-    ImPlotHistogramFlags_Density    = 1 << 2, // counts will be normalized, i.e. the PDF will be visualized, or the CDF will be visualized if Cumulative is also set
-    ImPlotHistogramFlags_NoOutliers = 1 << 3, // exclude values outside the specifed histogram range from the count toward normalizing and cumulative counts
-    ImPlotHistogramFlags_ColMajor   = 1 << 4  // data will be read in column major order (not supported by PlotHistogram)
+    ImPlotHistogramFlags_None       = 0,       // default 
+    ImPlotHistogramFlags_Horizontal = 1 << 10, // histogram bars will be rendered horizontally (not supported by PlotHistogram2D)
+    ImPlotHistogramFlags_Cumulative = 1 << 11, // each bin will contain its count plus the counts of all previous bins (not supported by PlotHistogram2D)
+    ImPlotHistogramFlags_Density    = 1 << 12, // counts will be normalized, i.e. the PDF will be visualized, or the CDF will be visualized if Cumulative is also set
+    ImPlotHistogramFlags_NoOutliers = 1 << 13, // exclude values outside the specifed histogram range from the count toward normalizing and cumulative counts
+    ImPlotHistogramFlags_ColMajor   = 1 << 14  // data will be read in column major order (not supported by PlotHistogram)
 };
 
 // Flags for PlotDigital (placeholder)
@@ -310,8 +308,8 @@ enum ImPlotImageFlags_ {
 
 // Flags for PlotText
 enum ImPlotTextFlags_ { 
-    ImPlotTextFlags_None     = 0,      // default 
-    ImPlotTextFlags_Vertical = 1 << 0  // text will be rendered vertically
+    ImPlotTextFlags_None     = 0,       // default 
+    ImPlotTextFlags_Vertical = 1 << 10  // text will be rendered vertically
 };
 
 // Flags for PlotDummy (placeholder)   
@@ -423,15 +421,6 @@ enum ImPlotColormap_ {
     ImPlotColormap_PiYG     = 13,  // pink/yellow-green, Color Brewer (qual=false, n=11)
     ImPlotColormap_Spectral = 14,  // color spectrum, Color Brewer    (qual=false, n=11)
     ImPlotColormap_Greys    = 15,  // white/black                     (qual=false, n=2 )
-};
-
-// Rules for how an item should be colored (TODO)
-enum ImPlotColorRule_ {
-    ImPlotColorRule_Solid   = 0, // 
-    ImPlotColorRule_Faded   = 1, //
-    ImPlotColorRule_XValue  = 2, //
-    ImPlotColorRule_YValue  = 3, // 
-    ImPlotColorRule_XYValue = 4, // 
 };
 
 // Used to position items on a plot (e.g. legends, labels, etc.)
@@ -559,9 +548,6 @@ struct ImPlotInputMap {
 
 // Callback signature for axis tick label formatter.
 typedef void (*ImPlotFormatter)(double value, char* buff, int size, void* user_data);
-
-// Callback signature for axis scale transform function.
-typedef double (*ImPlotTransform)(double value, void* user_data);
 
 // Callback signature for data getter.
 typedef ImPlotPoint (*ImPlotGetter)(void* user_data, int idx);
@@ -718,10 +704,6 @@ IMPLOT_API void SetupAxisFormat(ImAxis axis, ImPlotFormatter formatter, void* da
 IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[]=NULL, bool keep_default=false);
 // Sets an axis' ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
 IMPLOT_API void SetupAxisTicks(ImAxis axis, double v_min, double v_max, int n_ticks, const char* const labels[]=NULL, bool keep_default=false);
-// Sets an axis' scale. See ImPlotAxisScale enum for explanation of #param value. (TODO)
-IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotAxisScale scale, double param = IMPLOT_AUTO);
-// Set an axis's scale to a custom scale. #forward should transform values from data space to pixel space; #inverse should do the opposite. (TODO)
-IMPLOT_API void SetupAxisScale(ImAxis, ImPlotTransform forward, ImPlotTransform inverse, void* forward_data=NULL, void* inverse_data=NULL);
 
 // Sets the label and/or flags for primary X and Y axes (shorthand for two calls to SetupAxis).
 IMPLOT_API void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFlags x_flags=0, ImPlotAxisFlags y_flags=0);
@@ -858,8 +840,8 @@ IMPLOT_TMP void PlotErrorBars(const char* label_id, const T* xs, const T* ys, co
 IMPLOT_TMP void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, ImPlotErrorBarsFlags flags=0, int offset=0, int stride=sizeof(T));
 
 // Plots vertical stems.
-IMPLOT_TMP void PlotStems(const char* label_id, const T* values, int count, double yref=0, double xscale=1, double x0=0, int offset=0, int stride=sizeof(T));
-IMPLOT_TMP void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double yref=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotStems(const char* label_id, const T* values, int count, double yref=0, double xscale=1, double x0=0, ImPlotStemsFlags flags=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double yref=0, ImPlotStemsFlags flags=0, int offset=0, int stride=sizeof(T));
 
 // Plots infinite vertical or horizontal lines (e.g. for references or asymptotes).
 IMPLOT_TMP void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLinesFlags flags=0, int offset=0, int stride=sizeof(T));

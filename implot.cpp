@@ -80,7 +80,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 - 2020/09/10 (0.8)  - The single array versions of PlotLine, PlotScatter, PlotStems, and PlotShaded were given additional arguments for x-scale and x0.
 - 2020/09/07 (0.8)  - Plotting functions which accept a custom getter function pointer have been post-fixed with a G (e.g. PlotLineG)
 - 2020/09/06 (0.7)  - Several flags under ImPlotFlags and ImPlotAxisFlags were inverted (e.g. ImPlotFlags_Legend -> ImPlotFlags_NoLegend) so that the default flagset
-                      is simply 0. This more closely matches ImGui's style and makes it easier to enable non-default but commonly used flags (e.g. ImPlotAxisFlags_TimeScale).
+                      is simply 0. This more closely matches ImGui's style and makes it easier to enable non-default but commonly used flags (e.g. ImPlotAxisFlags_Time).
 - 2020/08/28 (0.5)  - ImPlotMarker_ can no longer be combined with bitwise OR, |. This features caused unecessary slow-down, and almost no one used it.
 - 2020/08/25 (0.5)  - ImPlotAxisFlags_Scientific was removed. Logarithmic axes automatically uses scientific notation.
 - 2020/08/17 (0.5)  - PlotText was changed so that text is centered horizontally and vertically about the desired point.
@@ -693,43 +693,78 @@ void AddTicksDefault(const ImPlotRange& range, float pix, bool vertical, ImPlotT
     }
     // prune if necessary
     if ((!vertical && total_size.x > pix*TICK_FILL_X) || (vertical && total_size.y > pix*TICK_FILL_Y)) {
-        for (int i = first_major_idx-1; i >= idx0; i -= 2)
+        for (int i = first_major_idx-1; i >= idx0; i -= 2) 
             ticks.Ticks[i].ShowLabel = false;
         for (int i = first_major_idx+1; i < ticks.Size; i += 2)
             ticks.Ticks[i].ShowLabel = false;
     }
 }
 
-void AddTicksLogarithmic(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data) {
-    if (range.Min <= 0 || range.Max <= 0)
-        return;
+void CalcLogarithmicExponents(const ImPlotRange& range, float pix, bool vertical, int& exp_min, int& exp_max, int& exp_step) {
+    IM_ASSERT(range.Min * range.Max > 0);
     const int nMajor = vertical ? ImMax(2, (int)IM_ROUND(pix * 0.02f)) : ImMax(2, (int)IM_ROUND(pix * 0.01f));
-    double log_min = ImLog10(range.Min);
-    double log_max = ImLog10(range.Max);
-    int exp_step  = ImMax(1,(int)(log_max - log_min) / nMajor);
-    int exp_min   = (int)log_min;
-    int exp_max   = (int)log_max;
+    double log_min = ImLog10(ImAbs(range.Min));
+    double log_max = ImLog10(ImAbs(range.Max));
+    double log_a = ImMin(log_min,log_max);
+    double log_b = ImMax(log_min,log_max);
+    exp_step  = ImMax(1,(int)(log_b - log_a) / nMajor);
+    exp_min   = (int)log_a;
+    exp_max   = (int)log_b;
     if (exp_step != 1) {
         while(exp_step % 3 != 0)       exp_step++; // make step size multiple of three
         while(exp_min % exp_step != 0) exp_min--;  // decrease exp_min until exp_min + N * exp_step will be 0
     }
+}
+
+void AddTicksLogarithmic(const ImPlotRange& range, int exp_min, int exp_max, int exp_step, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data) {
+    const double sign = ImSign(range.Max);    
     for (int e = exp_min - exp_step; e < (exp_max + exp_step); e += exp_step) {
-        double major1 = ImPow(10, (double)(e));
-        double major2 = ImPow(10, (double)(e + 1));
+        double major1 = sign*ImPow(10, (double)(e));
+        double major2 = sign*ImPow(10, (double)(e + 1));
         double interval = (major2 - major1) / 9;
         if (major1 >= (range.Min - DBL_EPSILON) && major1 <= (range.Max + DBL_EPSILON))
             ticks.Append(major1, true, true, formatter, data);
         for (int j = 0; j < exp_step; ++j) {
-            major1 = ImPow(10, (double)(e+j));
-            major2 = ImPow(10, (double)(e+j+1));
+            major1 = sign*ImPow(10, (double)(e+j));
+            major2 = sign*ImPow(10, (double)(e+j+1));
             interval = (major2 - major1) / 9;
             for (int i = 1; i < (9 + (int)(j < (exp_step - 1))); ++i) {
                 double minor = major1 + i * interval;
                 if (minor >= (range.Min - DBL_EPSILON) && minor <= (range.Max + DBL_EPSILON))
                     ticks.Append(minor, false, false, formatter, data);
-
             }
         }
+    }
+}
+
+void AddTicksLogarithmic(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data) {
+    int exp_min, exp_max, exp_step;
+    CalcLogarithmicExponents(range, pix, vertical, exp_min, exp_max, exp_step);
+    AddTicksLogarithmic(range, exp_min, exp_max, exp_step, ticks, formatter, data);
+}
+
+void AddTicksSymLog(ImPlotAxis& axis, float pix) {
+    ImPlotFormatter formatter = axis.Formatter     ? axis.Formatter  : DefaultFormatter;
+    void*           data      = (axis.Formatter && axis.FormatterData) ? axis.FormatterData : axis.HasFormatSpec ? axis.FormatSpec : (void*)IMPLOT_LABEL_FORMAT;
+    if (axis.Range.Min >= -1 && axis.Range.Max <= 1) {
+        AddTicksDefault(axis.Range,pix,axis.Vertical,axis.Ticks,formatter,data);      
+    }
+    else if (axis.Range.Min * axis.Range.Max < 0) { // cross zero
+        const float pix_min = axis.PixelMin;
+        const float pix_max = axis.PixelMax;
+        const float pix_p1  = axis.PlotToPixels(1);
+        const float pix_n1  = axis.PlotToPixels(-1);
+        int exp_min_p, exp_max_p, exp_step_p;
+        int exp_min_n, exp_max_n, exp_step_n;
+        CalcLogarithmicExponents(ImPlotRange(1,axis.Range.Max), ImAbs(pix_max-pix_p1),axis.Vertical,exp_min_p,exp_max_p,exp_step_p);
+        CalcLogarithmicExponents(ImPlotRange(axis.Range.Min,-1),ImAbs(pix_n1-pix_min),axis.Vertical,exp_min_n,exp_max_n,exp_step_n);
+        int exp_step = ImMax(exp_step_n, exp_step_p);
+        axis.Ticks.Append(0,true,true,formatter,data);        
+        AddTicksLogarithmic(ImPlotRange(1,axis.Range.Max), exp_min_p,exp_max_p,exp_step,axis.Ticks,formatter,data);
+        AddTicksLogarithmic(ImPlotRange(axis.Range.Min,-1),exp_min_n,exp_max_n,exp_step,axis.Ticks,formatter,data);
+    }
+    else {
+        AddTicksLogarithmic(axis.Range,pix,axis.Vertical,axis.Ticks,formatter,data);
     }
 }
 
@@ -1356,7 +1391,7 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_all
     EndDisabledControls(axis.IsTime() && time_allowed);
     if (time_allowed) {
         BeginDisabledControls(axis.IsLog() || axis.IsSymLog());
-        ImGui::CheckboxFlags("Time",(unsigned int*)&axis.Flags, ImPlotAxisFlags_TimeScale);
+        ImGui::CheckboxFlags("Time",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Time);
         EndDisabledControls(axis.IsLog() || axis.IsSymLog());
     }
     ImGui::Separator();
@@ -2026,9 +2061,9 @@ void ApplyNextPlotData(ImAxis idx) {
 void SetupAxis(ImAxis idx, const char* label, ImPlotAxisFlags flags) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
-    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_TimeScale) && ImHasFlag(flags, ImPlotAxisFlags_LogScale)),
-                         "ImPlotAxisFlags_TimeScale and ImPlotAxisFlags_LogScale cannot be enabled at the same time!");
-    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_TimeScale) && idx >= ImAxis_Y1),
+    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_Time) && ImHasFlag(flags, ImPlotAxisFlags_LogScale)),
+                         "ImPlotAxisFlags_Time and ImPlotAxisFlags_LogScale cannot be enabled at the same time!");
+    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_Time) && idx >= ImAxis_Y1),
                          "Y axes cannot display time formatted labels!");
     // get plot and axis
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
@@ -2393,7 +2428,7 @@ void SetupFinish() {
     for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
         ImPlotAxis& axis = plot.YAxis(i);
         if (axis.WillRender() && axis.ShowDefaultTicks) {
-            if (axis.IsLog() || axis.IsSymLog())
+            if (axis.IsLog())
                 AddTicksLogarithmic(axis.Range,
                                     plot_height,
                                     true,
@@ -2421,13 +2456,17 @@ void SetupFinish() {
         if (axis.WillRender() && axis.ShowDefaultTicks) {
             if (axis.IsTime())
                 AddTicksTime(axis.Range, plot_width, axis.Ticks);
-            else if (axis.IsLog() || axis.IsSymLog())
+            else if (axis.IsLog())
                 AddTicksLogarithmic(axis.Range,
                                     plot_width,
                                     false,
                                     axis.Ticks,
                                     axis.Formatter     ? axis.Formatter  : DefaultFormatter,
                                     (axis.Formatter && axis.FormatterData) ? axis.FormatterData : axis.HasFormatSpec ? axis.FormatSpec : (void*)IMPLOT_LABEL_FORMAT);
+            else if (axis.IsSymLog()) {
+                AddTicksSymLog(axis,
+                               plot_width);
+            }
             else
                 AddTicksDefault(axis.Range,
                                 plot_width,
