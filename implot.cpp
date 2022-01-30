@@ -122,6 +122,25 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #define ImDrawFlags_RoundCornersAll ImDrawCornerFlags_All
 #endif
 
+// Visual Studio warnings
+#ifdef _MSC_VER
+#pragma warning (disable: 4127)             // condition expression is constant
+#pragma warning (disable: 4996)             // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
+#if defined(_MSC_VER) && _MSC_VER >= 1922   // MSVC 2019 16.2 or later
+#pragma warning (disable: 5054)             // operator '|': deprecated between enumerations of different types
+#endif
+#pragma warning (disable: 26451)            // [Static Analyzer] Arithmetic overflow : Using operator 'xxx' on a 4 byte value and then casting the result to a 8 byte value. Cast the value to the wider type before calling operator 'xxx' to avoid overflow(io.2).
+#pragma warning (disable: 26495)            // [Static Analyzer] Variable 'XXX' is uninitialized. Always initialize a member variable (type.6).
+#pragma warning (disable: 26812)            // [Static Analyzer] The enum type 'xxx' is unscoped. Prefer 'enum class' over 'enum' (Enum.3).
+#endif
+
+// Clang/GCC warnings with -Weverything
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wformat-nonliteral"  // warning: format string is not a string literal
+#elif defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"    // warning: format not a string literal, format string not checked
+#endif
+
 // Global plot context
 #ifndef GImPlot
 ImPlotContext* GImPlot = NULL;
@@ -1502,6 +1521,11 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
 //-----------------------------------------------------------------------------
 // Axis Utils
 //-----------------------------------------------------------------------------
+
+static inline void DefaultFormatter(double value, char* buff, int size, void* data) {
+    char* fmt = (char*)data;
+    snprintf(buff, size, fmt, value);
+}
 
 static inline int AxisPrecision(const ImPlotAxis& axis) {
     const double range = axis.Ticks.Size > 1 ? (axis.Ticks.Ticks[1].PlotPos - axis.Ticks.Ticks[0].PlotPos) : axis.Range.Size();

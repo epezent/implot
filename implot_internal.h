@@ -42,11 +42,11 @@
 #error Must include implot.h before implot_internal.h
 #endif
 
+
 // Support for pre-1.84 versions. ImPool's GetSize() -> GetBufSize()
 #if (IMGUI_VERSION_NUM < 18303)
 #define GetBufSize GetSize
 #endif
-
 
 //-----------------------------------------------------------------------------
 // [SECTION] Constants
@@ -1340,11 +1340,6 @@ IMPLOT_API bool ShowLegendContextMenu(ImPlotLegend& legend, bool visible);
 //-----------------------------------------------------------------------------
 // [SECTION] Tick Utils
 //-----------------------------------------------------------------------------
-
-static inline void DefaultFormatter(double value, char* buff, int size, void* data) {
-    char* fmt = (char*)data;
-    snprintf(buff, size, fmt, value);
-}
 
 // Label a tick with time formatting.
 IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);
