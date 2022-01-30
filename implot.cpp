@@ -115,13 +115,21 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 
 #include <stdlib.h>
 
-#ifdef _MSC_VER
-#define sprintf sprintf_s
-#endif
-
 // Support for pre-1.82 versions. Users on 1.82+ can use 0 (default) flags to mean "all corners" but in order to support older versions we are more explicit.
 #if (IMGUI_VERSION_NUM < 18102) && !defined(ImDrawFlags_RoundCornersAll)
 #define ImDrawFlags_RoundCornersAll ImDrawCornerFlags_All
+#endif
+
+// Visual Studio warnings
+#ifdef _MSC_VER
+#pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
+#endif
+
+// Clang/GCC warnings with -Weverything
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wformat-nonliteral"  // warning: format string is not a string literal
+#elif defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"    // warning: format not a string literal, format string not checked
 #endif
 
 // Global plot context
@@ -305,6 +313,11 @@ static const ImPlotStyleVarInfo* GetPlotStyleVarInfo(ImPlotStyleVar idx) {
 //-----------------------------------------------------------------------------
 // Generic Helpers
 //-----------------------------------------------------------------------------
+
+static inline void DefaultFormatter(double value, char* buff, int size, void* data) {
+    char* fmt = (char*)data;
+    ImFormatString(buff, size, fmt, value);
+}
 
 void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char *text_begin, const char* text_end) {
     // the code below is based loosely on ImFont::RenderText
@@ -1023,14 +1036,14 @@ int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt, b
     if (use_24_hr_clk) {
         const int hr   = Tm.tm_hour;
         switch(fmt) {
-            case ImPlotTimeFmt_Us:        return snprintf(buffer, size, ".%03d %03d", ms, us);
-            case ImPlotTimeFmt_SUs:       return snprintf(buffer, size, ":%02d.%03d %03d", sec, ms, us);
-            case ImPlotTimeFmt_SMs:       return snprintf(buffer, size, ":%02d.%03d", sec, ms);
-            case ImPlotTimeFmt_S:         return snprintf(buffer, size, ":%02d", sec);
-            case ImPlotTimeFmt_HrMinSMs:  return snprintf(buffer, size, "%02d:%02d:%02d.%03d", hr, min, sec, ms);
-            case ImPlotTimeFmt_HrMinS:    return snprintf(buffer, size, "%02d:%02d:%02d", hr, min, sec);
-            case ImPlotTimeFmt_HrMin:     return snprintf(buffer, size, "%02d:%02d", hr, min);
-            case ImPlotTimeFmt_Hr:        return snprintf(buffer, size, "%02d:00", hr);
+            case ImPlotTimeFmt_Us:        return ImFormatString(buffer, size, ".%03d %03d", ms, us);
+            case ImPlotTimeFmt_SUs:       return ImFormatString(buffer, size, ":%02d.%03d %03d", sec, ms, us);
+            case ImPlotTimeFmt_SMs:       return ImFormatString(buffer, size, ":%02d.%03d", sec, ms);
+            case ImPlotTimeFmt_S:         return ImFormatString(buffer, size, ":%02d", sec);
+            case ImPlotTimeFmt_HrMinSMs:  return ImFormatString(buffer, size, "%02d:%02d:%02d.%03d", hr, min, sec, ms);
+            case ImPlotTimeFmt_HrMinS:    return ImFormatString(buffer, size, "%02d:%02d:%02d", hr, min, sec);
+            case ImPlotTimeFmt_HrMin:     return ImFormatString(buffer, size, "%02d:%02d", hr, min);
+            case ImPlotTimeFmt_Hr:        return ImFormatString(buffer, size, "%02d:00", hr);
             default:                      return 0;
         }
     }
@@ -1038,14 +1051,14 @@ int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt, b
         const char* ap = Tm.tm_hour < 12 ? "am" : "pm";
         const int hr   = (Tm.tm_hour == 0 || Tm.tm_hour == 12) ? 12 : Tm.tm_hour % 12;
         switch(fmt) {
-            case ImPlotTimeFmt_Us:        return snprintf(buffer, size, ".%03d %03d", ms, us);
-            case ImPlotTimeFmt_SUs:       return snprintf(buffer, size, ":%02d.%03d %03d", sec, ms, us);
-            case ImPlotTimeFmt_SMs:       return snprintf(buffer, size, ":%02d.%03d", sec, ms);
-            case ImPlotTimeFmt_S:         return snprintf(buffer, size, ":%02d", sec);
-            case ImPlotTimeFmt_HrMinSMs:  return snprintf(buffer, size, "%d:%02d:%02d.%03d%s", hr, min, sec, ms, ap);
-            case ImPlotTimeFmt_HrMinS:    return snprintf(buffer, size, "%d:%02d:%02d%s", hr, min, sec, ap);
-            case ImPlotTimeFmt_HrMin:     return snprintf(buffer, size, "%d:%02d%s", hr, min, ap);
-            case ImPlotTimeFmt_Hr:        return snprintf(buffer, size, "%d%s", hr, ap);
+            case ImPlotTimeFmt_Us:        return ImFormatString(buffer, size, ".%03d %03d", ms, us);
+            case ImPlotTimeFmt_SUs:       return ImFormatString(buffer, size, ":%02d.%03d %03d", sec, ms, us);
+            case ImPlotTimeFmt_SMs:       return ImFormatString(buffer, size, ":%02d.%03d", sec, ms);
+            case ImPlotTimeFmt_S:         return ImFormatString(buffer, size, ":%02d", sec);
+            case ImPlotTimeFmt_HrMinSMs:  return ImFormatString(buffer, size, "%d:%02d:%02d.%03d%s", hr, min, sec, ms, ap);
+            case ImPlotTimeFmt_HrMinS:    return ImFormatString(buffer, size, "%d:%02d:%02d%s", hr, min, sec, ap);
+            case ImPlotTimeFmt_HrMin:     return ImFormatString(buffer, size, "%d:%02d%s", hr, min, ap);
+            case ImPlotTimeFmt_Hr:        return ImFormatString(buffer, size, "%d%s", hr, ap);
             default:                      return 0;
         }
     }
@@ -1060,21 +1073,21 @@ int FormatDate(const ImPlotTime& t, char* buffer, int size, ImPlotDateFmt fmt, b
     const int yr   = year % 100;
     if (use_iso_8601) {
         switch (fmt) {
-            case ImPlotDateFmt_DayMo:   return snprintf(buffer, size, "--%02d-%02d", mon, day);
-            case ImPlotDateFmt_DayMoYr: return snprintf(buffer, size, "%d-%02d-%02d", year, mon, day);
-            case ImPlotDateFmt_MoYr:    return snprintf(buffer, size, "%d-%02d", year, mon);
-            case ImPlotDateFmt_Mo:      return snprintf(buffer, size, "--%02d", mon);
-            case ImPlotDateFmt_Yr:      return snprintf(buffer, size, "%d", year);
+            case ImPlotDateFmt_DayMo:   return ImFormatString(buffer, size, "--%02d-%02d", mon, day);
+            case ImPlotDateFmt_DayMoYr: return ImFormatString(buffer, size, "%d-%02d-%02d", year, mon, day);
+            case ImPlotDateFmt_MoYr:    return ImFormatString(buffer, size, "%d-%02d", year, mon);
+            case ImPlotDateFmt_Mo:      return ImFormatString(buffer, size, "--%02d", mon);
+            case ImPlotDateFmt_Yr:      return ImFormatString(buffer, size, "%d", year);
             default:                    return 0;
         }
     }
     else {
         switch (fmt) {
-            case ImPlotDateFmt_DayMo:   return snprintf(buffer, size, "%d/%d", mon, day);
-            case ImPlotDateFmt_DayMoYr: return snprintf(buffer, size, "%d/%d/%02d", mon, day, yr);
-            case ImPlotDateFmt_MoYr:    return snprintf(buffer, size, "%s %d", MONTH_ABRVS[Tm.tm_mon], year);
-            case ImPlotDateFmt_Mo:      return snprintf(buffer, size, "%s", MONTH_ABRVS[Tm.tm_mon]);
-            case ImPlotDateFmt_Yr:      return snprintf(buffer, size, "%d", year);
+            case ImPlotDateFmt_DayMo:   return ImFormatString(buffer, size, "%d/%d", mon, day);
+            case ImPlotDateFmt_DayMoYr: return ImFormatString(buffer, size, "%d/%d/%02d", mon, day, yr);
+            case ImPlotDateFmt_MoYr:    return ImFormatString(buffer, size, "%s %d", MONTH_ABRVS[Tm.tm_mon], year);
+            case ImPlotDateFmt_Mo:      return ImFormatString(buffer, size, "%s", MONTH_ABRVS[Tm.tm_mon]);
+            case ImPlotDateFmt_Yr:      return ImFormatString(buffer, size, "%d", year);
             default:                    return 0;
         }
     }
@@ -1475,7 +1488,7 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
         if (!x_axis.Enabled || !x_axis.HasMenus())
             continue;
         ImGui::PushID(i);
-        snprintf(buf, sizeof(buf) - 1, i == 0 ? "X-Axis" : "X-Axis %d", i + 1);
+        ImFormatString(buf, sizeof(buf) - 1, i == 0 ? "X-Axis" : "X-Axis %d", i + 1);
         if (ImGui::BeginMenu(x_axis.HasLabel() ? plot.GetAxisLabel(x_axis) : buf)) {
             ShowAxisContextMenu(x_axis, equal ? x_axis.OrthoAxis : NULL, false);
             ImGui::EndMenu();
@@ -1488,7 +1501,7 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
         if (!y_axis.Enabled || !y_axis.HasMenus())
             continue;
         ImGui::PushID(i);
-        snprintf(buf, sizeof(buf) - 1, i == 0 ? "Y-Axis" : "Y-Axis %d", i + 1);
+        ImFormatString(buf, sizeof(buf) - 1, i == 0 ? "Y-Axis" : "Y-Axis %d", i + 1);
         if (ImGui::BeginMenu(y_axis.HasLabel() ? plot.GetAxisLabel(y_axis) : buf)) {
             ShowAxisContextMenu(y_axis, equal ? y_axis.OrthoAxis : NULL, false);
             ImGui::EndMenu();
@@ -5059,14 +5072,14 @@ void ShowMetricsWindow(bool* p_popen) {
                 }
                 char buff[16];
                 for (int i = 0; i < IMPLOT_NUM_X_AXES; ++i) {
-                    snprintf(buff,16,"X-Axis %d", i+1);
+                    ImFormatString(buff,16,"X-Axis %d", i+1);
                     if (plot.XAxis(i).Enabled && ImGui::TreeNode(buff, "X-Axis %d [0x%08X]", i+1, plot.XAxis(i).ID)) {
                         ShowAxisMetrics(plot, plot.XAxis(i));
                         ImGui::TreePop();
                     }
                 }
                 for (int i = 0; i < IMPLOT_NUM_Y_AXES; ++i) {
-                    snprintf(buff,16,"Y-Axis %d", i+1);
+                    ImFormatString(buff,16,"Y-Axis %d", i+1);
                     if (plot.YAxis(i).Enabled && ImGui::TreeNode(buff, "Y-Axis %d [0x%08X]", i+1, plot.YAxis(i).ID)) {
                         ShowAxisMetrics(plot, plot.YAxis(i));
                         ImGui::TreePop();
@@ -5223,7 +5236,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
         GetTime(t_first_mo,&Tm);
         const int first_wd = Tm.tm_wday;
         // month year
-        snprintf(buff, 32, "%s %d", MONTH_NAMES[this_mon], this_year);
+        ImFormatString(buff, 32, "%s %d", MONTH_NAMES[this_mon], this_year);
         if (ImGui::Button(buff))
             *level = 1;
         ImGui::SameLine(5*cell_size.x);
@@ -5271,7 +5284,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
                     ImGui::PushStyleColor(ImGuiCol_Text, col_txt);
                 }
                 ImGui::PushID(i*7+j);
-                snprintf(buff,32,"%d",day);
+                ImFormatString(buff,32,"%d",day);
                 if (now_yr == min_yr-1 || now_yr == max_yr+1) {
                     ImGui::Dummy(cell_size);
                 }
@@ -5295,7 +5308,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
         *t = FloorTime(*t, ImPlotTimeUnit_Mo);
         GetTime(*t, &Tm);
         int this_yr  = Tm.tm_year + 1900;
-        snprintf(buff, 32, "%d", this_yr);
+        ImFormatString(buff, 32, "%d", this_yr);
         if (ImGui::Button(buff))
             *level = 2;
         BeginDisabledControls(this_yr <= min_yr);
@@ -5335,7 +5348,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
         int this_yr = GetYear(*t);
         int yr = this_yr  - this_yr % 20;
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-        snprintf(buff,32,"%d-%d",yr,yr+19);
+        ImFormatString(buff,32,"%d-%d",yr,yr+19);
         ImGui::Button(buff);
         ImGui::PopItemFlag();
         ImGui::SameLine(5*cell_size.x);
@@ -5356,7 +5369,7 @@ bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const ImPlotTime*
                 const bool t1_or_t2 = (t1 != NULL && t1_yr == yr) || (t2 != NULL && t2_yr == yr);
                 if (t1_or_t2)
                     ImGui::PushStyleColor(ImGuiCol_Button, col_btn);
-                snprintf(buff,32,"%d",yr);
+                ImFormatString(buff,32,"%d",yr);
                 if (yr<1970||yr>3000) {
                     ImGui::Dummy(cell_size);
                 }

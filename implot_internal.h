@@ -42,11 +42,11 @@
 #error Must include implot.h before implot_internal.h
 #endif
 
+
 // Support for pre-1.84 versions. ImPool's GetSize() -> GetBufSize()
 #if (IMGUI_VERSION_NUM < 18303)
 #define GetBufSize GetSize
 #endif
-
 
 //-----------------------------------------------------------------------------
 // [SECTION] Constants
@@ -127,11 +127,11 @@ static inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
 // Returns true if val is NAN
 static inline bool ImNan(double val) { return isnan(val); }
 // Returns true if val is NAN or INFINITY
-static inline bool ImNanOrInf(double val) { return val == HUGE_VAL || val == -HUGE_VAL || isnan(val); }
+static inline bool ImNanOrInf(double val) { return !(val >= -DBL_MAX && val <= DBL_MAX) || isnan(val); }
 // Turns NANs to 0s
 static inline double ImConstrainNan(double val) { return isnan(val) ? 0 : val; }
 // Turns infinity to floating point maximums
-static inline double ImConstrainInf(double val) { return val == HUGE_VAL ?  DBL_MAX : val == -HUGE_VAL ? - DBL_MAX : val; }
+static inline double ImConstrainInf(double val) { return val >= DBL_MAX ?  DBL_MAX : val <= -DBL_MAX ? - DBL_MAX : val; }
 // Turns numbers less than or equal to 0 to 0.001 (sort of arbitrary, is there a better way?)
 static inline double ImConstrainLog(double val) { return val <= 0 ? 0.001f : val; }
 // Turns numbers less than 0 to zero
@@ -654,6 +654,7 @@ struct ImPlotAxis
         LinkedMin        = LinkedMax = NULL;
         PickerLevel      = 0;
         Datum1           = Datum2 = 0;
+        PixelMin         = PixelMax = 0;
         LabelOffset      = -1;
         ColorMaj         = ColorMin = ColorTick = ColorTxt = ColorBg = ColorHov = ColorAct = 0;
         ColorHiLi        = IM_COL32_BLACK_TRANS;
@@ -1416,11 +1417,6 @@ IMPLOT_API bool ShowLegendContextMenu(ImPlotLegend& legend, bool visible);
 //-----------------------------------------------------------------------------
 // [SECTION] Tick Utils
 //-----------------------------------------------------------------------------
-
-static inline void DefaultFormatter(double value, char* buff, int size, void* data) {
-    char* fmt = (char*)data;
-    snprintf(buff, size, fmt, value);
-}
 
 // Label a tick with time formatting.
 IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);

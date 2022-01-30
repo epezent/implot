@@ -29,10 +29,6 @@
 // [SECTION] Macros and Defines
 //-----------------------------------------------------------------------------
 
-#ifdef _MSC_VER
-#define sprintf sprintf_s
-#endif
-
 #define SQRT_1_2 0.70710678118f
 #define SQRT_3_2 0.86602540378f
 
@@ -373,7 +369,7 @@ void EndItem() {
 
 template <typename T>
 IMPLOT_INLINE T IndexData(const T* data, int idx, int count, int offset, int stride) {
-    const int s = ((offset == 0) << 0) | ((stride == sizeof(float)) << 1);
+    const int s = ((offset == 0) << 0) | ((stride == sizeof(T)) << 1);
     switch (s) {
         case 3 : return data[idx];
         case 2 : return data[(offset + idx) % count];
@@ -1527,10 +1523,12 @@ IMPLOT_INLINE void PlotShadedEx(const char* label_id, const Getter1& getter1, co
 
 template <typename T>
 void PlotShaded(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, ImPlotShadedFlags flags, int offset, int stride) {
-    if (y_ref == -HUGE_VAL) 
-        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;    
-    if (y_ref == HUGE_VAL) 
-        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;    
+    if (!(y_ref > -DBL_MAX)) { // filters out nans too
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;
+    }
+    if (!(y_ref < DBL_MAX)) { // filters out nans too
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
+    } 
     GetterXY<IndexerLin,IndexerIdx<T>> getter1(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
     GetterXY<IndexerLin,IndexerConst>    getter2(IndexerLin(xscale,x0),IndexerConst(y_ref),count);
     PlotShadedEx(label_id, getter1, getter2, flags);
@@ -2053,7 +2051,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
             double percent = normalize ? (double)values[i] / sum : (double)values[i];
             a1 = a0 + 2 * IM_PI * percent;
             if (item->Show) {
-                sprintf(buffer, fmt, (double)values[i]);
+                ImFormatString(buffer, 32, fmt, (double)values[i]);
                 ImVec2 size = ImGui::CalcTextSize(buffer);
                 double angle = a0 + (a1 - a0) * 0.5;
                 ImVec2 pos = PlotToPixels(center.x + 0.5 * radius * cos(angle), center.y + 0.5 * radius * sin(angle),IMPLOT_AUTO,IMPLOT_AUTO);
@@ -2189,7 +2187,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& draw_list, const T* valu
                     p.y = yref + ydir * (0.5*h + r*h);
                     ImVec2 px = transformer(p);
                     char buff[32];
-                    sprintf(buff, fmt, values[i]);
+                    ImFormatString(buff, 32, fmt, values[i]);
                     ImVec2 size = ImGui::CalcTextSize(buff);
                     double t = ImClamp(ImRemap01((double)values[i], scale_min, scale_max),0.0,1.0);
                     ImVec4 color = SampleColormap((float)t);
@@ -2207,7 +2205,7 @@ void RenderHeatmap(Transformer transformer, ImDrawList& draw_list, const T* valu
                     p.y = yref + ydir * (0.5*h + r*h);
                     ImVec2 px = transformer(p);
                     char buff[32];
-                    sprintf(buff, fmt, values[i]);
+                    ImFormatString(buff, 32, fmt, values[i]);
                     ImVec2 size = ImGui::CalcTextSize(buff);
                     double t = ImClamp(ImRemap01((double)values[i], scale_min, scale_max),0.0,1.0);
                     ImVec4 color = SampleColormap((float)t);
