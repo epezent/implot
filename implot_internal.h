@@ -636,6 +636,7 @@ struct ImPlotAxis
         LinkedMin        = LinkedMax = NULL;
         PickerLevel      = 0;
         Datum1           = Datum2 = 0;
+        PixelMin         = PixelMax = 0;
         LabelOffset      = -1;
         ColorMaj         = ColorMin = ColorTick = ColorTxt = ColorBg = ColorHov = ColorAct = 0;
         ColorHiLi        = IM_COL32_BLACK_TRANS;
