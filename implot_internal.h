@@ -1175,13 +1175,6 @@ IMPLOT_API void ResetCtxForNextAlignedPlots(ImPlotContext* ctx);
 IMPLOT_API void ResetCtxForNextSubplot(ImPlotContext* ctx);
 
 //-----------------------------------------------------------------------------
-// [SECTION] Input Utils
-//-----------------------------------------------------------------------------
-
-// Allows changing how keyboard/mouse interaction works.
-IMPLOT_API ImPlotInputMap& GetInputMap();
-
-//-----------------------------------------------------------------------------
 // [SECTION] Plot Utils
 //-----------------------------------------------------------------------------
 
