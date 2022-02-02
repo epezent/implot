@@ -270,7 +270,6 @@ void ShowDemo_Config() {
     ImPlot::ShowColormapSelector("ImPlot Colormap");
     ImPlot::ShowInputMapSelector("Input Map");
     ImGui::Separator();
-    ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines);
     ImGui::Checkbox("Use Local Time", &ImPlot::GetStyle().UseLocalTime);
     ImGui::Checkbox("Use ISO 8601", &ImPlot::GetStyle().UseISO8601);
     ImGui::Checkbox("Use 24 Hour Clock", &ImPlot::GetStyle().Use24HourClock);
@@ -2429,6 +2428,7 @@ void ShowBenchmarkTool() {
     static int F        = 0;
     static double t1, t2;
     static int mode     = BenchMode::Line;
+    static bool aa      = false;
     const char* names[] = {"Line","LineG","Shaded","Scatter","Bars"};
 
     static ImVector<BenchRecord> records;
@@ -2465,7 +2465,7 @@ void ShowBenchmarkTool() {
         records.push_back(BenchRecord());
         records.back().Data.reserve(max_items+1);
         records.back().Mode = mode;
-        records.back().AA   = ImPlot::GetStyle().AntiAliasedLines;
+        records.back().AA   = aa;
         t1 = ImGui::GetTime();
     }
     ImGui::SameLine();
@@ -2473,7 +2473,7 @@ void ShowBenchmarkTool() {
     ImGui::Combo("##Mode",&mode,names,4);
     ImGui::SameLine();
 
-    ImGui::Checkbox("Anti-Aliased Lines", &ImPlot::GetStyle().AntiAliasedLines);
+    ImGui::Checkbox("Anti-Aliased Lines", &aa);
     if (was_running) { ImGui::PopItemFlag(); ImGui::PopStyleVar(); }
 
     ImGui::ProgressBar((float)L / (float)(max_items - 1));

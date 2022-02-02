@@ -180,7 +180,6 @@ ImPlotStyle::ImPlotStyle() {
 
     Colormap = ImPlotColormap_Deep;
 
-    AntiAliasedLines = false;
     UseLocalTime     = false;
     Use24HourClock   = false;
     UseISO8601       = false;
@@ -1524,8 +1523,6 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
         }
     }
     if ((ImGui::BeginMenu("Settings"))) {
-        if (ImGui::MenuItem("Anti-Aliased Lines",NULL,ImHasFlag(plot.Flags, ImPlotFlags_AntiAliased)))
-            ImFlipFlag(plot.Flags, ImPlotFlags_AntiAliased);
         if (ImGui::MenuItem("Equal", NULL, ImHasFlag(plot.Flags, ImPlotFlags_Equal)))
             ImFlipFlag(plot.Flags, ImPlotFlags_Equal);
         if (ImGui::MenuItem("Box Select",NULL,!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect)))
@@ -4710,10 +4707,6 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SliderFloat("ErrorBarWeight", &style.ErrorBarWeight, 0.0f, 5.0f, "%.1f");
             ImGui::SliderFloat("DigitalBitHeight", &style.DigitalBitHeight, 0.0f, 20.0f, "%.1f");
             ImGui::SliderFloat("DigitalBitGap", &style.DigitalBitGap, 0.0f, 20.0f, "%.1f");
-            float indent = ImGui::CalcItemWidth() - ImGui::GetFrameHeight();
-            ImGui::Indent(ImGui::CalcItemWidth() - ImGui::GetFrameHeight());
-            ImGui::Checkbox("AntiAliasedLines", &style.AntiAliasedLines);
-            ImGui::Unindent(indent);
             ImGui::Text("Plot Styling");
             ImGui::SliderFloat("PlotBorderSize", &style.PlotBorderSize, 0.0f, 2.0f, "%.0f");
             ImGui::SliderFloat("MinorAlpha", &style.MinorAlpha, 0.0f, 1.0f, "%.2f");

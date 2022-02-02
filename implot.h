@@ -107,7 +107,6 @@ typedef int ImPlotCol;            // -> enum ImPlotCol_
 typedef int ImPlotStyleVar;       // -> enum ImPlotStyleVar_
 typedef int ImPlotMarker;         // -> enum ImPlotMarker_
 typedef int ImPlotColormap;       // -> enum ImPlotColormap_
-typedef int ImPlotColorRule;      // -> enum ImPlotColorRule_
 typedef int ImPlotLocation;       // -> enum ImPlotLocation_
 typedef int ImPlotBin;            // -> enum ImPlotBin_
 
@@ -138,7 +137,6 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoFrame       = 1 << 7,  // the ImGui frame will not be rendered
     ImPlotFlags_Equal         = 1 << 8,  // x and y axes pairs will be constrained to have the same units/pixel
     ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
-    ImPlotFlags_AntiAliased   = 1 << 10, // plot items will be software anti-aliased (not recommended for high density plots, prefer MSAA)
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText
 };
 
@@ -219,11 +217,12 @@ enum ImPlotItemFlags_ {
 
 // Flags for PlotLine
 enum ImPlotLineFlags_ { 
-    ImPlotLineFlags_None     = 0,      // default 
-    ImPlotLineFlags_Segments = 1 << 10, // a line segment will be rendered from every two consecutive points
-    ImPlotLineFlags_Loop     = 1 << 11, // the last and first point will be connected to form a closed loop
-    ImPlotLineFlags_SkipNaN  = 1 << 12, // NaNs values will be skipped instead of rendered as missing data
-    ImPlotLineFlags_NoClip   = 1 << 13, // markers (if displayed) on the edge of a plot will not be clipped
+    ImPlotLineFlags_None        = 0,       // default 
+    ImPlotLineFlags_AntiAliased = 1 << 10, // lines will be rendering using software anti-aliasing (SLOW!)
+    ImPlotLineFlags_Segments    = 1 << 11, // a line segment will be rendered from every two consecutive points
+    ImPlotLineFlags_Loop        = 1 << 12, // the last and first point will be connected to form a closed loop
+    ImPlotLineFlags_SkipNaN     = 1 << 13, // NaNs values will be skipped instead of rendered as missing data
+    ImPlotLineFlags_NoClip      = 1 << 14, // markers (if displayed) on the edge of a plot will not be clipped
 };
 
 // Flags for PlotScatter 
@@ -518,7 +517,6 @@ struct ImPlotStyle {
     // colormap
     ImPlotColormap Colormap;         // The current colormap. Set this to either an ImPlotColormap_ enum or an index returned by AddColormap.
     // settings/flags
-    bool    AntiAliasedLines;        // = false,  enable global anti-aliasing on plot lines (overrides ImPlotFlags_AntiAliased)
     bool    UseLocalTime;            // = false,  axis labels will be formatted for your timezone when ImPlotAxisFlag_Time is enabled
     bool    UseISO8601;              // = false,  dates will be formatted according to ISO 8601 where applicable (e.g. YYYY-MM-DD, YYYY-MM, --MM-DD, etc.)
     bool    Use24HourClock;          // = false,  times will be formatted using a 24 hour clock

@@ -1109,6 +1109,7 @@ IMPLOT_INLINE void RenderPrimitives2(const _Getter1& getter1, const _Getter2& ge
     }
 }
 
+
 //-----------------------------------------------------------------------------
 // [SECTION] Markers
 //-----------------------------------------------------------------------------
@@ -1120,13 +1121,13 @@ IMPLOT_INLINE void TransformMarker(ImVec2* marker, int n, const ImVec2& p, float
     }
 }
 
-template <int _IdxConsumed, int _VtxConsumed>
-struct MarkerBase {
-    static const int IdxConsumed = _IdxConsumed;
-    static const int VtxConsumed = _VtxConsumed;
+template <int _Verts>
+struct MarkerBaseFilled {
+    static const int IdxConsumed = (_Verts-2)*3;
+    static const int VtxConsumed = _Verts;
 };
 
-struct MarkerCircleFilled : MarkerBase<24,10> {
+struct MarkerCircleFilled : MarkerBaseFilled<10> {
     static IMPLOT_INLINE void Draw(ImDrawList& draw_list, const ImVec2& p, float size, ImU32 col, const ImVec2& uv) {
         ImVec2 marker[10] = {ImVec2(1.0f, 0.0f),
                             ImVec2(0.809017f, 0.58778524f),
@@ -1138,12 +1139,20 @@ struct MarkerCircleFilled : MarkerBase<24,10> {
                             ImVec2(-0.3090171f, -0.9510565f),
                             ImVec2(0.30901712f, -0.9510565f),
                             ImVec2(0.80901694f, -0.5877853f)};
-        TransformMarker(marker,4,p,size);
-        PrimConvexPolyFilled(draw_list,marker,4,col,uv);
+        TransformMarker(marker,10,p,size);
+        PrimConvexPolyFilled(draw_list,marker,10,col,uv);
     }
 };
 
-struct MarkerDiamondFilled : MarkerBase<6,4> {
+struct MarkerSquareFilled : MarkerBaseFilled<4> {
+    static IMPLOT_INLINE void Draw(ImDrawList& draw_list, const ImVec2& p, float size, ImU32 col, const ImVec2& uv) {
+        ImVec2 pmin(p.x - SQRT_1_2 * size, p.y - SQRT_1_2 * size);
+        ImVec2 pmax(p.x + SQRT_1_2 * size, p.y + SQRT_1_2 * size);
+        PrimRectFilled(draw_list, pmin, pmax, col, uv);
+    }
+};
+
+struct MarkerDiamondFilled : MarkerBaseFilled<4> {
     static IMPLOT_INLINE void Draw(ImDrawList& draw_list, const ImVec2& p, float size, ImU32 col, const ImVec2& uv) {
         ImVec2 marker[4] = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(0, 1)};
         TransformMarker(marker,4,p,size);
@@ -1151,11 +1160,35 @@ struct MarkerDiamondFilled : MarkerBase<6,4> {
     }
 };
 
-struct MarkerSquareFilled : MarkerBase<6,4> {
+struct MarkerUpFilled : MarkerBaseFilled<3> {
     static IMPLOT_INLINE void Draw(ImDrawList& draw_list, const ImVec2& p, float size, ImU32 col, const ImVec2& uv) {
-        ImVec2 pmin(p.x - SQRT_1_2 * size, p.y - SQRT_1_2 * size);
-        ImVec2 pmax(p.x + SQRT_1_2 * size, p.y + SQRT_1_2 * size);
-        PrimRectFilled(draw_list, pmin, pmax, col, uv);
+        ImVec2 marker[3] = {ImVec2(SQRT_3_2,0.5f),ImVec2(0,-1),ImVec2(-SQRT_3_2,0.5f)};
+        TransformMarker(marker,3,p,size);
+        PrimConvexPolyFilled(draw_list,marker,3,col,uv);
+    }
+};
+
+struct MarkerDownFilled : MarkerBaseFilled<3> {
+    static IMPLOT_INLINE void Draw(ImDrawList& draw_list, const ImVec2& p, float size, ImU32 col, const ImVec2& uv) {
+        ImVec2 marker[3] = {ImVec2(SQRT_3_2,-0.5f),ImVec2(0,1),ImVec2(-SQRT_3_2,-0.5f)};
+        TransformMarker(marker,3,p,size);
+        PrimConvexPolyFilled(draw_list,marker,3,col,uv);
+    }
+};
+
+struct MarkerLeftFilled : MarkerBaseFilled<3> {
+    static IMPLOT_INLINE void Draw(ImDrawList& draw_list, const ImVec2& p, float size, ImU32 col, const ImVec2& uv) {
+        ImVec2 marker[3] = {ImVec2(-1,0), ImVec2(0.5, SQRT_3_2), ImVec2(0.5, -SQRT_3_2)};
+        TransformMarker(marker,3,p,size);
+        PrimConvexPolyFilled(draw_list,marker,3,col,uv);
+    }
+};
+
+struct MarkerRightFilled : MarkerBaseFilled<3> {
+    static IMPLOT_INLINE void Draw(ImDrawList& draw_list, const ImVec2& p, float size, ImU32 col, const ImVec2& uv) {
+        ImVec2 marker[3] = {ImVec2(1,0), ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, -SQRT_3_2)};
+        TransformMarker(marker,3,p,size);
+        PrimConvexPolyFilled(draw_list,marker,3,col,uv);
     }
 };
 
@@ -1168,14 +1201,47 @@ struct RendererMarkers : RendererBase<_Marker::IdxConsumed,_Marker::VtxConsumed,
         Col(col)
     { }
     IMPLOT_INLINE bool operator()(ImDrawList& draw_list, const ImRect& cull_rect, const ImVec2& uv, int prim) const {
-        ImVec2 p = Transformer(Getter(prim));
-        if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y)
-            _Marker::Draw(draw_list, p, Size, Col);
+        ImVec2 p = this->Transformer(Getter(prim));
+        if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y) {
+            _Marker::Draw(draw_list, p, Size, Col, uv);
+            return true;
+        }
+        return false;
     }
     const _Getter& Getter;
     const float Size;
     const ImU32 Col;
 };
+
+template <class _Marker, class _Getter>
+IMPLOT_INLINE void RenderMarkers(const _Getter& getter, float size, ImU32 col) {
+    ImDrawList& draw_list = *GetPlotDrawList();
+    const ImRect& cull_rect = GetCurrentPlot()->PlotRect;
+    switch (GetCurrentScale()) {
+        case ImPlotScale_LinLin : RenderPrimitivesEx(RendererMarkers<_Marker,_Getter,TransformerLinLin>(getter,size,col),draw_list,cull_rect); break;
+        case ImPlotScale_LogLin : RenderPrimitivesEx(RendererMarkers<_Marker,_Getter,TransformerLogLin>(getter,size,col),draw_list,cull_rect); break;
+        case ImPlotScale_SymLin : RenderPrimitivesEx(RendererMarkers<_Marker,_Getter,TransformerSymLin>(getter,size,col),draw_list,cull_rect); break;
+        case ImPlotScale_LinLog : RenderPrimitivesEx(RendererMarkers<_Marker,_Getter,TransformerLinLog>(getter,size,col),draw_list,cull_rect); break;
+        case ImPlotScale_LogLog : RenderPrimitivesEx(RendererMarkers<_Marker,_Getter,TransformerLogLog>(getter,size,col),draw_list,cull_rect); break;
+        case ImPlotScale_SymLog : RenderPrimitivesEx(RendererMarkers<_Marker,_Getter,TransformerSymLog>(getter,size,col),draw_list,cull_rect); break;
+        case ImPlotScale_LinSym : RenderPrimitivesEx(RendererMarkers<_Marker,_Getter,TransformerLinSym>(getter,size,col),draw_list,cull_rect); break;
+        case ImPlotScale_LogSym : RenderPrimitivesEx(RendererMarkers<_Marker,_Getter,TransformerLogSym>(getter,size,col),draw_list,cull_rect); break;
+        case ImPlotScale_SymSym : RenderPrimitivesEx(RendererMarkers<_Marker,_Getter,TransformerSymSym>(getter,size,col),draw_list,cull_rect); break;
+    }
+}
+
+template <typename _Getter>
+IMPLOT_INLINE void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, ImU32 col) {
+    switch (marker) {
+        case ImPlotMarker_Circle  : RenderMarkers<MarkerCircleFilled, _Getter>(getter,size,col); break;
+        case ImPlotMarker_Square  : RenderMarkers<MarkerSquareFilled, _Getter>(getter,size,col); break;
+        case ImPlotMarker_Diamond : RenderMarkers<MarkerDiamondFilled,_Getter>(getter,size,col); break;
+        case ImPlotMarker_Up      : RenderMarkers<MarkerUpFilled,_Getter>(getter,size,col); break; 
+        case ImPlotMarker_Down    : RenderMarkers<MarkerDownFilled,_Getter>(getter,size,col); break;
+        case ImPlotMarker_Left    : RenderMarkers<MarkerLeftFilled,_Getter>(getter,size,col); break;
+        case ImPlotMarker_Right   : RenderMarkers<MarkerRightFilled,_Getter>(getter,size,col); break;
+    }
+}
 
 IMPLOT_INLINE void RenderMarkerGeneral(ImDrawList& draw_list, ImVec2* points, int n, const ImVec2& c, float s, bool outline, ImU32 col_outline, bool fill, ImU32 col_fill, float weight) {
     TransformMarker(points, n, c, s);
@@ -1276,8 +1342,6 @@ IMPLOT_INLINE void RenderMarkers(Getter getter, Transformer transformer, ImDrawL
     }
 }
 
-
-
 //-----------------------------------------------------------------------------
 // [SECTION] PlotLine
 //-----------------------------------------------------------------------------
@@ -1286,7 +1350,6 @@ template <typename Getter>
 IMPLOT_INLINE void PlotLineEx(const char* label_id, const Getter& getter, ImPlotLineFlags flags) {
     if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_Line)) {
         const ImPlotNextItemData& s = GetItemData();
-        ImDrawList& draw_list = *GetPlotDrawList();
         if (getter.Count > 1 && s.RenderLine) {
             const ImU32 col_line    = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
             if (ImHasFlag(flags,ImPlotLineFlags_Segments)) {
@@ -1311,14 +1374,15 @@ IMPLOT_INLINE void PlotLineEx(const char* label_id, const Getter& getter, ImPlot
                 PopPlotClipRect();
                 PushPlotClipRect(s.MarkerSize);
             }
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
+            // const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
             const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderMarkers(getter, TransformerLinLin(), draw_list, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
-                case ImPlotScale_LogLin: RenderMarkers(getter, TransformerLogLin(), draw_list, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
-                case ImPlotScale_LinLog: RenderMarkers(getter, TransformerLinLog(), draw_list, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
-                case ImPlotScale_LogLog: RenderMarkers(getter, TransformerLogLog(), draw_list, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
-            }
+            // switch (GetCurrentScale()) {
+            //     case ImPlotScale_LinLin: RenderMarkers(getter, TransformerLinLin(), draw_list, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+            //     case ImPlotScale_LogLin: RenderMarkers(getter, TransformerLogLin(), draw_list, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+            //     case ImPlotScale_LinLog: RenderMarkers(getter, TransformerLinLog(), draw_list, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+            //     case ImPlotScale_LogLog: RenderMarkers(getter, TransformerLogLog(), draw_list, s.Marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+            // }
+            RenderMarkers<Getter>(getter, s.Marker, s.MarkerSize, col_fill);
         }
         EndItem();
     }
@@ -1372,21 +1436,21 @@ template <typename Getter>
 IMPLOT_INLINE void PlotScatterEx(const char* label_id, const Getter& getter, ImPlotScatterFlags flags) {
     if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_MarkerOutline)) {
         const ImPlotNextItemData& s = GetItemData();
-        ImDrawList& draw_list = *GetPlotDrawList();
         ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle : s.Marker;
         if (marker != ImPlotMarker_None) {
             if (ImHasFlag(flags,ImPlotScatterFlags_NoClip)) {
                 PopPlotClipRect();
                 PushPlotClipRect(s.MarkerSize);
             }
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
+            // const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImSPlotCol_MarkerOutline]);
             const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            switch (GetCurrentScale()) {
-                case ImPlotScale_LinLin: RenderMarkers(getter, TransformerLinLin(), draw_list, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
-                case ImPlotScale_LogLin: RenderMarkers(getter, TransformerLogLin(), draw_list, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
-                case ImPlotScale_LinLog: RenderMarkers(getter, TransformerLinLog(), draw_list, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
-                case ImPlotScale_LogLog: RenderMarkers(getter, TransformerLogLog(), draw_list, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
-            }
+            // switch (GetCurrentScale()) {
+            //     case ImPlotScale_LinLin: RenderMarkers(getter, TransformerLinLin(), draw_list, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+            //     case ImPlotScale_LogLin: RenderMarkers(getter, TransformerLogLin(), draw_list, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+            //     case ImPlotScale_LinLog: RenderMarkers(getter, TransformerLinLog(), draw_list, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+            //     case ImPlotScale_LogLog: RenderMarkers(getter, TransformerLogLog(), draw_list, marker, s.MarkerSize, s.RenderMarkerLine, col_line, s.MarkerWeight, s.RenderMarkerFill, col_fill); break;
+            // }
+            RenderMarkers<Getter>(getter, marker, s.MarkerSize, col_fill);
         }
         EndItem();
     }

@@ -127,9 +127,9 @@ static inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
 // Returns true if val is NAN
 static inline bool ImNan(double val) { return isnan(val); }
 // Returns true if val is NAN or INFINITY
-static inline bool ImNanOrInf(double val) { return !(val >= -DBL_MAX && val <= DBL_MAX) || isnan(val); }
+static inline bool ImNanOrInf(double val) { return !(val >= -DBL_MAX && val <= DBL_MAX) || ImNan(val); }
 // Turns NANs to 0s
-static inline double ImConstrainNan(double val) { return isnan(val) ? 0 : val; }
+static inline double ImConstrainNan(double val) { return ImNan(val) ? 0 : val; }
 // Turns infinity to floating point maximums
 static inline double ImConstrainInf(double val) { return val >= DBL_MAX ?  DBL_MAX : val <= -DBL_MAX ? - DBL_MAX : val; }
 // Turns numbers less than or equal to 0 to 0.001 (sort of arbitrary, is there a better way?)
@@ -1137,17 +1137,12 @@ struct ImPlotNextItemData {
     bool            HasHidden;
     bool            Hidden;
     ImPlotCond      HiddenCond;
-    ImPlotColorRule ColorRule;
-    double          ColorRuleMin;
-    double          ColorRuleMax;
     ImPlotNextItemData() { Reset(); }
     void Reset() {
         for (int i = 0; i < 5; ++i)
             Colors[i] = IMPLOT_AUTO_COL;
         LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker        = IMPLOT_AUTO;
-        ColorRule     = IMPLOT_AUTO;
-        ColorRuleMin  = ColorRuleMax = 0;
         HasHidden     = Hidden = false;
     }
 };

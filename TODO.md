@@ -62,7 +62,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 Ideally every `PlotX` function should use our faster rendering pipeline when it is applicable.
 
-` User Data > Getter > Fitter > RenderPrimitives(Renderer)`
+` User Data > Getter > Fitter > Renderer > RenderPrimitives`
 
 |Plotter|Getter|Fitter|Renderer|RenderPrimitives|
 |---|:-:|:-:|:-:|:-:|
