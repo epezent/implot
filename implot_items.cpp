@@ -1306,9 +1306,9 @@ IMPLOT_INLINE_EXTREME void PlotLineEx(const char* label_id, const Getter& getter
                 PopPlotClipRect();
                 PushPlotClipRect(s.MarkerSize);
             }
-            // const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
-            // const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            // RenderMarkers<Getter>(getter, s.Marker, s.MarkerSize, col_fill);
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
+            RenderMarkers<Getter>(getter, s.Marker, s.MarkerSize, col_fill);
         }
         EndItem();
     }
@@ -1368,9 +1368,9 @@ IMPLOT_INLINE_EXTREME void PlotScatterEx(const char* label_id, const Getter& get
                 PopPlotClipRect();
                 PushPlotClipRect(s.MarkerSize);
             }
-            // const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImSPlotCol_MarkerOutline]);
-            // const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            //  RenderMarkers<Getter>(getter, marker, s.MarkerSize, col_fill);
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
+            RenderMarkers<Getter>(getter, marker, s.MarkerSize, col_fill);
         }
         EndItem();
     }
@@ -1435,9 +1435,9 @@ IMPLOT_INLINE_EXTREME void PlotStairsEx(const char* label_id, const Getter& gett
         if (s.Marker != ImPlotMarker_None) {
             PopPlotClipRect();
             PushPlotClipRect(s.MarkerSize);
-            // const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
-            // const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            // RenderMarkers<Getter>(getter, s.Marker, s.MarkerSize, col_fill);
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
+            RenderMarkers<Getter>(getter, s.Marker, s.MarkerSize, col_fill);
         }
         EndItem();
     }
@@ -1864,9 +1864,9 @@ void PlotStemsEx(const char* label_id, const _GetterM& get_mark, const _GetterB&
         if (marker != ImPlotMarker_None) {
             PopPlotClipRect();
             PushPlotClipRect(s.MarkerSize);
-            // const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
-            // const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            // RenderMarkers<_GetterM>(get_mark, marker, s.MarkerSize, col_fill);
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
+            RenderMarkers<_GetterM>(get_mark, marker, s.MarkerSize, col_fill);
         }
         EndItem();
     }
