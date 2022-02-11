@@ -1178,6 +1178,9 @@ struct ImPlotContext {
     // Time
     tm Tm;
 
+    // Data buffer(s)
+    ImVector<ImPlotPoint> DataBuffer;
+
     // Temp data for general use
     ImVector<double>   TempDouble1, TempDouble2;
     ImVector<int>      TempInt1;
@@ -1576,5 +1579,29 @@ IMPLOT_API bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const 
 // Shows a time picker widget block (hour/min/sec).
 // #t will be set when a new hour, minute, or sec is selected or am/pm is toggled, and the function will return true.
 IMPLOT_API bool ShowTimePicker(const char* id, ImPlotTime* t);
+
+//-----------------------------------------------------------------------------
+// Template 
+//-----------------------------------------------------------------------------
+
+template <typename _TGetter>
+void BufferData(const _TGetter& getter) {
+    ImVector<ImPlotPoint>& buffer = GImPlot->DataBuffer;
+    buffer.resize(getter.Count);
+    for (int i = 0; i < getter.Count; ++i) {
+        buffer[i] = getter(i);
+    }
+}
+
+template <typename _TGetter1, typename _TGetter2>
+void BufferData(const _TGetter1& getter1, const _TGetter2& getter2) {
+    ImVector<ImPlotPoint>& buffer = GImPlot->DataBuffer;
+    const int count = ImMin(getter1.Count, getter2.Count);
+    buffer.resize(2*count);
+    for (int i = 0; i < count; i++) {
+        buffer[2*i]   = getter1(i);
+        buffer[2*i+1] = getter2(i);
+    }
+}
 
 } // namespace ImPlot
