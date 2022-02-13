@@ -228,13 +228,16 @@ static inline bool ImOverlaps(T min_a, T max_a, T min_b, T max_b) {
 }
 
 //-----------------------------------------------------------------------------
-// [SECTION] ImPlot Enums
+// [SECTION] ImPlot Typedefs and Enums
 //-----------------------------------------------------------------------------
+
+typedef ImVector<ImPlotPoint> ImPlotDataBuffer;
 
 typedef int ImPlotScale;       // -> enum ImPlotScale_
 typedef int ImPlotTimeUnit;    // -> enum ImPlotTimeUnit_
 typedef int ImPlotDateFmt;     // -> enum ImPlotDateFmt_
 typedef int ImPlotTimeFmt;     // -> enum ImPlotTimeFmt_
+typedef int ImPlotBufferFlags; // -> enum ImPlotBufferFlags_
 
 // XY axes scaling combinations
 enum ImPlotScale_ {
@@ -280,6 +283,11 @@ enum ImPlotTimeFmt_ {              // default        [ 24 Hour Clock ]
     ImPlotTimeFmt_HrMinS,          // 7:21:29pm      [ 19:21:29     ]
     ImPlotTimeFmt_HrMin,           // 7:21pm         [ 19:21        ]
     ImPlotTimeFmt_Hr               // 7pm            [ 19:00        ]
+};
+
+enum ImPlotBufferFlags_ {
+    ImPlotBufferFlags_Default = 0,
+    ImPlotBufferFlags_Loop    = 1 << 0
 };
 
 //-----------------------------------------------------------------------------
@@ -1179,7 +1187,7 @@ struct ImPlotContext {
     tm Tm;
 
     // Data buffer(s)
-    ImVector<ImPlotPoint> DataBuffer;
+    ImPlotDataBuffer DataBuffer;
 
     // Temp data for general use
     ImVector<double>   TempDouble1, TempDouble2;
@@ -1581,27 +1589,31 @@ IMPLOT_API bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const 
 IMPLOT_API bool ShowTimePicker(const char* id, ImPlotTime* t);
 
 //-----------------------------------------------------------------------------
-// Template 
+// [SECTION] Templated Buffering 
 //-----------------------------------------------------------------------------
 
 template <typename _TGetter>
-void BufferData(const _TGetter& getter) {
-    ImVector<ImPlotPoint>& buffer = GImPlot->DataBuffer;
-    buffer.resize(getter.Count);
+ImPlotDataBuffer* BufferData(const _TGetter& getter, ImPlotBufferFlags flags = 0) {
+    ImPlotDataBuffer& buffer = GImPlot->DataBuffer;
+    buffer.resize(getter.Count + (int)ImHasFlag(flags,ImPlotBufferFlags_Loop));
     for (int i = 0; i < getter.Count; ++i) {
         buffer[i] = getter(i);
     }
+    if (ImHasFlag(flags,ImPlotBufferFlags_Loop))
+        buffer[getter.Count] = buffer[0];
+    return &buffer;
 }
 
 template <typename _TGetter1, typename _TGetter2>
-void BufferData(const _TGetter1& getter1, const _TGetter2& getter2) {
-    ImVector<ImPlotPoint>& buffer = GImPlot->DataBuffer;
+ImPlotDataBuffer* BufferData(const _TGetter1& getter1, const _TGetter2& getter2) {
+    ImPlotDataBuffer& buffer = GImPlot->DataBuffer;
     const int count = ImMin(getter1.Count, getter2.Count);
     buffer.resize(2*count);
     for (int i = 0; i < count; i++) {
         buffer[2*i]   = getter1(i);
         buffer[2*i+1] = getter2(i);
     }
+    return &buffer;
 }
 
 } // namespace ImPlot
