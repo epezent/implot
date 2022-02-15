@@ -809,8 +809,6 @@ IMPLOT_TMP void PlotLine(const char* label_id, const T* values, int count, doubl
 IMPLOT_TMP void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotLineG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotLineFlags flags=0);
 
-void PlotLineStagedInternal(const char *label_id, const double *xs, const double *ys, int count);
-
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double x0=0, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));

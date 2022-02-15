@@ -32,6 +32,7 @@
 #define SQRT_1_2 0.70710678118f
 #define SQRT_3_2 0.86602540378f
 
+#define IMPLOT_NO_FORCE_INLINE
 #ifndef IMPLOT_NO_FORCE_INLINE
     #ifdef _MSC_VER
         #define IMPLOT_INLINE __forceinline
@@ -2546,86 +2547,5 @@ void PlotDummy(const char* label_id, ImPlotDummyFlags) {
     if (BeginItem(label_id, ImPlotCol_Line))
         EndItem();
 }
-
-
-    void PlotLineStagedInternal(const char *label_id, const double *xs, const double *ys, int count)
-    {
-        static ImVector<double> xs_plt; xs_plt.resize(count);
-        static ImVector<double> ys_plt; ys_plt.resize(count);
-        static ImVector<float>  xs_pix; xs_pix.resize(count);  
-        static ImVector<float>  ys_pix; ys_pix.resize(count);
-
-        for (int i = 0; i < count; ++i) {
-            xs_plt[i] = (double)xs[i];
-            ys_plt[i] = (double)ys[i];
-        }
-
-        ImPlotContext &gp = *GImPlot;
-        if (BeginItem(label_id, ImPlotCol_Line))
-        {
-            const ImPlotNextItemData &s = GetItemData();
-            ImDrawList &DrawList = *GetPlotDrawList();
-            if (count > 1 && s.RenderLine)
-            {
-                const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-                const float weight = s.LineWeight;
-                const unsigned int prims = count - 1;
-                const ImVec2 uv = DrawList._Data->TexUvWhitePixel;
-                const float minx_pix = gp.CurrentPlot->Axes[ImAxis_X1].PixelMin;
-                const float miny_pix = gp.CurrentPlot->Axes[ImAxis_Y1].PixelMin;
-                const double minx_plt = gp.CurrentPlot->Axes[ImAxis_X1].Range.Min;
-                const double miny_plt = gp.CurrentPlot->Axes[ImAxis_Y1].Range.Min;
-                const double mx       = gp.CurrentPlot->Axes[ImAxis_X1].ScaleToPixel;
-                const double my       = gp.CurrentPlot->Axes[ImAxis_Y1].ScaleToPixel;
-                // xform data
-                for (int i = 0; i < count; ++i) {
-                    xs_pix[i] = minx_pix + (float)(mx * (xs_plt[i] - minx_plt));
-                    ys_pix[i] = miny_pix + (float)(my * (ys_plt[i] - miny_plt));    
-                }        
-                DrawList.PrimReserve(prims * 6, prims * 4);
-                for (unsigned int i = 0; i < prims; ++i)
-                {
-                    const float x1 = xs_pix[i];
-                    const float x2 = xs_pix[i+1];
-                    const float y1 = ys_pix[i];
-                    const float y2 = ys_pix[i+1];
-                    float dx = x2 - x1;
-                    float dy = y2 - y1;
-                    IMPLOT_NORMALIZE2F_OVER_ZERO(dx, dy);
-                    dx *= (weight * 0.5f);
-                    dy *= (weight * 0.5f);
-                    DrawList._VtxWritePtr[0].pos.x = x1 + dy;
-                    DrawList._VtxWritePtr[0].pos.y = y1 - dx;
-                    DrawList._VtxWritePtr[0].uv = uv;
-                    DrawList._VtxWritePtr[0].col = col;
-                    DrawList._VtxWritePtr[1].pos.x = x2 + dy;
-                    DrawList._VtxWritePtr[1].pos.y = y2 - dx;
-                    DrawList._VtxWritePtr[1].uv = uv;
-                    DrawList._VtxWritePtr[1].col = col;
-                    DrawList._VtxWritePtr[2].pos.x = x2 - dy;
-                    DrawList._VtxWritePtr[2].pos.y = y2 + dx;
-                    DrawList._VtxWritePtr[2].uv = uv;
-                    DrawList._VtxWritePtr[2].col = col;
-                    DrawList._VtxWritePtr[3].pos.x = x1 - dy;
-                    DrawList._VtxWritePtr[3].pos.y = y1 + dx;
-                    DrawList._VtxWritePtr[3].uv = uv;
-                    DrawList._VtxWritePtr[3].col = col;
-                    DrawList._VtxWritePtr += 4;
-                    DrawList._IdxWritePtr[0] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-                    DrawList._IdxWritePtr[1] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 1);
-                    DrawList._IdxWritePtr[2] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
-                    DrawList._IdxWritePtr[3] = (ImDrawIdx)(DrawList._VtxCurrentIdx);
-                    DrawList._IdxWritePtr[4] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 2);
-                    DrawList._IdxWritePtr[5] = (ImDrawIdx)(DrawList._VtxCurrentIdx + 3);
-                    DrawList._IdxWritePtr += 6;
-                    DrawList._VtxCurrentIdx += 4;
-                }
-            }
-            EndItem();
-        }
-    }
-
-
-
 
 } // namespace ImPlot
