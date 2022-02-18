@@ -32,7 +32,6 @@
 #define SQRT_1_2 0.70710678118f
 #define SQRT_3_2 0.86602540378f
 
-#define IMPLOT_NO_FORCE_INLINE
 #ifndef IMPLOT_NO_FORCE_INLINE
     #ifdef _MSC_VER
         #define IMPLOT_INLINE __forceinline
@@ -49,10 +48,6 @@
     #endif
 #else
     #define IMPLOT_INLINE inline
-#endif
-
-#ifndef IMPLOT_NO_FORCE_INLINE_EXTREME
-    #define IMPLOT_INLINE_EXTREME IMPLOT_INLINE
 #endif
 
 #if defined __SSE__ || defined __x86_64__ || defined _M_X64
@@ -735,7 +730,7 @@ struct RendererBase {
 
 template <class _Transformer>
 struct RendererLineStrip : RendererBase<6,4,_Transformer> {
-    IMPLOT_INLINE RendererLineStrip(const ImPlotPoint* data, int count, ImU32 col, float weight) :
+    RendererLineStrip(const ImPlotPoint* data, int count, ImU32 col, float weight) :
         RendererBase<6,4,_Transformer>(count - 1),
         Data(data),
         Col(col),
@@ -761,7 +756,7 @@ struct RendererLineStrip : RendererBase<6,4,_Transformer> {
 
 template <class _Transformer>
 struct RendererLineStripSkip : RendererBase<6,4,_Transformer> {
-    IMPLOT_INLINE RendererLineStripSkip(const ImPlotPoint* data, int count, ImU32 col, float weight) :
+    RendererLineStripSkip(const ImPlotPoint* data, int count, ImU32 col, float weight) :
         RendererBase<6,4,_Transformer>(count - 1),
         Data(data),
         Col(col),
@@ -789,7 +784,7 @@ struct RendererLineStripSkip : RendererBase<6,4,_Transformer> {
 
 template <class _Transformer>
 struct RendererLineSegments : RendererBase<6,4,_Transformer> {
-    IMPLOT_INLINE RendererLineSegments(const ImPlotPoint* data, int count, ImU32 col, float weight) :
+    RendererLineSegments(const ImPlotPoint* data, int count, ImU32 col, float weight) :
         RendererBase<6,4,_Transformer>(count / 2),
         Data(data),
         Col(col),
@@ -810,7 +805,7 @@ struct RendererLineSegments : RendererBase<6,4,_Transformer> {
 
 template <class _Transformer>
 struct RendererBarsV : RendererBase<6,4,_Transformer> {
-    IMPLOT_INLINE RendererBarsV(const ImPlotPoint* data, int count, ImU32 col, double width) :
+    RendererBarsV(const ImPlotPoint* data, int count, ImU32 col, double width) :
         RendererBase<6,4,_Transformer>(count/2),
         Data(data),
         Col(col),
@@ -840,7 +835,7 @@ struct RendererBarsV : RendererBase<6,4,_Transformer> {
 
 template <class _Transformer>
 struct RendererBarsH : RendererBase<6,4,_Transformer> {
-    IMPLOT_INLINE RendererBarsH(const ImPlotPoint* data, int count, ImU32 col, double height) :
+    RendererBarsH(const ImPlotPoint* data, int count, ImU32 col, double height) :
         RendererBase<6,4,_Transformer>(count/2),
         Data(data),
         Col(col),
@@ -870,7 +865,7 @@ struct RendererBarsH : RendererBase<6,4,_Transformer> {
 
 template <class _Transformer>
 struct RendererStairsPre : RendererBase<12,8,_Transformer> {
-    IMPLOT_INLINE RendererStairsPre(const ImPlotPoint* data, int count, ImU32 col, float weight) :
+    RendererStairsPre(const ImPlotPoint* data, int count, ImU32 col, float weight) :
         RendererBase<12,8,_Transformer>(count - 1),
         Data(data),
         Col(col),
@@ -897,7 +892,7 @@ struct RendererStairsPre : RendererBase<12,8,_Transformer> {
 
 template <class _Transformer>
 struct RendererStairsPost : RendererBase<12,8,_Transformer> {
-    IMPLOT_INLINE RendererStairsPost(const ImPlotPoint* data, int count, ImU32 col, float weight) :
+    RendererStairsPost(const ImPlotPoint* data, int count, ImU32 col, float weight) :
         RendererBase<12,8,_Transformer>(count - 1),
         Data(data),
         Col(col),
@@ -924,7 +919,7 @@ struct RendererStairsPost : RendererBase<12,8,_Transformer> {
 
 template <class _Transformer>
 struct RendererShaded : RendererBase<6,5,_Transformer> {
-    IMPLOT_INLINE RendererShaded(const ImPlotPoint* data, int count, ImU32 col) :
+    RendererShaded(const ImPlotPoint* data, int count, ImU32 col) :
         RendererBase<6,5,_Transformer>(count/2 - 1),
         Data(data),
         Col(col)
@@ -986,7 +981,7 @@ struct RectC {
 
 template <typename _Getter, typename _Transformer>
 struct RendererRectC : RendererBase<6,4,_Transformer> {
-    IMPLOT_INLINE RendererRectC(const _Getter& getter) :
+    RendererRectC(const _Getter& getter) :
         RendererBase<6,4,_Transformer>(getter.Count),
         Getter(getter)
     {}
@@ -1008,7 +1003,7 @@ struct RendererRectC : RendererBase<6,4,_Transformer> {
 
 /// Renders primitive shapes in bulk as efficiently as possible.
 template <class _Renderer>
-IMPLOT_INLINE_EXTREME void RenderPrimitivesEx(const _Renderer& renderer, ImDrawList& draw_list, const ImRect& cull_rect) {
+void RenderPrimitivesEx(const _Renderer& renderer, ImDrawList& draw_list, const ImRect& cull_rect) {
     unsigned int prims        = renderer.Prims;
     unsigned int prims_culled = 0;
     unsigned int idx          = 0;
@@ -1047,7 +1042,7 @@ IMPLOT_INLINE_EXTREME void RenderPrimitivesEx(const _Renderer& renderer, ImDrawL
 }
 
 template <template <class,class> class _Renderer, class _Getter, typename ...Args>
-IMPLOT_INLINE_EXTREME void RenderPrimitives1(const _Getter& getter, Args... args) {
+void RenderPrimitives1(const _Getter& getter, Args... args) {
     ImDrawList& draw_list = *GetPlotDrawList();
     const ImRect& cull_rect = GetCurrentPlot()->PlotRect;
     switch (GetCurrentScale()) {
@@ -1064,7 +1059,7 @@ IMPLOT_INLINE_EXTREME void RenderPrimitives1(const _Getter& getter, Args... args
 }
 
 template <template <class> class _Renderer, typename ...Args>
-IMPLOT_INLINE_EXTREME void RenderPrimitivesBuffered(Args... args) {
+void RenderPrimitivesBuffered(Args... args) {
     ImDrawList& draw_list = *GetPlotDrawList();
     const ImRect& cull_rect = GetCurrentPlot()->PlotRect;
     switch (GetCurrentScale()) {
@@ -1081,7 +1076,7 @@ IMPLOT_INLINE_EXTREME void RenderPrimitivesBuffered(Args... args) {
 }
 
 template <template <class,class,class> class _Renderer, class _Getter1, class _Getter2, typename ...Args>
-IMPLOT_INLINE_EXTREME void RenderPrimitives2(const _Getter1& getter1, const _Getter2& getter2, Args... args) {
+void RenderPrimitives2(const _Getter1& getter1, const _Getter2& getter2, Args... args) {
     ImDrawList& draw_list = *GetPlotDrawList();
     const ImRect& cull_rect = GetCurrentPlot()->PlotRect;
     switch (GetCurrentScale()) {
@@ -1206,7 +1201,7 @@ struct RendererMarkers : RendererBase<_Marker::IdxConsumed,_Marker::VtxConsumed,
 };
 
 template <class _Marker>
-IMPLOT_INLINE_EXTREME void RenderMarkers(const ImPlotPoint* data, int count, float size, ImU32 col) {
+void RenderMarkers(const ImPlotPoint* data, int count, float size, ImU32 col) {
     ImDrawList& draw_list = *GetPlotDrawList();
     const ImRect& cull_rect = GetCurrentPlot()->PlotRect;
     switch (GetCurrentScale()) {
@@ -1222,7 +1217,7 @@ IMPLOT_INLINE_EXTREME void RenderMarkers(const ImPlotPoint* data, int count, flo
     }
 }
 
-IMPLOT_INLINE_EXTREME void RenderMarkers(const ImPlotPoint* data, int count, ImPlotMarker marker, float size, ImU32 col) {
+void RenderMarkers(const ImPlotPoint* data, int count, ImPlotMarker marker, float size, ImU32 col) {
     switch (marker) {
         case ImPlotMarker_Circle  : RenderMarkers<MarkerCircleFilled>(data,count,size,col); break;
         case ImPlotMarker_Square  : RenderMarkers<MarkerSquareFilled>(data,count,size,col); break;
@@ -1260,7 +1255,7 @@ IMPLOT_INLINE_EXTREME void RenderMarkers(const ImPlotPoint* data, int count, ImP
 // [SECTION] PlotLine
 //-----------------------------------------------------------------------------
 
-IMPLOT_INLINE_EXTREME void PlotLineEx(const char* label_id, const ImPlotPoint* data, int count, ImPlotLineFlags flags) {
+void PlotLineEx(const char* label_id, const ImPlotPoint* data, int count, ImPlotLineFlags flags) {
     if (BeginItemEx(label_id, Fitter1(data,count), flags, ImPlotCol_Line)) {
         const ImPlotNextItemData& s = GetItemData();
         if (GImPlot->DataBuffer.Size > 1 && s.RenderLine) {
@@ -1337,7 +1332,7 @@ void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int c
 // [SECTION] PlotScatter
 //-----------------------------------------------------------------------------
 
-IMPLOT_INLINE_EXTREME void PlotScatterEx(const char* label_id, const ImPlotPoint* data, int count, ImPlotScatterFlags flags) {
+void PlotScatterEx(const char* label_id, const ImPlotPoint* data, int count, ImPlotScatterFlags flags) {
     if (BeginItemEx(label_id, Fitter1(data,count), flags, ImPlotCol_MarkerOutline)) {
         const ImPlotNextItemData& s = GetItemData();
         ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle : s.Marker;
@@ -1401,7 +1396,7 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 // [SECTION] PlotStairs
 //-----------------------------------------------------------------------------
 
-IMPLOT_INLINE_EXTREME void PlotStairsEx(const char* label_id, const ImPlotPoint* data, int count, ImPlotStairsFlags flags) {
+void PlotStairsEx(const char* label_id, const ImPlotPoint* data, int count, ImPlotStairsFlags flags) {
     if (BeginItemEx(label_id, Fitter1(data, count), flags, ImPlotCol_Line)) {
         const ImPlotNextItemData& s = GetItemData();
         if (count > 1 && s.RenderLine) {
