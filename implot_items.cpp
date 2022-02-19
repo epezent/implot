@@ -32,7 +32,6 @@
 #define SQRT_1_2 0.70710678118f
 #define SQRT_3_2 0.86602540378f
 
-#define IMPLOT_NO_FORCE_INLINE
 #ifndef IMPLOT_NO_FORCE_INLINE
     #ifdef _MSC_VER
         #define IMPLOT_INLINE __forceinline
