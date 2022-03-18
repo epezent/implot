@@ -3060,7 +3060,7 @@ bool BeginDragDropSourceEx(ImGuiID source_id, bool is_hovered, ImGuiDragDropFlag
     g.ActiveIdAllowOverlap = is_hovered;
     g.ActiveIdUsingNavDirMask = ~(ImU32)0;
     g.ActiveIdUsingNavInputMask = ~(ImU32)0;
-    g.ActiveIdUsingKeyInputMask = ~(ImU64)0;
+    //g.ActiveIdUsingKeyInputMask = ~(ImU64)0;
 
     if (ImGui::IsMouseDragging(mouse_button)) {
 
