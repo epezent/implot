@@ -226,16 +226,16 @@ void ButtonSelector(const char* label, ImGuiMouseButton* b) {
     ImGui::PopID();
 }
 
-void ModSelector(const char* label, ImGuiKeyModFlags* k) {
+void ModSelector(const char* label, ImGuiModFlags* k) {
     ImGui::PushID(label);
-    ImGui::CheckboxFlags("Ctrl", (unsigned int*)k, ImGuiKeyModFlags_Ctrl); ImGui::SameLine();
-    ImGui::CheckboxFlags("Shift", (unsigned int*)k, ImGuiKeyModFlags_Shift); ImGui::SameLine();
-    ImGui::CheckboxFlags("Alt", (unsigned int*)k, ImGuiKeyModFlags_Alt); ImGui::SameLine();
-    ImGui::CheckboxFlags("Super", (unsigned int*)k, ImGuiKeyModFlags_Super);
+    ImGui::CheckboxFlags("Ctrl", (unsigned int*)k, ImGuiModFlags_Ctrl); ImGui::SameLine();
+    ImGui::CheckboxFlags("Shift", (unsigned int*)k, ImGuiModFlags_Shift); ImGui::SameLine();
+    ImGui::CheckboxFlags("Alt", (unsigned int*)k, ImGuiModFlags_Alt); ImGui::SameLine();
+    ImGui::CheckboxFlags("Super", (unsigned int*)k, ImGuiModFlags_Super);
     ImGui::PopID();
 }
 
-void InputMapping(const char* label, ImGuiMouseButton* b, ImGuiKeyModFlags* k) {
+void InputMapping(const char* label, ImGuiMouseButton* b, ImGuiModFlags* k) {
     ImGui::LabelText("##","%s",label);
     if (b != NULL) {
         ImGui::SameLine(100);

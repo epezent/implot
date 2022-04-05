@@ -4498,32 +4498,32 @@ ImPlotInputMap& GetInputMap() {
 void MapInputDefault(ImPlotInputMap* dst) {
     ImPlotInputMap& map = dst ? *dst : GetInputMap();
     map.Pan             = ImGuiMouseButton_Left;
-    map.PanMod          = ImGuiKeyModFlags_None;
+    map.PanMod          = ImGuiModFlags_None;
     map.Fit             = ImGuiMouseButton_Left;
     map.Menu            = ImGuiMouseButton_Right;
     map.Select          = ImGuiMouseButton_Right;
-    map.SelectMod       = ImGuiKeyModFlags_None;
+    map.SelectMod       = ImGuiModFlags_None;
     map.SelectCancel    = ImGuiMouseButton_Left;
-    map.SelectHorzMod   = ImGuiKeyModFlags_Alt;
-    map.SelectVertMod   = ImGuiKeyModFlags_Shift;
-    map.OverrideMod     = ImGuiKeyModFlags_Ctrl;
-    map.ZoomMod         = ImGuiKeyModFlags_None;
+    map.SelectHorzMod   = ImGuiModFlags_Alt;
+    map.SelectVertMod   = ImGuiModFlags_Shift;
+    map.OverrideMod     = ImGuiModFlags_Ctrl;
+    map.ZoomMod         = ImGuiModFlags_None;
     map.ZoomRate        = 0.1f;
 }
 
 void MapInputReverse(ImPlotInputMap* dst) {
     ImPlotInputMap& map = dst ? *dst : GetInputMap();
     map.Pan             = ImGuiMouseButton_Right;
-    map.PanMod          = ImGuiKeyModFlags_None;
+    map.PanMod          = ImGuiModFlags_None;
     map.Fit             = ImGuiMouseButton_Left;
     map.Menu            = ImGuiMouseButton_Right;
     map.Select          = ImGuiMouseButton_Left;
-    map.SelectMod       = ImGuiKeyModFlags_None;
+    map.SelectMod       = ImGuiModFlags_None;
     map.SelectCancel    = ImGuiMouseButton_Right;
-    map.SelectHorzMod   = ImGuiKeyModFlags_Alt;
-    map.SelectVertMod   = ImGuiKeyModFlags_Shift;
-    map.OverrideMod     = ImGuiKeyModFlags_Ctrl;
-    map.ZoomMod         = ImGuiKeyModFlags_None;
+    map.SelectHorzMod   = ImGuiModFlags_Alt;
+    map.SelectVertMod   = ImGuiModFlags_Shift;
+    map.OverrideMod     = ImGuiModFlags_Ctrl;
+    map.ZoomMod         = ImGuiModFlags_None;
     map.ZoomRate        = 0.1f;
 }
 
