@@ -66,15 +66,15 @@ Ideally every `PlotX` function should use our faster rendering pipeline when it 
 
 |Plotter|Getter|Fitter|Renderer|RenderPrimitives|
 |---|:-:|:-:|:-:|:-:|
-|PlotLine|Yes|Yes|Mixed|Mixed|
-|PlotScatter|Yes|Yes|No|No|
-|PlotStairs|Yes|Yes|Mixed|Mixed|
+|PlotLine|Yes|Yes|Yes|Yes|
+|PlotScatter|Yes|Yes|Yes|Yes|
+|PlotStairs|Yes|Yes|Yes|Yes|
 |PlotShaded|Yes|Yes|Yes|Yes|
 |PlotBars|Yes|Yes|Yes|Yes|
 |PlotBarGroups|.|.|.|.|
 |PlotHistogram|.|.|.|.|
 |PlotErrorBars|Yes|Yes|No|No|
-|PlotStems|Yes|Yes|Mixed|Mixed|
+|PlotStems|Yes|Yes|Yes|Yes|
 |PlotInfLines|Yes|No|Yes|Yes|
 |PlotPieChart|No|No|No|No|
 |PlotHeatmap|Yes|No|Yes|Mixed|

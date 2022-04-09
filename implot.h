@@ -547,7 +547,7 @@ struct ImPlotInputMap {
 // Callback signature for axis tick label formatter.
 typedef void (*ImPlotFormatter)(double value, char* buff, int size, void* user_data);
 
-// Callback signature for data getter. TODO: reverse order
+// Callback signature for data getter.
 typedef ImPlotPoint (*ImPlotGetter)(void* user_data, int idx);
 
 namespace ImPlot {
