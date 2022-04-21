@@ -796,7 +796,7 @@ struct ImPlotAxis
     inline bool HasGridLines()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoGridLines);                                           }
     inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                                          }
     inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                                           }
-    inline bool WillRender()        const { return HasGridLines() || HasTickLabels() || HasTickMarks();                                      }
+    inline bool WillRender()        const { return Enabled && (HasGridLines() || HasTickLabels() || HasTickMarks());                         }
     inline bool IsOpposite()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                                               }
     inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                                 }
     inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }
