@@ -663,7 +663,7 @@ void ShowDemo_Heatmaps() {
 
     ImGui::SameLine();
 
-    const int size = 200;
+    const int size = 80;
     static double values2[size*size];
     srand((unsigned int)(ImGui::GetTime()*1000000));
     for (int i = 0; i < size*size; ++i)
@@ -749,15 +749,15 @@ void ShowDemo_Histogram() {
 }
 
 void ShowDemo_Histogram2D() {
-    static int count     = 500000;
-    static int xybins[2] = {200,200};
+    static int count     = 50000;
+    static int xybins[2] = {100,100};
     static bool density2 = false;
-    ImGui::SliderInt("Count",&count,100,500000);
+    ImGui::SliderInt("Count",&count,100,100000);
     ImGui::SliderInt2("Bins",xybins,1,500);
     ImGui::SameLine();
     ImGui::Checkbox("Density##2",&density2);
-    static NormalDistribution<500000> dist1(1, 2);
-    static NormalDistribution<500000> dist2(1, 1);
+    static NormalDistribution<100000> dist1(1, 2);
+    static NormalDistribution<100000> dist2(1, 1);
     double max_count = 0;
     ImPlotAxisFlags flags = ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_Foreground;
     ImPlot::PushColormap("Hot");
