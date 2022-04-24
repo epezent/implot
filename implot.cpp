@@ -31,8 +31,9 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2021/10/XX (0.13) - PlotHistogram/PlotHistogram2D signatures changed; `cumulative`, `density`, and `outliers` options now specified via ImPlotHistogramFlags
+- 2022/04/XX (0.14) - PlotHistogram/PlotHistogram2D signatures changed; `cumulative`, `density`, and `outliers` options now specified via ImPlotHistogramFlags
                     - PlotPieChart signature changed; `normalize` option now specified via ImPlotPieChartFlags
+                    - arguments of ImPlotGetter have been reversed to be consistent with other API callbacks
 - 2021/10/19 (0.13) - MAJOR API OVERHAUL! See #168 and #272
                     - TRIVIAL RENAME:
                       - ImPlotLimits                              -> ImPlotRect
@@ -307,6 +308,27 @@ static const ImPlotStyleVarInfo* GetPlotStyleVarInfo(ImPlotStyleVar idx) {
     IM_ASSERT(idx >= 0 && idx < ImPlotStyleVar_COUNT);
     IM_ASSERT(IM_ARRAYSIZE(GPlotStyleVarInfo) == ImPlotStyleVar_COUNT);
     return &GPlotStyleVarInfo[idx];
+}
+
+//-----------------------------------------------------------------------------
+// Built-In Transformers
+//-----------------------------------------------------------------------------
+
+static inline double Transform_Log10(double v, void*) {
+    v = v <= 0.0 ? IMPLOT_LOG_ZERO : v;
+    return ImLog10(v);
+}
+
+static inline double TransformInv_Log10(double v, void*) {
+    return ImPow(10, v);
+}
+
+static inline double Transform_SymLog(double v, void*) {
+    return 2.0 * ImAsinh(v / 2.0);
+}
+
+static inline double TransformInv_SymLog(double v, void*) {
+    return 2.0 * ImSinh(v / 2.0);
 }
 
 //-----------------------------------------------------------------------------
@@ -1309,7 +1331,7 @@ inline void EndDisabledControls(bool cond) {
     }
 }
 
-void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_allowed) {
+void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool /*time_allowed*/) {
 
     ImGui::PushItemWidth(75);
     bool always_locked   = axis.IsRangeLocked() || axis.IsAutoFitting();
@@ -1398,14 +1420,15 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool time_all
     ImGui::Separator();
 
     ImGui::CheckboxFlags("Auto-Fit",(unsigned int*)&axis.Flags, ImPlotAxisFlags_AutoFit);
-    BeginDisabledControls(axis.IsTime() && time_allowed);
-    ImGui::CheckboxFlags("Log Scale",(unsigned int*)&axis.Flags, ImPlotAxisFlags_LogScale);
-    EndDisabledControls(axis.IsTime() && time_allowed);
-    if (time_allowed) {
-        BeginDisabledControls(axis.IsLog() || axis.IsSymLog());
-        ImGui::CheckboxFlags("Time",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Time);
-        EndDisabledControls(axis.IsLog() || axis.IsSymLog());
-    }
+    // TODO
+    // BeginDisabledControls(axis.IsTime() && time_allowed);
+    // ImGui::CheckboxFlags("Log Scale",(unsigned int*)&axis.Flags, ImPlotAxisFlags_LogScale);
+    // EndDisabledControls(axis.IsTime() && time_allowed);
+    // if (time_allowed) {
+    //     BeginDisabledControls(axis.IsLog() || axis.IsSymLog());
+    //     ImGui::CheckboxFlags("Time",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Time);
+    //     EndDisabledControls(axis.IsLog() || axis.IsSymLog());
+    // }
     ImGui::Separator();
     ImGui::CheckboxFlags("Invert",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Invert);
     ImGui::CheckboxFlags("Opposite",(unsigned int*)&axis.Flags, ImPlotAxisFlags_Opposite);
@@ -2157,6 +2180,45 @@ void SetupAxisTicks(ImAxis idx, double v_min, double v_max, int n_ticks, const c
     IM_ASSERT_USER_ERROR(n_ticks > 1, "The number of ticks must be greater than 1");
     FillRange(GImPlot->TempDouble1, n_ticks, v_min, v_max);
     SetupAxisTicks(idx, GImPlot->TempDouble1.Data, n_ticks, labels, show_default);
+}
+
+void SetupAxisScale(ImAxis idx, ImPlotScale scale) {
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
+                        "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
+    ImPlotPlot& plot = *GImPlot->CurrentPlot;
+    ImPlotAxis& axis = plot.Axes[idx];
+    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");  
+    axis.Scale = scale;  
+    switch (scale)
+    {
+    case ImPlotScale_Log10:
+        axis.TransformFwd = Transform_Log10;
+        axis.TransformInv = TransformInv_Log10;
+        axis.TransformData = NULL;
+        break; 
+    case ImPlotScale_SymLog:
+        axis.TransformFwd = Transform_SymLog;
+        axis.TransformInv = TransformInv_SymLog;
+        axis.TransformData = NULL; 
+        break;  
+    default:
+        axis.TransformFwd = NULL;
+        axis.TransformInv = NULL;
+        axis.TransformData = NULL;
+        break;
+    }                
+}
+
+void SetupAxisScale(ImAxis idx, ImPlotTransform fwd, ImPlotTransform inv, void* data) {
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
+                        "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
+    ImPlotPlot& plot = *GImPlot->CurrentPlot;
+    ImPlotAxis& axis = plot.Axes[idx];
+    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?"); 
+    axis.Scale = IMPLOT_AUTO;
+    axis.TransformFwd = fwd;
+    axis.TransformInv = inv;
+    axis.TransformData = data; 
 }
 
 void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFlags x_flags, ImPlotAxisFlags y_flags) {
@@ -4536,32 +4598,32 @@ ImPlotInputMap& GetInputMap() {
 void MapInputDefault(ImPlotInputMap* dst) {
     ImPlotInputMap& map = dst ? *dst : GetInputMap();
     map.Pan             = ImGuiMouseButton_Left;
-    map.PanMod          = ImGuiKeyModFlags_None;
+    map.PanMod          = ImGuiModFlags_None;
     map.Fit             = ImGuiMouseButton_Left;
     map.Menu            = ImGuiMouseButton_Right;
     map.Select          = ImGuiMouseButton_Right;
-    map.SelectMod       = ImGuiKeyModFlags_None;
+    map.SelectMod       = ImGuiModFlags_None;
     map.SelectCancel    = ImGuiMouseButton_Left;
-    map.SelectHorzMod   = ImGuiKeyModFlags_Alt;
-    map.SelectVertMod   = ImGuiKeyModFlags_Shift;
-    map.OverrideMod     = ImGuiKeyModFlags_Ctrl;
-    map.ZoomMod         = ImGuiKeyModFlags_None;
+    map.SelectHorzMod   = ImGuiModFlags_Alt;
+    map.SelectVertMod   = ImGuiModFlags_Shift;
+    map.OverrideMod     = ImGuiModFlags_Ctrl;
+    map.ZoomMod         = ImGuiModFlags_None;
     map.ZoomRate        = 0.1f;
 }
 
 void MapInputReverse(ImPlotInputMap* dst) {
     ImPlotInputMap& map = dst ? *dst : GetInputMap();
     map.Pan             = ImGuiMouseButton_Right;
-    map.PanMod          = ImGuiKeyModFlags_None;
+    map.PanMod          = ImGuiModFlags_None;
     map.Fit             = ImGuiMouseButton_Left;
     map.Menu            = ImGuiMouseButton_Right;
     map.Select          = ImGuiMouseButton_Left;
-    map.SelectMod       = ImGuiKeyModFlags_None;
+    map.SelectMod       = ImGuiModFlags_None;
     map.SelectCancel    = ImGuiMouseButton_Right;
-    map.SelectHorzMod   = ImGuiKeyModFlags_Alt;
-    map.SelectVertMod   = ImGuiKeyModFlags_Shift;
-    map.OverrideMod     = ImGuiKeyModFlags_Ctrl;
-    map.ZoomMod         = ImGuiKeyModFlags_None;
+    map.SelectHorzMod   = ImGuiModFlags_Alt;
+    map.SelectVertMod   = ImGuiModFlags_Shift;
+    map.OverrideMod     = ImGuiModFlags_Ctrl;
+    map.ZoomMod         = ImGuiModFlags_None;
     map.ZoomRate        = 0.1f;
 }
 

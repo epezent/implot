@@ -105,6 +105,7 @@ typedef int ImPlotDummyFlags;     // -> ImPlotDummyFlags_
 typedef int ImPlotCond;           // -> enum ImPlotCond_
 typedef int ImPlotCol;            // -> enum ImPlotCol_
 typedef int ImPlotStyleVar;       // -> enum ImPlotStyleVar_
+typedef int ImPlotScale;          // -> enum ImPlotScale_
 typedef int ImPlotMarker;         // -> enum ImPlotMarker_
 typedef int ImPlotColormap;       // -> enum ImPlotColormap_
 typedef int ImPlotLocation;       // -> enum ImPlotLocation_
@@ -151,14 +152,11 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_NoMenus       = 1 << 5,  // the user will not be able to open context menus with right-click
     ImPlotAxisFlags_Opposite      = 1 << 6,  // axis ticks and labels will be rendered on the conventionally opposite side (i.e, right or top)
     ImPlotAxisFlags_Foreground    = 1 << 7,  // grid lines will be displayed in the foreground (i.e. on top of data) in stead of the background
-    ImPlotAxisFlags_LogScale      = 1 << 8,  // a logartithmic (base 10) axis scale will be used (mutually exclusive with ImPlotAxisFlags_Time and ImPlotAxisFlags_SymLogScale)
-    ImPlotAxisFlags_SymLogScale   = 1 << 9,  // a symmetric log scale will be used (mutually exclusive with ImPlotAxisFlags_LogScale and ImPlotAxisFlags_Time)
-    ImPlotAxisFlags_Time          = 1 << 10, // axis will display date/time formatted labels (mutually exclusive with ImPlotAxisFlags_LogScale and ImPlotAxisFlags_SymLogScale)
-    ImPlotAxisFlags_Invert        = 1 << 11, // the axis will be inverted
-    ImPlotAxisFlags_AutoFit       = 1 << 12, // axis will be auto-fitting to data extents
-    ImPlotAxisFlags_RangeFit      = 1 << 13, // axis will only fit points if the point is in the visible range of the **orthogonal** axis
-    ImPlotAxisFlags_LockMin       = 1 << 14, // the axis minimum value will be locked when panning/zooming
-    ImPlotAxisFlags_LockMax       = 1 << 15, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_Invert        = 1 << 8,  // the axis will be inverted
+    ImPlotAxisFlags_AutoFit       = 1 << 9,  // axis will be auto-fitting to data extents
+    ImPlotAxisFlags_RangeFit      = 1 << 10, // axis will only fit points if the point is in the visible range of the **orthogonal** axis
+    ImPlotAxisFlags_LockMin       = 1 << 11, // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax       = 1 << 12, // the axis maximum value will be locked when panning/zooming
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
     ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels,
     ImPlotAxisFlags_AuxDefault    = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_Opposite
@@ -218,11 +216,10 @@ enum ImPlotItemFlags_ {
 // Flags for PlotLine
 enum ImPlotLineFlags_ { 
     ImPlotLineFlags_None        = 0,       // default 
-    ImPlotLineFlags_AntiAliased = 1 << 10, // lines will be rendering using software anti-aliasing (SLOW!)
-    ImPlotLineFlags_Segments    = 1 << 11, // a line segment will be rendered from every two consecutive points
-    ImPlotLineFlags_Loop        = 1 << 12, // the last and first point will be connected to form a closed loop
-    ImPlotLineFlags_SkipNaN     = 1 << 13, // NaNs values will be skipped instead of rendered as missing data
-    ImPlotLineFlags_NoClip      = 1 << 14, // markers (if displayed) on the edge of a plot will not be clipped
+    ImPlotLineFlags_Segments    = 1 << 10, // a line segment will be rendered from every two consecutive points
+    ImPlotLineFlags_Loop        = 1 << 11, // the last and first point will be connected to form a closed loop
+    ImPlotLineFlags_SkipNaN     = 1 << 12, // NaNs values will be skipped instead of rendered as missing data
+    ImPlotLineFlags_NoClip      = 1 << 13, // markers (if displayed) on the edge of a plot will not be clipped
 };
 
 // Flags for PlotScatter 
@@ -386,6 +383,14 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_COUNT
 };
 
+// Axis scale
+enum ImPlotScale_ {
+    ImPlotScale_Linear = 0, // default linear scale and formatting
+    ImPlotScale_Time,       // date/time scale and formatting
+    ImPlotScale_Log10,      // base 10 logartithmic scale and formatting
+    ImPlotScale_SymLog      // symmetric log scale and formatting
+};
+
 // Marker specifications.
 enum ImPlotMarker_ {
     ImPlotMarker_None = -1, // no marker
@@ -523,19 +528,28 @@ struct ImPlotStyle {
     IMPLOT_API ImPlotStyle();
 };
 
+#if (IMGUI_VERSION_NUM < 18716) // Renamed in 1.88
+#define ImGuiModFlags       ImGuiKeyModFlags
+#define ImGuiModFlags_None  ImGuiKeyModFlags_None
+#define ImGuiModFlags_Ctrl  ImGuiKeyModFlags_Ctrl
+#define ImGuiModFlags_Shift ImGuiKeyModFlags_Shift
+#define ImGuiModFlags_Alt   ImGuiKeyModFlags_Alt
+#define ImGuiModFlags_Super ImGuiKeyModFlags_Super
+#endif
+
 // Input mapping structure. Default values listed. See also MapInputDefault, MapInputReverse.
 struct ImPlotInputMap {
     ImGuiMouseButton Pan;           // LMB    enables panning when held,
-    ImGuiKeyModFlags PanMod;        // none   optional modifier that must be held for panning/fitting
+    ImGuiModFlags    PanMod;        // none   optional modifier that must be held for panning/fitting
     ImGuiMouseButton Fit;           // LMB    initiates fit when double clicked
     ImGuiMouseButton Select;        // RMB    begins box selection when pressed and confirms selection when released
     ImGuiMouseButton SelectCancel;  // LMB    cancels active box selection when pressed; cannot be same as Select
-    ImGuiKeyModFlags SelectMod;     // none   optional modifier that must be held for box selection
-    ImGuiKeyModFlags SelectHorzMod; // Alt    expands active box selection horizontally to plot edge when held
-    ImGuiKeyModFlags SelectVertMod; // Shift  expands active box selection vertically to plot edge when held
+    ImGuiModFlags    SelectMod;     // none   optional modifier that must be held for box selection
+    ImGuiModFlags    SelectHorzMod; // Alt    expands active box selection horizontally to plot edge when held
+    ImGuiModFlags    SelectVertMod; // Shift  expands active box selection vertically to plot edge when held
     ImGuiMouseButton Menu;          // RMB    opens context menus (if enabled) when clicked
-    ImGuiKeyModFlags OverrideMod;   // Ctrl   when held, all input is ignored; used to enable axis/plots as DND sources
-    ImGuiKeyModFlags ZoomMod;       // none   optional modifier that must be held for scroll wheel zooming
+    ImGuiModFlags    OverrideMod;   // Ctrl   when held, all input is ignored; used to enable axis/plots as DND sources
+    ImGuiModFlags    ZoomMod;       // none   optional modifier that must be held for scroll wheel zooming
     float            ZoomRate;      // 0.1f   zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click); make negative to invert
     IMPLOT_API ImPlotInputMap();
 };
@@ -548,7 +562,10 @@ struct ImPlotInputMap {
 typedef void (*ImPlotFormatter)(double value, char* buff, int size, void* user_data);
 
 // Callback signature for data getter.
-typedef ImPlotPoint (*ImPlotGetter)(void* user_data, int idx);
+typedef ImPlotPoint (*ImPlotGetter)(int idx, void* user_data);
+
+// Callback signature for axis transform.
+typedef double (*ImPlotTransform)(double value, void* user_data);
 
 namespace ImPlot {
 
@@ -702,6 +719,10 @@ IMPLOT_API void SetupAxisFormat(ImAxis axis, ImPlotFormatter formatter, void* da
 IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[]=NULL, bool keep_default=false);
 // Sets an axis' ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
 IMPLOT_API void SetupAxisTicks(ImAxis axis, double v_min, double v_max, int n_ticks, const char* const labels[]=NULL, bool keep_default=false);
+// Sets an axis' scale using built-in options.
+IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotScale scale);
+// Sets an axis' scale using user supplied forward and inverse transfroms.
+IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotTransform fwd, ImPlotTransform inv, void* data=NULL);
 
 // Sets the label and/or flags for primary X and Y axes (shorthand for two calls to SetupAxis).
 IMPLOT_API void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFlags x_flags=0, ImPlotAxisFlags y_flags=0);
@@ -789,7 +810,7 @@ IMPLOT_API void SetNextAxesToFit();
 //        return p
 //    }
 //    ...
-//    auto my_lambda = [](void*, int idx) {
+//    auto my_lambda = [](int idx, void*) {
 //        double t = idx / 999.0;
 //        return ImPlotPoint(t, 0.5+0.5*std::sin(2*PI*10*t));
 //    };
@@ -808,8 +829,6 @@ IMPLOT_API void SetNextAxesToFit();
 IMPLOT_TMP void PlotLine(const char* label_id, const T* values, int count, double xscale=1, double x0=0, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotLineG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotLineFlags flags=0);
-
-void PlotLineStagedInternal(const char *label_id, const double *xs, const double *ys, int count);
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double x0=0, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
@@ -985,7 +1004,7 @@ IMPLOT_API bool BeginDragDropTargetLegend();
 IMPLOT_API void EndDragDropTarget();
 
 // NB: By default, plot and axes drag and drop *sources* require holding the Ctrl modifier to initiate the drag.
-// You can change the modifier if desired. If ImGuiKeyModFlags_None is provided, the axes will be locked from panning.
+// You can change the modifier if desired. If ImGuiModFlags_None is provided, the axes will be locked from panning.
 
 // Turns the current plot's plotting area into a drag and drop source. You must hold Ctrl. Don't forget to call EndDragDropSource!
 IMPLOT_API bool BeginDragDropSourcePlot(ImGuiDragDropFlags flags=0);

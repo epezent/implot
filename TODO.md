@@ -71,14 +71,14 @@ Ideally every `PlotX` function should use our faster rendering pipeline when it 
 |PlotStairs|Yes|Yes|Yes|Yes|
 |PlotShaded|Yes|Yes|Yes|Yes|
 |PlotBars|Yes|Yes|Yes|Yes|
-|PlotBarGroups|.|.|.|.|
-|PlotHistogram|.|.|.|.|
+|PlotBarGroups|:|:|:|:|
+|PlotHistogram|:|:|:|:|
 |PlotErrorBars|Yes|Yes|No|No|
 |PlotStems|Yes|Yes|Yes|Yes|
 |PlotInfLines|Yes|No|Yes|Yes|
 |PlotPieChart|No|No|No|No|
 |PlotHeatmap|Yes|No|Yes|Mixed|
-|PlotHistogram2D|.|.|.|.|
+|PlotHistogram2D|:|:|:|:|
 |PlotDigital|Yes|No|No|No|
 |PlotImage|-|-|-|-|
 |PlotText|-|-|-|-|

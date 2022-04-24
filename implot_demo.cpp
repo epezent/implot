@@ -55,9 +55,9 @@ struct WaveData {
     double X, Amp, Freq, Offset;
     WaveData(double x, double amp, double freq, double offset) { X = x; Amp = amp; Freq = freq; Offset = offset; }
 };
-ImPlotPoint SineWave(void* wave_data, int idx);
-ImPlotPoint SawWave(void* wave_data, int idx);
-ImPlotPoint Spiral(void*, int idx);
+ImPlotPoint SineWave(int idx, void* wave_data);
+ImPlotPoint SawWave(int idx, void* wave_data);
+ImPlotPoint Spiral(int idx, void* wave_data);
 
 // Example for Tables section.
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size);
@@ -71,8 +71,6 @@ void StyleSeaborn();
 } // namespace MyImPlot
 
 namespace ImPlot {
-
-void ShowBenchmarkTool();
 
 template <typename T>
 inline T RandomRange(T min, T max) {
@@ -191,13 +189,6 @@ void ShowDemo_Help() {
     ImGui::Separator();
     ImGui::Text("PROGRAMMER GUIDE:");
     ImGui::BulletText("See the ShowDemoWindow() code in implot_demo.cpp. <- you are here!");
-    ImGui::BulletText("By default, anti-aliased lines are turned OFF.");
-    ImGui::Indent();
-        ImGui::BulletText("Software AA can be enabled globally with ImPlotStyle.AntiAliasedLines.");
-        ImGui::BulletText("Software AA can be enabled per plot with ImPlotFlags_AntiAliased.");
-        ImGui::BulletText("AA for plots can be toggled from the plot's context menu.");
-        ImGui::BulletText("If permitable, you are better off using hardware AA (e.g. MSAA).");
-    ImGui::Unindent();
     ImGui::BulletText("If you see visual artifacts, do one of the following:");
     ImGui::Indent();
     ImGui::BulletText("Handle ImGuiBackendFlags_RendererHasVtxOffset for 16-bit indices in your backend.");
@@ -228,16 +219,16 @@ void ButtonSelector(const char* label, ImGuiMouseButton* b) {
     ImGui::PopID();
 }
 
-void ModSelector(const char* label, ImGuiKeyModFlags* k) {
+void ModSelector(const char* label, ImGuiModFlags* k) {
     ImGui::PushID(label);
-    ImGui::CheckboxFlags("Ctrl", (unsigned int*)k, ImGuiKeyModFlags_Ctrl); ImGui::SameLine();
-    ImGui::CheckboxFlags("Shift", (unsigned int*)k, ImGuiKeyModFlags_Shift); ImGui::SameLine();
-    ImGui::CheckboxFlags("Alt", (unsigned int*)k, ImGuiKeyModFlags_Alt); ImGui::SameLine();
-    ImGui::CheckboxFlags("Super", (unsigned int*)k, ImGuiKeyModFlags_Super);
+    ImGui::CheckboxFlags("Ctrl", (unsigned int*)k, ImGuiModFlags_Ctrl); ImGui::SameLine();
+    ImGui::CheckboxFlags("Shift", (unsigned int*)k, ImGuiModFlags_Shift); ImGui::SameLine();
+    ImGui::CheckboxFlags("Alt", (unsigned int*)k, ImGuiModFlags_Alt); ImGui::SameLine();
+    ImGui::CheckboxFlags("Super", (unsigned int*)k, ImGuiModFlags_Super);
     ImGui::PopID();
 }
 
-void InputMapping(const char* label, ImGuiMouseButton* b, ImGuiKeyModFlags* k) {
+void InputMapping(const char* label, ImGuiMouseButton* b, ImGuiModFlags* k) {
     ImGui::LabelText("##","%s",label);
     if (b != NULL) {
         ImGui::SameLine(100);
@@ -276,7 +267,7 @@ void ShowDemo_Config() {
     ImGui::Separator();
     if (ImPlot::BeginPlot("Preview")) {
         static double now = (double)time(0);
-        ImPlot::SetupAxis(ImAxis_X1,NULL,ImPlotAxisFlags_Time);
+        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
         ImPlot::SetupAxisLimits(ImAxis_X1, now, now + 24*3600);
         for (int i = 0; i < 10; ++i) {
             double x[2] = {now, now + 24*3600};
@@ -304,7 +295,6 @@ void ShowDemo_LinePlots() {
     }
 
 
-    ImGui::BulletText("Anti-aliasing can be enabled from the plot's context menu (see Help).");
     if (ImPlot::BeginPlot("Line Plot")) {
         ImPlot::SetupAxes("x","y");
         ImPlot::PlotLine("f(x)", xs1, ys1, 1001);
@@ -689,7 +679,7 @@ void ShowDemo_Heatmaps() {
 
     ImGui::SameLine();
 
-    const int size = 200;
+    const int size = 80;
     static double values2[size*size];
     srand((unsigned int)(ImGui::GetTime()*1000000));
     for (int i = 0; i < size*size; ++i)
@@ -773,18 +763,18 @@ void ShowDemo_Histogram() {
 //-----------------------------------------------------------------------------
 
 void ShowDemo_Histogram2D() {
-    static int count     = 500000;
-    static int xybins[2] = {200,200};
+    static int count     = 50000;
+    static int xybins[2] = {100,100};
 
     static ImPlotHistogramFlags hist_flags = 0;
 
-    ImGui::SliderInt("Count",&count,100,500000);
+    ImGui::SliderInt("Count",&count,100,100000);
     ImGui::SliderInt2("Bins",xybins,1,500);
     ImGui::SameLine();
     ImGui::CheckboxFlags("Density", (unsigned int*)&hist_flags, ImPlotHistogramFlags_Density); 
 
-    static NormalDistribution<500000> dist1(1, 2);
-    static NormalDistribution<500000> dist2(1, 1);
+    static NormalDistribution<100000> dist1(1, 2);
+    static NormalDistribution<100000> dist2(1, 1);
     double max_count = 0;
     ImPlotAxisFlags flags = ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_Foreground;
     ImPlot::PushColormap("Hot");
@@ -999,7 +989,7 @@ void ShowDemo_LogAxes() {
     ImGui::BulletText("Open the plot context menu (right click) to change scales.");
 
     if (ImPlot::BeginPlot("Log Plot", ImVec2(-1,0))) {
-        ImPlot::SetupAxis(ImAxis_X1, NULL, ImPlotAxisFlags_LogScale);
+        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
         ImPlot::SetupAxesLimits(0.1, 100, 0, 10);
         ImPlot::PlotLine("f(x) = x",        xs, xs,  1001);
         ImPlot::PlotLine("f(x) = sin(x)+1", xs, ys1, 1001);
@@ -1018,10 +1008,8 @@ void ShowDemo_SymmetricLogAxes() {
         ys1[i] = sin(xs[i]); 
         ys2[i] = i*0.002 - 1;
     }
-    static ImPlotAxisFlags flags = ImPlotAxisFlags_SymLogScale;
-    CHECKBOX_FLAG(flags, ImPlotAxisFlags_SymLogScale);
     if (ImPlot::BeginPlot("SymLog Plot", ImVec2(-1,0))) {
-        ImPlot::SetupAxis(ImAxis_X1, NULL, flags);
+        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_SymLog);
         ImPlot::PlotLine("f(x) = a*x+b",xs,ys2,1001);
         ImPlot::PlotLine("f(x) = sin(x)",xs,ys1,1001);
         ImPlot::EndPlot();
@@ -1055,7 +1043,7 @@ void ShowDemo_TimeAxes() {
     }
 
     if (ImPlot::BeginPlot("##Time", ImVec2(-1,0))) {
-        ImPlot::SetupAxis(ImAxis_X1, NULL, ImPlotAxisFlags_Time);
+        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
         ImPlot::SetupAxesLimits(t_min,t_max,0,1);
         if (data != NULL) {
             // downsample our data
@@ -1208,7 +1196,7 @@ void ShowDemo_AutoFittingData() {
     };
 }
 
-ImPlotPoint SinewaveGetter(void* data, int i) {
+ImPlotPoint SinewaveGetter(int i, void* data) {
     float f = *(float*)data;
     return ImPlotPoint(i,sinf(f*i));
 }
@@ -2007,8 +1995,9 @@ void ShowDemo_CustomPlottersAndTooltips()  {
     ImPlot::GetStyle().UseLocalTime = false;
 
     if (ImPlot::BeginPlot("Candlestick Chart",ImVec2(-1,0))) {
-        ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_Time,ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_RangeFit);
+        ImPlot::SetupAxes(NULL,NULL,0,ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_RangeFit);
         ImPlot::SetupAxesLimits(1546300800, 1571961600, 1250, 1600);
+        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
         ImPlot::SetupAxisFormat(ImAxis_Y1, "$%.0f");
         MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
         ImPlot::EndPlot();
@@ -2024,7 +2013,6 @@ void ShowDemoWindow(bool* p_open) {
     static bool show_implot_metrics      = false;
     static bool show_imgui_style_editor  = false;
     static bool show_implot_style_editor = false;
-    static bool show_implot_benchmark    = false;
     if (show_imgui_metrics) {
         ImGui::ShowMetricsWindow(&show_imgui_metrics);
     }
@@ -2042,13 +2030,6 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::ShowStyleEditor();
         ImGui::End();
     }
-    if (show_implot_benchmark) {
-        ImGui::SetNextWindowSize(ImVec2(530,740), ImGuiCond_Appearing);
-        ImGui::Begin("ImPlot Benchmark Tool", &show_implot_benchmark);
-        ImPlot::ShowBenchmarkTool();
-        ImGui::End();
-        return;
-    }
     ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(600, 750), ImGuiCond_FirstUseEver);
     ImGui::Begin("ImPlot Demo", p_open, ImGuiWindowFlags_MenuBar);
@@ -2058,7 +2039,6 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::MenuItem("Metrics (ImPlot)",      NULL, &show_implot_metrics);
             ImGui::MenuItem("Style Editor (ImGui)",  NULL, &show_imgui_style_editor);
             ImGui::MenuItem("Style Editor (ImPlot)", NULL, &show_implot_style_editor);
-            ImGui::MenuItem("Benchmark",             NULL, &show_implot_benchmark);
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
@@ -2202,19 +2182,19 @@ void ShowDemoWindow(bool* p_open) {
 
 namespace MyImPlot {
 
-ImPlotPoint SineWave(void* data , int idx) {
+ImPlotPoint SineWave(int idx, void* data) {
     WaveData* wd = (WaveData*)data;
     double x = idx * wd->X;
     return ImPlotPoint(x, wd->Offset + wd->Amp * sin(2 * 3.14 * wd->Freq * x));
 }
 
-ImPlotPoint SawWave(void* data, int idx) {
+ImPlotPoint SawWave(int idx, void* data) {
     WaveData* wd = (WaveData*)data;
     double x = idx * wd->X;
     return ImPlotPoint(x, wd->Offset + wd->Amp * (-2 / 3.14 * atan(cos(3.14 * wd->Freq * x) / sin(3.14 * wd->Freq * x))));
 }
 
-ImPlotPoint Spiral(void*, int idx) {
+ImPlotPoint Spiral(int idx, void*) {
     float r = 0.9f;            // outer radius
     float a = 0;               // inner radius
     float b = 0.05f;           // increment per rev
@@ -2379,165 +2359,3 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
 }
 
 } // namespace MyImplot
-
-namespace ImPlot {
-
-//-----------------------------------------------------------------------------
-// BENCHMARK
-//-----------------------------------------------------------------------------
-
-struct BenchData {
-    BenchData() {
-        float y = RandomRange(0.0f,1.0f);
-        Data = new float[1000];
-        for (int i = 0; i < 1000; ++i) {
-            Data[i] = y + RandomRange(-0.01f,0.01f);
-        }
-        Col = ImVec4(RandomRange(0.0f,1.0f),RandomRange(0.0f,1.0f),RandomRange(0.0f,1.0f),0.5f);
-    }
-    ~BenchData() { delete[] Data; }
-    float* Data;
-    ImVec4 Col;
-};
-
-enum BenchMode {
-    Line = 0,
-    LineG = 1,
-    Shaded = 2,
-    Scatter = 3,
-    Bars = 4
-};
-
-struct BenchRecord {
-    int Mode;
-    bool AA;
-    ImVector<ImPlotPoint> Data;
-};
-
-ImPlotPoint BenchmarkGetter(void* data, int idx) {
-    float* values = (float*)data;
-    return ImPlotPoint(idx, values[idx]);
-}
-
-void ShowBenchmarkTool() {
-    static const int max_items = 500;
-    static BenchData items[max_items];
-    static bool running = false;
-    static int frames   = 60;
-    static int L        = 0;
-    static int F        = 0;
-    static double t1, t2;
-    static int mode     = BenchMode::Line;
-    static bool aa      = false;
-    const char* names[] = {"Line","LineG","Shaded","Scatter","Bars"};
-
-    static ImVector<BenchRecord> records;
-
-    if (running) {
-        F++;
-        if (F == frames) {
-            t2 = ImGui::GetTime();
-            records.back().Data.push_back(ImPlotPoint(L, frames / (t2 - t1)));
-            L  += 5;
-            F  = 0;
-            t1 = ImGui::GetTime();
-        }
-        if (L > max_items) {
-            running = false;
-            L = max_items;
-        }
-    }
-
-    ImGui::Text("ImDrawIdx: %d-bit", (int)(sizeof(ImDrawIdx) * 8));
-    ImGui::Text("ImGuiBackendFlags_RendererHasVtxOffset: %s", (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) ? "True" : "False");
-    ImGui::Text("%.2f FPS", ImGui::GetIO().Framerate);
-
-    ImGui::Separator();
-
-    bool was_running = running;
-    if (was_running) {
-        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.25f);
-    }
-    if (ImGui::Button("Benchmark")) {
-        running = true;
-        L = F = 0;
-        records.push_back(BenchRecord());
-        records.back().Data.reserve(max_items+1);
-        records.back().Mode = mode;
-        records.back().AA   = aa;
-        t1 = ImGui::GetTime();
-    }
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(200);
-    ImGui::Combo("##Mode",&mode,names,4);
-    ImGui::SameLine();
-
-    ImGui::Checkbox("Anti-Aliased Lines", &aa);
-    if (was_running) { ImGui::PopItemFlag(); ImGui::PopStyleVar(); }
-
-    ImGui::ProgressBar((float)L / (float)(max_items - 1));
-
-    if (ImPlot::BeginPlot("##Bench",ImVec2(-1,0),ImPlotFlags_NoChild | ImPlotFlags_CanvasOnly)) {
-        ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations);
-        ImPlot::SetupAxesLimits(0,1000,0,1,ImGuiCond_Always);
-        if (running) {
-            if (mode == BenchMode::Line) {
-                for (int i = 0; i < L; ++i) {
-                    ImGui::PushID(i);
-                    ImPlot::SetNextLineStyle(items[i].Col);
-                    ImPlot::PlotLine("##item", items[i].Data, 1000);
-                    ImGui::PopID();
-                }
-            }
-            else if (mode == BenchMode::LineG) {
-                for (int i = 0; i < L; ++i) {
-                    ImGui::PushID(i);
-                    ImPlot::SetNextLineStyle(items[i].Col);
-                    ImPlot::PlotLineG("##item",BenchmarkGetter,items[i].Data,1000);
-                    ImGui::PopID();
-                }
-            }
-            else if (mode == BenchMode::Shaded) {
-                for (int i = 0; i < L; ++i) {
-                    ImGui::PushID(i);
-                    ImPlot::SetNextFillStyle(items[i].Col,0.5f);
-                    ImPlot::PlotShaded("##item", items[i].Data, 1000);
-                    ImGui::PopID();
-                }
-            }
-            else if (mode == BenchMode::Scatter) {
-                for (int i = 0; i < L; ++i) {
-                    ImGui::PushID(i);
-                    ImPlot::SetNextLineStyle(items[i].Col);
-                    ImPlot::PlotScatter("##item", items[i].Data, 1000);
-                    ImGui::PopID();
-                }
-            }
-            else if (mode == BenchMode::Bars) {
-                for (int i = 0; i < L; ++i) {
-                    ImGui::PushID(i);
-                    ImPlot::SetNextFillStyle(items[i].Col,0.5f);
-                    ImPlot::PlotBars("##item", items[i].Data, 1000);
-                    ImGui::PopID();
-                }
-            }
-        }
-        ImPlot::EndPlot();
-    }
-    static char buffer[64];
-    if (ImPlot::BeginPlot("##Stats", ImVec2(-1,0), ImPlotFlags_NoChild)) {
-        ImPlot::SetupAxes("Items (1,000 pts each)", "Framerate (Hz)");
-        ImPlot::SetupAxesLimits(0,500,0,500,ImGuiCond_Always);
-        for (int run = 0; run < records.size(); ++run) {
-            if (records[run].Data.Size > 1) {
-                sprintf(buffer, "B%d-%s%s", run + 1, names[records[run].Mode], records[run].AA ? "-AA" : "");
-                ImVector<ImPlotPoint>& d = records[run].Data;
-                ImPlot::PlotLine(buffer, &d[0].x, &d[0].y, d.Size, 0, 0, 2*sizeof(double));
-            }
-        }
-        ImPlot::EndPlot();
-    }
-}
-
-}
