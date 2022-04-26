@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2021 Evan Pezent
+// Copyright (c) 2022 Evan Pezent
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.13 WIP
+// ImPlot v0.14
 
 // Table of Contents:
 //
@@ -60,7 +60,7 @@
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "0.13 WIP"
+#define IMPLOT_VERSION "0.14"
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
@@ -85,22 +85,22 @@ typedef int ImPlotMouseTextFlags; // -> enum ImPlotMouseTextFlags_
 typedef int ImPlotDragToolFlags;  // -> ImPlotDragToolFlags_
 
 typedef int ImPlotItemFlags;      // -> ImPlotItemFlags_
-typedef int ImPlotLineFlags;      // -> ImPlotLineFlags_       
-typedef int ImPlotScatterFlags;   // -> ImPlotScatterFlags      
-typedef int ImPlotStairsFlags;    // -> ImPlotStairsFlags_      
-typedef int ImPlotShadedFlags;    // -> ImPlotShadedFlags_     
-typedef int ImPlotBarsFlags;      // -> ImPlotBarsFlags_      
-typedef int ImPlotBarGroupsFlags; // -> ImPlotBarGroupsFlags_ 
-typedef int ImPlotErrorBarsFlags; // -> ImPlotErrorBarsFlags_   
-typedef int ImPlotStemsFlags;     // -> ImPlotStemsFlags_      
-typedef int ImPlotInfLinesFlags;  // -> ImPlotInfLinesFlags_   
-typedef int ImPlotPieChartFlags;  // -> ImPlotPieChartFlags_   
-typedef int ImPlotHeatmapFlags;   // -> ImPlotHeatmapFlags_    
-typedef int ImPlotHistogramFlags; // -> ImPlotHistogramFlags_   
-typedef int ImPlotDigitalFlags;   // -> ImPlotDigitalFlags_    
-typedef int ImPlotImageFlags;     // -> ImPlotImageFlags_     
-typedef int ImPlotTextFlags;      // -> ImPlotTextFlags_      
-typedef int ImPlotDummyFlags;     // -> ImPlotDummyFlags_   
+typedef int ImPlotLineFlags;      // -> ImPlotLineFlags_
+typedef int ImPlotScatterFlags;   // -> ImPlotScatterFlags
+typedef int ImPlotStairsFlags;    // -> ImPlotStairsFlags_
+typedef int ImPlotShadedFlags;    // -> ImPlotShadedFlags_
+typedef int ImPlotBarsFlags;      // -> ImPlotBarsFlags_
+typedef int ImPlotBarGroupsFlags; // -> ImPlotBarGroupsFlags_
+typedef int ImPlotErrorBarsFlags; // -> ImPlotErrorBarsFlags_
+typedef int ImPlotStemsFlags;     // -> ImPlotStemsFlags_
+typedef int ImPlotInfLinesFlags;  // -> ImPlotInfLinesFlags_
+typedef int ImPlotPieChartFlags;  // -> ImPlotPieChartFlags_
+typedef int ImPlotHeatmapFlags;   // -> ImPlotHeatmapFlags_
+typedef int ImPlotHistogramFlags; // -> ImPlotHistogramFlags_
+typedef int ImPlotDigitalFlags;   // -> ImPlotDigitalFlags_
+typedef int ImPlotImageFlags;     // -> ImPlotImageFlags_
+typedef int ImPlotTextFlags;      // -> ImPlotTextFlags_
+typedef int ImPlotDummyFlags;     // -> ImPlotDummyFlags_
 
 typedef int ImPlotCond;           // -> enum ImPlotCond_
 typedef int ImPlotCol;            // -> enum ImPlotCol_
@@ -209,39 +209,39 @@ enum ImPlotDragToolFlags_ {
 // Flags for ANY PlotX function
 enum ImPlotItemFlags_ {
     ImPlotItemFlags_None     = 0,
-    ImPlotItemFlags_NoLegend = 1 << 0, // the item won't have a legend entry displayed
+    ImPlotItemFlags_NoLegend = 1 << 0, // the item won't have a legend entry displayed (TODO)
     ImPlotItemFlags_NoFit    = 1 << 1, // the item won't be considered for plot fits
 };
 
 // Flags for PlotLine
-enum ImPlotLineFlags_ { 
-    ImPlotLineFlags_None        = 0,       // default 
+enum ImPlotLineFlags_ {
+    ImPlotLineFlags_None        = 0,       // default
     ImPlotLineFlags_Segments    = 1 << 10, // a line segment will be rendered from every two consecutive points
     ImPlotLineFlags_Loop        = 1 << 11, // the last and first point will be connected to form a closed loop
     ImPlotLineFlags_SkipNaN     = 1 << 12, // NaNs values will be skipped instead of rendered as missing data
     ImPlotLineFlags_NoClip      = 1 << 13, // markers (if displayed) on the edge of a plot will not be clipped
 };
 
-// Flags for PlotScatter 
-enum ImPlotScatterFlags_ { 
-    ImPlotScatterFlags_None   = 0,       // default 
+// Flags for PlotScatter
+enum ImPlotScatterFlags_ {
+    ImPlotScatterFlags_None   = 0,       // default
     ImPlotScatterFlags_NoClip = 1 << 10, // markers on the edge of a plot will not be clipped
 };
 
-// Flags for PlotStairs 
-enum ImPlotStairsFlags_ { 
+// Flags for PlotStairs
+enum ImPlotStairsFlags_ {
     ImPlotStairsFlags_None     = 0,      // default
     ImPlotStairsFlags_PreStep  = 1 << 10 // The y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
 };
 
-// Flags for PlotShaded 
-enum ImPlotShadedFlags_ { 
-    ImPlotShadedFlags_None  = 0 // default 
+// Flags for PlotShaded
+enum ImPlotShadedFlags_ {
+    ImPlotShadedFlags_None  = 0 // default
 };
 
 // Flags for PlotBars
-enum ImPlotBarsFlags_ { 
-    ImPlotBarsFlags_None         = 0,       // default 
+enum ImPlotBarsFlags_ {
+    ImPlotBarsFlags_None         = 0,       // default
     ImPlotBarsFlags_Horizontal   = 1 << 10, // bars will be rendered horizontally on the current y-axis
 };
 
@@ -253,38 +253,38 @@ enum ImPlotBarGroupsFlags_ {
 };
 
 // Flags for PlotErrorBars
-enum ImPlotErrorBarsFlags_ { 
-    ImPlotErrorBarsFlags_None       = 0,       // default 
+enum ImPlotErrorBarsFlags_ {
+    ImPlotErrorBarsFlags_None       = 0,       // default
     ImPlotErrorBarsFlags_Horizontal = 1 << 10, // error bars will be rendered horizontally on the current y-axis
 };
 
 // Flags for PlotStems
-enum ImPlotStemsFlags_ { 
-    ImPlotStemsFlags_None       = 0,       // default 
-    ImPlotStemsFlags_Horizontal = 1 << 10, // stems will be rendered horizontally on the current y-axis (TODO)
+enum ImPlotStemsFlags_ {
+    ImPlotStemsFlags_None       = 0,       // default
+    ImPlotStemsFlags_Horizontal = 1 << 10, // stems will be rendered horizontally on the current y-axis
 };
 
 // Flags for PlotInfLines
-enum ImPlotInfLinesFlags_ { 
+enum ImPlotInfLinesFlags_ {
     ImPlotInfLinesFlags_None       = 0,      // default
-    ImPlotInfLinesFlags_Horizontal = 1 << 10 // lines will be rendered horizontally on the current y-axis 
+    ImPlotInfLinesFlags_Horizontal = 1 << 10 // lines will be rendered horizontally on the current y-axis
 };
 
 // Flags for PlotPieChart
-enum ImPlotPieChartFlags_ { 
+enum ImPlotPieChartFlags_ {
     ImPlotPieChartFlags_None      = 0,      // default
     ImPlotPieChartFlags_Normalize = 1 << 10 // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
 };
 
 // Flags for PlotHeatmap
-enum ImPlotHeatmapFlags_ { 
-    ImPlotHeatmapFlags_None     = 0,       // default 
+enum ImPlotHeatmapFlags_ {
+    ImPlotHeatmapFlags_None     = 0,       // default
     ImPlotHeatmapFlags_ColMajor = 1 << 10, // data will be read in column major order
 };
 
 // Flags for PlotHistogram and PlotHistogram2D
 enum ImPlotHistogramFlags_ {
-    ImPlotHistogramFlags_None       = 0,       // default 
+    ImPlotHistogramFlags_None       = 0,       // default
     ImPlotHistogramFlags_Horizontal = 1 << 10, // histogram bars will be rendered horizontally (not supported by PlotHistogram2D)
     ImPlotHistogramFlags_Cumulative = 1 << 11, // each bin will contain its count plus the counts of all previous bins (not supported by PlotHistogram2D)
     ImPlotHistogramFlags_Density    = 1 << 12, // counts will be normalized, i.e. the PDF will be visualized, or the CDF will be visualized if Cumulative is also set
@@ -293,24 +293,24 @@ enum ImPlotHistogramFlags_ {
 };
 
 // Flags for PlotDigital (placeholder)
-enum ImPlotDigitalFlags_ { 
-    ImPlotDigitalFlags_None = 0 // default 
+enum ImPlotDigitalFlags_ {
+    ImPlotDigitalFlags_None = 0 // default
 };
 
 // Flags for PlotImage (placeholder)
-enum ImPlotImageFlags_ { 
-    ImPlotImageFlags_None = 0 // default 
+enum ImPlotImageFlags_ {
+    ImPlotImageFlags_None = 0 // default
 };
 
 // Flags for PlotText
-enum ImPlotTextFlags_ { 
-    ImPlotTextFlags_None     = 0,       // default 
+enum ImPlotTextFlags_ {
+    ImPlotTextFlags_None     = 0,       // default
     ImPlotTextFlags_Vertical = 1 << 10  // text will be rendered vertically
 };
 
-// Flags for PlotDummy (placeholder)   
-enum ImPlotDummyFlags_ { 
-    ImPlotDummyFlags_None = 0 // default 
+// Flags for PlotDummy (placeholder)
+enum ImPlotDummyFlags_ {
+    ImPlotDummyFlags_None = 0 // default
 };
 
 // Represents a condition for SetupAxisLimits etc. (same as ImGuiCond, but we only support a subset of those enums)
@@ -394,7 +394,7 @@ enum ImPlotScale_ {
 // Marker specifications.
 enum ImPlotMarker_ {
     ImPlotMarker_None = -1, // no marker
-    ImPlotMarker_Circle,    // a circle marker
+    ImPlotMarker_Circle,    // a circle marker (default)
     ImPlotMarker_Square,    // a square maker
     ImPlotMarker_Diamond,   // a diamond marker
     ImPlotMarker_Up,        // an upward-pointing triangle marker
@@ -722,7 +722,7 @@ IMPLOT_API void SetupAxisTicks(ImAxis axis, double v_min, double v_max, int n_ti
 // Sets an axis' scale using built-in options.
 IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotScale scale);
 // Sets an axis' scale using user supplied forward and inverse transfroms.
-IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotTransform fwd, ImPlotTransform inv, void* data=NULL);
+IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotTransform forward, ImPlotTransform inverse, void* data=NULL);
 
 // Sets the label and/or flags for primary X and Y axes (shorthand for two calls to SetupAxis).
 IMPLOT_API void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFlags x_flags=0, ImPlotAxisFlags y_flags=0);
@@ -826,27 +826,27 @@ IMPLOT_API void SetNextAxesToFit();
 // if you try plotting extremely large 64-bit integral types. Proceed with caution!
 
 // Plots a standard 2D line plot.
-IMPLOT_TMP void PlotLine(const char* label_id, const T* values, int count, double xscale=1, double x0=0, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotLine(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotLineG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotLineFlags flags=0);
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
-IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double x0=0, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotScatterFlags flags=0);
 
 // Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]
-IMPLOT_TMP void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double x0=0, ImPlotStairsFlags flags=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotStairsFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, ImPlotStairsFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotStairsG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotStairsFlags flags=0);
 
 // Plots a shaded (filled) region between two lines, or a line and a horizontal reference. Set yref to +/-INFINITY for infinite fill extents.
-IMPLOT_TMP void PlotShaded(const char* label_id, const T* values, int count, double yref=0, double xscale=1, double x0=0, ImPlotShadedFlags flags=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotShaded(const char* label_id, const T* values, int count, double yref=0, double xscale=1, double xstart=0, ImPlotShadedFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double yref=0, ImPlotShadedFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, ImPlotShadedFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotShadedG(const char* label_id, ImPlotGetter getter1, void* data1, ImPlotGetter getter2, void* data2, int count, ImPlotShadedFlags flags=0);
 
-// Plots a bar graph. Vertical by default. #bar_size and #shift are in plot units. 
+// Plots a bar graph. Vertical by default. #bar_size and #shift are in plot units.
 IMPLOT_TMP void PlotBars(const char* label_id, const T* values, int count, double bar_size=0.67, double shift=0, ImPlotBarsFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double bar_size, ImPlotBarsFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotBarsG(const char* label_id, ImPlotGetter getter, void* data, int count, double bar_size, ImPlotBarsFlags flags=0);
@@ -858,9 +858,9 @@ IMPLOT_TMP void PlotBarGroups(const char* const label_ids[], const T* values, in
 IMPLOT_TMP void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* err, int count, ImPlotErrorBarsFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, ImPlotErrorBarsFlags flags=0, int offset=0, int stride=sizeof(T));
 
-// Plots vertical stems.
-IMPLOT_TMP void PlotStems(const char* label_id, const T* values, int count, double yref=0, double xscale=1, double x0=0, ImPlotStemsFlags flags=0, int offset=0, int stride=sizeof(T));
-IMPLOT_TMP void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double yref=0, ImPlotStemsFlags flags=0, int offset=0, int stride=sizeof(T));
+// Plots stems. Vertical by default.
+IMPLOT_TMP void PlotStems(const char* label_id, const T* values, int count, double ref=0, double scale=1, double start=0, ImPlotStemsFlags flags=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double ref=0, ImPlotStemsFlags flags=0, int offset=0, int stride=sizeof(T));
 
 // Plots infinite vertical or horizontal lines (e.g. for references or asymptotes).
 IMPLOT_TMP void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLinesFlags flags=0, int offset=0, int stride=sizeof(T));
@@ -875,7 +875,7 @@ IMPLOT_TMP void PlotHeatmap(const char* label_id, const T* values, int rows, int
 // Otherwise, outlier values outside of the range are not binned. The largest bin count or density is returned.
 IMPLOT_TMP double PlotHistogram(const char* label_id, const T* values, int count, int bins=ImPlotBin_Sturges, double bar_scale=1.0, ImPlotRange range=ImPlotRange(), ImPlotHistogramFlags flags=0);
 
-// Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBin. If #range is left unspecified, the min/max of 
+// Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBin. If #range is left unspecified, the min/max of
 // #xs an #ys will be used as the ranges. Otherwise, outlier values outside of range are not binned. The largest bin count or density is returned.
 IMPLOT_TMP double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins=ImPlotBin_Sturges, int y_bins=ImPlotBin_Sturges, ImPlotRect range=ImPlotRect(), ImPlotHistogramFlags flags=0);
 
@@ -910,19 +910,19 @@ IMPLOT_API bool DragLineY(int id, double* y, const ImVec4& col, float thickness 
 IMPLOT_API bool DragRect(int id, double* x_min, double* y_min, double* x_max, double* y_max, const ImVec4& col, ImPlotDragToolFlags flags=0);
 
 // Shows an annotation callout at a chosen point. Clamping keeps annotations in the plot area. Annotations are always rendered on top.
-IMPLOT_API void Annotation(double x, double y, const ImVec4& color, const ImVec2& pix_offset, bool clamp, bool round = false);
-IMPLOT_API void Annotation(double x, double y, const ImVec4& color, const ImVec2& pix_offset, bool clamp, const char* fmt, ...)           IM_FMTARGS(6);
-IMPLOT_API void AnnotationV(double x, double y, const ImVec4& color, const ImVec2& pix_offset, bool clamp, const char* fmt, va_list args) IM_FMTLIST(6);
+IMPLOT_API void Annotation(double x, double y, const ImVec4& col, const ImVec2& pix_offset, bool clamp, bool round = false);
+IMPLOT_API void Annotation(double x, double y, const ImVec4& col, const ImVec2& pix_offset, bool clamp, const char* fmt, ...)           IM_FMTARGS(6);
+IMPLOT_API void AnnotationV(double x, double y, const ImVec4& col, const ImVec2& pix_offset, bool clamp, const char* fmt, va_list args) IM_FMTLIST(6);
 
 // Shows a x-axis tag at the specified coordinate value.
-IMPLOT_API void TagX(double x, const ImVec4& color, bool round = false);
-IMPLOT_API void TagX(double x, const ImVec4& color, const char* fmt, ...)           IM_FMTARGS(3);
-IMPLOT_API void TagXV(double x, const ImVec4& color, const char* fmt, va_list args) IM_FMTLIST(3);
+IMPLOT_API void TagX(double x, const ImVec4& col, bool round = false);
+IMPLOT_API void TagX(double x, const ImVec4& col, const char* fmt, ...)           IM_FMTARGS(3);
+IMPLOT_API void TagXV(double x, const ImVec4& col, const char* fmt, va_list args) IM_FMTLIST(3);
 
 // Shows a y-axis tag at the specified coordinate value.
-IMPLOT_API void TagY(double y, const ImVec4& color, bool round = false);
-IMPLOT_API void TagY(double y, const ImVec4& color, const char* fmt, ...)           IM_FMTARGS(3);
-IMPLOT_API void TagYV(double y, const ImVec4& color, const char* fmt, va_list args) IM_FMTLIST(3);
+IMPLOT_API void TagY(double y, const ImVec4& col, bool round = false);
+IMPLOT_API void TagY(double y, const ImVec4& col, const char* fmt, ...)           IM_FMTARGS(3);
+IMPLOT_API void TagYV(double y, const ImVec4& col, const char* fmt, va_list args) IM_FMTLIST(3);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Utils

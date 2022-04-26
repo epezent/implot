@@ -75,7 +75,7 @@ Ideally every `PlotX` function should use our faster rendering pipeline when it 
 |PlotHistogram|:|:|:|:|
 |PlotErrorBars|Yes|Yes|No|No|
 |PlotStems|Yes|Yes|Yes|Yes|
-|PlotInfLines|Yes|No|Yes|Yes|
+|PlotInfLines|Yes|Yes|Yes|Yes|
 |PlotPieChart|No|No|No|No|
 |PlotHeatmap|Yes|No|Yes|Mixed|
 |PlotHistogram2D|:|:|:|:|

@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2021 Evan Pezent
+// Copyright (c) 2022 Evan Pezent
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.13 WIP
+// ImPlot v0.14
 
 // You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
@@ -613,8 +613,8 @@ struct ImPlotAxis
     int                  PickerLevel;
     ImPlotTime           PickerTimeMin, PickerTimeMax;
     float                Datum1, Datum2;
-    ImPlotTransform      TransformFwd;
-    ImPlotTransform      TransformInv;
+    ImPlotTransform      TransformForward;
+    ImPlotTransform      TransformInverse;
     void*                TransformData;
     float                PixelMin, PixelMax;
     double               ScaleMin, ScaleMax;
@@ -639,7 +639,7 @@ struct ImPlotAxis
         Range.Min        = 0;
         Range.Max        = 1;
         Scale            = ImPlotScale_Linear;
-        TransformFwd     = TransformInv = NULL;
+        TransformForward = TransformInverse = NULL;
         TransformData    = NULL;
         FitExtents.Min   = HUGE_VAL;
         FitExtents.Max   = -HUGE_VAL;
@@ -660,7 +660,7 @@ struct ImPlotAxis
     inline void Reset() {
         Enabled          = false;
         Scale            = ImPlotScale_Linear;
-        TransformFwd     = TransformInv = NULL;
+        TransformForward = TransformInverse = NULL;
         TransformData    = NULL;
         LabelOffset      = -1;
         HasFormatSpec    = false;
@@ -753,9 +753,9 @@ struct ImPlotAxis
 
     inline void UpdateTransformCache() {
         ScaleToPixel = (PixelMax - PixelMin) / Range.Size();
-        if (TransformFwd != NULL) {
-            ScaleMin = TransformFwd(Range.Min, TransformData);
-            ScaleMax = TransformFwd(Range.Max, TransformData);
+        if (TransformForward != NULL) {
+            ScaleMin = TransformForward(Range.Min, TransformData);
+            ScaleMax = TransformForward(Range.Max, TransformData);
         }
         else {
             ScaleMin = Range.Min; 
@@ -764,8 +764,8 @@ struct ImPlotAxis
     }
 
     inline float PlotToPixels(double plt) const {
-        if (TransformFwd != NULL) {
-            double s = TransformFwd(plt, TransformData);
+        if (TransformForward != NULL) {
+            double s = TransformForward(plt, TransformData);
             double t = (s - ScaleMin) / (ScaleMax - ScaleMin);
             plt      = Range.Min + Range.Size() * t;
         }
@@ -775,10 +775,10 @@ struct ImPlotAxis
     
     inline double PixelsToPlot(float pix) const {
         double plt = (pix - PixelMin) / ScaleToPixel + Range.Min;
-        if (TransformInv != NULL) {
+        if (TransformInverse != NULL) {
             double t = (plt - Range.Min) / Range.Size();
             double s = t * (ScaleMax - ScaleMin) + ScaleMin;
-            plt = TransformInv(s, TransformData);
+            plt = TransformInverse(s, TransformData);
         }
         return plt;
     }
@@ -1045,7 +1045,7 @@ struct ImPlotPlot
     inline const char* GetAxisLabel(const ImPlotAxis& axis) const { return TextBuffer.Buf.Data + axis.LabelOffset; }
 };
 
-// Holds subplot data that must persist afer EndSubplot
+// Holds subplot data that must persist after EndSubplot
 struct ImPlotSubplot {
     ImGuiID                       ID;
     ImPlotSubplotFlags            Flags;
@@ -1245,7 +1245,7 @@ template <typename _Fitter>
 bool BeginItemEx(const char* label_id, const _Fitter& fitter, ImPlotItemFlags flags=0, ImPlotCol recolor_from=IMPLOT_AUTO) {
     if (BeginItem(label_id, flags, recolor_from)) {
         ImPlotPlot& plot = *GetCurrentPlot();
-        if (plot.FitThisFrame) 
+        if (plot.FitThisFrame && !ImHasFlag(flags, ImPlotItemFlags_NoFit)) 
             fitter.Fit(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]);        
         return true;
     }
@@ -1256,7 +1256,7 @@ bool BeginItemEx(const char* label_id, const _Fitter& fitter, ImPlotItemFlags fl
 IMPLOT_API void EndItem();
 
 // Register or get an existing item from the current plot.
-IMPLOT_API ImPlotItem* RegisterOrGetItem(const char* label_id, bool* just_created = NULL);
+IMPLOT_API ImPlotItem* RegisterOrGetItem(const char* label_id, ImPlotItemFlags flags, bool* just_created = NULL);
 // Get a plot item from the current plot.
 IMPLOT_API ImPlotItem* GetItem(const char* label_id);
 // Gets the current item.

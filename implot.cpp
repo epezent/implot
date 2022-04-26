@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2021 Evan Pezent
+// Copyright (c) 2022 Evan Pezent
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.13 WIP
+// ImPlot v0.14
 
 /*
 
@@ -314,20 +314,20 @@ static const ImPlotStyleVarInfo* GetPlotStyleVarInfo(ImPlotStyleVar idx) {
 // Built-In Transformers
 //-----------------------------------------------------------------------------
 
-static inline double Transform_Log10(double v, void*) {
+static inline double TransformForward_Log10(double v, void*) {
     v = v <= 0.0 ? IMPLOT_LOG_ZERO : v;
     return ImLog10(v);
 }
 
-static inline double TransformInv_Log10(double v, void*) {
+static inline double TransformInverse_Log10(double v, void*) {
     return ImPow(10, v);
 }
 
-static inline double Transform_SymLog(double v, void*) {
+static inline double TransformForward_SymLog(double v, void*) {
     return 2.0 * ImAsinh(v / 2.0);
 }
 
-static inline double TransformInv_SymLog(double v, void*) {
+static inline double TransformInverse_SymLog(double v, void*) {
     return 2.0 * ImSinh(v / 2.0);
 }
 
@@ -697,6 +697,8 @@ static const float TICK_FILL_X = 0.8f;
 static const float TICK_FILL_Y = 1.0f;
 
 void AddTicksDefault(const ImPlotRange& range, float pix, bool vertical, ImPlotTickCollection& ticks, ImPlotFormatter formatter, void* data) {
+    if (range.Min == range.Max)
+        return;
     const int idx0          = ticks.Size;
     const int nMinor        = 10;
     const int nMajor        = ImMax(2, (int)IM_ROUND(pix / (vertical ? 300.0f : 400.0f)));
@@ -2094,10 +2096,6 @@ void ApplyNextPlotData(ImAxis idx) {
 void SetupAxis(ImAxis idx, const char* label, ImPlotAxisFlags flags) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
-    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_Time) && ImHasFlag(flags, ImPlotAxisFlags_LogScale)),
-                         "ImPlotAxisFlags_Time and ImPlotAxisFlags_LogScale cannot be enabled at the same time!");
-    IM_ASSERT_USER_ERROR(!(ImHasFlag(flags, ImPlotAxisFlags_Time) && idx >= ImAxis_Y1),
-                         "Y axes cannot display time formatted labels!");
     // get plot and axis
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
     ImPlotAxis& axis = plot.Axes[idx];
@@ -2192,18 +2190,18 @@ void SetupAxisScale(ImAxis idx, ImPlotScale scale) {
     switch (scale)
     {
     case ImPlotScale_Log10:
-        axis.TransformFwd = Transform_Log10;
-        axis.TransformInv = TransformInv_Log10;
+        axis.TransformForward = TransformForward_Log10;
+        axis.TransformInverse = TransformInverse_Log10;
         axis.TransformData = NULL;
         break; 
     case ImPlotScale_SymLog:
-        axis.TransformFwd = Transform_SymLog;
-        axis.TransformInv = TransformInv_SymLog;
+        axis.TransformForward = TransformForward_SymLog;
+        axis.TransformInverse = TransformInverse_SymLog;
         axis.TransformData = NULL; 
         break;  
     default:
-        axis.TransformFwd = NULL;
-        axis.TransformInv = NULL;
+        axis.TransformForward = NULL;
+        axis.TransformInverse = NULL;
         axis.TransformData = NULL;
         break;
     }                
@@ -2216,8 +2214,8 @@ void SetupAxisScale(ImAxis idx, ImPlotTransform fwd, ImPlotTransform inv, void* 
     ImPlotAxis& axis = plot.Axes[idx];
     IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?"); 
     axis.Scale = IMPLOT_AUTO;
-    axis.TransformFwd = fwd;
-    axis.TransformInv = inv;
+    axis.TransformForward = fwd;
+    axis.TransformInverse = inv;
     axis.TransformData = data; 
 }
 
@@ -2491,8 +2489,6 @@ void SetupFinish() {
 
     // (1) calc addition top padding and bot padding
     PadAndDatumAxesX(plot,pad_top,pad_bot,gp.CurrentAlignmentH);
-
-
 
     const float plot_height = plot.CanvasRect.GetHeight() - pad_top - pad_bot;
 
