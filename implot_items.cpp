@@ -1825,7 +1825,7 @@ template <typename T>
 void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double bar_size, ImPlotBarsFlags flags, int offset, int stride) {
     if (ImHasFlag(flags, ImPlotBarsFlags_Horizontal)) {
         GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-        GetterXY<IndexerConst,   IndexerIdx<T>> getter2(IndexerConst(0),IndexerIdx<T>(ys,count,offset,stride),count);
+        GetterXY<IndexerConst, IndexerIdx<T>> getter2(IndexerConst(0),IndexerIdx<T>(ys,count,offset,stride),count);
         PlotBarsHEx(label_id, getter1, getter2, bar_size, flags);
     }
     else {

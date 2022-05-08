@@ -1059,30 +1059,36 @@ void Demo_AxisScales() {
 
     if (ImPlot::BeginSubplots("##Scales",3,2,ImVec2(-1,600))) {
         if (ImPlot::BeginPlot("Linear")) {
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
             ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
             ImPlot::EndPlot();
         }
         if (ImPlot::BeginPlot("Log")) {
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
             ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
             ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
             ImPlot::EndPlot();
         }
         if (ImPlot::BeginPlot("Logit")) {
-            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 0.999);
+            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Logit);
             ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
             ImPlot::EndPlot();
         }
         if (ImPlot::BeginPlot("Symlog")) {
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
             ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_SymLog);
             ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
             ImPlot::EndPlot();
         }
         if (ImPlot::BeginPlot("Sqrt")) {
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
             ImPlot::SetupAxisScale(ImAxis_Y1, TransformForward_Sqrt, TransformInverse_Sqrt);
             ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
             ImPlot::EndPlot();
         }
         if (ImPlot::BeginPlot("Mercator")) {
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
             ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_SymLog);
             ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
             ImPlot::EndPlot();
@@ -1221,6 +1227,23 @@ void Demo_LinkedAxes() {
             ImPlot::EndPlot();
         }
         ImPlot::EndAlignedPlots();
+    }
+}
+
+void Demo_AxisConstraints() {
+    static float constraints[4] = {-10,10,1,20};
+    static ImPlotAxisFlags flags;
+    ImGui::DragFloat2("Limits Constraints", &constraints[0], 0.01);
+    ImGui::DragFloat2("Zoom Constraints", &constraints[2], 0.01);
+    CHECKBOX_FLAG(flags, ImPlotAxisFlags_PanStretch);
+    if (ImPlot::BeginPlot("##AxisConstraints",ImVec2(-1,0))) {
+        ImPlot::SetupAxes("X","Y",flags,flags);
+        ImPlot::SetupAxesLimits(-1,1,-1,1);
+        ImPlot::SetupAxisLimitsConstraints(ImAxis_X1,constraints[0], constraints[1]);
+        ImPlot::SetupAxisZoomConstraints(ImAxis_X1,constraints[2], constraints[3]);
+        ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1,constraints[0], constraints[1]);
+        ImPlot::SetupAxisZoomConstraints(ImAxis_Y1,constraints[2], constraints[3]);
+        ImPlot::EndPlot();
     }
 }
 
@@ -1905,21 +1928,19 @@ void Demo_CustomDataAndGetters() {
     }
 }
 
-void MetricFormatter(double value, char* buff, int size, void* data) {
+int MetricFormatter(double value, char* buff, int size, void* data) {
     const char* unit = (const char*)data;
     static double v[]      = {1000000000,1000000,1000,1,0.001,0.000001,0.000000001};
     static const char* p[] = {"G","M","k","","m","u","n"};
     if (value == 0) {
-        snprintf(buff,size,"0 %s", unit);
-        return;
+        return snprintf(buff,size,"0 %s", unit);
     }
     for (int i = 0; i < 7; ++i) {
         if (fabs(value) >= v[i]) {
-            snprintf(buff,size,"%g %s%s",value/v[i],p[i],unit);
-            return;
+            return snprintf(buff,size,"%g %s%s",value/v[i],p[i],unit);
         }
     }
-    snprintf(buff,size,"%g %s%s",value/v[6],p[6],unit);
+    return snprintf(buff,size,"%g %s%s",value/v[6],p[6],unit);
 }
 
 void Demo_TickLabels()  {
@@ -1939,7 +1960,6 @@ void Demo_TickLabels()  {
     static const char*  ylabels[] = {"One","Three","Seven","Nine"};
     static double yticks_aux[] = {0.2,0.4,0.6};
     static const char* ylabels_aux[] = {"A","B","C","D","E","F"};
-
     if (ImPlot::BeginPlot("##Ticks")) {
         ImPlot::SetupAxesLimits(2.5,5,0,1000);
         ImPlot::SetupAxis(ImAxis_Y2, NULL, ImPlotAxisFlags_AuxDefault);
@@ -2074,6 +2094,8 @@ void Demo_CustomPlottersAndTooltips()  {
         ImPlot::SetupAxes(NULL,NULL,0,ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_RangeFit);
         ImPlot::SetupAxesLimits(1546300800, 1571961600, 1250, 1600);
         ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
+        ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 1546300800, 1571961600);
+        ImPlot::SetupAxisZoomConstraints(ImAxis_X1, 60*60*24*14, 1571961600-1546300800);
         ImPlot::SetupAxisFormat(ImAxis_Y1, "$%.0f");
         MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
         ImPlot::EndPlot();
@@ -2177,6 +2199,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Multiple Axes", Demo_MultipleAxes);
             DemoHeader("Tick Labels", Demo_TickLabels);
             DemoHeader("Linked Axes", Demo_LinkedAxes);
+            DemoHeader("Axis Constraints", Demo_AxisConstraints);
             DemoHeader("Equal Axes", Demo_EqualAxes);
             DemoHeader("Auto-Fitting Data", Demo_AutoFittingData);
             ImGui::EndTabItem();

@@ -155,8 +155,9 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_Invert        = 1 << 8,  // the axis will be inverted
     ImPlotAxisFlags_AutoFit       = 1 << 9,  // axis will be auto-fitting to data extents
     ImPlotAxisFlags_RangeFit      = 1 << 10, // axis will only fit points if the point is in the visible range of the **orthogonal** axis
-    ImPlotAxisFlags_LockMin       = 1 << 11, // the axis minimum value will be locked when panning/zooming
-    ImPlotAxisFlags_LockMax       = 1 << 12, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_PanStretch    = 1 << 11, // panning in a locked or constrained state will cause the axis to stretch if possible
+    ImPlotAxisFlags_LockMin       = 1 << 12, // the axis minimum value will be locked when panning/zooming
+    ImPlotAxisFlags_LockMax       = 1 << 13, // the axis maximum value will be locked when panning/zooming
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
     ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels,
     ImPlotAxisFlags_AuxDefault    = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_Opposite
@@ -385,10 +386,11 @@ enum ImPlotStyleVar_ {
 
 // Axis scale
 enum ImPlotScale_ {
-    ImPlotScale_Linear = 0, // default linear scale and formatting
-    ImPlotScale_Time,       // date/time scale and formatting
-    ImPlotScale_Log10,      // base 10 logartithmic scale and formatting
-    ImPlotScale_SymLog      // symmetric log scale and formatting
+    ImPlotScale_Linear = 0, // default linear scale
+    ImPlotScale_Time,       // date/time scale
+    ImPlotScale_Log10,      // base 10 logartithmic scale
+    ImPlotScale_SymLog,     // symmetric log scale
+    ImPlotScale_Logit       // base 10 logit scale
 };
 
 // Marker specifications.
@@ -559,7 +561,7 @@ struct ImPlotInputMap {
 //-----------------------------------------------------------------------------
 
 // Callback signature for axis tick label formatter.
-typedef void (*ImPlotFormatter)(double value, char* buff, int size, void* user_data);
+typedef int (*ImPlotFormatter)(double value, char* buff, int size, void* user_data);
 
 // Callback signature for data getter.
 typedef ImPlotPoint (*ImPlotGetter)(int idx, void* user_data);
@@ -723,6 +725,10 @@ IMPLOT_API void SetupAxisTicks(ImAxis axis, double v_min, double v_max, int n_ti
 IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotScale scale);
 // Sets an axis' scale using user supplied forward and inverse transfroms.
 IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotTransform forward, ImPlotTransform inverse, void* data=NULL);
+// Sets an axis' limits constraints.
+IMPLOT_API void SetupAxisLimitsConstraints(ImAxis axis, double v_min, double v_max);
+// Sets an axis' zoom constraints.
+IMPLOT_API void SetupAxisZoomConstraints(ImAxis axis, double z_min, double z_max);
 
 // Sets the label and/or flags for primary X and Y axes (shorthand for two calls to SetupAxis).
 IMPLOT_API void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFlags x_flags=0, ImPlotAxisFlags y_flags=0);

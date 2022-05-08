@@ -63,8 +63,6 @@
 #define IMPLOT_LABEL_FORMAT "%g"
 // Max character size for tick labels
 #define IMPLOT_LABEL_MAX_SIZE 32
-// Plot values less than or equal to 0 will be replaced with this on log scale axes
-#define IMPLOT_LOG_ZERO DBL_MIN
 
 //-----------------------------------------------------------------------------
 // [SECTION] Macros
@@ -90,6 +88,7 @@ struct ImPlotItem;
 struct ImPlotLegend;
 struct ImPlotPlot;
 struct ImPlotNextPlotData;
+struct ImPlotTicker;
 
 //-----------------------------------------------------------------------------
 // [SECTION] Context Pointer
@@ -269,12 +268,19 @@ enum ImPlotTimeFmt_ {              // default        [ 24 Hour Clock ]
 };
 
 //-----------------------------------------------------------------------------
-// [SECTION] ImPlot Structs
+// [SECTION] Callbacks
+//-----------------------------------------------------------------------------
+
+typedef void (*ImPlotLocator)(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+
+//-----------------------------------------------------------------------------
+// [SECTION] Structs
 //-----------------------------------------------------------------------------
 
 // Combined date/time format spec
-struct ImPlotDateTimeFmt {
-    ImPlotDateTimeFmt(ImPlotDateFmt date_fmt, ImPlotTimeFmt time_fmt, bool use_24_hr_clk = false, bool use_iso_8601 = false) {
+struct ImPlotDateTimeSpec {
+    ImPlotDateTimeSpec() {}
+    ImPlotDateTimeSpec(ImPlotDateFmt date_fmt, ImPlotTimeFmt time_fmt, bool use_24_hr_clk = false, bool use_iso_8601 = false) {
         Date           = date_fmt;
         Time           = time_fmt;
         UseISO8601     = use_iso_8601;
@@ -412,7 +418,6 @@ struct ImPlotColormapData {
         int idx = Quals[cmap] ? ImClamp((int)(siz*t),0,siz-1) : (int)((siz - 1) * t + 0.5f);
         return Tables[off + idx];
     }
-
 };
 
 // ImPlotPoint with positive/negative error values
@@ -531,38 +536,41 @@ struct ImPlotTick
     bool   Major;
     bool   ShowLabel;
     int    Level;
+    int    Idx;
 
-    ImPlotTick(double value, bool major, bool show_label) {
+    ImPlotTick(double value, bool major, int level, bool show_label) {
         PlotPos      = value;
         Major        = major;
         ShowLabel    = show_label;
+        Level        = level;
         TextOffset   = -1;
-        Level        = 0;
     }
 };
 
 // Collection of ticks
-struct ImPlotTickCollection {
+struct ImPlotTicker {
     ImVector<ImPlotTick> Ticks;
     ImGuiTextBuffer      TextBuffer;
     ImVec2               MaxSize;
     ImVec2               LateSize;
-    int                  Size;
+    int                  Levels;
 
-    ImPlotTickCollection() { Reset(); }
-
-    const ImPlotTick& Append(const ImPlotTick& tick) {
-        if (tick.ShowLabel) {
-            MaxSize.x     =  tick.LabelSize.x > MaxSize.x ? tick.LabelSize.x : MaxSize.x;
-            MaxSize.y     =  tick.LabelSize.y > MaxSize.y ? tick.LabelSize.y : MaxSize.y;
-        }
-        Ticks.push_back(tick);
-        Size++;
-        return Ticks.back();
+    ImPlotTicker() { 
+        Reset(); 
     }
 
-    const ImPlotTick& Append(double value, bool major, bool show_label, ImPlotFormatter formatter, void* data) {
-        ImPlotTick tick(value, major, show_label);
+    ImPlotTick& AddTick(double value, bool major, int level, bool show_label, const char* label) {
+        ImPlotTick tick(value, major, level, show_label);
+        if (show_label && label != NULL) {
+            tick.TextOffset = TextBuffer.size();
+            TextBuffer.append(label, label + strlen(label) + 1);
+            tick.LabelSize = ImGui::CalcTextSize(TextBuffer.Buf.Data + tick.TextOffset);
+        }
+        return AddTick(tick);
+    }
+
+    ImPlotTick& AddTick(double value, bool major, int level, bool show_label, ImPlotFormatter formatter, void* data) {
+        ImPlotTick tick(value, major, level, show_label);
         if (show_label && formatter != NULL) {
             char buff[IMPLOT_LABEL_MAX_SIZE];
             tick.TextOffset = TextBuffer.size();
@@ -570,16 +578,25 @@ struct ImPlotTickCollection {
             TextBuffer.append(buff, buff + strlen(buff) + 1);
             tick.LabelSize = ImGui::CalcTextSize(TextBuffer.Buf.Data + tick.TextOffset);
         }
-        return Append(tick);
+        return AddTick(tick);
+    }
+
+    inline ImPlotTick& AddTick(ImPlotTick tick) {
+        if (tick.ShowLabel) {
+            MaxSize.x     =  tick.LabelSize.x > MaxSize.x ? tick.LabelSize.x : MaxSize.x;
+            MaxSize.y     =  tick.LabelSize.y > MaxSize.y ? tick.LabelSize.y : MaxSize.y;
+        }
+        tick.Idx = Ticks.size();
+        Ticks.push_back(tick);
+        return Ticks.back();
     }
 
     const char* GetText(int idx) const {
         return TextBuffer.Buf.Data + Ticks[idx].TextOffset;
     }
 
-    void OverrideSize(const ImVec2& size) {
-        MaxSize.x = size.x > MaxSize.x ? size.x : MaxSize.x;
-        MaxSize.y = size.y > MaxSize.y ? size.y : MaxSize.y;
+    const char* GetText(const ImPlotTick& tick) {
+        return GetText(tick.Idx);
     }
 
     void OverrideSizeLate(const ImVec2& size) {
@@ -592,7 +609,11 @@ struct ImPlotTickCollection {
         TextBuffer.Buf.shrink(0);
         MaxSize = LateSize;
         LateSize = ImVec2(0,0);
-        Size = 0;
+        Levels = 1;
+    }
+
+    int TickCount() const {
+        return Ticks.Size;
     }
 };
 
@@ -602,29 +623,38 @@ struct ImPlotAxis
     ImGuiID              ID;
     ImPlotAxisFlags      Flags;
     ImPlotAxisFlags      PreviousFlags;
-    ImPlotCond           RangeCond;
-    ImPlotTickCollection Ticks;
     ImPlotRange          Range;
+    ImPlotCond           RangeCond;
     ImPlotScale          Scale;
     ImPlotRange          FitExtents;
     ImPlotAxis*          OrthoAxis;
+    ImPlotRange          ConstraintRange;
+    ImPlotRange          ConstraintZoom;
+
+    ImPlotTicker         Ticker;
+    ImPlotFormatter      Formatter;
+    void*                FormatterData;
+    char                 FormatSpec[16];
+    ImPlotLocator        Locator;
+
     double*              LinkedMin;
     double*              LinkedMax;
+
     int                  PickerLevel;
     ImPlotTime           PickerTimeMin, PickerTimeMax;
-    float                Datum1, Datum2;
+
     ImPlotTransform      TransformForward;
     ImPlotTransform      TransformInverse;
     void*                TransformData;
     float                PixelMin, PixelMax;
     double               ScaleMin, ScaleMax;
     double               ScaleToPixel;
+    float                Datum1, Datum2;
+
     ImRect               HoverRect;
     int                  LabelOffset;
     ImU32                ColorMaj, ColorMin, ColorTick, ColorTxt, ColorBg, ColorHov, ColorAct, ColorHiLi;
-    char                 FormatSpec[16];
-    ImPlotFormatter      Formatter;
-    void*                FormatterData;
+
     bool                 Enabled;
     bool                 Vertical;
     bool                 FitThisFrame;
@@ -644,6 +674,8 @@ struct ImPlotAxis
         FitExtents.Min   = HUGE_VAL;
         FitExtents.Max   = -HUGE_VAL;
         OrthoAxis        = NULL;
+        ConstraintRange  = ImPlotRange(-INFINITY,INFINITY);
+        ConstraintZoom   = ImPlotRange(DBL_MIN,INFINITY);
         LinkedMin        = LinkedMax = NULL;
         PickerLevel      = 0;
         Datum1           = Datum2 = 0;
@@ -653,6 +685,7 @@ struct ImPlotAxis
         ColorHiLi        = IM_COL32_BLACK_TRANS;
         Formatter        = NULL;
         FormatterData    = NULL;
+        Locator          = NULL;
         Enabled          = Hovered = Held = FitThisFrame = HasRange = HasFormatSpec = false;
         ShowDefaultTicks = true;
     }
@@ -666,22 +699,28 @@ struct ImPlotAxis
         HasFormatSpec    = false;
         Formatter        = NULL;
         FormatterData    = NULL;
+        Locator          = NULL;
         ShowDefaultTicks = true;
         FitThisFrame     = false;
         FitExtents.Min   = HUGE_VAL;
         FitExtents.Max   = -HUGE_VAL;
         OrthoAxis        = NULL;
-        Ticks.Reset();
+        ConstraintRange  = ImPlotRange(-INFINITY,INFINITY);
+        ConstraintZoom   = ImPlotRange(DBL_MIN,INFINITY);
+        Ticker.Reset();
     }
 
     inline bool SetMin(double _min, bool force=false) {
         if (!force && IsLockedMin())
             return false;
         _min = ImConstrainNan(ImConstrainInf(_min));
-        if (Scale == ImPlotScale_Log10)
-            _min = ImConstrainLog(_min);
-        if (Scale == ImPlotScale_Time)
-            _min = ImConstrainTime(_min);
+        if (_min < ConstraintRange.Min)
+            _min = ConstraintRange.Min;
+        double z = Range.Max - _min;
+        if (z < ConstraintZoom.Min)
+            _min = Range.Max - ConstraintZoom.Min;
+        if (z > ConstraintZoom.Max)
+            _min = Range.Max - ConstraintZoom.Max;
         if (_min >= Range.Max)
             return false;
         Range.Min = _min;
@@ -694,10 +733,13 @@ struct ImPlotAxis
         if (!force && IsLockedMax())
             return false;
         _max = ImConstrainNan(ImConstrainInf(_max));
-        if (Scale == ImPlotScale_Log10)
-            _max = ImConstrainLog(_max);
-        if (Scale == ImPlotScale_Time)
-            _max = ImConstrainTime(_max);
+        if (_max > ConstraintRange.Max)
+            _max = ConstraintRange.Max;
+        double z = _max - Range.Min;
+        if (z < ConstraintZoom.Min)
+            _max = Range.Min + ConstraintZoom.Min;
+        if (z > ConstraintZoom.Max)
+            _max = Range.Min + ConstraintZoom.Max;
         if (_max <= Range.Min)
             return false;
         Range.Max = _max;
@@ -739,13 +781,20 @@ struct ImPlotAxis
     inline void Constrain() {
         Range.Min = ImConstrainNan(ImConstrainInf(Range.Min));
         Range.Max = ImConstrainNan(ImConstrainInf(Range.Max));
-        if (IsLog()) {
-            Range.Min = ImConstrainLog(Range.Min);
-            Range.Max = ImConstrainLog(Range.Max);
+        if (Range.Min < ConstraintRange.Min)
+            Range.Min = ConstraintRange.Min;
+        if (Range.Max > ConstraintRange.Max)
+            Range.Max = ConstraintRange.Max;
+        double z = Range.Size();
+        if (z < ConstraintZoom.Min) {
+            double delta = (ConstraintZoom.Min - z) * 0.5;
+            Range.Min -= delta;
+            Range.Max += delta;
         }
-        if (IsTime()) {
-            Range.Min = ImConstrainTime(Range.Min);
-            Range.Max = ImConstrainTime(Range.Max);
+        if (z > ConstraintZoom.Max) {
+            double delta = (z - ConstraintZoom.Max) * 0.5f;
+            Range.Min += delta;
+            Range.Max -= delta;
         }
         if (Range.Max <= Range.Min)
             Range.Max = Range.Min + DBL_EPSILON;
@@ -784,7 +833,7 @@ struct ImPlotAxis
     }
 
     inline void ExtendFit(double v) {
-        if (!ImNanOrInf(v) && !(IsLog() && v <= 0)) {
+        if (!ImNanOrInf(v) && v >= ConstraintRange.Min && v <= ConstraintRange.Max) {
             FitExtents.Min = v < FitExtents.Min ? v : FitExtents.Min;
             FitExtents.Max = v > FitExtents.Max ? v : FitExtents.Max;
         }
@@ -793,7 +842,7 @@ struct ImPlotAxis
     inline void ExtendFitWith(ImPlotAxis& alt, double v, double v_alt) {
         if (ImHasFlag(Flags, ImPlotAxisFlags_RangeFit) && !alt.Range.Contains(v_alt))
             return;
-        if (!ImNanOrInf(v) && !(IsLog() && v <= 0)) {
+        if (!ImNanOrInf(v) && v >= ConstraintRange.Min && v <= ConstraintRange.Max) {
             FitExtents.Min = v < FitExtents.Min ? v : FitExtents.Min;
             FitExtents.Max = v > FitExtents.Max ? v : FitExtents.Max;
         }
@@ -825,17 +874,28 @@ struct ImPlotAxis
     inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }
     inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                                }
     inline bool CanInitFit()        const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
-    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImPlotCond_Always;                                                }
+    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImPlotCond_Always;                                               }
     inline bool IsLockedMin()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin);                 }
     inline bool IsLockedMax()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax);                 }
     inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                                           }
     inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                                         }
     inline bool IsInputLockedMax()  const { return IsLockedMax() || IsAutoFitting();                                                         }
     inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                                         }
-    inline bool IsTime()            const { return Scale == ImPlotScale_Time;                                                                }
-    inline bool IsLog()             const { return Scale == ImPlotScale_Log10;                                                               }
-    inline bool IsSymLog()          const { return Scale == ImPlotScale_SymLog;                                                              }
     inline bool HasMenus()          const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoMenus);                                               }
+
+    inline bool IsPanLocked(bool increasing) {
+        if (ImHasFlag(Flags, ImPlotAxisFlags_PanStretch)) {
+            return IsInputLocked();
+        }
+        else {
+            if (IsLockedMin() || IsLockedMax() || IsAutoFitting())
+                return false;
+            if (increasing)
+                return Range.Max == ConstraintRange.Max;
+            else
+                return Range.Min == ConstraintRange.Min;
+        }
+    }
 
     void PushLinks() {
         if (LinkedMin) { *LinkedMin = Range.Min; }
@@ -1140,7 +1200,7 @@ struct ImPlotContext {
     ImPlotItem*           PreviousItem;
 
     // Tick Marks and Labels
-    ImPlotTickCollection CTicks;
+    ImPlotTicker CTicker;
 
     // Annotation and Tabs
     ImPlotAnnotationCollection Annotations;
@@ -1353,11 +1413,8 @@ IMPLOT_API void ShowAltLegend(const char* title_id, bool vertical = true, const 
 IMPLOT_API bool ShowLegendContextMenu(ImPlotLegend& legend, bool visible);
 
 //-----------------------------------------------------------------------------
-// [SECTION] Tick Utils
+// [SECTION] Label Utils
 //-----------------------------------------------------------------------------
-
-// Label a tick with time formatting.
-IMPLOT_API void LabelTickTime(ImPlotTick& tick, ImGuiTextBuffer& buffer, const ImPlotTime& t, ImPlotDateTimeFmt fmt);
 
 // Create a a string label for a an axis value
 IMPLOT_API void LabelAxisValue(const ImPlotAxis& axis, double value, char* buff, int size, bool round = false);
@@ -1516,7 +1573,7 @@ IMPLOT_API int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTim
 // Formats the date part of timestamp t into a buffer according to #fmt
 IMPLOT_API int FormatDate(const ImPlotTime& t, char* buffer, int size, ImPlotDateFmt fmt, bool use_iso_8601);
 // Formats the time and/or date parts of a timestamp t into a buffer according to #fmt
-IMPLOT_API int FormatDateTime(const ImPlotTime& t, char* buffer, int size, ImPlotDateTimeFmt fmt);
+IMPLOT_API int FormatDateTime(const ImPlotTime& t, char* buffer, int size, ImPlotDateTimeSpec fmt);
 
 // Shows a date picker widget block (year/month/day).
 // #level = 0 for day, 1 for month, 2 for year. Modified by user interaction.
@@ -1526,5 +1583,67 @@ IMPLOT_API bool ShowDatePicker(const char* id, int* level, ImPlotTime* t, const 
 // Shows a time picker widget block (hour/min/sec).
 // #t will be set when a new hour, minute, or sec is selected or am/pm is toggled, and the function will return true.
 IMPLOT_API bool ShowTimePicker(const char* id, ImPlotTime* t);
+
+//-----------------------------------------------------------------------------
+// [SECTION] Transforms
+//-----------------------------------------------------------------------------
+
+static inline double TransformForward_Log10(double v, void*) {
+    v = v <= 0.0 ? DBL_MIN : v;
+    return ImLog10(v);
+}
+
+static inline double TransformInverse_Log10(double v, void*) {
+    return ImPow(10, v);
+}
+
+static inline double TransformForward_SymLog(double v, void*) {
+    return 2.0 * ImAsinh(v / 2.0);
+}
+
+static inline double TransformInverse_SymLog(double v, void*) {
+    return 2.0 * ImSinh(v / 2.0);
+}
+
+static inline double TransformForward_Logit(double v, void*) {
+    v = ImClamp(v, DBL_MIN, 1.0 - DBL_EPSILON);
+    return ImLog10(v / (1 - v));
+}
+
+static inline double TransformInverse_Logit(double v, void*) {
+    return 1.0 / (1.0 + ImPow(10,-v));
+}
+
+//-----------------------------------------------------------------------------
+// [SECTION] Formatters
+//-----------------------------------------------------------------------------
+
+static inline int Formatter_Default(double value, char* buff, int size, void* data) {
+    char* fmt = (char*)data;
+    return ImFormatString(buff, size, fmt, value);
+}
+
+struct Formatter_Time_Data {
+    ImPlotTime Time;
+    ImPlotDateTimeSpec Spec;
+    ImPlotFormatter UserFormatter;
+    void* UserFormatterData;
+};
+
+static inline int Formatter_Time(double, char* buff, int size, void* data) {
+    Formatter_Time_Data* ftd = (Formatter_Time_Data*)data;
+    return FormatDateTime(ftd->Time, buff, size, ftd->Spec);
+}
+
+//------------------------------------------------------------------------------
+// [SECTION] Locator
+//------------------------------------------------------------------------------
+
+void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+void Locator_Log10(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+void Locator_SymLog(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+void Locator_Logit(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+
 
 } // namespace ImPlot
