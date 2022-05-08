@@ -23,7 +23,6 @@
 // ImPlot v0.13 WIP
 
 // We define this so that the demo does not accidentally use deprecated API
-// We define this so that the demo does not accidentally use deprecated API
 #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
 #define IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
 #endif
