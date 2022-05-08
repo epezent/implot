@@ -620,6 +620,7 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
 
         ImRect button_bb(icon_bb.Min, label_bb.Max);
 
+        ImGui::KeepAliveID(item->ID);
 
         bool item_hov = false;
         bool item_hld = false;
@@ -3692,6 +3693,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     ImRect rect(pos.x-grab_half_size,pos.y-grab_half_size,pos.x+grab_half_size,pos.y+grab_half_size);
     bool hovered = false, held = false;
 
+    ImGui::KeepAliveID(id);
     if (input)
         ImGui::ButtonBehavior(rect,id,&hovered,&held);
 
@@ -3736,6 +3738,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImRect rect(x-grab_half_size,yt,x+grab_half_size,yb);
     bool hovered = false, held = false;
 
+    ImGui::KeepAliveID(id);
     if (input)
         ImGui::ButtonBehavior(rect,id,&hovered,&held);
 
@@ -3787,6 +3790,7 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImRect rect(xl,y-grab_half_size,xr,y+grab_half_size);
     bool hovered = false, held = false;
 
+    ImGui::KeepAliveID(id);
     if (input)
         ImGui::ButtonBehavior(rect,id,&hovered,&held);
 
@@ -3857,6 +3861,7 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     bool hovered = false, held = false;
     ImRect b_rect(pc.x-DRAG_GRAB_HALF_SIZE,pc.y-DRAG_GRAB_HALF_SIZE,pc.x+DRAG_GRAB_HALF_SIZE,pc.y+DRAG_GRAB_HALF_SIZE);
 
+    ImGui::KeepAliveID(id);
     if (input)
         ImGui::ButtonBehavior(b_rect,id,&hovered,&held);
 
