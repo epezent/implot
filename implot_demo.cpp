@@ -23,7 +23,9 @@
 // ImPlot v0.14
 
 // We define this so that the demo does not accidentally use deprecated API
+#ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
 #define IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
+#endif
 
 #include "implot.h"
 #include <math.h>
