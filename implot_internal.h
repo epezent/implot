@@ -668,7 +668,7 @@ struct ImPlotAxis
             _min = ImConstrainLog(_min);
         if (ImHasFlag(Flags, ImPlotAxisFlags_Time))
             _min = ImConstrainTime(_min);
-        if (_min >= Range.Max)
+        if (!force && _min >= Range.Max)
             return false;
         Range.Min = _min;
         PickerTimeMin = ImPlotTime::FromDouble(Range.Min);
@@ -684,7 +684,7 @@ struct ImPlotAxis
             _max = ImConstrainLog(_max);
         if (ImHasFlag(Flags, ImPlotAxisFlags_Time))
             _max = ImConstrainTime(_max);
-        if (_max <= Range.Min)
+        if (!force && _max <= Range.Min)
             return false;
         Range.Max = _max;
         PickerTimeMax = ImPlotTime::FromDouble(Range.Max);
