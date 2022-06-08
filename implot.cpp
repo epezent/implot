@@ -1154,7 +1154,7 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
     // maximum allowable density of labels
     const float max_density = 0.5f;
     // book keeping
-    const char* last_major  = NULL;
+    int last_major_offset = -1;
     if (unit0 != ImPlotTimeUnit_Yr) {
         // pixels per major (level 1) division
         const float pix_per_major_div = plot_width / (float)(range.Size() / TimeUnitSpans[unit1]);
@@ -1181,11 +1181,11 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                 // major level 1 tick
                 ImPlotTick tick_maj(t1.ToDouble(),true,true);
                 tick_maj.Level = 1;
-                LabelTickTime(tick_maj,ticks.TextBuffer,t1, last_major == NULL ? fmtf : fmt1);
+                LabelTickTime(tick_maj,ticks.TextBuffer,t1, last_major_offset < 0 ? fmtf : fmt1);
                 const char* this_major = ticks.TextBuffer.Buf.Data + tick_maj.TextOffset;
-                if (last_major && TimeLabelSame(last_major,this_major))
+                if (last_major_offset >= 0 && TimeLabelSame(ticks.TextBuffer.Buf.Data + last_major_offset, this_major))
                     tick_maj.ShowLabel = false;
-                last_major = this_major;
+                last_major_offset = tick_maj.TextOffset;
                 ticks.Append(tick_maj);
             }
             // add minor ticks up until next major
@@ -1198,11 +1198,11 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                         tick.Level =  0;
                         LabelTickTime(tick,ticks.TextBuffer,t12,fmt0);
                         ticks.Append(tick);
-                        if (last_major == NULL && px_to_t2 >= fmt0_width && px_to_t2 >= (fmt1_width + fmtf_width) / 2) {
+                        if (last_major_offset < 0 && px_to_t2 >= fmt0_width && px_to_t2 >= (fmt1_width + fmtf_width) / 2) {
                             ImPlotTick tick_maj(t12.ToDouble(),true,true);
                             tick_maj.Level = 1;
                             LabelTickTime(tick_maj,ticks.TextBuffer,t12,fmtf);
-                            last_major = ticks.TextBuffer.Buf.Data + tick_maj.TextOffset;
+                            last_major_offset = tick_maj.TextOffset;
                             ticks.Append(tick_maj);
                         }
                     }
