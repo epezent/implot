@@ -71,7 +71,7 @@ Of course, there's much more you can do with ImPlot...
 
 ## Demos
 
-A comprehensive example of ImPlot's features can be found in `implot_demo.h`. Add this file to your sources and call `ImPlot::ShowDemoWindow()` somewhere in your update loop. You are encouraged to use this file as a reference when needing to implement various plot types. The demo is always updated to show new plot types and features as they are added, so check back with each release!
+A comprehensive example of ImPlot's features can be found in `implot_demo.cpp`. Add this file to your sources and call `ImPlot::ShowDemoWindow()` somewhere in your update loop. You are encouraged to use this file as a reference when needing to implement various plot types. The demo is always updated to show new plot types and features as they are added, so check back with each release!
 
 An online version of the demo is hosted [here](https://traineq.org/implot_demo/src/implot_demo.html). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implementation, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this!
 
