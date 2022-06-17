@@ -555,8 +555,8 @@ struct ImPlotTicker {
     ImVec2               LateSize;
     int                  Levels;
 
-    ImPlotTicker() { 
-        Reset(); 
+    ImPlotTicker() {
+        Reset();
     }
 
     ImPlotTick& AddTick(double value, bool major, int level, bool show_label, const char* label) {
@@ -807,7 +807,7 @@ struct ImPlotAxis
             ScaleMax = TransformForward(Range.Max, TransformData);
         }
         else {
-            ScaleMin = Range.Min; 
+            ScaleMin = Range.Min;
             ScaleMax = Range.Max;
         }
     }
@@ -821,7 +821,7 @@ struct ImPlotAxis
         return (float)(PixelMin + ScaleToPixel * (plt - Range.Min));
     }
 
-    
+
     inline double PixelsToPlot(float pix) const {
         double plt = (pix - PixelMin) / ScaleToPixel + Range.Min;
         if (TransformInverse != NULL) {
@@ -1305,8 +1305,8 @@ template <typename _Fitter>
 bool BeginItemEx(const char* label_id, const _Fitter& fitter, ImPlotItemFlags flags=0, ImPlotCol recolor_from=IMPLOT_AUTO) {
     if (BeginItem(label_id, flags, recolor_from)) {
         ImPlotPlot& plot = *GetCurrentPlot();
-        if (plot.FitThisFrame && !ImHasFlag(flags, ImPlotItemFlags_NoFit)) 
-            fitter.Fit(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]);        
+        if (plot.FitThisFrame && !ImHasFlag(flags, ImPlotItemFlags_NoFit))
+            fitter.Fit(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]);
         return true;
     }
     return false;
@@ -1623,6 +1623,15 @@ static inline int Formatter_Default(double value, char* buff, int size, void* da
     return ImFormatString(buff, size, fmt, value);
 }
 
+static inline int Formatter_Logit(double value, char* buff, int size, void*) {
+    if (value == 0.5)
+        return ImFormatString(buff,size,"1/2");
+    else if (value < 0.5)
+        return ImFormatString(buff,size,"%g", value);
+    else
+        return ImFormatString(buff,size,"1 - %g", 1 - value);
+}
+
 struct Formatter_Time_Data {
     ImPlotTime Time;
     ImPlotDateTimeSpec Spec;
@@ -1643,7 +1652,5 @@ void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixel
 void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
 void Locator_Log10(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
 void Locator_SymLog(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
-void Locator_Logit(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
-
 
 } // namespace ImPlot

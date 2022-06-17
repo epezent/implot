@@ -390,7 +390,6 @@ enum ImPlotScale_ {
     ImPlotScale_Time,       // date/time scale
     ImPlotScale_Log10,      // base 10 logartithmic scale
     ImPlotScale_SymLog,     // symmetric log scale
-    ImPlotScale_Logit       // base 10 logit scale
 };
 
 // Marker specifications.

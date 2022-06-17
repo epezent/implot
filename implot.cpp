@@ -704,7 +704,7 @@ void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixel
     }
     // prune if necessary
     if ((!vertical && total_size.x > pixels*TICK_FILL_X) || (vertical && total_size.y > pixels*TICK_FILL_Y)) {
-        for (int i = first_major_idx-1; i >= idx0; i -= 2) 
+        for (int i = first_major_idx-1; i >= idx0; i -= 2)
             ticker.Ticks[i].ShowLabel = false;
         for (int i = first_major_idx+1; i < ticker.TickCount(); i += 2)
             ticker.Ticks[i].ShowLabel = false;
@@ -731,7 +731,7 @@ bool CalcLogarithmicExponents(const ImPlotRange& range, float pix, bool vertical
 }
 
 void AddTicksLogarithmic(const ImPlotRange& range, int exp_min, int exp_max, int exp_step, ImPlotTicker& ticker, ImPlotFormatter formatter, void* data) {
-    const double sign = ImSign(range.Max);    
+    const double sign = ImSign(range.Max);
     for (int e = exp_min - exp_step; e < (exp_max + exp_step); e += exp_step) {
         double major1 = sign*ImPow(10, (double)(e));
         double major2 = sign*ImPow(10, (double)(e + 1));
@@ -782,7 +782,7 @@ void Locator_SymLog(ImPlotTicker& ticker, const ImPlotRange& range, float pixels
         CalcLogarithmicExponents(ImPlotRange(1,range.Max), ImAbs(pix_max-pix_p1),vertical,exp_min_p,exp_max_p,exp_step_p);
         CalcLogarithmicExponents(ImPlotRange(range.Min,-1),ImAbs(pix_n1-pix_min),vertical,exp_min_n,exp_max_n,exp_step_n);
         int exp_step = ImMax(exp_step_n, exp_step_p);
-        ticker.AddTick(0,true,0,true,formatter,formatter_data);        
+        ticker.AddTick(0,true,0,true,formatter,formatter_data);
         AddTicksLogarithmic(ImPlotRange(1,range.Max), exp_min_p,exp_max_p,exp_step,ticker,formatter,formatter_data);
         AddTicksLogarithmic(ImPlotRange(range.Min,-1),exp_min_n,exp_max_n,exp_step,ticker,formatter,formatter_data);
     }
@@ -793,29 +793,11 @@ void Locator_SymLog(ImPlotTicker& ticker, const ImPlotRange& range, float pixels
 
 void AddTicksCustom(const double* values, const char* const labels[], int n, ImPlotTicker& ticker, ImPlotFormatter formatter, void* data) {
     for (int i = 0; i < n; ++i) {
-        if (labels != NULL) 
-            ticker.AddTick(values[i], false, 0, true, labels[i]);        
-        else 
-            ticker.AddTick(values[i], false, 0, true, formatter, data);        
+        if (labels != NULL)
+            ticker.AddTick(values[i], false, 0, true, labels[i]);
+        else
+            ticker.AddTick(values[i], false, 0, true, formatter, data);
     }
-}
-
-void Locator_Logit(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data) {
-    int exp_min, exp_max, exp_step;
-    IM_ASSERT_USER_ERROR(range.Min > 0 && range.Max < 1, "SHIT");
-    if (CalcLogarithmicExponents(range, pixels, vertical, exp_min, exp_max, exp_step)) {
-        for (int e = exp_min - exp_step; e < (exp_max + exp_step); e += exp_step) {
-            double major1 = ImPow(10, (double)(e));
-            if (major1 >= (range.Min - DBL_EPSILON) && major1 < 0.5)
-                ticker.AddTick(major1, true, 0, true, formatter, formatter_data);
-        }
-        for (int e = exp_min - exp_step; e < (exp_max + exp_step); e += exp_step) {
-            double major1 = 1 - ImPow(10, (double)(e));
-            if (major1 > 0.5 && major1 <= (range.Max + DBL_EPSILON))
-                ticker.AddTick(major1, true, 0, true, formatter, formatter_data);
-        }
-    }
-    ticker.AddTick(0.5,true,0,true,"1/2");
 }
 
 //-----------------------------------------------------------------------------
@@ -1195,6 +1177,7 @@ inline ImPlotDateTimeSpec GetDateTimeFmt(const ImPlotDateTimeSpec* ctx, ImPlotTi
 
 void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data) {
     IM_ASSERT_USER_ERROR(vertical == false, "Cannot locate Time ticks on vertical axis!");
+    (void)vertical;
     // get units for level 0 and level 1 labels
     const ImPlotTimeUnit unit0 = GetUnitForRange(range.Size() / (pixels / 100)); // level = 0 (top)
     const ImPlotTimeUnit unit1 = unit0 + 1;                                          // level = 1 (bottom)
@@ -1570,8 +1553,8 @@ static inline double RoundAxisValue(const ImPlotAxis& axis, double value) {
 
 void LabelAxisValue(const ImPlotAxis& axis, double value, char* buff, int size, bool round) {
     if (round)
-        value = RoundAxisValue(axis, value);    
-    axis.Formatter(value, buff, size, axis.FormatterData);    
+        value = RoundAxisValue(axis, value);
+    axis.Formatter(value, buff, size, axis.FormatterData);
 }
 
 void UpdateAxisColors(ImPlotAxis& axis) {
@@ -1917,7 +1900,6 @@ bool UpdateInput(ImPlotPlot& plot) {
                 if (IO.MouseDelta.y != 0 && !y_axis.IsPanLocked(increasing)) {
                     const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - IO.MouseDelta.y);
                     const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y - IO.MouseDelta.y);
-                    printf("%.20f\n",plot_t);
                     y_axis.SetMin(y_axis.IsInverted() ? plot_t : plot_b);
                     y_axis.SetMax(y_axis.IsInverted() ? plot_b : plot_t);
                     if (axis_equal && y_axis.OrthoAxis != NULL)
@@ -2165,8 +2147,8 @@ void SetupAxisScale(ImAxis idx, ImPlotScale scale) {
                         "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
     ImPlotAxis& axis = plot.Axes[idx];
-    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");  
-    axis.Scale = scale;  
+    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
+    axis.Scale = scale;
     switch (scale)
     {
     case ImPlotScale_Time:
@@ -2183,20 +2165,13 @@ void SetupAxisScale(ImAxis idx, ImPlotScale scale) {
         axis.TransformData    = NULL;
         axis.Locator          = Locator_Log10;
         axis.ConstraintRange  = ImPlotRange(DBL_MIN, INFINITY);
-        break; 
+        break;
     case ImPlotScale_SymLog:
         axis.TransformForward = TransformForward_SymLog;
         axis.TransformInverse = TransformInverse_SymLog;
-        axis.TransformData    = NULL; 
+        axis.TransformData    = NULL;
         axis.Locator          = Locator_SymLog;
         axis.ConstraintRange  = ImPlotRange(-INFINITY, INFINITY);
-        break;  
-    case ImPlotScale_Logit:
-        axis.TransformForward = TransformForward_Logit;
-        axis.TransformInverse = TransformInverse_Logit;
-        axis.TransformData    = NULL; 
-        axis.Locator          = Locator_Logit;
-        axis.ConstraintRange  = ImPlotRange(DBL_MIN, 1 - DBL_EPSILON);
         break;
     default:
         axis.TransformForward = NULL;
@@ -2205,7 +2180,7 @@ void SetupAxisScale(ImAxis idx, ImPlotScale scale) {
         axis.Locator          = NULL;
         axis.ConstraintRange  = ImPlotRange(-INFINITY, INFINITY);
         break;
-    }                
+    }
 }
 
 void SetupAxisScale(ImAxis idx, ImPlotTransform fwd, ImPlotTransform inv, void* data) {
@@ -2213,11 +2188,11 @@ void SetupAxisScale(ImAxis idx, ImPlotTransform fwd, ImPlotTransform inv, void* 
                         "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
     ImPlotAxis& axis = plot.Axes[idx];
-    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?"); 
+    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
     axis.Scale = IMPLOT_AUTO;
     axis.TransformForward = fwd;
     axis.TransformInverse = inv;
-    axis.TransformData = data; 
+    axis.TransformData = data;
 }
 
 void SetupAxisLimitsConstraints(ImAxis idx, double v_min, double v_max) {
@@ -2225,7 +2200,7 @@ void SetupAxisLimitsConstraints(ImAxis idx, double v_min, double v_max) {
                         "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
     ImPlotAxis& axis = plot.Axes[idx];
-    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?"); 
+    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
     axis.ConstraintRange.Min = v_min;
     axis.ConstraintRange.Max = v_max;
 }
@@ -2235,7 +2210,7 @@ void SetupAxisZoomConstraints(ImAxis idx, double z_min, double z_max) {
                         "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
     ImPlotPlot& plot = *GImPlot->CurrentPlot;
     ImPlotAxis& axis = plot.Axes[idx];
-    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?"); 
+    IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
     axis.ConstraintZoom.Min = z_min;
     axis.ConstraintZoom.Max = z_max;
 }
@@ -2452,7 +2427,7 @@ void SetupFinish() {
                 axis.FormatterData = axis.FormatSpec;
             else
                 axis.FormatterData = (void*)IMPLOT_LABEL_FORMAT;
-        }      
+        }
         if (axis.Locator == NULL) {
             axis.Locator = Locator_Default;
         }

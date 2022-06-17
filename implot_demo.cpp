@@ -448,6 +448,8 @@ void Demo_BarPlots() {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_BarGroups() {
     static ImS8  data[30] = {83, 67, 23, 89, 83, 78, 91, 82, 85, 90,  // midterm
                              80, 62, 56, 99, 55, 78, 88, 78, 90, 100, // final
@@ -486,6 +488,8 @@ void Demo_BarGroups() {
         ImPlot::EndPlot();
     }
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_BarStacks() {
 
@@ -729,7 +733,7 @@ void Demo_Histogram() {
         ImGui::SetNextItemWidth(200);
         ImGui::DragFloat2("##Range",&rmin,0.1f,-3,13);
         ImGui::SameLine();
-        ImGui::CheckboxFlags("Exclude Outliers", (unsigned int*)&hist_flags, ImPlotHistogramFlags_NoOutliers); 
+        ImGui::CheckboxFlags("Exclude Outliers", (unsigned int*)&hist_flags, ImPlotHistogramFlags_NoOutliers);
     }
     static NormalDistribution<10000> dist(mu, sigma);
     static double x[100];
@@ -771,7 +775,7 @@ void Demo_Histogram2D() {
     ImGui::SliderInt("Count",&count,100,100000);
     ImGui::SliderInt2("Bins",xybins,1,500);
     ImGui::SameLine();
-    ImGui::CheckboxFlags("Density", (unsigned int*)&hist_flags, ImPlotHistogramFlags_Density); 
+    ImGui::CheckboxFlags("Density", (unsigned int*)&hist_flags, ImPlotHistogramFlags_Density);
 
     static NormalDistribution<100000> dist1(1, 2);
     static NormalDistribution<100000> dist2(1, 1);
@@ -966,8 +970,8 @@ void Demo_NaNValues() {
 
     ImGui::Checkbox("Include NaN",&include_nan);
     ImGui::SameLine();
-    ImGui::CheckboxFlags("Skip NaN", (unsigned int*)&flags, ImPlotLineFlags_SkipNaN); 
-    
+    ImGui::CheckboxFlags("Skip NaN", (unsigned int*)&flags, ImPlotLineFlags_SkipNaN);
+
     if (ImPlot::BeginPlot("##NaNValues")) {
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Square);
         ImPlot::PlotLine("line", data1, data2, 5, flags);
@@ -978,7 +982,7 @@ void Demo_NaNValues() {
 
 //-----------------------------------------------------------------------------
 
-void Demo_LogAxes() {
+void Demo_LogScale() {
     static double xs[1001], ys1[1001], ys2[1001], ys3[1001];
     for (int i = 0; i < 1001; ++i) {
         xs[i]  = i*0.1f;
@@ -1001,11 +1005,11 @@ void Demo_LogAxes() {
 
 //-----------------------------------------------------------------------------
 
-void Demo_SymmetricLogAxes() {
+void Demo_SymmetricLogScale() {
     static double xs[1001], ys1[1001], ys2[1001];
     for (int i = 0; i < 1001; ++i) {
         xs[i]  = i*0.1f-50;
-        ys1[i] = sin(xs[i]); 
+        ys1[i] = sin(xs[i]);
         ys2[i] = i*0.002 - 1;
     }
     if (ImPlot::BeginPlot("SymLog Plot", ImVec2(-1,0))) {
@@ -1018,91 +1022,7 @@ void Demo_SymmetricLogAxes() {
 
 //-----------------------------------------------------------------------------
 
-template <typename T>
-int SortArrayCompare(const void* lhs, const void* rhs) {
-    const T* a = (const T*)lhs;
-    const T* b = (const T*)rhs;
-    if (*a == *b)
-        return 0;
-    else if (*a > * b)
-        return 1;
-    else
-        return -1;
-}
-
-template <typename T>
-void SortArray(T* data, int count) {
-    qsort(data, count, sizeof(T), SortArrayCompare<T>);
-}
-
-static inline double TransformForward_Sqrt(double v, void*) {
-    return sqrt(v);
-}
-
-static inline double TransformInverse_Sqrt(double v, void*) {
-    return v*v;
-}
-
-void Demo_AxisScales() {
-    static bool init = true;
-    static double xs[1000], ys[1000];
-    static int i0 = 0;
-    static int i1 = 999;
-    if (init) {
-        for (int i = 0; i < 1000; i++) {
-            xs[i] = i;
-            ys[i] = RandomGauss();
-        }
-        SortArray(ys,1000);
-        while (ys[i0++] < 0) { }
-        while (ys[i1--] > 1) { }
-        init = false;
-    }
-
-    if (ImPlot::BeginSubplots("##Scales",3,2,ImVec2(-1,600))) {
-        if (ImPlot::BeginPlot("Linear")) {
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
-            ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
-            ImPlot::EndPlot();
-        }
-        if (ImPlot::BeginPlot("Log")) {
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
-            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
-            ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
-            ImPlot::EndPlot();
-        }
-        if (ImPlot::BeginPlot("Logit")) {
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 0.999);
-            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Logit);
-            ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
-            ImPlot::EndPlot();
-        }
-        if (ImPlot::BeginPlot("Symlog")) {
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
-            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_SymLog);
-            ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
-            ImPlot::EndPlot();
-        }
-        if (ImPlot::BeginPlot("Sqrt")) {
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
-            ImPlot::SetupAxisScale(ImAxis_Y1, TransformForward_Sqrt, TransformInverse_Sqrt);
-            ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
-            ImPlot::EndPlot();
-        }
-        if (ImPlot::BeginPlot("Mercator")) {
-            ImPlot::SetupAxisLimits(ImAxis_Y1, 0.001, 1.0);
-            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_SymLog);
-            ImPlot::PlotLine("##data",xs,&ys[i0],i1-i0);
-            ImPlot::EndPlot();
-        }
-        ImPlot::EndSubplots();
-
-    }
-}
-
-//-----------------------------------------------------------------------------
-
-void Demo_TimeAxes() {
+void Demo_TimeScale() {
 
     static double t_min = 1609459200; // 01/01/2021 @ 12:00:00am (UTC)
     static double t_max = 1640995200; // 01/01/2022 @ 12:00:00am (UTC)
@@ -1148,6 +1068,33 @@ void Demo_TimeAxes() {
         ImPlot::EndPlot();
     }
 }
+
+//-----------------------------------------------------------------------------
+
+static inline double TransformForward_Sqrt(double v, void*) {
+    return sqrt(v);
+}
+
+static inline double TransformInverse_Sqrt(double v, void*) {
+    return v*v;
+}
+
+void Demo_CustomScale() {
+    static float v[100];
+    for (int i = 0; i < 100; ++i) {
+        v[i] = i*0.01f;
+    }
+    if (ImPlot::BeginPlot("Sqrt")) {
+        ImPlot::SetupAxis(ImAxis_X1, "Linear");
+        ImPlot::SetupAxis(ImAxis_Y1, "Sqrt");
+        ImPlot::SetupAxisScale(ImAxis_Y1, TransformForward_Sqrt, TransformInverse_Sqrt);
+        ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0, INFINITY);
+        ImPlot::PlotLine("##data",v,v,100);
+        ImPlot::EndPlot();
+    }
+}
+
+//-----------------------------------------------------------------------------
 
 void Demo_MultipleAxes() {
     static float xs[1001], xs2[1001], ys1[1001], ys2[1001], ys3[1001];
@@ -1205,6 +1152,8 @@ void Demo_MultipleAxes() {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_LinkedAxes() {
     static ImPlotRect lims(0,1,0,1);
     static bool linkx = true, linky = true;
@@ -1232,6 +1181,8 @@ void Demo_LinkedAxes() {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_AxisConstraints() {
     static float constraints[4] = {-10,10,1,20};
     static ImPlotAxisFlags flags;
@@ -1248,6 +1199,8 @@ void Demo_AxisConstraints() {
         ImPlot::EndPlot();
     }
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_EqualAxes() {
     ImGui::BulletText("Equal constraint applies to axis pairs (e.g ImAxis_X1/Y1, ImAxis_X2/Y2");
@@ -1267,6 +1220,8 @@ void Demo_EqualAxes() {
         ImPlot::EndPlot();
     }
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_AutoFittingData() {
     ImGui::BulletText("The Y-axis has been configured to auto-fit to only the data visible in X-axis range.");
@@ -1296,6 +1251,8 @@ void Demo_AutoFittingData() {
         ImPlot::EndPlot();
     };
 }
+
+//-----------------------------------------------------------------------------
 
 ImPlotPoint SinewaveGetter(int i, void* data) {
     float f = *(float*)data;
@@ -1329,6 +1286,8 @@ void Demo_SubplotsSizing() {
         ImPlot::EndSubplots();
     }
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_SubplotItemSharing() {
     static ImPlotSubplotFlags flags = ImPlotSubplotFlags_ShareItems;
@@ -1371,6 +1330,8 @@ void Demo_SubplotItemSharing() {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_SubplotAxisLinking() {
     static ImPlotSubplotFlags flags = ImPlotSubplotFlags_LinkRows | ImPlotSubplotFlags_LinkCols;
     ImGui::CheckboxFlags("ImPlotSubplotFlags_LinkRows", (unsigned int*)&flags, ImPlotSubplotFlags_LinkRows);
@@ -1393,6 +1354,7 @@ void Demo_SubplotAxisLinking() {
     }
 }
 
+//-----------------------------------------------------------------------------
 
 void Demo_LegendOptions() {
     static ImPlotLocation loc = ImPlotLocation_East;
@@ -1424,6 +1386,8 @@ void Demo_LegendOptions() {
         ImPlot::EndPlot();
     }
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_DragPoints() {
     ImGui::BulletText("Click and drag each point.");
@@ -1465,6 +1429,8 @@ void Demo_DragPoints() {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_DragLines() {
     ImGui::BulletText("Click and drag the horizontal and vertical lines.");
     static double x1 = 0.2;
@@ -1492,6 +1458,8 @@ void Demo_DragLines() {
         ImPlot::EndPlot();
     }
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_DragRects() {
 
@@ -1535,6 +1503,8 @@ void Demo_DragRects() {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 ImPlotPoint FindCentroid(const ImVector<ImPlotPoint>& data, ImPlotRect& bounds, int& cnt) {
     cnt = 0;
     ImPlotPoint avg;
@@ -1551,6 +1521,8 @@ ImPlotPoint FindCentroid(const ImVector<ImPlotPoint>& data, ImPlotRect& bounds, 
     }
     return avg;
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_Querying() {
     static ImVector<ImPlotPoint> data;
@@ -1607,6 +1579,8 @@ void Demo_Querying() {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_Annotations() {
     static bool clamp = false;
     ImGui::Checkbox("Clamp",&clamp);
@@ -1632,6 +1606,8 @@ void Demo_Annotations() {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_Tags() {
     static bool show = true;
     ImGui::Checkbox("Show Tags",&show);
@@ -1651,6 +1627,8 @@ void Demo_Tags() {
         ImPlot::EndPlot();
     }
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_DragAndDrop() {
     ImGui::BulletText("Drag/drop items from the left column.");
@@ -1823,6 +1801,8 @@ void Demo_DragAndDrop() {
     ImGui::EndChild();
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_Tables() {
 #ifdef IMGUI_HAS_TABLE
     static ImGuiTableFlags flags = ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
@@ -1862,6 +1842,8 @@ void Demo_Tables() {
 #endif
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_OffsetAndStride() {
     static const int k_circles    = 11;
     static const int k_points_per = 50;
@@ -1894,6 +1876,8 @@ void Demo_OffsetAndStride() {
     }
     // offset++; uncomment for animation!
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_CustomDataAndGetters() {
     ImGui::BulletText("You can plot custom structs using the stride feature.");
@@ -1929,6 +1913,8 @@ void Demo_CustomDataAndGetters() {
         ImPlot::EndPlot();
     }
 }
+
+//-----------------------------------------------------------------------------
 
 int MetricFormatter(double value, char* buff, int size, void* data) {
     const char* unit = (const char*)data;
@@ -1982,6 +1968,8 @@ void Demo_TickLabels()  {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_CustomStyles() {
     ImPlot::PushColormap(ImPlotColormap_Deep);
     // normally you wouldn't change the entire style each frame
@@ -2003,6 +1991,8 @@ void Demo_CustomStyles() {
     ImPlot::PopColormap();
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_CustomRendering() {
     if (ImPlot::BeginPlot("##CustomRend")) {
         ImVec2 cntr = ImPlot::PlotToPixels(ImPlotPoint(0.5f,  0.5f));
@@ -2015,6 +2005,8 @@ void Demo_CustomRendering() {
         ImPlot::EndPlot();
     }
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_LegendPopups() {
     ImGui::BulletText("You can implement legend context menus to inject per-item controls and widgets.");
@@ -2067,6 +2059,8 @@ void Demo_LegendPopups() {
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Demo_ColormapTools() {
     static int cmap = 0;
     if (ImPlot::ColormapButton("Colormap Button",ImVec2(0,0),cmap)) {
@@ -2075,6 +2069,8 @@ void Demo_ColormapTools() {
     ImPlot::ColormapIcon(cmap); ImGui::SameLine(); ImGui::Text("Colormap Icon");
     ImPlot::ColormapScale("Colormap Scale",0,1,ImVec2(0,0),cmap);
 }
+
+//-----------------------------------------------------------------------------
 
 void Demo_CustomPlottersAndTooltips()  {
     ImGui::BulletText("You can create custom plotters or extend ImPlot using implot_internal.h.");
@@ -2194,10 +2190,10 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Axes")) {
-            DemoHeader("Log Axes", Demo_LogAxes);
-            DemoHeader("Symmetric Log Axes", Demo_SymmetricLogAxes);
-            DemoHeader("Axis Scales", Demo_AxisScales);
-            DemoHeader("Time Axes", Demo_TimeAxes);
+            DemoHeader("Log Scale", Demo_LogScale);
+            DemoHeader("Symmetric Log Scale", Demo_SymmetricLogScale);
+            DemoHeader("Time Scale", Demo_TimeScale);
+            DemoHeader("Custom Scale", Demo_CustomScale);
             DemoHeader("Multiple Axes", Demo_MultipleAxes);
             DemoHeader("Tick Labels", Demo_TickLabels);
             DemoHeader("Linked Axes", Demo_LinkedAxes);

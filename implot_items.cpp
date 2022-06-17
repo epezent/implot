@@ -713,13 +713,13 @@ struct FitterBarH {
 };
 
 struct FitterRect {
-    FitterRect(const ImPlotPoint& pmin, const ImPlotPoint& pmax) : 
-        Pmin(pmin), 
-        Pmax(pmax) 
+    FitterRect(const ImPlotPoint& pmin, const ImPlotPoint& pmax) :
+        Pmin(pmin),
+        Pmax(pmax)
     { }
     FitterRect(const ImPlotRect& rect) :
         FitterRect(rect.Min(), rect.Max())
-    { } 
+    { }
     void Fit(ImPlotAxis& x_axis, ImPlotAxis& y_axis) const {
         x_axis.ExtendFitWith(y_axis, Pmin.x, Pmin.y);
         y_axis.ExtendFitWith(x_axis, Pmin.y, Pmin.x);
@@ -1867,7 +1867,7 @@ template <typename T>
 void PlotBarGroups(const char* const label_ids[], const T* values, int item_count, int group_count, double group_size, double shift, ImPlotBarGroupsFlags flags) {
     const bool horz = ImHasFlag(flags, ImPlotBarGroupsFlags_Horizontal);
     const bool stack = ImHasFlag(flags, ImPlotBarGroupsFlags_Stacked);
-    if (ImHasFlag(flags, ImPlotBarGroupsFlags_Stacked)) {
+    if (stack) {
         SetupLock();
         GImPlot->TempDouble1.resize(4*group_count);
         double* temp = GImPlot->TempDouble1.Data;
@@ -2202,7 +2202,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
     for (int i = 0; i < count; ++i) {
         double percent = normalize ? (double)values[i] / sum : (double)values[i];
         a1 = a0 + 2 * IM_PI * percent;
-        if (BeginItemEx(label_ids[i], FitterRect(Pmin,Pmax))) {  
+        if (BeginItemEx(label_ids[i], FitterRect(Pmin,Pmax))) {
             ImU32 col = GetCurrentItem()->Color;
             if (percent < 0.5) {
                 RenderPieSlice(draw_list, center, radius, a0, a1, col);
