@@ -2,8 +2,6 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 ## API
 
-- add shortcut/legacy overloads for BeginPlot
-
 ## Axes
 
 - add flag to remove weekends on Time axis
@@ -11,23 +9,18 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - make ImPlotFlags_Equal not a flag -> `SetupEqual(ImPlotAxis x, ImPlotAxis y)`
 - allow inverted arguments `SetAxes` to transpose data?
 - `SetupAxisColors()`
-- `SetupAxisConstraints()`
 - `SetupAxisHome()`
-- `SetupAxisScale()`
 
 ## Plot Items
 
-- add `ImPlotLineFlags`, `ImPlotBarsFlags`, etc. for each plot type
-- add `PlotBarGroups` wrapper that makes rendering groups of bars easier, with stacked bar support
 - add `PlotBubbles` (see MATLAB bubble chart)
 - add non-zero references for `PlotBars` etc.
 - add exploding to `PlotPieChart` (on hover-highlight?)
-- `PlotBars` restore outlines
+- fix appearance of `PlotBars` spacing
 
 ## Styling
 
 - support gradient and/or colormap sampled fills (e.g. ImPlotFillStyle_)
-- add hover/active color for plot axes
 - API for setting different fonts for plot elements
 
 ## Colormaps
@@ -51,6 +44,7 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - add box selection to axes
 - first frame render delay might fix "fit pop" effect
 - move some code to new `implot_tools.cpp`
+- ColormapSlider (see metrics)
 
 ## Optimizations
 
@@ -96,3 +90,10 @@ Ideally every `PlotX` function should use our faster rendering pipeline when it 
 - legend items can be hovered even if plot is not
 - fix frame delay on DragX tools
 - remove tag from drag line/point -> add `Tag` tool
+- add shortcut/legacy overloads for BeginPlot
+- `SetupAxisConstraints()`
+- `SetupAxisScale()`
+- add `ImPlotLineFlags`, `ImPlotBarsFlags`, etc. for each plot type
+- add `PlotBarGroups` wrapper that makes rendering groups of bars easier, with stacked bar support
+- `PlotBars` restore outlines
+- add hover/active color for plot axes
