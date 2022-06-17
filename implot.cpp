@@ -31,9 +31,15 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2022/04/XX (0.14) - PlotHistogram/PlotHistogram2D signatures changed; `cumulative`, `density`, and `outliers` options now specified via ImPlotHistogramFlags
+- 2022/06/17 (0.14) - **IMPORTANT** All PlotX functions now take an ImPlotX_Flags `flags` parameter. Where applicable, it is located before the existing `offset` and `stride` parameters.
+                      If you were providing offset and stride values, you will need to update your function call to include a `flags` value. If you fail to do this, you will likely see 
+                      unexpected results or crashes without a compiler warning since these three are all default args. We apologize for the inconvenience, but this was a necessary evil.
+                    - PlotHistogram/PlotHistogram2D signatures changed; `cumulative`, `density`, and `outliers` options now specified via ImPlotHistogramFlags
                     - PlotPieChart signature changed; `normalize` option now specified via ImPlotPieChartFlags
                     - arguments of ImPlotGetter have been reversed to be consistent with other API callbacks
+                    - SetupAxisScale + ImPlotScale have replaced ImPlotAxisFlags_LogScale and ImPlotAxisFlags_Time flags
+                    - ImPlotFormatters should now return an int indicating the size written
+                    - the signature of ImPlotGetter has been reversed so that void* user_data is the last argument and consistent with other callbacks
 - 2021/10/19 (0.13) - MAJOR API OVERHAUL! See #168 and #272
                     - TRIVIAL RENAME:
                       - ImPlotLimits                              -> ImPlotRect
