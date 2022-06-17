@@ -887,7 +887,7 @@ struct ImPlotLegend
         Flags        = PreviousFlags = ImPlotLegendFlags_None;
         CanGoInside  = true;
         Hovered      = Held = false;
-        Location     = ImPlotLocation_NorthWest;
+        Location     = PreviousLocation = ImPlotLocation_NorthWest;
     }
 
     void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
