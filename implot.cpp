@@ -1191,7 +1191,7 @@ void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, 
     // maximum allowable density of labels
     const float max_density = 0.5f;
     // book keeping
-    const char* last_major  = NULL;
+    int last_major_offset = -1;
     // formatter data
     Formatter_Time_Data ftd;
     ftd.UserFormatter = formatter;
@@ -1218,12 +1218,12 @@ void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, 
                 ftd.Time = t1; ftd.Spec = fmt0;
                 ticker.AddTick(t1.ToDouble(), true, 0, true, Formatter_Time, &ftd);
                 // major level 1 tick
-                ftd.Time = t1; ftd.Spec = last_major == NULL ? fmtf : fmt1;
+                ftd.Time = t1; ftd.Spec = last_major_offset < 0 == NULL ? fmtf : fmt1;
                 ImPlotTick& tick_maj = ticker.AddTick(t1.ToDouble(), true, 1, true, Formatter_Time, &ftd);
                 const char* this_major = ticker.GetText(tick_maj);
-                if (last_major && TimeLabelSame(last_major,this_major))
+                if (last_major_offset >= 0 && TimeLabelSame(ticker.TextBuffer.Buf.Data + last_major_offset, this_major))
                     tick_maj.ShowLabel = false;
-                last_major = this_major;
+                last_major_offset = tick_maj.TextOffset;
             }
             // add minor ticks up until next major
             if (minor_per_major > 1 && (t_min <= t2 && t1 <= t_max)) {
@@ -1233,10 +1233,10 @@ void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, 
                     if (t12 >= t_min && t12 <= t_max) {
                         ftd.Time = t12; ftd.Spec = fmt0;
                         ticker.AddTick(t12.ToDouble(), false, 0, px_to_t2 >= fmt0_width, Formatter_Time, &ftd);
-                        if (last_major == NULL && px_to_t2 >= fmt0_width && px_to_t2 >= (fmt1_width + fmtf_width) / 2) {
+                        if (last_major_offset < 0 && px_to_t2 >= fmt0_width && px_to_t2 >= (fmt1_width + fmtf_width) / 2) {
                             ftd.Time = t12; ftd.Spec = fmtf;
                             ImPlotTick& tick_maj = ticker.AddTick(t12.ToDouble(), true, 1, true, Formatter_Time, &ftd);
-                            last_major = ticker.GetText(tick_maj);
+                            last_major_offset = tick_maj.TextOffset;
                         }
                     }
                     t12 = AddTime(t12, unit0, step);
