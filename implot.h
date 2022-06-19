@@ -210,7 +210,7 @@ enum ImPlotDragToolFlags_ {
 // Flags for ANY PlotX function
 enum ImPlotItemFlags_ {
     ImPlotItemFlags_None     = 0,
-    ImPlotItemFlags_NoLegend = 1 << 0, // the item won't have a legend entry displayed (TODO)
+    ImPlotItemFlags_NoLegend = 1 << 0, // the item won't have a legend entry displayed
     ImPlotItemFlags_NoFit    = 1 << 1, // the item won't be considered for plot fits
 };
 
