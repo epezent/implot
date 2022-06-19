@@ -1757,7 +1757,7 @@ void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, I
 //-----------------------------------------------------------------------------
 
 template <typename Getter1, typename Getter2>
-void PlotBarsEx(const char* label_id, const Getter1& getter1, const Getter2 getter2, double width, ImPlotBarsFlags flags) {
+void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 getter2, double width, ImPlotBarsFlags flags) {
     if (BeginItemEx(label_id, FitterBarV<Getter1,Getter2>(getter1,getter2,width), flags, ImPlotCol_Fill)) {
         const ImPlotNextItemData& s = GetItemData();
         const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
@@ -1800,13 +1800,13 @@ template <typename T>
 void PlotBars(const char* label_id, const T* values, int count, double bar_size, double shift, ImPlotBarsFlags flags, int offset, int stride) {
     if (ImHasFlag(flags, ImPlotBarsFlags_Horizontal)) {
         GetterXY<IndexerIdx<T>,IndexerLin> getter1(IndexerIdx<T>(values,count,offset,stride),IndexerLin(1.0,shift),count);
-        GetterXY<IndexerConst,IndexerLin>    getter2(IndexerConst(0),IndexerLin(1.0,shift),count);
+        GetterXY<IndexerConst,IndexerLin>  getter2(IndexerConst(0),IndexerLin(1.0,shift),count);
         PlotBarsHEx(label_id, getter1, getter2, bar_size, flags);
     }
     else {
         GetterXY<IndexerLin,IndexerIdx<T>> getter1(IndexerLin(1.0,shift),IndexerIdx<T>(values,count,offset,stride),count);
-        GetterXY<IndexerLin,IndexerConst>    getter2(IndexerLin(1.0,shift),IndexerConst(0),count);
-        PlotBarsEx(label_id, getter1, getter2, bar_size, flags);
+        GetterXY<IndexerLin,IndexerConst>  getter2(IndexerLin(1.0,shift),IndexerConst(0),count);
+        PlotBarsVEx(label_id, getter1, getter2, bar_size, flags);
     }
 }
 
@@ -1830,8 +1830,8 @@ void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double 
     }
     else {
         GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-        GetterXY<IndexerIdx<T>,IndexerConst>    getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerConst(0),count);
-        PlotBarsEx(label_id, getter1, getter2, bar_size, flags);
+        GetterXY<IndexerIdx<T>,IndexerConst>  getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerConst(0),count);
+        PlotBarsVEx(label_id, getter1, getter2, bar_size, flags);
     }
 }
 
@@ -1855,7 +1855,7 @@ void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int c
     else {
         GetterFuncPtr getter1(getter_func, data, count);
         GetterOverrideY<GetterFuncPtr> getter2(getter1,0);
-        PlotBarsEx(label_id, getter1, getter2, bar_size, flags);
+        PlotBarsVEx(label_id, getter1, getter2, bar_size, flags);
     }
 }
 
@@ -1918,7 +1918,7 @@ void PlotBarGroups(const char* const label_ids[], const T* values, int item_coun
                 }
                 GetterXY<IndexerLin,IndexerIdx<double>> getter1(IndexerLin(1.0,shift),IndexerIdx<double>(curr_min,group_count),group_count);
                 GetterXY<IndexerLin,IndexerIdx<double>> getter2(IndexerLin(1.0,shift),IndexerIdx<double>(curr_max,group_count),group_count);
-                PlotBarsEx(label_ids[i],getter1,getter2,group_size,0);
+                PlotBarsVEx(label_ids[i],getter1,getter2,group_size,0);
             }
         }
     }
@@ -2489,7 +2489,7 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
         max_count *= scale;
     }
     if (ImHasFlag(flags, ImPlotHistogramFlags_Horizontal))
-        PlotBars(label_id, &bin_counts.Data[0], &bin_centers.Data[0], bins, bar_scale*width,ImPlotBarsFlags_Horizontal);
+        PlotBars(label_id, &bin_counts.Data[0], &bin_centers.Data[0], bins, bar_scale*width, ImPlotBarsFlags_Horizontal);
     else
         PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width);
     return max_count;

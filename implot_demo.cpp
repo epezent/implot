@@ -753,7 +753,8 @@ void Demo_Histogram() {
 
     if (ImPlot::BeginPlot("##Histograms")) {
         ImPlot::SetupAxes(NULL,NULL,ImPlotAxisFlags_AutoFit,ImPlotAxisFlags_AutoFit);
-        ImPlot::PlotHistogram("Empirical", dist.Data, 10000, bins, 0.9, range ? ImPlotRange(rmin,rmax) : ImPlotRange(), hist_flags);
+        ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL,0.5f);
+        ImPlot::PlotHistogram("Empirical", dist.Data, 10000, bins, 1.0, range ? ImPlotRange(rmin,rmax) : ImPlotRange(), hist_flags);
         if ((hist_flags & ImPlotHistogramFlags_Density) && !(hist_flags & ImPlotHistogramFlags_NoOutliers)) {
             if (hist_flags & ImPlotHistogramFlags_Horizontal)
                 ImPlot::PlotLine("Theoretical",y,x,100);
@@ -2112,20 +2113,14 @@ void DemoHeader(const char* label, void(*demo)()) {
 }
 
 void ShowDemoWindow(bool* p_open) {
-    static bool show_imgui_metrics       = false;
     static bool show_implot_metrics      = false;
-    static bool show_imgui_style_editor  = false;
     static bool show_implot_style_editor = false;
-    if (show_imgui_metrics) {
-        ImGui::ShowMetricsWindow(&show_imgui_metrics);
-    }
+    static bool show_imgui_metrics       = false;
+    static bool show_imgui_style_editor  = false;
+    static bool show_imgui_demo          = false;
+
     if (show_implot_metrics) {
         ImPlot::ShowMetricsWindow(&show_implot_metrics);
-    }
-    if (show_imgui_style_editor) {
-        ImGui::Begin("Style Editor (ImGui)", &show_imgui_style_editor);
-        ImGui::ShowStyleEditor();
-        ImGui::End();
     }
     if (show_implot_style_editor) {
         ImGui::SetNextWindowSize(ImVec2(415,762), ImGuiCond_Appearing);
@@ -2133,15 +2128,28 @@ void ShowDemoWindow(bool* p_open) {
         ImPlot::ShowStyleEditor();
         ImGui::End();
     }
+    if (show_imgui_style_editor) {
+        ImGui::Begin("Style Editor (ImGui)", &show_imgui_style_editor);
+        ImGui::ShowStyleEditor();
+        ImGui::End();
+    }
+    if (show_imgui_metrics) {
+        ImGui::ShowMetricsWindow(&show_imgui_metrics);
+    }
+    if (show_imgui_demo) {
+        ImGui::ShowDemoWindow(&show_imgui_demo);
+    }
     ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(600, 750), ImGuiCond_FirstUseEver);
     ImGui::Begin("ImPlot Demo", p_open, ImGuiWindowFlags_MenuBar);
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Tools")) {
-            ImGui::MenuItem("Metrics (ImGui)",       NULL, &show_imgui_metrics);
-            ImGui::MenuItem("Metrics (ImPlot)",      NULL, &show_implot_metrics);
-            ImGui::MenuItem("Style Editor (ImGui)",  NULL, &show_imgui_style_editor);
-            ImGui::MenuItem("Style Editor (ImPlot)", NULL, &show_implot_style_editor);
+            ImGui::MenuItem("Metrics",      NULL, &show_implot_metrics);
+            ImGui::MenuItem("Style Editor", NULL, &show_implot_style_editor);
+            ImGui::Separator();
+            ImGui::MenuItem("ImGui Metrics",       NULL, &show_imgui_metrics);
+            ImGui::MenuItem("ImGui Style Editor",  NULL, &show_imgui_style_editor);
+            ImGui::MenuItem("ImGui Demo",          NULL, &show_imgui_demo);
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
