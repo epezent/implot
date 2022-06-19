@@ -43,7 +43,7 @@ ImPlot is an immediate mode, GPU accelerated plotting library for [Dear ImGui](h
 - default styling based on current ImGui theme, or completely custom plot styles
 - customizable data getters and data striding (just like ImGui:PlotLine)
 - accepts data as float, double, and 8, 16, 32, and 64-bit signed/unsigned integral types
-- and more! (see Announcements [2020](https://github.com/epezent/implot/issues/48)/[2021](https://github.com/epezent/implot/issues/168))
+- and more! (see Announcements [2022](https://github.com/epezent/implot/discussions/370)/[2021](https://github.com/epezent/implot/issues/168)/[2020](https://github.com/epezent/implot/issues/48))
 
 ## Usage
 
