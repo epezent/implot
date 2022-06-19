@@ -232,10 +232,10 @@ enum ImPlotScatterFlags_ {
 // Flags for PlotStairs
 enum ImPlotStairsFlags_ {
     ImPlotStairsFlags_None     = 0,      // default
-    ImPlotStairsFlags_PreStep  = 1 << 10 // The y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
+    ImPlotStairsFlags_PreStep  = 1 << 10 // the y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
 };
 
-// Flags for PlotShaded
+// Flags for PlotShaded (placeholder)
 enum ImPlotShadedFlags_ {
     ImPlotShadedFlags_None  = 0 // default
 };

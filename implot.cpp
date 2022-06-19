@@ -34,8 +34,12 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 - 2022/06/17 (0.14) - **IMPORTANT** All PlotX functions now take an ImPlotX_Flags `flags` parameter. Where applicable, it is located before the existing `offset` and `stride` parameters.
                       If you were providing offset and stride values, you will need to update your function call to include a `flags` value. If you fail to do this, you will likely see 
                       unexpected results or crashes without a compiler warning since these three are all default args. We apologize for the inconvenience, but this was a necessary evil.
+                    - PlotBarsH has been removed; use PlotBars + ImPlotBarsFlags_Horizontal instead
+                    - PlotErrorBarsH has been removed; use PlotErrorBars + ImPlotErrorBarsFlags_Horizontal
                     - PlotHistogram/PlotHistogram2D signatures changed; `cumulative`, `density`, and `outliers` options now specified via ImPlotHistogramFlags
                     - PlotPieChart signature changed; `normalize` option now specified via ImPlotPieChartFlags
+                    - PlotText signature changes; `vertical` option now specified via `ImPlotTextFlags_Vertical`
+                    - `PlotVLines` and `PlotHLines` replaced with `PlotInfLines` (+ ImPlotInfLinesFlags_Horizontal )
                     - arguments of ImPlotGetter have been reversed to be consistent with other API callbacks
                     - SetupAxisScale + ImPlotScale have replaced ImPlotAxisFlags_LogScale and ImPlotAxisFlags_Time flags
                     - ImPlotFormatters should now return an int indicating the size written
