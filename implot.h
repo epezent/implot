@@ -76,40 +76,40 @@
 struct ImPlotContext;             // ImPlot context (opaque struct, see implot_internal.h)
 
 // Enums/Flags
-typedef int ImAxis;               // -> enum ImAxis_
-typedef int ImPlotFlags;          // -> enum ImPlotFlags_
-typedef int ImPlotAxisFlags;      // -> enum ImPlotAxisFlags_
-typedef int ImPlotSubplotFlags;   // -> enum ImPlotSubplotFlags_
-typedef int ImPlotLegendFlags;    // -> enum ImPlotLegendFlags_
-typedef int ImPlotMouseTextFlags; // -> enum ImPlotMouseTextFlags_
-typedef int ImPlotDragToolFlags;  // -> ImPlotDragToolFlags_
+typedef int ImAxis;                   // -> enum ImAxis_
+typedef int ImPlotFlags;              // -> enum ImPlotFlags_
+typedef int ImPlotAxisFlags;          // -> enum ImPlotAxisFlags_
+typedef int ImPlotSubplotFlags;       // -> enum ImPlotSubplotFlags_
+typedef int ImPlotLegendFlags;        // -> enum ImPlotLegendFlags_
+typedef int ImPlotMouseTextFlags;     // -> enum ImPlotMouseTextFlags_
+typedef int ImPlotDragToolFlags;      // -> ImPlotDragToolFlags_
+typedef int ImPlotColormapScaleFlags; // -> ImPlotColormapScaleFlags_
+typedef int ImPlotItemFlags;          // -> ImPlotItemFlags_
+typedef int ImPlotLineFlags;          // -> ImPlotLineFlags_
+typedef int ImPlotScatterFlags;       // -> ImPlotScatterFlags
+typedef int ImPlotStairsFlags;        // -> ImPlotStairsFlags_
+typedef int ImPlotShadedFlags;        // -> ImPlotShadedFlags_
+typedef int ImPlotBarsFlags;          // -> ImPlotBarsFlags_
+typedef int ImPlotBarGroupsFlags;     // -> ImPlotBarGroupsFlags_
+typedef int ImPlotErrorBarsFlags;     // -> ImPlotErrorBarsFlags_
+typedef int ImPlotStemsFlags;         // -> ImPlotStemsFlags_
+typedef int ImPlotInfLinesFlags;      // -> ImPlotInfLinesFlags_
+typedef int ImPlotPieChartFlags;      // -> ImPlotPieChartFlags_
+typedef int ImPlotHeatmapFlags;       // -> ImPlotHeatmapFlags_
+typedef int ImPlotHistogramFlags;     // -> ImPlotHistogramFlags_
+typedef int ImPlotDigitalFlags;       // -> ImPlotDigitalFlags_
+typedef int ImPlotImageFlags;         // -> ImPlotImageFlags_
+typedef int ImPlotTextFlags;          // -> ImPlotTextFlags_
+typedef int ImPlotDummyFlags;         // -> ImPlotDummyFlags_
 
-typedef int ImPlotItemFlags;      // -> ImPlotItemFlags_
-typedef int ImPlotLineFlags;      // -> ImPlotLineFlags_
-typedef int ImPlotScatterFlags;   // -> ImPlotScatterFlags
-typedef int ImPlotStairsFlags;    // -> ImPlotStairsFlags_
-typedef int ImPlotShadedFlags;    // -> ImPlotShadedFlags_
-typedef int ImPlotBarsFlags;      // -> ImPlotBarsFlags_
-typedef int ImPlotBarGroupsFlags; // -> ImPlotBarGroupsFlags_
-typedef int ImPlotErrorBarsFlags; // -> ImPlotErrorBarsFlags_
-typedef int ImPlotStemsFlags;     // -> ImPlotStemsFlags_
-typedef int ImPlotInfLinesFlags;  // -> ImPlotInfLinesFlags_
-typedef int ImPlotPieChartFlags;  // -> ImPlotPieChartFlags_
-typedef int ImPlotHeatmapFlags;   // -> ImPlotHeatmapFlags_
-typedef int ImPlotHistogramFlags; // -> ImPlotHistogramFlags_
-typedef int ImPlotDigitalFlags;   // -> ImPlotDigitalFlags_
-typedef int ImPlotImageFlags;     // -> ImPlotImageFlags_
-typedef int ImPlotTextFlags;      // -> ImPlotTextFlags_
-typedef int ImPlotDummyFlags;     // -> ImPlotDummyFlags_
-
-typedef int ImPlotCond;           // -> enum ImPlotCond_
-typedef int ImPlotCol;            // -> enum ImPlotCol_
-typedef int ImPlotStyleVar;       // -> enum ImPlotStyleVar_
-typedef int ImPlotScale;          // -> enum ImPlotScale_
-typedef int ImPlotMarker;         // -> enum ImPlotMarker_
-typedef int ImPlotColormap;       // -> enum ImPlotColormap_
-typedef int ImPlotLocation;       // -> enum ImPlotLocation_
-typedef int ImPlotBin;            // -> enum ImPlotBin_
+typedef int ImPlotCond;               // -> enum ImPlotCond_
+typedef int ImPlotCol;                // -> enum ImPlotCol_
+typedef int ImPlotStyleVar;           // -> enum ImPlotStyleVar_
+typedef int ImPlotScale;              // -> enum ImPlotScale_
+typedef int ImPlotMarker;             // -> enum ImPlotMarker_
+typedef int ImPlotColormap;           // -> enum ImPlotColormap_
+typedef int ImPlotLocation;           // -> enum ImPlotLocation_
+typedef int ImPlotBin;                // -> enum ImPlotBin_
 
 // Axis indices. The values assigned may change; NEVER hardcode these.
 enum ImAxis_ {
@@ -205,6 +205,14 @@ enum ImPlotDragToolFlags_ {
     ImPlotDragToolFlags_NoFit     = 1 << 1, // the drag tool won't be considered for plot fits
     ImPlotDragToolFlags_NoInputs  = 1 << 2, // lock the tool from user inputs
     ImPlotDragToolFlags_Delayed   = 1 << 3, // tool rendering will be delayed one frame; useful when applying position-constraints
+};
+
+// Flags for ColormapScale
+enum ImPlotColormapScaleFlags_ {
+    ImPlotColormapScaleFlags_None     = 0,      // default
+    ImPlotColormapScaleFlags_NoLabel  = 1 << 0, // the colormap axis label will not be displayed
+    ImPlotColormapScaleFlags_Opposite = 1 << 1, // render the colormap label and tick labels on the opposite side
+    ImPlotColormapScaleFlags_Invert   = 1 << 2, // invert the colormap axis scale
 };
 
 // Flags for ANY PlotX function
@@ -1157,7 +1165,7 @@ IMPLOT_API ImVec4 GetColormapColor(int idx, ImPlotColormap cmap = IMPLOT_AUTO);
 IMPLOT_API ImVec4 SampleColormap(float t, ImPlotColormap cmap = IMPLOT_AUTO);
 
 // Shows a vertical color scale with linear spaced ticks using the specified color map. Use double hashes to hide label (e.g. "##NoLabel").
-IMPLOT_API void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0), ImPlotColormap cmap = IMPLOT_AUTO, const char* format = "%g");
+IMPLOT_API void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0), const char* format = "%g", ImPlotColormapScaleFlags flags = 0, ImPlotColormap cmap = IMPLOT_AUTO);
 // Shows a horizontal slider with a colormap gradient background. Optionally returns the color sampled at t in [0 1].
 IMPLOT_API bool ColormapSlider(const char* label, float* t, ImVec4* out = NULL, const char* format = "", ImPlotColormap cmap = IMPLOT_AUTO);
 // Shows a button with a colormap gradient brackground.

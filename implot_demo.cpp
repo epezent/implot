@@ -2062,16 +2062,24 @@ void Demo_LegendPopups() {
 
 void Demo_ColormapWidgets() {
     static int cmap = ImPlotColormap_Viridis;
+
     if (ImPlot::ColormapButton("Button",ImVec2(0,0),cmap)) {
         cmap = (cmap + 1) % ImPlot::GetColormapCount();
     }
+
     static float t = 0.5f;
     static ImVec4 col;
     ImGui::ColorButton("##Display",col,ImGuiColorEditFlags_NoInputs);
     ImGui::SameLine();
     ImPlot::ColormapSlider("Slider", &t, &col, "%.3f", cmap);
+
     ImPlot::ColormapIcon(cmap); ImGui::SameLine(); ImGui::Text("Icon");
-    ImPlot::ColormapScale("Scale",0,1,ImVec2(0,0),cmap);
+
+    static ImPlotColormapScaleFlags flags = 0;
+    ImPlot::ColormapScale("Scale",0,100,ImVec2(0,0),"%g dB",flags,cmap);
+    CHECKBOX_FLAG(flags, ImPlotColormapScaleFlags_NoLabel);
+    CHECKBOX_FLAG(flags, ImPlotColormapScaleFlags_Opposite);
+    CHECKBOX_FLAG(flags, ImPlotColormapScaleFlags_Invert);
 }
 
 //-----------------------------------------------------------------------------

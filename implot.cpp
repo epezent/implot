@@ -31,8 +31,9 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2022/06/19 (0.14) - The signature of ColormapScale has changed to accommodate a new ImPlotColormapScaleFlags parameter
 - 2022/06/17 (0.14) - **IMPORTANT** All PlotX functions now take an ImPlotX_Flags `flags` parameter. Where applicable, it is located before the existing `offset` and `stride` parameters.
-                      If you were providing offset and stride values, you will need to update your function call to include a `flags` value. If you fail to do this, you will likely see 
+                      If you were providing offset and stride values, you will need to update your function call to include a `flags` value. If you fail to do this, you will likely see
                       unexpected results or crashes without a compiler warning since these three are all default args. We apologize for the inconvenience, but this was a necessary evil.
                     - PlotBarsH has been removed; use PlotBars + ImPlotBarsFlags_Horizontal instead
                     - PlotErrorBarsH has been removed; use PlotErrorBars + ImPlotErrorBarsFlags_Horizontal
@@ -4451,7 +4452,7 @@ void RenderColorBar(const ImU32* colors, int size, ImDrawList& DrawList, const I
     }
 }
 
-void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size, ImPlotColormap cmap, const char* fmt) {
+void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size, const char* format, ImPlotColormapScaleFlags flags, ImPlotColormap cmap) {
     ImGuiContext &G      = *GImGui;
     ImGuiWindow * Window = G.CurrentWindow;
     if (Window->SkipItems)
@@ -4459,7 +4460,9 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
 
     const ImGuiID ID = Window->GetID(label);
     ImVec2 label_size(0,0);
-    label_size = ImGui::CalcTextSize(label,NULL,true);
+    if (!ImHasFlag(flags, ImPlotColormapScaleFlags_NoLabel)) {
+        label_size = ImGui::CalcTextSize(label,NULL,true);
+    }
 
     ImPlotContext& gp = *GImPlot;
     cmap = cmap == IMPLOT_AUTO ? gp.Style.Colormap : cmap;
@@ -4471,16 +4474,16 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
 
     ImPlotRange range(scale_min,scale_max);
     gp.CTicker.Reset();
-    Locator_Default(gp.CTicker, range, frame_size.y, true, Formatter_Default, (void*)fmt);
+    Locator_Default(gp.CTicker, range, frame_size.y, true, Formatter_Default, (void*)format);
 
+    const bool rend_label = label_size.x > 0;
     const float txt_off   = gp.Style.LabelPadding.x;
-    const float pad_right = txt_off + gp.CTicker.MaxSize.x + (label_size.x > 0 ? txt_off + label_size.y : 0);
+    const float pad       = txt_off + gp.CTicker.MaxSize.x + (rend_label ? txt_off + label_size.y : 0);
     float bar_w           = 20;
-
     if (frame_size.x == 0)
-        frame_size.x = bar_w + pad_right + 2 * gp.Style.PlotPadding.x;
+        frame_size.x = bar_w + pad + 2 * gp.Style.PlotPadding.x;
     else {
-        bar_w = frame_size.x - (pad_right + 2 * gp.Style.PlotPadding.x);
+        bar_w = frame_size.x - (pad + 2 * gp.Style.PlotPadding.x);
         if (bar_w < gp.Style.MajorTickLen.y)
             bar_w = gp.Style.MajorTickLen.y;
     }
@@ -4492,24 +4495,44 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
         return;
 
     ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, G.Style.FrameRounding);
-    ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding, bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x, frame_size.y - gp.Style.PlotPadding.y));
+
+    const bool opposite = ImHasFlag(flags, ImPlotColormapScaleFlags_Opposite);
+    float bb_grad_shift = opposite ? pad : 0;
+    ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding + ImVec2(bb_grad_shift, 0),
+                   bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x + bb_grad_shift,
+                                         frame_size.y - gp.Style.PlotPadding.y));
 
     ImGui::PushClipRect(bb_frame.Min, bb_frame.Max, true);
-    RenderColorBar(gp.ColormapData.GetKeys(cmap), gp.ColormapData.GetKeyCount(cmap), DrawList, bb_grad, true, true, !gp.ColormapData.IsQual(cmap));
-    const ImU32 col_tick = GetStyleColorU32(ImPlotCol_AxisText);
     const ImU32 col_text = ImGui::GetColorU32(ImGuiCol_Text);
+
+    const bool invert = ImHasFlag(flags, ImPlotColormapScaleFlags_Invert);
+    const float y_min = invert ? bb_grad.Max.y : bb_grad.Min.y;
+    const float y_max = invert ? bb_grad.Min.y : bb_grad.Max.y;
+
+    RenderColorBar(gp.ColormapData.GetKeys(cmap), gp.ColormapData.GetKeyCount(cmap), DrawList, bb_grad, true, !invert, !gp.ColormapData.IsQual(cmap));
     for (int i = 0; i < gp.CTicker.TickCount(); ++i) {
-        const float ypos = ImRemap((float)gp.CTicker.Ticks[i].PlotPos, (float)range.Max, (float)range.Min, bb_grad.Min.y, bb_grad.Max.y);
+        const double y_pos_plt = gp.CTicker.Ticks[i].PlotPos;
+        const float y_pos = ImRemap((float)y_pos_plt, (float)range.Max, (float)range.Min, y_min, y_max);
         const float tick_width = gp.CTicker.Ticks[i].Major ? gp.Style.MajorTickLen.y : gp.Style.MinorTickLen.y;
         const float tick_thick = gp.CTicker.Ticks[i].Major ? gp.Style.MajorTickSize.y : gp.Style.MinorTickSize.y;
-        if (ypos < bb_grad.Max.y - 2 && ypos > bb_grad.Min.y + 2)
-            DrawList.AddLine(ImVec2(bb_grad.Max.x-1, ypos), ImVec2(bb_grad.Max.x - tick_width, ypos), col_tick, tick_thick);
-        DrawList.AddText(ImVec2(bb_grad.Max.x-1, ypos) + ImVec2(txt_off, -gp.CTicker.Ticks[i].LabelSize.y * 0.5f), col_text, gp.CTicker.GetText(i));
+        const float tick_t     = (float)((y_pos_plt - scale_min) / (scale_max - scale_min));
+        const ImU32 tick_col = CalcTextColor(GImPlot->ColormapData.LerpTable(cmap,tick_t));
+        if (y_pos < bb_grad.Max.y - 2 && y_pos > bb_grad.Min.y + 2) {
+            DrawList.AddLine(opposite ? ImVec2(bb_grad.Min.x+1, y_pos) : ImVec2(bb_grad.Max.x-1, y_pos),
+                             opposite ? ImVec2(bb_grad.Min.x + tick_width, y_pos) : ImVec2(bb_grad.Max.x - tick_width, y_pos),
+                             tick_col,
+                             tick_thick);
+        }
+        const float txt_x = opposite ? bb_grad.Min.x - txt_off - gp.CTicker.Ticks[i].LabelSize.x : bb_grad.Max.x + txt_off;
+        const float txt_y = y_pos - gp.CTicker.Ticks[i].LabelSize.y * 0.5f;
+        DrawList.AddText(ImVec2(txt_x, txt_y), col_text, gp.CTicker.GetText(i));
     }
-    if (label_size.x > 0) {
-        ImVec2 label_pos(bb_grad.Max.x - 1 + 2*txt_off + gp.CTicker.MaxSize.x, bb_grad.GetCenter().y + label_size.x*0.5f );
+
+    if (rend_label) {
+        const float pos_x = opposite ? bb_frame.Min.x + gp.Style.PlotPadding.x : bb_grad.Max.x + 2 * txt_off + gp.CTicker.MaxSize.x;
+        const float pos_y = bb_grad.GetCenter().y + label_size.x * 0.5f;
         const char* label_end = ImGui::FindRenderedTextEnd(label);
-        AddTextVertical(&DrawList,label_pos,col_text,label,label_end);
+        AddTextVertical(&DrawList,ImVec2(pos_x,pos_y),col_text,label,label_end);
     }
     DrawList.AddRect(bb_grad.Min, bb_grad.Max, GetStyleColorU32(ImPlotCol_PlotBorder));
     ImGui::PopClipRect();
