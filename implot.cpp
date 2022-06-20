@@ -4472,7 +4472,7 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
     if (frame_size.y < gp.Style.PlotMinSize.y && size.y < 0.0f)
         frame_size.y = gp.Style.PlotMinSize.y;
 
-    ImPlotRange range(scale_min,scale_max);
+    ImPlotRange range(ImMin(scale_min,scale_max), ImMax(scale_min,scale_max));
     gp.CTicker.Reset();
     Locator_Default(gp.CTicker, range, frame_size.y, true, Formatter_Default, (void*)format);
 
@@ -4497,6 +4497,9 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
     ImGui::RenderFrame(bb_frame.Min, bb_frame.Max, GetStyleColorU32(ImPlotCol_FrameBg), true, G.Style.FrameRounding);
 
     const bool opposite = ImHasFlag(flags, ImPlotColormapScaleFlags_Opposite);
+    const bool inverted = ImHasFlag(flags, ImPlotColormapScaleFlags_Invert);
+    const bool reversed = scale_min > scale_max;
+
     float bb_grad_shift = opposite ? pad : 0;
     ImRect bb_grad(bb_frame.Min + gp.Style.PlotPadding + ImVec2(bb_grad_shift, 0),
                    bb_frame.Min + ImVec2(bar_w + gp.Style.PlotPadding.x + bb_grad_shift,
@@ -4505,11 +4508,11 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
     ImGui::PushClipRect(bb_frame.Min, bb_frame.Max, true);
     const ImU32 col_text = ImGui::GetColorU32(ImGuiCol_Text);
 
-    const bool invert = ImHasFlag(flags, ImPlotColormapScaleFlags_Invert);
-    const float y_min = invert ? bb_grad.Max.y : bb_grad.Min.y;
-    const float y_max = invert ? bb_grad.Min.y : bb_grad.Max.y;
+    const bool invert_scale = inverted ? (reversed ? false : true) : (reversed ? true : false);
+    const float y_min = invert_scale ? bb_grad.Max.y : bb_grad.Min.y;
+    const float y_max = invert_scale ? bb_grad.Min.y : bb_grad.Max.y;
 
-    RenderColorBar(gp.ColormapData.GetKeys(cmap), gp.ColormapData.GetKeyCount(cmap), DrawList, bb_grad, true, !invert, !gp.ColormapData.IsQual(cmap));
+    RenderColorBar(gp.ColormapData.GetKeys(cmap), gp.ColormapData.GetKeyCount(cmap), DrawList, bb_grad, true, !inverted, !gp.ColormapData.IsQual(cmap));
     for (int i = 0; i < gp.CTicker.TickCount(); ++i) {
         const double y_pos_plt = gp.CTicker.Ticks[i].PlotPos;
         const float y_pos = ImRemap((float)y_pos_plt, (float)range.Max, (float)range.Min, y_min, y_max);

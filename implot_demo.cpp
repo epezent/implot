@@ -2076,7 +2076,9 @@ void Demo_ColormapWidgets() {
     ImPlot::ColormapIcon(cmap); ImGui::SameLine(); ImGui::Text("Icon");
 
     static ImPlotColormapScaleFlags flags = 0;
-    ImPlot::ColormapScale("Scale",0,100,ImVec2(0,0),"%g dB",flags,cmap);
+    static float scale[2] = {0, 100};
+    ImPlot::ColormapScale("Scale",scale[0],scale[1],ImVec2(0,0),"%g dB",flags,cmap);
+    ImGui::InputFloat2("Scale",scale);
     CHECKBOX_FLAG(flags, ImPlotColormapScaleFlags_NoLabel);
     CHECKBOX_FLAG(flags, ImPlotColormapScaleFlags_Opposite);
     CHECKBOX_FLAG(flags, ImPlotColormapScaleFlags_Invert);
