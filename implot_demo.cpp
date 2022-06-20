@@ -991,8 +991,6 @@ void Demo_LogScale() {
         ys2[i] = log(xs[i]);
         ys3[i] = pow(10.0, xs[i]);
     }
-    ImGui::BulletText("Open the plot context menu (right click) to change scales.");
-
     if (ImPlot::BeginPlot("Log Plot", ImVec2(-1,0))) {
         ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
         ImPlot::SetupAxesLimits(0.1, 100, 0, 10);
@@ -2062,13 +2060,18 @@ void Demo_LegendPopups() {
 
 //-----------------------------------------------------------------------------
 
-void Demo_ColormapTools() {
-    static int cmap = 0;
-    if (ImPlot::ColormapButton("Colormap Button",ImVec2(0,0),cmap)) {
+void Demo_ColormapWidgets() {
+    static int cmap = ImPlotColormap_Viridis;
+    if (ImPlot::ColormapButton("Button",ImVec2(0,0),cmap)) {
         cmap = (cmap + 1) % ImPlot::GetColormapCount();
     }
-    ImPlot::ColormapIcon(cmap); ImGui::SameLine(); ImGui::Text("Colormap Icon");
-    ImPlot::ColormapScale("Colormap Scale",0,1,ImVec2(0,0),cmap);
+    static float t = 0.5f;
+    static ImVec4 col;
+    ImGui::ColorButton("##Display",col,ImGuiColorEditFlags_NoInputs);
+    ImGui::SameLine();
+    ImPlot::ColormapSlider("Slider", &t, &col, "%.3f", cmap);
+    ImPlot::ColormapIcon(cmap); ImGui::SameLine(); ImGui::Text("Icon");
+    ImPlot::ColormapScale("Scale",0,1,ImVec2(0,0),cmap);
 }
 
 //-----------------------------------------------------------------------------
@@ -2221,7 +2224,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Drag and Drop", Demo_DragAndDrop);
             DemoHeader("Legend Options", Demo_LegendOptions);
             DemoHeader("Legend Popups", Demo_LegendPopups);
-            DemoHeader("Colormap Tools", Demo_ColormapTools);
+            DemoHeader("Colormap Widgets", Demo_ColormapWidgets);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Custom")) {
