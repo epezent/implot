@@ -1159,6 +1159,72 @@ struct RendererStairsPost : RendererBase {
     mutable ImVec2 UV;
 };
 
+template <class _Getter>
+struct RendererStairsPreShaded : RendererBase {
+    RendererStairsPreShaded(const _Getter& getter, ImU32 col) :
+        RendererBase(getter.Count - 1, 6, 4),
+        Getter(getter),
+        Col(col)
+    {
+        P1 = this->Transformer(Getter(0));
+        Y0 = this->Transformer(ImPlotPoint(0,0)).y;
+    }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImVec2 P2 = this->Transformer(Getter(prim + 1));
+        ImVec2 PMin(ImMin(P1.x, P2.x), ImMin(Y0, P2.y));
+        ImVec2 PMax(ImMax(P1.x, P2.x), ImMax(Y0, P2.y));
+        if (!cull_rect.Overlaps(ImRect(PMin, PMax))) {
+            P1 = P2;
+            return false;
+        }
+        PrimRectFill(draw_list, PMin, PMax, Col, UV);
+        P1 = P2;
+        return true;
+    }
+    const _Getter& Getter;
+    const ImU32 Col;
+    float Y0;
+    mutable ImVec2 P1;
+    mutable ImVec2 UV;
+};
+
+template <class _Getter>
+struct RendererStairsPostShaded : RendererBase {
+    RendererStairsPostShaded(const _Getter& getter, ImU32 col) :
+        RendererBase(getter.Count - 1, 6, 4),
+        Getter(getter),
+        Col(col)
+    {
+        P1 = this->Transformer(Getter(0));
+        Y0 = this->Transformer(ImPlotPoint(0,0)).y;
+    }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImVec2 P2 = this->Transformer(Getter(prim + 1));
+        ImVec2 PMin(ImMin(P1.x, P2.x), ImMin(P1.y, Y0));
+        ImVec2 PMax(ImMax(P1.x, P2.x), ImMax(P1.y, Y0));
+        if (!cull_rect.Overlaps(ImRect(PMin, PMax))) {
+            P1 = P2;
+            return false;
+        }
+        PrimRectFill(draw_list, PMin, PMax, Col, UV);
+        P1 = P2;
+        return true;
+    }
+    const _Getter& Getter;
+    const ImU32 Col;
+    float Y0;
+    mutable ImVec2 P1;
+    mutable ImVec2 UV;
+};
+
+
+
 template <class _Getter1, class _Getter2>
 struct RendererShaded : RendererBase {
     RendererShaded(const _Getter1& getter1, const _Getter2& getter2, ImU32 col) :
@@ -1462,26 +1528,33 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool 
 // [SECTION] PlotLine
 //-----------------------------------------------------------------------------
 
-template <typename Getter>
-void PlotLineEx(const char* label_id, const Getter& getter, ImPlotLineFlags flags) {
-    if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_Line)) {
+template <typename _Getter>
+void PlotLineEx(const char* label_id, const _Getter& getter, ImPlotLineFlags flags) {
+    if (BeginItemEx(label_id, Fitter1<_Getter>(getter), flags, ImPlotCol_Line)) {
         const ImPlotNextItemData& s = GetItemData();
-        if (getter.Count > 1 && s.RenderLine) {
-            const ImU32 col_line    = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-            if (ImHasFlag(flags,ImPlotLineFlags_Segments)) {
-                RenderPrimitives1<RendererLineSegments1>(getter,col_line,s.LineWeight);
+        if (getter.Count > 1) {
+            if (ImHasFlag(flags, ImPlotLineFlags_Shaded) && s.RenderFill) {
+                const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+                GetterOverrideY<_Getter> getter2(getter, 0);
+                RenderPrimitives2<RendererShaded>(getter,getter2,col_fill);
             }
-            else if (ImHasFlag(flags, ImPlotLineFlags_Loop)) {
-                if (ImHasFlag(flags, ImPlotLineFlags_SkipNaN))
-                    RenderPrimitives1<RendererLineStripSkip>(GetterLoop<Getter>(getter),col_line,s.LineWeight);
-                else
-                    RenderPrimitives1<RendererLineStrip>(GetterLoop<Getter>(getter),col_line,s.LineWeight);
-            }
-            else {
-                if (ImHasFlag(flags, ImPlotLineFlags_SkipNaN))
-                    RenderPrimitives1<RendererLineStripSkip>(getter,col_line,s.LineWeight);
-                else
-                    RenderPrimitives1<RendererLineStrip>(getter,col_line,s.LineWeight);
+            if (s.RenderLine) {
+                const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+                if (ImHasFlag(flags,ImPlotLineFlags_Segments)) {
+                    RenderPrimitives1<RendererLineSegments1>(getter,col_line,s.LineWeight);
+                }
+                else if (ImHasFlag(flags, ImPlotLineFlags_Loop)) {
+                    if (ImHasFlag(flags, ImPlotLineFlags_SkipNaN))
+                        RenderPrimitives1<RendererLineStripSkip>(GetterLoop<_Getter>(getter),col_line,s.LineWeight);
+                    else
+                        RenderPrimitives1<RendererLineStrip>(GetterLoop<_Getter>(getter),col_line,s.LineWeight);
+                }
+                else {
+                    if (ImHasFlag(flags, ImPlotLineFlags_SkipNaN))
+                        RenderPrimitives1<RendererLineStripSkip>(getter,col_line,s.LineWeight);
+                    else
+                        RenderPrimitives1<RendererLineStrip>(getter,col_line,s.LineWeight);
+                }
             }
         }
         // render markers
@@ -1492,7 +1565,7 @@ void PlotLineEx(const char* label_id, const Getter& getter, ImPlotLineFlags flag
             }
             const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
             const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            RenderMarkers<Getter>(getter, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+            RenderMarkers<_Getter>(getter, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
         }
         EndItem();
     }
@@ -1518,7 +1591,7 @@ template IMPLOT_API void PlotLine<double>(const char* label_id, const double* va
 template <typename T>
 void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags, int offset, int stride) {
     GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-    return PlotLineEx(label_id, getter, flags);
+    PlotLineEx(label_id, getter, flags);
 }
 
 template IMPLOT_API void PlotLine<ImS8>(const char* label_id, const ImS8* xs, const ImS8* ys, int count, ImPlotLineFlags flags, int offset, int stride);
@@ -1535,7 +1608,7 @@ template IMPLOT_API void PlotLine<double>(const char* label_id, const double* xs
 // custom
 void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotLineFlags flags) {
     GetterFuncPtr getter(getter_func,data, count);
-    return PlotLineEx(label_id, getter, flags);
+    PlotLineEx(label_id, getter, flags);
 }
 
 //-----------------------------------------------------------------------------
@@ -1608,12 +1681,21 @@ template <typename Getter>
 void PlotStairsEx(const char* label_id, const Getter& getter, ImPlotStairsFlags flags) {
     if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_Line)) {
         const ImPlotNextItemData& s = GetItemData();
-        if (getter.Count > 1 && s.RenderLine) {
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-            if (ImHasFlag(flags, ImPlotStairsFlags_PreStep))
-                RenderPrimitives1<RendererStairsPre>(getter,col_line,s.LineWeight);
-            else
-                RenderPrimitives1<RendererStairsPost>(getter,col_line,s.LineWeight);
+        if (getter.Count > 1 ) {
+            if (s.RenderFill && ImHasFlag(flags,ImPlotStairsFlags_Shaded)) {
+                const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+                if (ImHasFlag(flags, ImPlotStairsFlags_PreStep))
+                    RenderPrimitives1<RendererStairsPreShaded>(getter,col_fill);
+                else
+                    RenderPrimitives1<RendererStairsPostShaded>(getter,col_fill);
+            }
+            if (s.RenderLine) {
+                const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+                if (ImHasFlag(flags, ImPlotStairsFlags_PreStep))
+                    RenderPrimitives1<RendererStairsPre>(getter,col_line,s.LineWeight);
+                else
+                    RenderPrimitives1<RendererStairsPost>(getter,col_line,s.LineWeight);
+            }
         }
         // render markers
         if (s.Marker != ImPlotMarker_None) {
@@ -1690,7 +1772,7 @@ void PlotShaded(const char* label_id, const T* values, int count, double y_ref, 
     if (!(y_ref < DBL_MAX))
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
     GetterXY<IndexerLin,IndexerIdx<T>> getter1(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
-    GetterXY<IndexerLin,IndexerConst>    getter2(IndexerLin(xscale,x0),IndexerConst(y_ref),count);
+    GetterXY<IndexerLin,IndexerConst>  getter2(IndexerLin(xscale,x0),IndexerConst(y_ref),count);
     PlotShadedEx(label_id, getter1, getter2, flags);
 }
 
@@ -1712,7 +1794,7 @@ void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, doubl
     if (y_ref == HUGE_VAL)
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
     GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-    GetterXY<IndexerIdx<T>,IndexerConst>    getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerConst(y_ref),count);
+    GetterXY<IndexerIdx<T>,IndexerConst>  getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerConst(y_ref),count);
     PlotShadedEx(label_id, getter1, getter2, flags);
 }
 

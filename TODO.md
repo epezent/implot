@@ -45,6 +45,8 @@ The list below represents a combination of high-priority work, nice-to-have feat
 - first frame render delay might fix "fit pop" effect
 - move some code to new `implot_tools.cpp`
 - ColormapSlider (see metrics)
+- FillAlpha should not affect markers?
+- fix mouse text for time axes
 
 ## Optimizations
 

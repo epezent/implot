@@ -84,6 +84,7 @@ typedef int ImPlotLegendFlags;        // -> enum ImPlotLegendFlags_
 typedef int ImPlotMouseTextFlags;     // -> enum ImPlotMouseTextFlags_
 typedef int ImPlotDragToolFlags;      // -> ImPlotDragToolFlags_
 typedef int ImPlotColormapScaleFlags; // -> ImPlotColormapScaleFlags_
+
 typedef int ImPlotItemFlags;          // -> ImPlotItemFlags_
 typedef int ImPlotLineFlags;          // -> ImPlotLineFlags_
 typedef int ImPlotScatterFlags;       // -> ImPlotScatterFlags
@@ -163,7 +164,7 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_AuxDefault    = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_Opposite
 };
 
-// Options for subplots (see BeginSubplot).
+// Options for subplots (see BeginSubplot)
 enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_None        = 0,       // default
     ImPlotSubplotFlags_NoTitle     = 1 << 0,  // the subplot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MySubplot")
@@ -229,6 +230,7 @@ enum ImPlotLineFlags_ {
     ImPlotLineFlags_Loop        = 1 << 11, // the last and first point will be connected to form a closed loop
     ImPlotLineFlags_SkipNaN     = 1 << 12, // NaNs values will be skipped instead of rendered as missing data
     ImPlotLineFlags_NoClip      = 1 << 13, // markers (if displayed) on the edge of a plot will not be clipped
+    ImPlotLineFlags_Shaded      = 1 << 14, // a filled region between the line and horizontal origin will be rendered; use PlotShaded for more advanced cases
 };
 
 // Flags for PlotScatter
@@ -239,8 +241,9 @@ enum ImPlotScatterFlags_ {
 
 // Flags for PlotStairs
 enum ImPlotStairsFlags_ {
-    ImPlotStairsFlags_None     = 0,      // default
-    ImPlotStairsFlags_PreStep  = 1 << 10 // the y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
+    ImPlotStairsFlags_None     = 0,       // default
+    ImPlotStairsFlags_PreStep  = 1 << 10, // the y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
+    ImPlotStairsFlags_Shaded   = 1 << 11  // a filled region between the stairs and horizontal origin will be rendered; use PlotShaded for more advanced cases
 };
 
 // Flags for PlotShaded (placeholder)

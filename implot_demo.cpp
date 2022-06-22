@@ -295,7 +295,7 @@ void Demo_LinePlots() {
         xs2[i] = i * 1/19.0f;
         ys2[i] = xs2[i] * xs2[i];
     }
-    if (ImPlot::BeginPlot("Line Plot")) {
+    if (ImPlot::BeginPlot("Line Plots")) {
         ImPlot::SetupAxes("x","y");
         ImPlot::PlotLine("f(x)", xs1, ys1, 1001);
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
@@ -419,6 +419,8 @@ void Demo_StairstepPlots() {
         ys1[i] = 0.75f + 0.2f * sinf(10 * i * 0.05f);
         ys2[i] = 0.25f + 0.2f * sinf(10 * i * 0.05f);
     }
+    static ImPlotStairsFlags flags = 0;
+    CHECKBOX_FLAG(flags, ImPlotStairsFlags_Shaded);
     if (ImPlot::BeginPlot("Stairstep Plot")) {
         ImPlot::SetupAxes("x","f(x)");
         ImPlot::SetupAxesLimits(0,1,0,1);
@@ -429,9 +431,11 @@ void Demo_StairstepPlots() {
         ImPlot::PopStyleColor();
 
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
-        ImPlot::PlotStairs("Post Step (default)", ys1, 21, 0.05f);
+        ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.25f);
+        ImPlot::PlotStairs("Post Step (default)", ys1, 21, 0.05f, 0, flags);
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
-        ImPlot::PlotStairs("Pre Step", ys2, 21, 0.05f, 0, ImPlotStairsFlags_PreStep);
+        ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.25f);
+        ImPlot::PlotStairs("Pre Step", ys2, 21, 0.05f, 0, flags|ImPlotStairsFlags_PreStep);
 
         ImPlot::EndPlot();
     }
@@ -1202,7 +1206,7 @@ void Demo_AxisConstraints() {
 //-----------------------------------------------------------------------------
 
 void Demo_EqualAxes() {
-    ImGui::BulletText("Equal constraint applies to axis pairs (e.g ImAxis_X1/Y1, ImAxis_X2/Y2");
+    ImGui::BulletText("Equal constraint applies to axis pairs (e.g ImAxis_X1/Y1, ImAxis_X2/Y2)");
     static double xs1[360], ys1[360];
     for (int i = 0; i < 360; ++i) {
         double angle = i * 2 * PI / 359.0;
@@ -2289,12 +2293,9 @@ void Sparkline(const char* id, const float* values, int count, float min_v, floa
     if (ImPlot::BeginPlot(id,size,ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild)) {
         ImPlot::SetupAxes(0,0,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
-        ImPlot::PushStyleColor(ImPlotCol_Line, col);
-        ImPlot::PlotLine(id, values, count, 1, 0, 0, offset);
-        ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-        ImPlot::PlotShaded(id, values, count, 0, 1, 0, 0, offset);
-        ImPlot::PopStyleVar();
-        ImPlot::PopStyleColor();
+        ImPlot::SetNextLineStyle(col);
+        ImPlot::SetNextFillStyle(col, 0.25);
+        ImPlot::PlotLine(id, values, count, 1, 0, ImPlotLineFlags_Shaded, offset);
         ImPlot::EndPlot();
     }
     ImPlot::PopStyleVar();
