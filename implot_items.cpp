@@ -2680,8 +2680,8 @@ template IMPLOT_API double PlotHistogram2D<double>(const char* label_id, const d
 // TODO: Make this behave like all the other plot types (.e. not fixed in y axis)
 
 template <typename Getter>
-void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags) {
-    if (BeginItem(label_id, ImPlotCol_Fill)) {
+void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags) {
+    if (BeginItem(label_id, flags, ImPlotCol_Fill)) {
         ImPlotContext& gp = *GImPlot;
         ImDrawList& draw_list = *GetPlotDrawList();
         const ImPlotNextItemData& s = GetItemData();
@@ -2816,8 +2816,8 @@ void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, 
 // [SECTION] PlotDummy
 //-----------------------------------------------------------------------------
 
-void PlotDummy(const char* label_id, ImPlotDummyFlags) {
-    if (BeginItem(label_id, ImPlotCol_Line))
+void PlotDummy(const char* label_id, ImPlotDummyFlags flags) {
+    if (BeginItem(label_id, flags, ImPlotCol_Line))
         EndItem();
 }
 
