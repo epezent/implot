@@ -1229,7 +1229,7 @@ void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, 
                 ftd.Time = t1; ftd.Spec = fmt0;
                 ticker.AddTick(t1.ToDouble(), true, 0, true, Formatter_Time, &ftd);
                 // major level 1 tick
-                ftd.Time = t1; ftd.Spec = last_major_offset < 0 == NULL ? fmtf : fmt1;
+                ftd.Time = t1; ftd.Spec = last_major_offset < 0 ? fmtf : fmt1;
                 ImPlotTick& tick_maj = ticker.AddTick(t1.ToDouble(), true, 1, true, Formatter_Time, &ftd);
                 const char* this_major = ticker.GetText(tick_maj);
                 if (last_major_offset >= 0 && TimeLabelSame(ticker.TextBuffer.Buf.Data + last_major_offset, this_major))
