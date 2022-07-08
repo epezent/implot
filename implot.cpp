@@ -2640,7 +2640,7 @@ void SetupFinish() {
         ImPlotAxis& ax = plot.XAxis(i);
         if (!ax.Enabled)
             continue;
-        if ((ax.Hovered || ax.Held) && !plot.Held)
+        if ((ax.Hovered || ax.Held) && !plot.Held && !ImHasFlag(ax.Flags, ImPlotAxisFlags_NoHighlight))
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.Held ? ax.ColorAct : ax.ColorHov);
         else if (ax.ColorHiLi != IM_COL32_BLACK_TRANS) {
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorHiLi);
@@ -2679,7 +2679,7 @@ void SetupFinish() {
         ImPlotAxis& ax = plot.YAxis(i);
         if (!ax.Enabled)
             continue;
-        if ((ax.Hovered || ax.Held) && !plot.Held)
+        if ((ax.Hovered || ax.Held) && !plot.Held && !ImHasFlag(ax.Flags, ImPlotAxisFlags_NoHighlight))
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.Held ? ax.ColorAct : ax.ColorHov);
         else if (ax.ColorHiLi != IM_COL32_BLACK_TRANS) {
             DrawList.AddRectFilled(ax.HoverRect.Min, ax.HoverRect.Max, ax.ColorHiLi);
@@ -2939,6 +2939,8 @@ void EndPlot() {
         trigger_rect.Expand(-10);
         for (int i = 0; i < IMPLOT_NUM_X_AXES; ++i) {
             ImPlotAxis& x_axis = plot.XAxis(i);
+            if (ImHasFlag(x_axis.Flags, ImPlotAxisFlags_NoSideSwitch))
+                continue;
             if (x_axis.Held && plot.PlotRect.Contains(mouse_pos)) {
                 const bool opp = ImHasFlag(x_axis.Flags, ImPlotAxisFlags_Opposite);
                 if (!opp) {
@@ -2961,6 +2963,8 @@ void EndPlot() {
         }
         for (int i = 0; i < IMPLOT_NUM_Y_AXES; ++i) {
             ImPlotAxis& y_axis = plot.YAxis(i);
+            if (ImHasFlag(y_axis.Flags, ImPlotAxisFlags_NoSideSwitch))
+                continue;
             if (y_axis.Held && plot.PlotRect.Contains(mouse_pos)) {
                 const bool opp = ImHasFlag(y_axis.Flags, ImPlotAxisFlags_Opposite);
                 if (!opp) {

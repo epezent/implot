@@ -1508,11 +1508,16 @@ void Demo_DragRects() {
 
 //-----------------------------------------------------------------------------
 
-ImPlotPoint FindCentroid(const ImVector<ImPlotPoint>& data, ImPlotRect& bounds, int& cnt) {
+ImPlotPoint FindCentroid(const ImVector<ImPlotPoint>& data, const ImPlotRect& bounds, int& cnt) {
     cnt = 0;
     ImPlotPoint avg;
+    ImPlotRect bounds_fixed;
+    bounds_fixed.X.Min = bounds.X.Min < bounds.X.Max ? bounds.X.Min : bounds.X.Max;
+    bounds_fixed.X.Max = bounds.X.Min < bounds.X.Max ? bounds.X.Max : bounds.X.Min;
+    bounds_fixed.Y.Min = bounds.Y.Min < bounds.Y.Max ? bounds.Y.Min : bounds.Y.Max;
+    bounds_fixed.Y.Max = bounds.Y.Min < bounds.Y.Max ? bounds.Y.Max : bounds.Y.Min;
     for (int i = 0; i < data.size(); ++i) {
-        if (bounds.Contains(data[i].x, data[i].y)) {
+        if (bounds_fixed.Contains(data[i].x, data[i].y)) {
             avg.x += data[i].x;
             avg.y += data[i].y;
             cnt++;
@@ -1702,7 +1707,7 @@ void Demo_DragAndDrop() {
     ImGui::SameLine();
     ImGui::BeginChild("DND_RIGHT",ImVec2(-1,400));
     // plot 1 (time series)
-    ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoGridLines;
+    ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoHighlight;
     if (ImPlot::BeginPlot("##DND1", ImVec2(-1,195))) {
         ImPlot::SetupAxis(ImAxis_X1, NULL, flags|ImPlotAxisFlags_Lock);
         ImPlot::SetupAxis(ImAxis_Y1, "[drop here]", flags);
