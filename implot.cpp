@@ -1563,9 +1563,21 @@ static inline double RoundAxisValue(const ImPlotAxis& axis, double value) {
 }
 
 void LabelAxisValue(const ImPlotAxis& axis, double value, char* buff, int size, bool round) {
-    if (round)
-        value = RoundAxisValue(axis, value);
-    axis.Formatter(value, buff, size, axis.FormatterData);
+    ImPlotContext& gp = *GImPlot;
+    // TODO: We shouldn't explicitly check that the axis is Time here. Ideally,
+    // Formatter_Time would handle the formatting for us, but the code below
+    // needs additional arguments which are not currently available in ImPlotFormatter
+    if (axis.Locator == Locator_Time) {
+        ImPlotTimeUnit unit = axis.Vertical
+                            ? GetUnitForRange(axis.Range.Size() / (gp.CurrentPlot->PlotRect.GetHeight() / 100)) // TODO: magic value!
+                            : GetUnitForRange(axis.Range.Size() / (gp.CurrentPlot->PlotRect.GetWidth() / 100)); // TODO: magic value!
+        FormatDateTime(ImPlotTime::FromDouble(value), buff, size, GetDateTimeFmt(TimeFormatMouseCursor, unit));
+    }
+    else {
+        if (round)
+            value = RoundAxisValue(axis, value);
+        axis.Formatter(value, buff, size, axis.FormatterData);
+    }
 }
 
 void UpdateAxisColors(ImPlotAxis& axis) {
