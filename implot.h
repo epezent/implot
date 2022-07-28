@@ -203,11 +203,12 @@ enum ImPlotMouseTextFlags_ {
 
 // Options for DragPoint, DragLine, DragRect
 enum ImPlotDragToolFlags_ {
-    ImPlotDragToolFlags_None      = 0,      // default
-    ImPlotDragToolFlags_NoCursors = 1 << 0, // drag tools won't change cursor icons when hovered or held
-    ImPlotDragToolFlags_NoFit     = 1 << 1, // the drag tool won't be considered for plot fits
-    ImPlotDragToolFlags_NoInputs  = 1 << 2, // lock the tool from user inputs
-    ImPlotDragToolFlags_Delayed   = 1 << 3, // tool rendering will be delayed one frame; useful when applying position-constraints
+    ImPlotDragToolFlags_None          = 0,      // default
+    ImPlotDragToolFlags_NoCursors     = 1 << 0, // drag tools won't change cursor icons when hovered or held
+    ImPlotDragToolFlags_NoFit         = 1 << 1, // the drag tool won't be considered for plot fits
+    ImPlotDragToolFlags_NoInputs      = 1 << 2, // lock the tool from user inputs
+    ImPlotDragToolFlags_Delayed       = 1 << 3, // tool rendering will be delayed one frame; useful when applying position-constraints
+    ImPlotDragToolFlags_LineShowValue = 1 << 4, // show value on DragLineX , DragLineY
 };
 
 // Flags for ColormapScale
