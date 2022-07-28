@@ -3857,7 +3857,11 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     bool dragging = false;
     if (held && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
-        dragging = true;
+        const bool show_value = ImHasFlag(flags, ImPlotDragToolFlags_LineShowValue);
+        if (show_value) {
+            Annotation(*value, 0.0, color, ImVec2(0, 0), false);
+        }
+	dragging = true;
     }
 
     PushPlotClipRect();
@@ -3909,6 +3913,10 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     bool dragging = false;
     if (held && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
+        const bool show_value = ImHasFlag(flags, ImPlotDragToolFlags_LineShowValue);
+        if (show_value) {
+            Annotation(0.0, *value, color, ImVec2(0, 0), false);
+        }
         dragging = true;
     }
 
