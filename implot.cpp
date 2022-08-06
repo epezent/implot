@@ -1909,8 +1909,7 @@ bool UpdateInput(ImPlotPlot& plot) {
                 if (IO.MouseDelta.x != 0 && !x_axis.IsPanLocked(increasing)) {
                     const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - IO.MouseDelta.x);
                     const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x - IO.MouseDelta.x);
-                    x_axis.SetMin(x_axis.IsInverted() ? plot_r : plot_l);
-                    x_axis.SetMax(x_axis.IsInverted() ? plot_l : plot_r);
+		    x_axis.SetRange(x_axis.IsInverted() ? plot_r : plot_l, x_axis.IsInverted() ? plot_l : plot_r);
                     if (axis_equal && x_axis.OrthoAxis != NULL)
                         x_axis.OrthoAxis->SetAspect(x_axis.GetAspect());
                     changed = true;
@@ -1925,8 +1924,7 @@ bool UpdateInput(ImPlotPlot& plot) {
                 if (IO.MouseDelta.y != 0 && !y_axis.IsPanLocked(increasing)) {
                     const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - IO.MouseDelta.y);
                     const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y - IO.MouseDelta.y);
-                    y_axis.SetMin(y_axis.IsInverted() ? plot_t : plot_b);
-                    y_axis.SetMax(y_axis.IsInverted() ? plot_b : plot_t);
+		    y_axis.SetRange(y_axis.IsInverted() ? plot_t : plot_b, y_axis.IsInverted() ? plot_b : plot_t);
                     if (axis_equal && y_axis.OrthoAxis != NULL)
                         y_axis.OrthoAxis->SetAspect(y_axis.GetAspect());
                     changed = true;
@@ -1962,8 +1960,7 @@ bool UpdateInput(ImPlotPlot& plot) {
                 float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
                 const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - rect_size.x * tx * zoom_rate * correction);
                 const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x + rect_size.x * (1 - tx) * zoom_rate * correction);
-                x_axis.SetMin(x_axis.IsInverted() ? plot_r : plot_l);
-                x_axis.SetMax(x_axis.IsInverted() ? plot_l : plot_r);
+		x_axis.SetRange(x_axis.IsInverted() ? plot_r : plot_l, x_axis.IsInverted() ? plot_l : plot_r);
                 if (axis_equal && x_axis.OrthoAxis != NULL)
                     x_axis.OrthoAxis->SetAspect(x_axis.GetAspect());
                 changed = true;
@@ -1977,8 +1974,7 @@ bool UpdateInput(ImPlotPlot& plot) {
                 float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
                 const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - rect_size.y * ty * zoom_rate * correction);
                 const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y + rect_size.y * (1 - ty) * zoom_rate * correction);
-                y_axis.SetMin(y_axis.IsInverted() ? plot_t : plot_b);
-                y_axis.SetMax(y_axis.IsInverted() ? plot_b : plot_t);
+		y_axis.SetRange(y_axis.IsInverted() ? plot_t : plot_b, y_axis.IsInverted() ? plot_b : plot_t);
                 if (axis_equal && y_axis.OrthoAxis != NULL)
                     y_axis.OrthoAxis->SetAspect(y_axis.GetAspect());
                 changed = true;
@@ -1999,8 +1995,7 @@ bool UpdateInput(ImPlotPlot& plot) {
                 if (!x_axis.IsInputLocked() && x_can_change) {
                     const double p1 = x_axis.PixelsToPlot(plot.SelectStart.x);
                     const double p2 = x_axis.PixelsToPlot(IO.MousePos.x);
-                    x_axis.SetMin(ImMin(p1, p2));
-                    x_axis.SetMax(ImMax(p1, p2));
+	            x_axis.SetRange(ImMin(p1, p2), ImMax(p1, p2));
                     changed = true;
                 }
             }
@@ -2009,8 +2004,7 @@ bool UpdateInput(ImPlotPlot& plot) {
                 if (!y_axis.IsInputLocked() && y_can_change) {
                     const double p1 = y_axis.PixelsToPlot(plot.SelectStart.y);
                     const double p2 = y_axis.PixelsToPlot(IO.MousePos.y);
-                    y_axis.SetMin(ImMin(p1, p2));
-                    y_axis.SetMax(ImMax(p1, p2));
+	            y_axis.SetRange(ImMin(p1, p2), ImMax(p1, p2));
                     changed = true;
                 }
             }
