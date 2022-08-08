@@ -442,6 +442,7 @@ void SetCurrentContext(ImPlotContext* ctx) {
 
 #define IMPLOT_APPEND_CMAP(name, qual) ctx->ColormapData.Append(#name, name, sizeof(name)/sizeof(ImU32), qual)
 #define IM_RGB(r,g,b) IM_COL32(r,g,b,255)
+#define IMPLOT_CMAP_COUNT_BUILT_IN 16
 
 void Initialize(ImPlotContext* ctx) {
     ResetCtxForNextPlot(ctx);
@@ -4350,6 +4351,18 @@ ImPlotColormap AddColormap(const char* name, const ImU32*  colormap, int size, b
     return gp.ColormapData.Append(name, colormap, size, qual);
 }
 
+void RemoveColormap(const char* name) {
+    ImPlotContext& gp = *GImPlot;
+    RemoveColormap(gp.ColormapData.GetIndex(name));
+}
+
+void RemoveColormap(ImPlotColormap colormap) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(colormap >= IMPLOT_CMAP_COUNT_BUILT_IN, "You cannot remove built-in colormaps!");
+    IM_ASSERT_USER_ERROR(colormap < gp.ColormapData.Count, "The colormap does not exist!");
+    gp.ColormapData.Remove(colormap);
+}
+
 int GetColormapCount() {
     ImPlotContext& gp = *GImPlot;
     return gp.ColormapData.Count;
@@ -4993,6 +5006,8 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::Checkbox("Qualitative",&qual);
             if (ImGui::Button("Add", ImVec2(100, 0)) && gp.ColormapData.GetIndex(name)==-1)
                 AddColormap(name,custom.Data,custom.Size,qual);
+            if (ImGui::Button("Remove", ImVec2(100, 0)) && gp.ColormapData.GetIndex(name)>=IMPLOT_CMAP_COUNT_BUILT_IN)
+                RemoveColormap(name);
 
             ImGui::EndGroup();
             ImGui::SameLine();

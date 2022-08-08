@@ -392,6 +392,35 @@ struct ImPlotColormapData {
         }
     }
 
+    void Remove(ImPlotColormap cmap) {
+        if (cmap >= Count)
+            return;
+        ImGuiID key = ImHashStr(GetName(cmap));
+        ImGuiStorage::ImGuiStoragePair* cmapIt = NULL;
+        for (ImGuiStorage::ImGuiStoragePair* it = Map.Data.begin(); it != Map.Data.end(); ++it) {
+            if (it->key == key)
+                cmapIt = it;
+            else if (it->val_i > cmap)
+                it->val_i--;
+        }
+        if (cmapIt)
+            Map.Data.erase(cmapIt);
+        Quals.erase(Quals.begin() + cmap);
+        int textLen = strlen(Text.Buf.Data + TextOffsets[cmap]) + 1;
+        Text.Buf.erase(Text.Buf.begin() + TextOffsets[cmap], Text.Buf.begin() + TextOffsets[cmap] + textLen);
+        for (int i = cmap + 1; i < Count; ++i)
+            TextOffsets[i] -= textLen;
+        TextOffsets.erase(TextOffsets.begin() + cmap);
+        Keys.erase(Keys.begin() + KeyOffsets[cmap], Keys.begin() + KeyOffsets[cmap] + KeyCounts[cmap]);
+        for (int i = cmap + 1; i < Count; ++i)
+            KeyOffsets[i] -= KeyCounts[cmap];
+        KeyCounts.erase(KeyCounts.begin() + cmap);
+        KeyOffsets.erase(KeyOffsets.begin() + cmap);
+        --Count;
+
+        RebuildTables();
+    }
+
     void RebuildTables() {
         Tables.resize(0);
         TableSizes.resize(0);
