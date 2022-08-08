@@ -4960,6 +4960,16 @@ void ShowStyleEditor(ImPlotStyle* ref) {
                 if (!selected)
                     ImGui::PopStyleVar();
                 ImGui::SameLine();
+                if (i < IMPLOT_CMAP_COUNT_BUILT_IN)
+                    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.25f);
+                if (ImGui::Button("X", ImVec2(20, 0)) && i >= IMPLOT_CMAP_COUNT_BUILT_IN) {
+                    RemoveColormap(name);
+                    if (i < gp.Style.Colormap || (gp.Style.Colormap == gp.ColormapData.Count && gp.ColormapData.Count == IMPLOT_CMAP_COUNT_BUILT_IN))
+                        gp.Style.Colormap--;
+                }
+                if (i < IMPLOT_CMAP_COUNT_BUILT_IN)
+                    ImGui::PopStyleVar();
+                ImGui::SameLine();
                 ImGui::BeginGroup();
                 if (edit) {
                     for (int c = 0; c < size; ++c) {
@@ -5006,8 +5016,6 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::Checkbox("Qualitative",&qual);
             if (ImGui::Button("Add", ImVec2(100, 0)) && gp.ColormapData.GetIndex(name)==-1)
                 AddColormap(name,custom.Data,custom.Size,qual);
-            if (ImGui::Button("Remove", ImVec2(100, 0)) && gp.ColormapData.GetIndex(name)>=IMPLOT_CMAP_COUNT_BUILT_IN)
-                RemoveColormap(name);
 
             ImGui::EndGroup();
             ImGui::SameLine();
