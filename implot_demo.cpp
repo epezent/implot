@@ -90,23 +90,23 @@ ImVec4 RandomColor() {
 }
 
 double RandomGauss() {
-	static double V1, V2, S;
-	static int phase = 0;
-	double X;
-	if(phase == 0) {
-		do {
-			double U1 = (double)rand() / RAND_MAX;
-			double U2 = (double)rand() / RAND_MAX;
-			V1 = 2 * U1 - 1;
-			V2 = 2 * U2 - 1;
-			S = V1 * V1 + V2 * V2;
-			} while(S >= 1 || S == 0);
+    static double V1, V2, S;
+    static int phase = 0;
+    double X;
+    if(phase == 0) {
+        do {
+            double U1 = (double)rand() / RAND_MAX;
+            double U2 = (double)rand() / RAND_MAX;
+            V1 = 2 * U1 - 1;
+            V2 = 2 * U2 - 1;
+            S = V1 * V1 + V2 * V2;
+            } while(S >= 1 || S == 0);
 
-		X = V1 * sqrt(-2 * log(S) / S);
-	} else
-		X = V2 * sqrt(-2 * log(S) / S);
-	phase = 1 - phase;
-	return X;
+        X = V1 * sqrt(-2 * log(S) / S);
+    } else
+        X = V2 * sqrt(-2 * log(S) / S);
+    phase = 1 - phase;
+    return X;
 }
 
 template <int N>
@@ -165,6 +165,7 @@ struct HugeTimeData {
     HugeTimeData(double min) {
         Ts = new double[Size];
         Ys = new double[Size];
+        Ds = new ImPlotPoint[DownSampleSize];
         for (int i = 0; i < Size; ++i) {
             Ts[i] = min + i;
             Ys[i] = GetY(Ts[i]);
@@ -172,11 +173,94 @@ struct HugeTimeData {
     }
     ~HugeTimeData() { delete[] Ts;  delete[] Ys; }
     static double GetY(double t) {
-        return 0.5 + 0.25 * sin(t/86400/12) +  0.005 * sin(t/3600);
+        return 0.5 + 0.25 * sin(t/86400/12) +  0.005 * sin(t/3600) + 0.00001 * sin(t / PI);
     }
     double* Ts;
     double* Ys;
+    ImPlotPoint* Ds;
     static const int Size = 60*60*24*366;
+    static const int DownSampleSize = 2048;
+
+    static ImPlotPoint cbGetPlotPointDownSampleAt(int idx, void *data) {
+        ImPlotPoint *ds = (ImPlotPoint *)data;
+        return ImPlotPoint(ds[idx].x, ds[idx].y);
+    }
+
+    inline ImPlotPoint GetDataAt(int offset, int idx) {
+        return ImPlotPoint(Ts[offset + idx], Ys[offset + idx]);
+    }
+
+    int DownSampleLTTB(int start, int end) {
+        // Largest Triangle Three Buckets (LTTB) Downsampling Algorithm
+        //  "Downsampling time series for visual representation" by Sveinn Steinarsson.
+        //  https://skemman.is/bitstream/1946/15343/3/SS_MSthesis.pdf
+        //  https://github.com/sveinn-steinarsson/flot-downsample
+        int rawSamplesCount = (end - start) + 1;
+        if (rawSamplesCount > DownSampleSize) {
+            int sampleIdxOffset = start;
+            double every = ((double)rawSamplesCount) / ((double)DownSampleSize);
+            int aIndex = 0;
+            // fill first sample
+            Ds[0] = GetDataAt(sampleIdxOffset, 0);
+            // loop over samples
+            for (int i = 0; i < DownSampleSize - 2; ++i)
+            {
+                int avgRangeStart = (int)(i * every) + 1;
+                int avgRangeEnd = (int)((i + 1) * every) + 1;
+                if (avgRangeEnd > DownSampleSize)
+                    avgRangeEnd = DownSampleSize;
+
+                int avgRangeLength = avgRangeEnd - avgRangeStart;
+                double avgX = 0.0;
+                double avgY = 0.0;
+                for (; avgRangeStart < avgRangeEnd; ++avgRangeStart)
+                {
+                    ImPlotPoint sample = GetDataAt(sampleIdxOffset, avgRangeStart);
+                    if (sample.y != NAN) {
+                        avgX += sample.x;
+                        avgY += sample.y;
+                    }
+                }
+                avgX /= (double)avgRangeLength;
+                avgY /= (double)avgRangeLength;
+
+                int rangeOffs = (int)(i * every) + 1;
+                int rangeTo = (int)((i + 1) * every) + 1;
+                if (rangeTo > DownSampleSize)
+                    rangeTo = DownSampleSize;
+                ImPlotPoint samplePrev = GetDataAt(sampleIdxOffset, aIndex);
+                double maxArea = -1.0;
+                int nextAIndex = rangeOffs;
+                for (; rangeOffs < rangeTo; ++rangeOffs)
+                {
+                    ImPlotPoint sampleAtRangeOffs = GetDataAt(sampleIdxOffset, rangeOffs);
+                    if (sampleAtRangeOffs.y != NAN) {
+                        double area = fabs((samplePrev.x - avgX) * (sampleAtRangeOffs.y - samplePrev.y) - (samplePrev.x - sampleAtRangeOffs.x) * (avgY - samplePrev.y)) / 2.0;
+                        if (area > maxArea)
+                        {
+                            maxArea = area;
+                            nextAIndex = rangeOffs;
+                        }
+                    }
+                }
+                Ds[i+1] = GetDataAt(sampleIdxOffset, nextAIndex);
+                aIndex = nextAIndex;
+            }
+            // fill last sample
+            Ds[DownSampleSize - 1] = GetDataAt(sampleIdxOffset, rawSamplesCount - 1);
+            return DownSampleSize;
+        }
+        else {
+            int sampleIdxOffset = start;
+            // loop over samples
+            for (int i = 0; i < rawSamplesCount; ++i)
+            {
+                Ds[i] = GetDataAt(sampleIdxOffset, i);
+            }
+            return rawSamplesCount;
+        }
+    }
+
 };
 
 //-----------------------------------------------------------------------------
@@ -1039,6 +1123,9 @@ void Demo_TimeScale() {
     ImGui::Checkbox("ISO 8601",&ImPlot::GetStyle().UseISO8601);
     ImGui::SameLine();
     ImGui::Checkbox("24 Hour Clock",&ImPlot::GetStyle().Use24HourClock);
+    ImGui::SameLine();
+    static bool lttb = false;
+    ImGui::Checkbox("LTTB",&lttb);
 
     static HugeTimeData* data = NULL;
     if (data == NULL) {
@@ -1049,19 +1136,30 @@ void Demo_TimeScale() {
         }
     }
 
+    int plotSamples = 0;
     if (ImPlot::BeginPlot("##Time", ImVec2(-1,0))) {
         ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Time);
         ImPlot::SetupAxesLimits(t_min,t_max,0,1);
         if (data != NULL) {
             // downsample our data
-            int downsample = (int)ImPlot::GetPlotLimits().X.Size() / 1000 + 1;
-            int start = (int)(ImPlot::GetPlotLimits().X.Min - t_min);
-            start = start < 0 ? 0 : start > HugeTimeData::Size - 1 ? HugeTimeData::Size - 1 : start;
-            int end = (int)(ImPlot::GetPlotLimits().X.Max - t_min) + 1000;
-            end = end < 0 ? 0 : end > HugeTimeData::Size - 1 ? HugeTimeData::Size - 1 : end;
-            int size = (end - start)/downsample;
-            // plot it
-            ImPlot::PlotLine("Time Series", &data->Ts[start], &data->Ys[start], size, 0, 0, sizeof(double)*downsample);
+            if (lttb) {
+                int start = (int)(ImPlot::GetPlotLimits().X.Min - t_min) - 1;
+                start = start < 0 ? 0 : start > HugeTimeData::Size - 1 ? HugeTimeData::Size - 1 : start;
+                int end = (int)(ImPlot::GetPlotLimits().X.Max - t_min) + 1;
+                end = end < 0 ? 0 : end > HugeTimeData::Size - 1 ? HugeTimeData::Size - 1 : end;
+                plotSamples = data->DownSampleLTTB(start, end);
+                // plot it
+                ImPlot::PlotLineG("Time Series", HugeTimeData::cbGetPlotPointDownSampleAt, data->Ds, plotSamples);
+            } else {
+                int downsample = (int)ImPlot::GetPlotLimits().X.Size() / 1000 + 1;
+                int start = (int)(ImPlot::GetPlotLimits().X.Min - t_min);
+                start = start < 0 ? 0 : start > HugeTimeData::Size - 1 ? HugeTimeData::Size - 1 : start;
+                int end = (int)(ImPlot::GetPlotLimits().X.Max - t_min) + 1000;
+                end = end < 0 ? 0 : end > HugeTimeData::Size - 1 ? HugeTimeData::Size - 1 : end;
+                plotSamples = (end - start)/downsample;
+                // plot it
+                ImPlot::PlotLine("Time Series", &data->Ts[start], &data->Ys[start], plotSamples, 0, 0, sizeof(double)*downsample);
+            }
         }
         // plot time now
         double t_now = (double)time(0);
@@ -1070,6 +1168,7 @@ void Demo_TimeScale() {
         ImPlot::Annotation(t_now,y_now,ImPlot::GetLastItemColor(),ImVec2(10,10),false,"Now");
         ImPlot::EndPlot();
     }
+    ImGui::Text("Samples plot: %d", plotSamples);
 }
 
 //-----------------------------------------------------------------------------
