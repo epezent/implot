@@ -1189,8 +1189,8 @@ void Demo_LinkedAxes() {
 void Demo_AxisConstraints() {
     static float constraints[4] = {-10,10,1,20};
     static ImPlotAxisFlags flags;
-    ImGui::DragFloat2("Limits Constraints", &constraints[0], 0.01);
-    ImGui::DragFloat2("Zoom Constraints", &constraints[2], 0.01);
+    ImGui::DragFloat2("Limits Constraints", &constraints[0], 0.01f);
+    ImGui::DragFloat2("Zoom Constraints", &constraints[2], 0.01f);
     CHECKBOX_FLAG(flags, ImPlotAxisFlags_PanStretch);
     if (ImPlot::BeginPlot("##AxisConstraints",ImVec2(-1,0))) {
         ImPlot::SetupAxes("X","Y",flags,flags);
