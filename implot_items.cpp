@@ -93,7 +93,7 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
 // Uncomment the next line (#define IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES) in order to define versions for those types
 // (or define it via a compilation option). In this case, the compilation time for this specific file will be 33% longer
 
-#define IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES
+// #define IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES
 
 #define INSTANTIATE_FOR_REMAINING_NUMERIC_TYPES(instantiate_macro) \
     instantiate_macro(long);                                                                              \
