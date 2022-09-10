@@ -1618,16 +1618,17 @@ void PlotLine(const char* label_id, const T* values, int count, double xscale, d
     GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
     PlotLineEx(label_id, getter, flags);
 }
-#define instantiate_PlotLine(T) template IMPLOT_API void PlotLine<T> (const char* label_id, const T* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotLine);
 
 template <typename T>
 void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags, int offset, int stride) {
     GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
     PlotLineEx(label_id, getter, flags);
 }
-#define instantiate_PlotLine2(T) template IMPLOT_API void PlotLine<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotLine2);
+
+#define INSTANTIATE_PLOT_LINE(T) \
+    template IMPLOT_API void PlotLine<T> (const char* label_id, const T* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotLine<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_LINE);
 
 // custom
 void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotLineFlags flags) {
@@ -1662,16 +1663,17 @@ void PlotScatter(const char* label_id, const T* values, int count, double xscale
     GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
     PlotScatterEx(label_id, getter, flags);
 }
-#define instantiate_PlotScatter(T) template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotScatterFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotScatter);
 
 template <typename T>
 void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags, int offset, int stride) {
     GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
     return PlotScatterEx(label_id, getter, flags);
 }
-#define instantiate_PlotScatter_2(T) template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotScatter_2);
+
+#define INSTANTIATE_PLOT_SCATTER(T) \
+    template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotScatterFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags, int offset, int stride);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_SCATTER);
 
 // custom
 void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotScatterFlags flags) {
@@ -1720,16 +1722,17 @@ void PlotStairs(const char* label_id, const T* values, int count, double xscale,
     GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
     PlotStairsEx(label_id, getter, flags);
 }
-#define instantiate_PlotStairs(T) template IMPLOT_API void PlotStairs<T> (const char* label_id, const T* values, int count, double xscale, double x0, ImPlotStairsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotStairs);
 
 template <typename T>
 void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, ImPlotStairsFlags flags, int offset, int stride) {
     GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
     return PlotStairsEx(label_id, getter, flags);
 }
-#define instantiate_PlotStairs2(T) template IMPLOT_API void PlotStairs<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotStairsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotStairs2);
+
+#define INSTANTIATE_PLOT_STAIRS(T) \
+    template IMPLOT_API void PlotStairs<T> (const char* label_id, const T* values, int count, double xscale, double x0, ImPlotStairsFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotStairs<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotStairsFlags flags, int offset, int stride);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_STAIRS);
 
 // custom
 void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotStairsFlags flags) {
@@ -1763,8 +1766,6 @@ void PlotShaded(const char* label_id, const T* values, int count, double y_ref, 
     GetterXY<IndexerLin,IndexerConst>  getter2(IndexerLin(xscale,x0),IndexerConst(y_ref),count);
     PlotShadedEx(label_id, getter1, getter2, flags);
 }
-#define instantiate_PlotShaded(T) template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, ImPlotShadedFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotShaded);
 
 template <typename T>
 void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref, ImPlotShadedFlags flags, int offset, int stride) {
@@ -1776,8 +1777,7 @@ void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, doubl
     GetterXY<IndexerIdx<T>,IndexerConst>  getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerConst(y_ref),count);
     PlotShadedEx(label_id, getter1, getter2, flags);
 }
-#define instantiate_PlotShaded2(T) template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys, int count, double y_ref, ImPlotShadedFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotShaded2);
+
 
 template <typename T>
 void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, ImPlotShadedFlags flags, int offset, int stride) {
@@ -1785,8 +1785,12 @@ void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, i
     GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys2,count,offset,stride),count);
     PlotShadedEx(label_id, getter1, getter2, flags);
 }
-#define instantiate_PlotShaded3(T) template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, ImPlotShadedFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotShaded3);
+
+#define INSTANTIATE_PLOT_SHADED(T) \
+    template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, ImPlotShadedFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys, int count, double y_ref, ImPlotShadedFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, ImPlotShadedFlags flags, int offset, int stride);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_SHADED);
 
 // custom
 void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, ImPlotGetter getter_func2, void* data2, int count, ImPlotShadedFlags flags) {
@@ -1852,8 +1856,6 @@ void PlotBars(const char* label_id, const T* values, int count, double bar_size,
         PlotBarsVEx(label_id, getter1, getter2, bar_size, flags);
     }
 }
-#define instantiate_PlotBars(T) template IMPLOT_API void PlotBars<T>(const char* label_id, const T* values, int count, double bar_size, double shift, ImPlotBarsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotBars);
 
 template <typename T>
 void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double bar_size, ImPlotBarsFlags flags, int offset, int stride) {
@@ -1868,8 +1870,11 @@ void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double 
         PlotBarsVEx(label_id, getter1, getter2, bar_size, flags);
     }
 }
-#define instantiate_PlotBars2(T) template IMPLOT_API void PlotBars<T>(const char* label_id, const T* xs, const T* ys, int count, double bar_size, ImPlotBarsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotBars2);
+
+#define INSTANTIATE_PLOT_BARS(T) \
+    template IMPLOT_API void PlotBars<T>(const char* label_id, const T* values, int count, double bar_size, double shift, ImPlotBarsFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotBars<T>(const char* label_id, const T* xs, const T* ys, int count, double bar_size, ImPlotBarsFlags flags, int offset, int stride);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_BARS);
 
 void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, double bar_size, ImPlotBarsFlags flags) {
     if (ImHasFlag(flags, ImPlotBarsFlags_Horizontal)) {
@@ -1963,8 +1968,9 @@ void PlotBarGroups(const char* const label_ids[], const T* values, int item_coun
         }
     }
 }
-#define instantiate_PlotBarGroups(T) template IMPLOT_API void PlotBarGroups<T>(const char* const label_ids[], const T* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotBarGroups);
+
+#define INSTANTIATE_PLOT_BAR_GROUPS(T) template IMPLOT_API void PlotBarGroups<T>(const char* const label_ids[], const T* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_BAR_GROUPS);
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotErrorBars
@@ -2016,8 +2022,6 @@ template <typename T>
 void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* err, int count, ImPlotErrorBarsFlags flags, int offset, int stride) {
     PlotErrorBars(label_id, xs, ys, err, err, count, flags, offset, stride);
 }
-#define instantiate_PlotErrorBars(T) template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* err, int count, ImPlotErrorBarsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotErrorBars);
 
 template <typename T>
 void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, ImPlotErrorBarsFlags flags, int offset, int stride) {
@@ -2041,8 +2045,11 @@ void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* neg,
         PlotErrorBarsVEx(label_id, getter_p, getter_n, flags);
     }
 }
-#define instantiate_PlotErrorBars2(T) template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, ImPlotErrorBarsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotErrorBars2);
+
+#define INSTANTIATE_PLOT_ERROR_BARS(T) \
+    template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* err, int count, ImPlotErrorBarsFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, ImPlotErrorBarsFlags flags, int offset, int stride);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_ERROR_BARS);
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotStems
@@ -2082,8 +2089,6 @@ void PlotStems(const char* label_id, const T* values, int count, double ref, dou
         PlotStemsEx(label_id, get_mark, get_base, flags);
     }
 }
-#define instantiate_PlotStems(T) template IMPLOT_API void PlotStems<T>(const char* label_id, const T* values, int count, double ref, double scale, double start, ImPlotStemsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotStems);
 
 template <typename T>
 void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double ref, ImPlotStemsFlags flags, int offset, int stride) {
@@ -2098,8 +2103,12 @@ void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double
         PlotStemsEx(label_id, get_mark, get_base, flags);
     }
 }
-#define instantiate_PlotStems2(T) template IMPLOT_API void PlotStems<T>(const char* label_id, const T* xs, const T* ys, int count, double ref, ImPlotStemsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotStems2);
+
+#define INSTANTIATE_PLOT_STEMS(T) \
+    template IMPLOT_API void PlotStems<T>(const char* label_id, const T* values, int count, double ref, double scale, double start, ImPlotStemsFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotStems<T>(const char* label_id, const T* xs, const T* ys, int count, double ref, ImPlotStemsFlags flags, int offset, int stride);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_STEMS);
+
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotInfLines
@@ -2131,8 +2140,8 @@ void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLin
         }
     }
 }
-#define instantiate_PlotInfLines(T) template IMPLOT_API void PlotInfLines<T>(const char* label_id, const T* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotInfLines);
+#define INSTANTIATE_PLOT_INF_LINES(T) template IMPLOT_API void PlotInfLines<T>(const char* label_id, const T* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_INF_LINES);
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotPieChart
@@ -2207,8 +2216,8 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
     }
     PopPlotClipRect();
 }
-#define instantiate_PlotPieChart(T) template IMPLOT_API void PlotPieChart<T>(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotPieChart);
+#define INSTANTIATE_PLOT_PIE_CHART(T) template IMPLOT_API void PlotPieChart<T>(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_PIE_CHART);
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotHeatmap
@@ -2363,8 +2372,8 @@ void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, doub
         EndItem();
     }
 }
-#define instantiate_PlotHeatmap(T) template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotHeatmap);
+#define INSTANTIATE_PLOT_HEATMAP(T) template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_HEATMAP);
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotHistogram
@@ -2447,8 +2456,8 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
         PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width);
     return max_count;
 }
-#define instantiate_PlotHistogram(T) template IMPLOT_API double PlotHistogram<T>(const char* label_id, const T* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotHistogram);
+#define INSTANTIATE_PLOT_HISTOGRAM(T) template IMPLOT_API double PlotHistogram<T>(const char* label_id, const T* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_HISTOGRAM);
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotHistogram2D
@@ -2523,8 +2532,8 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
     }
     return max_count;
 }
-#define instantiate_PlotHistogram2D(T) template IMPLOT_API double PlotHistogram2D<T>(const char* label_id,   const T*   xs, const T*   ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotHistogram2D);
+#define INSTANTIATE_PLOT_HISTOGRAM_2D(T) template IMPLOT_API double PlotHistogram2D<T>(const char* label_id,   const T*   xs, const T*   ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_HISTOGRAM_2D);
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotDigital
@@ -2597,8 +2606,8 @@ void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, ImPl
     GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
     return PlotDigitalEx(label_id, getter, flags);
 }
-#define instantiate_PlotDigital(T) template IMPLOT_API void PlotDigital<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotDigitalFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_PlotDigital);
+#define INSTANTIATE_PLOT_DIGITAL(T) template IMPLOT_API void PlotDigital<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotDigitalFlags flags, int offset, int stride);
+INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_DIGITAL);
 
 // custom
 void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotDigitalFlags flags) {
