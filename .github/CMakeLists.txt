@@ -23,3 +23,4 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU" AND DEFINED GCC_ARCH)
 endif ()
 
 target_include_directories(implot PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../imgui)
+target_compile_definitions(implot PRIVATE IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES=1)

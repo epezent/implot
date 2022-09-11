@@ -167,7 +167,7 @@ static inline double ImMean(const T* values, int count) {
     double den = 1.0 / count;
     double mu  = 0;
     for (int i = 0; i < count; ++i)
-        mu += values[i] * den;
+        mu += (double)values[i] * den;
     return mu;
 }
 // Finds the sample standard deviation of an array
@@ -177,7 +177,7 @@ static inline double ImStdDev(const T* values, int count) {
     double mu  = ImMean(values, count);
     double x   = 0;
     for (int i = 0; i < count; ++i)
-        x += (values[i] - mu) * (values[i] - mu) * den;
+        x += ((double)values[i] - mu) * ((double)values[i] - mu) * den;
     return sqrt(x);
 }
 // Mix color a and b by factor s in [0 256]
