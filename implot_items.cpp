@@ -69,9 +69,8 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
 //-----------------------------------------------------------------------------
 // [SECTION] Template instantiation utility
 //-----------------------------------------------------------------------------
-// (INSTANTIATE_FOR_NUMERIC_TYPES is a macro which instantiates templated plotting functions for numeric types)
 
-// By default, templates are instantiated for the following types, which are defined in imgui.h:
+// By default, templates are instantiated for the following types, which are defined in imgui.h. Note: this list does not include `long`, `unsigned long` and `long double`: define `IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES` at compile-time to add support for them.
 #define INSTANTIATE_FOR_STANDARD_NUMERIC_TYPES(instantiate_macro)                                         \
     instantiate_macro(ImS8);    /* typedef signed char         ImS8;   // 8-bit signed integer */         \
     instantiate_macro(ImU8);    /* typedef unsigned char       ImU8;   // 8-bit unsigned integer */       \
@@ -83,17 +82,6 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
     instantiate_macro(ImU64);   /* typedef unsigned long long  ImU64;  // 64-bit unsigned integer */      \
     instantiate_macro(float);                                                                             \
     instantiate_macro(double);
-
-// The previous type list does not include "long", "unsigned long" and "long double".
-// Most of the time, it is not an issue when linking statically.
-// However, when linking dynamically, issues related to undefined functions can arise: although those types
-// might have the same size, they are considered separate. As a consequence, on linux 64b bits,
-// `ImPlot::PlotLine<unsigned long>(...)` might be considered as undefined.
-//
-// Uncomment the next line (#define IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES) in order to define versions for those types
-// (or define it via a compilation option). In this case, the compilation time for this specific file will be 33% longer
-
-// #define IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES
 
 #define INSTANTIATE_FOR_REMAINING_NUMERIC_TYPES(instantiate_macro) \
     instantiate_macro(long);                                                                              \
