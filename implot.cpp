@@ -1960,7 +1960,8 @@ bool UpdateInput(ImPlotPlot& plot) {
                 float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
                 const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - rect_size.x * tx * zoom_rate * correction);
                 const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x + rect_size.x * (1 - tx) * zoom_rate * correction);
-		x_axis.SetRange(x_axis.IsInverted() ? plot_r : plot_l, x_axis.IsInverted() ? plot_l : plot_r);
+                if(x_axis.Range.Size() > x_axis.ConstraintZoom.Min || ImAbs(plot_l - plot_r) > x_axis.ConstraintZoom.Min)
+                    x_axis.SetRange(x_axis.IsInverted() ? plot_r : plot_l, x_axis.IsInverted() ? plot_l : plot_r);
                 if (axis_equal && x_axis.OrthoAxis != NULL)
                     x_axis.OrthoAxis->SetAspect(x_axis.GetAspect());
                 changed = true;
@@ -1974,7 +1975,8 @@ bool UpdateInput(ImPlotPlot& plot) {
                 float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
                 const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - rect_size.y * ty * zoom_rate * correction);
                 const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y + rect_size.y * (1 - ty) * zoom_rate * correction);
-		y_axis.SetRange(y_axis.IsInverted() ? plot_t : plot_b, y_axis.IsInverted() ? plot_b : plot_t);
+                if(y_axis.Range.Size() > y_axis.ConstraintZoom.Min || ImAbs(plot_t - plot_b) > y_axis.ConstraintZoom.Min)
+                    y_axis.SetRange(y_axis.IsInverted() ? plot_t : plot_b, y_axis.IsInverted() ? plot_b : plot_t);
                 if (axis_equal && y_axis.OrthoAxis != NULL)
                     y_axis.OrthoAxis->SetAspect(y_axis.GetAspect());
                 changed = true;
