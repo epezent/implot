@@ -71,22 +71,21 @@ if (UNIX)
     target_link_libraries(implot PUBLIC m stdc++)
 endif()
 
-# Switch between several sets of numeric types (by adding `-DIMPLOT_NUMERIC_SET=default|custom|all`)
-if (DEFINED IMPLOT_NUMERIC_SET)
-    if ("${IMPLOT_NUMERIC_SET}" STREQUAL "default")
-        message(STATUS "Compiling for default types")
-    elseif("${IMPLOT_NUMERIC_SET}" STREQUAL "custom")
-        message(STATUS "Compiling for custom types (float and double)")
-        target_compile_definitions(implot PRIVATE "IMPLOT_CUSTOM_NUMERIC_TYPES=(float)(double)")
-    elseif("${IMPLOT_NUMERIC_SET}" STREQUAL "all")
-        message(STATUS "Compiling for all types")
-        target_compile_definitions(implot PRIVATE "IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES=1")
-    else()
-        message(FATAL_ERROR "unhandled IMPLOT_NUMERIC_SET=${IMPLOT_NUMERIC_SET}")
-    endif()
+# Define supported types via command line:
+#   - With no choice all types are supported (so that the CI provides support for all known types)
+#   - with -DIMPLOT_CUSTOM_NUMERIC_TYPES="default" the default set defined in implot_items.cpp is used
+#   - with -DIMPLOT_CUSTOM_NUMERIC_TYPES="(int)(float)(double)" only int, float and double are supported
+if (NOT DEFINED IMPLOT_CUSTOM_NUMERIC_TYPES)
+    set(IMPLOT_CUSTOM_NUMERIC_TYPES "all")
+endif()
+if ("${IMPLOT_CUSTOM_NUMERIC_TYPES}" STREQUAL "default")
+    message("==== Compiling for default types ====")
+elseif("${IMPLOT_CUSTOM_NUMERIC_TYPES}" STREQUAL "all")
+    message("==== Compiling for all types ====")
+    target_compile_definitions(implot PRIVATE "IMPLOT_CUSTOM_NUMERIC_TYPES=(signed char)(unsigned char)(signed short)(unsigned short)(signed int)(unsigned int)(signed long)(unsigned long)(signed long long)(unsigned long long)(float)(double)(long double)")
 else()
-    # By default, the CI provides support for all known types
-    target_compile_definitions(implot PRIVATE IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES)
+    message("==== Compiling for custom types: ${IMPLOT_CUSTOM_NUMERIC_TYPES} ====")
+    target_compile_definitions(implot PRIVATE "IMPLOT_CUSTOM_NUMERIC_TYPES=${IMPLOT_CUSTOM_NUMERIC_TYPES}")
 endif()
 
 #
