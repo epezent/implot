@@ -70,31 +70,39 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
 // [SECTION] Template instantiation utility
 //-----------------------------------------------------------------------------
 
-// By default, templates are instantiated for the following types, which are defined in imgui.h. Note: this list does not include `long`, `unsigned long` and `long double`: define `IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES` at compile-time to add support for them.
-#define INSTANTIATE_FOR_STANDARD_NUMERIC_TYPES(instantiate_macro)                                         \
-    instantiate_macro(ImS8);    /* typedef signed char         ImS8;   // 8-bit signed integer */         \
-    instantiate_macro(ImU8);    /* typedef unsigned char       ImU8;   // 8-bit unsigned integer */       \
-    instantiate_macro(ImS16);   /* typedef signed short        ImS16;  // 16-bit signed integer */        \
-    instantiate_macro(ImU16);   /* typedef unsigned short      ImU16;  // 16-bit unsigned integer */      \
-    instantiate_macro(ImS32);   /* typedef signed int          ImS32;  // 32-bit signed integer == int */ \
-    instantiate_macro(ImU32);   /* typedef unsigned int        ImU32;  // 32-bit unsigned integer */      \
-    instantiate_macro(ImS64);   /* typedef signed   long long  ImS64;  // 64-bit signed integer */        \
-    instantiate_macro(ImU64);   /* typedef unsigned long long  ImU64;  // 64-bit unsigned integer */      \
-    instantiate_macro(float);                                                                             \
-    instantiate_macro(double);
+// By default, templates are instantiated for `float`, `double`, and for the following integer types, which are defined in imgui.h:
+//     signed char         ImS8;   // 8-bit signed integer
+//     unsigned char       ImU8;   // 8-bit unsigned integer
+//     signed short        ImS16;  // 16-bit signed integer
+//     unsigned short      ImU16;  // 16-bit unsigned integer
+//     signed int          ImS32;  // 32-bit signed integer == int
+//     unsigned int        ImU32;  // 32-bit unsigned integer
+//     signed   long long  ImS64;  // 64-bit signed integer
+//     unsigned long long  ImU64;  // 64-bit unsigned integer
+// (note: this list does *not* include `long`, `unsigned long` and `long double`)
+//
+// You can customize the supported types in two ways:
+// 1. Define IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES at compile time to add support for all known types.
+// 2. Or, define IMPLOT_CUSTOM_NUMERIC_TYPES at compile time to define your own type list. As an example, you could use the compile time define given by the line below in order to support only float and double.
+//        -DIMPLOT_CUSTOM_NUMERIC_TYPES="(float)(double)"
 
-#define INSTANTIATE_FOR_REMAINING_NUMERIC_TYPES(instantiate_macro) \
-    instantiate_macro(long);                                                                              \
-    instantiate_macro(unsigned long);                                                                     \
-    instantiate_macro(long double);
-
-#ifdef IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES
-    #define INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_macro)                                               \
-        INSTANTIATE_FOR_STANDARD_NUMERIC_TYPES(instantiate_macro)                                          \
-        INSTANTIATE_FOR_REMAINING_NUMERIC_TYPES(instantiate_macro)
+#ifdef IMPLOT_CUSTOM_NUMERIC_TYPES
+    #define IMPLOT_NUMERIC_TYPES IMPLOT_CUSTOM_NUMERIC_TYPES
+#elif defined(IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES)
+    #define IMPLOT_NUMERIC_TYPES (signed char)(unsigned char)(signed short)(unsigned short)(signed int)(unsigned int)(signed long)(unsigned long)(signed long long)(unsigned long long)(float)(double)(long double)
 #else
-    #define INSTANTIATE_FOR_NUMERIC_TYPES(instantiate_macro) INSTANTIATE_FOR_STANDARD_NUMERIC_TYPES(instantiate_macro)
+    #define IMPLOT_NUMERIC_TYPES (ImS8)(ImU8)(ImS16)(ImU16)(ImS32)(ImU32)(ImS64)(ImU64)(float)(double)
 #endif
+
+// CALL_INSTANTIATE_FOR_NUMERIC_TYPES will duplicate the template instantion code `INSTANTIATE_MACRO(T)` on supported types.
+#define _CAT(x, y) _CAT_(x, y)
+#define _CAT_(x,y) x ## y
+#define _INSTANTIATE_FOR_NUMERIC_TYPES(chain) _CAT(_INSTANTIATE_FOR_NUMERIC_TYPES_1 chain, _END)
+#define _INSTANTIATE_FOR_NUMERIC_TYPES_1(T) INSTANTIATE_MACRO(T); _INSTANTIATE_FOR_NUMERIC_TYPES_2
+#define _INSTANTIATE_FOR_NUMERIC_TYPES_2(T) INSTANTIATE_MACRO(T); _INSTANTIATE_FOR_NUMERIC_TYPES_1
+#define _INSTANTIATE_FOR_NUMERIC_TYPES_1_END
+#define _INSTANTIATE_FOR_NUMERIC_TYPES_2_END
+#define CALL_INSTANTIATE_FOR_NUMERIC_TYPES() _INSTANTIATE_FOR_NUMERIC_TYPES(IMPLOT_NUMERIC_TYPES);
 
 namespace ImPlot {
 
@@ -1613,10 +1621,11 @@ void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotL
     PlotLineEx(label_id, getter, flags);
 }
 
-#define INSTANTIATE_PLOT_LINE(T) \
+#define INSTANTIATE_MACRO(T) \
     template IMPLOT_API void PlotLine<T> (const char* label_id, const T* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride); \
     template IMPLOT_API void PlotLine<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_LINE);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 // custom
 void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotLineFlags flags) {
@@ -1658,10 +1667,11 @@ void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, ImPl
     return PlotScatterEx(label_id, getter, flags);
 }
 
-#define INSTANTIATE_PLOT_SCATTER(T) \
+#define INSTANTIATE_MACRO(T) \
     template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotScatterFlags flags, int offset, int stride); \
     template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_SCATTER);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 // custom
 void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotScatterFlags flags) {
@@ -1717,10 +1727,11 @@ void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, ImPlo
     return PlotStairsEx(label_id, getter, flags);
 }
 
-#define INSTANTIATE_PLOT_STAIRS(T) \
+#define INSTANTIATE_MACRO(T) \
     template IMPLOT_API void PlotStairs<T> (const char* label_id, const T* values, int count, double xscale, double x0, ImPlotStairsFlags flags, int offset, int stride); \
     template IMPLOT_API void PlotStairs<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotStairsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_STAIRS);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 // custom
 void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotStairsFlags flags) {
@@ -1774,11 +1785,12 @@ void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, i
     PlotShadedEx(label_id, getter1, getter2, flags);
 }
 
-#define INSTANTIATE_PLOT_SHADED(T) \
+#define INSTANTIATE_MACRO(T) \
     template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, ImPlotShadedFlags flags, int offset, int stride); \
     template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys, int count, double y_ref, ImPlotShadedFlags flags, int offset, int stride); \
     template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, ImPlotShadedFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_SHADED);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 // custom
 void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, ImPlotGetter getter_func2, void* data2, int count, ImPlotShadedFlags flags) {
@@ -1859,10 +1871,11 @@ void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double 
     }
 }
 
-#define INSTANTIATE_PLOT_BARS(T) \
+#define INSTANTIATE_MACRO(T) \
     template IMPLOT_API void PlotBars<T>(const char* label_id, const T* values, int count, double bar_size, double shift, ImPlotBarsFlags flags, int offset, int stride); \
     template IMPLOT_API void PlotBars<T>(const char* label_id, const T* xs, const T* ys, int count, double bar_size, ImPlotBarsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_BARS);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, double bar_size, ImPlotBarsFlags flags) {
     if (ImHasFlag(flags, ImPlotBarsFlags_Horizontal)) {
@@ -1957,8 +1970,9 @@ void PlotBarGroups(const char* const label_ids[], const T* values, int item_coun
     }
 }
 
-#define INSTANTIATE_PLOT_BAR_GROUPS(T) template IMPLOT_API void PlotBarGroups<T>(const char* const label_ids[], const T* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_BAR_GROUPS);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotBarGroups<T>(const char* const label_ids[], const T* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotErrorBars
@@ -2034,10 +2048,11 @@ void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* neg,
     }
 }
 
-#define INSTANTIATE_PLOT_ERROR_BARS(T) \
+#define INSTANTIATE_MACRO(T) \
     template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* err, int count, ImPlotErrorBarsFlags flags, int offset, int stride); \
     template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, ImPlotErrorBarsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_ERROR_BARS);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotStems
@@ -2092,10 +2107,11 @@ void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double
     }
 }
 
-#define INSTANTIATE_PLOT_STEMS(T) \
+#define INSTANTIATE_MACRO(T) \
     template IMPLOT_API void PlotStems<T>(const char* label_id, const T* values, int count, double ref, double scale, double start, ImPlotStemsFlags flags, int offset, int stride); \
     template IMPLOT_API void PlotStems<T>(const char* label_id, const T* xs, const T* ys, int count, double ref, ImPlotStemsFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_STEMS);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 
 //-----------------------------------------------------------------------------
@@ -2128,8 +2144,9 @@ void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLin
         }
     }
 }
-#define INSTANTIATE_PLOT_INF_LINES(T) template IMPLOT_API void PlotInfLines<T>(const char* label_id, const T* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_INF_LINES);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotInfLines<T>(const char* label_id, const T* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotPieChart
@@ -2204,8 +2221,9 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
     }
     PopPlotClipRect();
 }
-#define INSTANTIATE_PLOT_PIE_CHART(T) template IMPLOT_API void PlotPieChart<T>(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_PIE_CHART);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotPieChart<T>(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotHeatmap
@@ -2360,8 +2378,9 @@ void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, doub
         EndItem();
     }
 }
-#define INSTANTIATE_PLOT_HEATMAP(T) template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_HEATMAP);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotHistogram
@@ -2444,8 +2463,9 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
         PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width);
     return max_count;
 }
-#define INSTANTIATE_PLOT_HISTOGRAM(T) template IMPLOT_API double PlotHistogram<T>(const char* label_id, const T* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_HISTOGRAM);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API double PlotHistogram<T>(const char* label_id, const T* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotHistogram2D
@@ -2520,8 +2540,9 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
     }
     return max_count;
 }
-#define INSTANTIATE_PLOT_HISTOGRAM_2D(T) template IMPLOT_API double PlotHistogram2D<T>(const char* label_id,   const T*   xs, const T*   ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_HISTOGRAM_2D);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API double PlotHistogram2D<T>(const char* label_id,   const T*   xs, const T*   ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotDigital
@@ -2594,8 +2615,9 @@ void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, ImPl
     GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
     return PlotDigitalEx(label_id, getter, flags);
 }
-#define INSTANTIATE_PLOT_DIGITAL(T) template IMPLOT_API void PlotDigital<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotDigitalFlags flags, int offset, int stride);
-INSTANTIATE_FOR_NUMERIC_TYPES(INSTANTIATE_PLOT_DIGITAL);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotDigital<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotDigitalFlags flags, int offset, int stride);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 // custom
 void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotDigitalFlags flags) {
