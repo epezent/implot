@@ -261,7 +261,7 @@ enum ImPlotTimeFmt_ {              // default        [ 24 Hour Clock ]
     ImPlotTimeFmt_SUs,             // :29.428 552    [ :29.428 552  ]
     ImPlotTimeFmt_SMs,             // :29.428        [ :29.428      ]
     ImPlotTimeFmt_S,               // :29            [ :29          ]
-    ImPlotTimeFmt_MinSMs,          // 21:29.428      [ 21:29.428    ]    
+    ImPlotTimeFmt_MinSMs,          // 21:29.428      [ 21:29.428    ]
     ImPlotTimeFmt_HrMinSMs,        // 7:21:29.428pm  [ 19:21:29.428 ]
     ImPlotTimeFmt_HrMinS,          // 7:21:29pm      [ 19:21:29     ]
     ImPlotTimeFmt_HrMin,           // 7:21pm         [ 19:21        ]
@@ -437,6 +437,11 @@ struct ImPlotAnnotation {
     ImU32  ColorFg;
     int    TextOffset;
     bool   Clamp;
+    ImPlotAnnotation() {
+        ColorBg = ColorFg = 0;
+        TextOffset = 0;
+        Clamp = false;
+    }
 };
 
 // Collection of plot labels
@@ -540,6 +545,7 @@ struct ImPlotTick
     int    Idx;
 
     ImPlotTick(double value, bool major, int level, bool show_label) {
+        PixelPos     = 0;
         PlotPos      = value;
         Major        = major;
         ShowLabel    = show_label;
@@ -666,6 +672,7 @@ struct ImPlotAxis
     bool                 Held;
 
     ImPlotAxis() {
+        ID               = 0;
         Flags            = PreviousFlags = ImPlotAxisFlags_None;
         Range.Min        = 0;
         Range.Max        = 1;
@@ -764,7 +771,7 @@ struct ImPlotAxis
 
     inline void SetAspect(double unit_per_pix) {
         double new_size = unit_per_pix * PixelSize();
-        double delta    = (new_size - Range.Size()) * 0.5f;
+        double delta    = (new_size - Range.Size()) * 0.5;
         if (IsLocked())
             return;
         else if (IsLockedMin() && !IsLockedMax())
@@ -793,7 +800,7 @@ struct ImPlotAxis
             Range.Max += delta;
         }
         if (z > ConstraintZoom.Max) {
-            double delta = (z - ConstraintZoom.Max) * 0.5f;
+            double delta = (z - ConstraintZoom.Max) * 0.5;
             Range.Min += delta;
             Range.Max -= delta;
         }
@@ -945,6 +952,7 @@ struct ImPlotItem
 
     ImPlotItem() {
         ID            = 0;
+        Color         = IM_COL32_WHITE;
         NameOffset    = -1;
         Show          = true;
         SeenThisFrame = false;
@@ -986,7 +994,7 @@ struct ImPlotItemGroup
     ImPool<ImPlotItem> ItemPool;
     int                ColormapIdx;
 
-    ImPlotItemGroup() { ColormapIdx = 0; }
+    ImPlotItemGroup() { ID = 0; ColormapIdx = 0; }
 
     int         GetItemCount() const             { return ItemPool.GetBufSize();                                 }
     ImGuiID     GetItemID(const char*  label_id) { return ImGui::GetID(label_id); /* GetIDWithSeed */            }
@@ -1129,12 +1137,16 @@ struct ImPlotSubplot {
     bool                          HasTitle;
 
     ImPlotSubplot() {
-        Rows = Cols = CurrentIdx  = 0;
-        FrameHovered              = false;
-        Items.Legend.Location     = ImPlotLocation_North;
-        Items.Legend.Flags        = ImPlotLegendFlags_Horizontal|ImPlotLegendFlags_Outside;
-        Items.Legend.CanGoInside  = false;
-        HasTitle                  = false;
+        ID                          = 0;
+        Flags = PreviousFlags       = ImPlotSubplotFlags_None;
+        Rows = Cols = CurrentIdx    = 0;
+        FrameHovered                = false;
+        Items.Legend.Location       = ImPlotLocation_North;
+        Items.Legend.Flags          = ImPlotLegendFlags_Horizontal|ImPlotLegendFlags_Outside;
+        Items.Legend.CanGoInside    = false;
+        TempSizes[0] = TempSizes[1] = 0;
+        FrameHovered                = false;
+        HasTitle                    = false;
     }
 };
 
