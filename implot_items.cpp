@@ -81,9 +81,7 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
 //     unsigned long long  ImU64;  // 64-bit unsigned integer
 // (note: this list does *not* include `long`, `unsigned long` and `long double`)
 //
-// You can customize the supported types in two ways:
-// 1. Define IMPLOT_INSTANTIATE_ALL_NUMERIC_TYPES at compile time to add support for all known types.
-// 2. Or, define IMPLOT_CUSTOM_NUMERIC_TYPES at compile time to define your own type list. 
+// You can customize the supported types by defining IMPLOT_CUSTOM_NUMERIC_TYPES at compile time to define your own type list. 
 //    As an example, you could use the compile time define given by the line below in order to support only float and double.
 //        -DIMPLOT_CUSTOM_NUMERIC_TYPES="(float)(double)"
 //    In order to support all known C++ types, use:
