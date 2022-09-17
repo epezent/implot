@@ -2162,7 +2162,7 @@ void SetupAxisTicks(ImAxis idx, const double* values, int n_ticks, const char* c
 void SetupAxisTicks(ImAxis idx, double v_min, double v_max, int n_ticks, const char* const labels[], bool show_default) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL && !GImPlot->CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
-    n_ticks = ImClamp(n_ticks, 2, n_ticks);
+    n_ticks = n_ticks < 2 ? 2 : n_ticks;
     FillRange(GImPlot->TempDouble1, n_ticks, v_min, v_max);
     SetupAxisTicks(idx, GImPlot->TempDouble1.Data, n_ticks, labels, show_default);
 }
