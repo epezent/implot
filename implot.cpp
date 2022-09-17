@@ -580,8 +580,8 @@ ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& s
     return legend_size;
 }
 
-int LegendSortingComp(void* _items, const void* _a, const void* _b) {
-    ImPlotItemGroup* items = (ImPlotItemGroup*)_items;
+int LegendSortingComp(const void* _a, const void* _b) {
+    ImPlotItemGroup* items = GImPlot->SortItems;
     const int a = *(const int*)_a;
     const int b = *(const int*)_b;
     const char* label_a = items->GetLegendLabel(a);
@@ -608,8 +608,10 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
     indices.resize(num_items);
     for (int i = 0; i < num_items; ++i)
         indices[i] = i;
-    if (ImHasFlag(items.Legend.Flags, ImPlotLegendFlags_Sort) && num_items > 1)
-        qsort_s(indices.Data, num_items, sizeof(int), LegendSortingComp, &items);
+    if (ImHasFlag(items.Legend.Flags, ImPlotLegendFlags_Sort) && num_items > 1) {
+        GImPlot->SortItems = &items;
+        qsort(indices.Data, num_items, sizeof(int), LegendSortingComp);
+    }
     // render
     for (int i = 0; i < num_items; ++i) {
         const int idx           = indices[i];
