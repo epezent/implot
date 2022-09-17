@@ -1244,6 +1244,7 @@ struct ImPlotContext {
     ImPlotInputMap     InputMap;
     bool               OpenContextThisFrame;
     ImGuiTextBuffer    MousePosStringBuilder;
+    ImPlotItemGroup*   SortItems;
 
     // Align plots
     ImPool<ImPlotAlignmentData> AlignmentData;

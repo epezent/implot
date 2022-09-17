@@ -1361,31 +1361,35 @@ void Demo_SubplotAxisLinking() {
 
 void Demo_LegendOptions() {
     static ImPlotLocation loc = ImPlotLocation_East;
-    static bool h = false; static bool o = true;
     ImGui::CheckboxFlags("North", (unsigned int*)&loc, ImPlotLocation_North); ImGui::SameLine();
     ImGui::CheckboxFlags("South", (unsigned int*)&loc, ImPlotLocation_South); ImGui::SameLine();
     ImGui::CheckboxFlags("West",  (unsigned int*)&loc, ImPlotLocation_West);  ImGui::SameLine();
-    ImGui::CheckboxFlags("East",  (unsigned int*)&loc, ImPlotLocation_East);  ImGui::SameLine();
-    ImGui::Checkbox("Horizontal##2", &h); ImGui::SameLine();
-    ImGui::Checkbox("Outside", &o);
+    ImGui::CheckboxFlags("East",  (unsigned int*)&loc, ImPlotLocation_East);
+
+    static ImPlotLegendFlags flags = 0;
+
+    CHECKBOX_FLAG(flags, ImPlotLegendFlags_Horizontal);
+    CHECKBOX_FLAG(flags, ImPlotLegendFlags_Outside);
+    CHECKBOX_FLAG(flags, ImPlotLegendFlags_Sort);
 
     ImGui::SliderFloat2("LegendPadding", (float*)&GetStyle().LegendPadding, 0.0f, 20.0f, "%.0f");
     ImGui::SliderFloat2("LegendInnerPadding", (float*)&GetStyle().LegendInnerPadding, 0.0f, 10.0f, "%.0f");
     ImGui::SliderFloat2("LegendSpacing", (float*)&GetStyle().LegendSpacing, 0.0f, 5.0f, "%.0f");
 
     if (ImPlot::BeginPlot("##Legend",ImVec2(-1,0))) {
-        ImPlotLegendFlags flags = ImPlotLegendFlags_None;
-        if (h) flags |= ImPlotLegendFlags_Horizontal;
-        if (o) flags |= ImPlotLegendFlags_Outside;
         ImPlot::SetupLegend(loc, flags);
-        static MyImPlot::WaveData data1(0.001, 0.2, 2, 0.75);
-        static MyImPlot::WaveData data2(0.001, 0.2, 4, 0.25);
-        static MyImPlot::WaveData data3(0.001, 0.2, 6, 0.5);
-        ImPlot::PlotLineG("Item 1", MyImPlot::SineWave, &data1, 1000);         // "Item 1" added to legend
-        ImPlot::PlotLineG("Item 2##IDText", MyImPlot::SawWave, &data2, 1000);  // "Item 2" added to legend, text after ## used for ID only
+        static MyImPlot::WaveData data1(0.001, 0.2, 4, 0.2);
+        static MyImPlot::WaveData data2(0.001, 0.2, 4, 0.4);
+        static MyImPlot::WaveData data3(0.001, 0.2, 4, 0.6);
+        static MyImPlot::WaveData data4(0.001, 0.2, 4, 0.8);
+        static MyImPlot::WaveData data5(0.001, 0.2, 4, 1.0);
+
+        ImPlot::PlotLineG("Item B", MyImPlot::SawWave, &data1, 1000);         // "Item B" added to legend
+        ImPlot::PlotLineG("Item A##IDText", MyImPlot::SawWave, &data2, 1000);  // "Item A" added to legend, text after ## used for ID only
         ImPlot::PlotLineG("##NotListed", MyImPlot::SawWave, &data3, 1000);     // plotted, but not added to legend
-        ImPlot::PlotLineG("Item 3", MyImPlot::SineWave, &data1, 1000);         // "Item 3" added to legend
-        ImPlot::PlotLineG("Item 3", MyImPlot::SawWave,  &data2, 1000);         // combined with previous "Item 3"
+        ImPlot::PlotLineG("Item C", MyImPlot::SawWave, &data4, 1000);         // "Item C" added to legend
+        ImPlot::PlotLineG("Item C", MyImPlot::SawWave,  &data5, 1000);         // combined with previous "Item C"
+
         ImPlot::EndPlot();
     }
 }

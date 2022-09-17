@@ -191,6 +191,7 @@ enum ImPlotLegendFlags_ {
     ImPlotLegendFlags_NoMenus         = 1 << 3, // the user will not be able to open context menus with right-click
     ImPlotLegendFlags_Outside         = 1 << 4, // legend will be rendered outside of the plot area
     ImPlotLegendFlags_Horizontal      = 1 << 5, // legend entries will be displayed horizontally
+    ImPlotLegendFlags_Sort            = 1 << 6, // legend entries will be displayed in alphabetical order
 };
 
 // Options for mouse hover text (see SetupMouseText)
