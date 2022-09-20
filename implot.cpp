@@ -4235,7 +4235,7 @@ ImPlotStyle& GetStyle() {
 void PushStyleColor(ImPlotCol idx, ImU32 col) {
     ImPlotContext& gp = *GImPlot;
     ImGuiColorMod backup;
-    backup.Col = idx;
+    backup.Col = (ImGuiCol)idx;
     backup.BackupValue = gp.Style.Colors[idx];
     gp.ColorModifiers.push_back(backup);
     gp.Style.Colors[idx] = ImGui::ColorConvertU32ToFloat4(col);
@@ -4244,7 +4244,7 @@ void PushStyleColor(ImPlotCol idx, ImU32 col) {
 void PushStyleColor(ImPlotCol idx, const ImVec4& col) {
     ImPlotContext& gp = *GImPlot;
     ImGuiColorMod backup;
-    backup.Col = idx;
+    backup.Col = (ImGuiCol)idx;
     backup.BackupValue = gp.Style.Colors[idx];
     gp.ColorModifiers.push_back(backup);
     gp.Style.Colors[idx] = col;
@@ -4267,7 +4267,7 @@ void PushStyleVar(ImPlotStyleVar idx, float val) {
     const ImPlotStyleVarInfo* var_info = GetPlotStyleVarInfo(idx);
     if (var_info->Type == ImGuiDataType_Float && var_info->Count == 1) {
         float* pvar = (float*)var_info->GetVarPtr(&gp.Style);
-        gp.StyleModifiers.push_back(ImGuiStyleMod(idx, *pvar));
+        gp.StyleModifiers.push_back(ImGuiStyleMod((ImGuiStyleVar)idx, *pvar));
         *pvar = val;
         return;
     }
@@ -4279,27 +4279,27 @@ void PushStyleVar(ImPlotStyleVar idx, int val) {
     const ImPlotStyleVarInfo* var_info = GetPlotStyleVarInfo(idx);
     if (var_info->Type == ImGuiDataType_S32 && var_info->Count == 1) {
         int* pvar = (int*)var_info->GetVarPtr(&gp.Style);
-        gp.StyleModifiers.push_back(ImGuiStyleMod(idx, *pvar));
+        gp.StyleModifiers.push_back(ImGuiStyleMod((ImGuiStyleVar)idx, *pvar));
         *pvar = val;
         return;
     }
     else if (var_info->Type == ImGuiDataType_Float && var_info->Count == 1) {
         float* pvar = (float*)var_info->GetVarPtr(&gp.Style);
-        gp.StyleModifiers.push_back(ImGuiStyleMod(idx, *pvar));
+        gp.StyleModifiers.push_back(ImGuiStyleMod((ImGuiStyleVar)idx, *pvar));
         *pvar = (float)val;
         return;
     }
     IM_ASSERT(0 && "Called PushStyleVar() int variant but variable is not a int!");
 }
 
-void PushStyleVar(ImGuiStyleVar idx, const ImVec2& val)
+void PushStyleVar(ImPlotStyleVar idx, const ImVec2& val)
 {
     ImPlotContext& gp = *GImPlot;
     const ImPlotStyleVarInfo* var_info = GetPlotStyleVarInfo(idx);
     if (var_info->Type == ImGuiDataType_Float && var_info->Count == 2)
     {
         ImVec2* pvar = (ImVec2*)var_info->GetVarPtr(&gp.Style);
-        gp.StyleModifiers.push_back(ImGuiStyleMod(idx, *pvar));
+        gp.StyleModifiers.push_back(ImGuiStyleMod((ImGuiStyleVar)idx, *pvar));
         *pvar = val;
         return;
     }
