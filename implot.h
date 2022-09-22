@@ -543,28 +543,34 @@ struct ImPlotStyle {
     IMPLOT_API ImPlotStyle();
 };
 
+// Support for legacy versions
 #if (IMGUI_VERSION_NUM < 18716) // Renamed in 1.88
-#define ImGuiModFlags       ImGuiKeyModFlags
-#define ImGuiModFlags_None  ImGuiKeyModFlags_None
-#define ImGuiModFlags_Ctrl  ImGuiKeyModFlags_Ctrl
-#define ImGuiModFlags_Shift ImGuiKeyModFlags_Shift
-#define ImGuiModFlags_Alt   ImGuiKeyModFlags_Alt
-#define ImGuiModFlags_Super ImGuiKeyModFlags_Super
+#define ImGuiMod_None       0
+#define ImGuiMod_Ctrl       ImGuiKeyModFlags_Ctrl
+#define ImGuiMod_Shift      ImGuiKeyModFlags_Shift
+#define ImGuiMod_Alt        ImGuiKeyModFlags_Alt
+#define ImGuiMod_Super      ImGuiKeyModFlags_Super
+#elif (IMGUI_VERSION_NUM < 18823) // Renamed in 1.89, sorry
+#define ImGuiMod_None       0
+#define ImGuiMod_Ctrl       ImGuiModFlags_Ctrl
+#define ImGuiMod_Shift      ImGuiModFlags_Shift
+#define ImGuiMod_Alt        ImGuiModFlags_Alt
+#define ImGuiMod_Super      ImGuiModFlags_Super
 #endif
 
 // Input mapping structure. Default values listed. See also MapInputDefault, MapInputReverse.
 struct ImPlotInputMap {
     ImGuiMouseButton Pan;           // LMB    enables panning when held,
-    ImGuiModFlags    PanMod;        // none   optional modifier that must be held for panning/fitting
+    int              PanMod;        // none   optional modifier that must be held for panning/fitting
     ImGuiMouseButton Fit;           // LMB    initiates fit when double clicked
     ImGuiMouseButton Select;        // RMB    begins box selection when pressed and confirms selection when released
     ImGuiMouseButton SelectCancel;  // LMB    cancels active box selection when pressed; cannot be same as Select
-    ImGuiModFlags    SelectMod;     // none   optional modifier that must be held for box selection
-    ImGuiModFlags    SelectHorzMod; // Alt    expands active box selection horizontally to plot edge when held
-    ImGuiModFlags    SelectVertMod; // Shift  expands active box selection vertically to plot edge when held
+    int              SelectMod;     // none   optional modifier that must be held for box selection
+    int              SelectHorzMod; // Alt    expands active box selection horizontally to plot edge when held
+    int              SelectVertMod; // Shift  expands active box selection vertically to plot edge when held
     ImGuiMouseButton Menu;          // RMB    opens context menus (if enabled) when clicked
-    ImGuiModFlags    OverrideMod;   // Ctrl   when held, all input is ignored; used to enable axis/plots as DND sources
-    ImGuiModFlags    ZoomMod;       // none   optional modifier that must be held for scroll wheel zooming
+    int              OverrideMod;   // Ctrl   when held, all input is ignored; used to enable axis/plots as DND sources
+    int              ZoomMod;       // none   optional modifier that must be held for scroll wheel zooming
     float            ZoomRate;      // 0.1f   zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click); make negative to invert
     IMPLOT_API ImPlotInputMap();
 };
@@ -1023,7 +1029,7 @@ IMPLOT_API bool BeginDragDropTargetLegend();
 IMPLOT_API void EndDragDropTarget();
 
 // NB: By default, plot and axes drag and drop *sources* require holding the Ctrl modifier to initiate the drag.
-// You can change the modifier if desired. If ImGuiModFlags_None is provided, the axes will be locked from panning.
+// You can change the modifier if desired. If ImGuiMod_None is provided, the axes will be locked from panning.
 
 // Turns the current plot's plotting area into a drag and drop source. You must hold Ctrl. Don't forget to call EndDragDropSource!
 IMPLOT_API bool BeginDragDropSourcePlot(ImGuiDragDropFlags flags=0);
