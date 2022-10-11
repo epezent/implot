@@ -2210,18 +2210,20 @@ void PlotPieChartEx(const char* const label_ids[], const T* values, int count, I
         ImPlotItem* item = GetItem(label_ids[i]);
 
         const double percent = normalize ? (double)values[i] / sum : (double)values[i];
-        const bool skip      = ignore_hidden && item != NULL && !item->Show;
+        const bool skip      = sum <= 0.0 || (ignore_hidden && item != NULL && !item->Show);
         if (!skip)
             a1 = a0 + 2 * IM_PI * percent;
 
         if (BeginItemEx(label_ids[i], FitterRect(Pmin, Pmax))) {
-            ImU32 col = GetCurrentItem()->Color;
-            if (percent < 0.5) {
-                RenderPieSlice(draw_list, center, radius, a0, a1, col);
-            }
-            else {
-                RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col);
-                RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col);
+            if (sum > 0.0) {
+                ImU32 col = GetCurrentItem()->Color;
+                if (percent < 0.5) {
+                    RenderPieSlice(draw_list, center, radius, a0, a1, col);
+                }
+                else {
+                    RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col);
+                    RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col);
+                }
             }
             EndItem();
         }
@@ -2250,10 +2252,10 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
             ImPlotItem* item = GetItem(label_ids[i]);
             IM_ASSERT(item != NULL);
 
-            const double percent = normalize ? (double)values[i] / sum : (double)values[i];
-            const bool skip = ignore_hidden && item != NULL && !item->Show;
-
+            const bool skip = sum <= 0.0 || (ignore_hidden && item != NULL && !item->Show);
             if (!skip) {
+                const double percent = normalize ? (double)values[i] / sum : (double)values[i];
+
                 a1 = a0 + 2 * IM_PI * percent;
                 if (item->Show) {
                     ImFormatString(buffer, 32, fmt, (double)values[i]);
