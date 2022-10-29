@@ -2853,9 +2853,15 @@ void EndPlot() {
                     min_len = len;
                 }
             }
-            DrawList.AddLine(an.Pos, corners[min_corner], an.ColorBg);
+            if (an.ColorBg == 0)
+              DrawList.AddLine(an.Pos, corners[min_corner], an.ColorFg * .8);
+            else
+              DrawList.AddLine(an.Pos, corners[min_corner], an.ColorBg);
         }
-        DrawList.AddRectFilled(rect.Min, rect.Max, an.ColorBg);
+        if (an.ColorBg == 0)
+          DrawList.AddRect(rect.Min, rect.Max, an.ColorFg * .6);
+        else
+          DrawList.AddRectFilled(rect.Min, rect.Max, an.ColorBg);
         DrawList.AddText(pos + gp.Style.AnnotationPadding, an.ColorFg, txt);
     }
 
