@@ -1117,6 +1117,8 @@ IMPLOT_API void SetNextFillStyle(const ImVec4& col = IMPLOT_AUTO_COL, float alph
 IMPLOT_API void SetNextMarkerStyle(ImPlotMarker marker = IMPLOT_AUTO, float size = IMPLOT_AUTO, const ImVec4& fill = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO, const ImVec4& outline = IMPLOT_AUTO_COL);
 // Set the error bar style for the next item only.
 IMPLOT_API void SetNextErrorBarStyle(const ImVec4& col = IMPLOT_AUTO_COL, float size = IMPLOT_AUTO, float weight = IMPLOT_AUTO);
+// Set color buffer for the next item only. The colors array must be keep alive until the next item plot.
+IMPLOT_API void SetNextColorsData(ImPlotCol_ target, ImU32* const& colors, int stride = sizeof(ImU32));
 
 // Gets the last item primary color (i.e. its legend icon color)
 IMPLOT_API ImVec4 GetLastItemColor();

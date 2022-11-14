@@ -1175,6 +1175,8 @@ struct ImPlotNextPlotData
 // Temporary data storage for upcoming item
 struct ImPlotNextItemData {
     ImVec4          Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
+    ImU32 const* ColorsData[5];
+    int          ColorsDataStride[5];
     float           LineWeight;
     ImPlotMarker    Marker;
     float           MarkerSize;
@@ -1194,7 +1196,10 @@ struct ImPlotNextItemData {
     ImPlotNextItemData() { Reset(); }
     void Reset() {
         for (int i = 0; i < 5; ++i)
+        {
             Colors[i] = IMPLOT_AUTO_COL;
+            ColorsData[i] = nullptr;
+        }
         LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker        = IMPLOT_AUTO;
         HasHidden     = Hidden = false;
