@@ -1878,7 +1878,7 @@ void Demo_OffsetAndStride() {
     ImGui::SliderInt("Offset", &offset, -2*k_points_per, 2*k_points_per);
     if (ImPlot::BeginPlot("##strideoffset",ImVec2(-1,0),ImPlotFlags_Equal)) {
         ImPlot::PushColormap(ImPlotColormap_Jet);
-        char buff[16];
+        char buff[32];
         for (int c = 0; c < k_circles; ++c) {
             snprintf(buff, sizeof(buff), "Circle %d", c);
             ImPlot::PlotLine(buff, &interleaved_data[c*2 + 0], &interleaved_data[c*2 + 1], k_points_per, 0, offset, 2*k_circles*sizeof(double));
