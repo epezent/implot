@@ -2656,7 +2656,7 @@ void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, 
         ImVec2 siz = CalcTextSizeVertical(text) * 0.5f;
         ImVec2 ctr = siz * 0.5f;
         ImVec2 pos = PlotToPixels(ImPlotPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) + ImVec2(-ctr.x, ctr.y) + pixel_offset;
-        if (FitThisFrame()) {
+        if (FitThisFrame() && !ImHasFlag(flags, ImPlotItemFlags_NoFit)) {
             FitPoint(PixelsToPlot(pos));
             FitPoint(PixelsToPlot(pos.x + siz.x, pos.y - siz.y));
         }
@@ -2665,7 +2665,7 @@ void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, 
     else {
         ImVec2 siz = ImGui::CalcTextSize(text);
         ImVec2 pos = PlotToPixels(ImPlotPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) - siz * 0.5f + pixel_offset;
-        if (FitThisFrame()) {
+        if (FitThisFrame() && !ImHasFlag(flags, ImPlotItemFlags_NoFit)) {
             FitPoint(PixelsToPlot(pos));
             FitPoint(PixelsToPlot(pos+siz));
         }
