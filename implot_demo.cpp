@@ -837,13 +837,13 @@ void Demo_DigitalPlots() {
         ImPlot::SetupAxisLimits(ImAxis_Y1, -1, 1);
         for (int i = 0; i < 2; ++i) {
             if (showDigital[i] && dataDigital[i].Data.size() > 0) {
-                sprintf(label, "digital_%d", i);
+                snprintf(label, sizeof(label), "digital_%d", i);
                 ImPlot::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), 0, dataDigital[i].Offset, 2 * sizeof(float));
             }
         }
         for (int i = 0; i < 2; ++i) {
             if (showAnalog[i]) {
-                sprintf(label, "analog_%d", i);
+                snprintf(label, sizeof(label), "analog_%d", i);
                 if (dataAnalog[i].Data.size() > 0)
                     ImPlot::PlotLine(label, &dataAnalog[i].Data[0].x, &dataAnalog[i].Data[0].y, dataAnalog[i].Data.size(), 0, dataAnalog[i].Offset, 2 * sizeof(float));
             }
@@ -1310,7 +1310,7 @@ void Demo_SubplotItemSharing() {
                     if (id[j] == i) {
                         char label[8];
                         float fj = 0.01f * (j+2);
-                        sprintf(label, "data%d", j);
+                        snprintf(label, sizeof(label), "data%d", j);
                         ImPlot::PlotLineG(label,SinewaveGetter,&fj,1000);
                         if (ImPlot::BeginDragDropSourceItem(label)) {
                             curj = j;
@@ -1665,7 +1665,7 @@ void Demo_DragAndDrop() {
             Idx = i++;
             Plt = 0;
             Yax = ImAxis_Y1;
-            sprintf(Label, "%02d Hz", Idx+1);
+            snprintf(Label, sizeof(Label), "%02d Hz", Idx+1);
             Color = RandomColor();
             Data.reserve(1001);
             for (int k = 0; k < 1001; ++k) {
@@ -1878,9 +1878,9 @@ void Demo_OffsetAndStride() {
     ImGui::SliderInt("Offset", &offset, -2*k_points_per, 2*k_points_per);
     if (ImPlot::BeginPlot("##strideoffset",ImVec2(-1,0),ImPlotFlags_Equal)) {
         ImPlot::PushColormap(ImPlotColormap_Jet);
-        char buff[16];
+        char buff[32];
         for (int c = 0; c < k_circles; ++c) {
-            sprintf(buff, "Circle %d", c);
+            snprintf(buff, sizeof(buff), "Circle %d", c);
             ImPlot::PlotLine(buff, &interleaved_data[c*2 + 0], &interleaved_data[c*2 + 1], k_points_per, 0, offset, 2*k_circles*sizeof(double));
         }
         ImPlot::EndPlot();
