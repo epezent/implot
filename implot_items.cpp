@@ -2232,44 +2232,14 @@ void PlotPieChartEx(const char* const label_ids[], const T* values, int count, I
     }
 }
 
+int PieChartFormatter(double value, char* buff, int size, void* data) {
+    const char* fmt = (const char*)data;
+    return snprintf(buff, size, fmt, value);
+};
+
 template <typename T>
 void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags) {
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
-    ImDrawList & draw_list = *GetPlotDrawList();
-
-    const bool ignore_hidden = ImHasFlag(flags, ImPlotPieChartFlags_IgnoreHidden);
-    const double sum = PieChartSum(values, count, ignore_hidden);
-    const bool normalize = ImHasFlag(flags,ImPlotPieChartFlags_Normalize) || sum > 1.0;
-    ImPlotPoint center(x,y);
-
-    PushPlotClipRect();
-    PlotPieChartEx(label_ids, values, count, center, radius, angle0, flags);
-    if (fmt != NULL) {
-        double a0 = angle0 * 2 * IM_PI / 360.0;
-        double a1 = angle0 * 2 * IM_PI / 360.0;
-        char buffer[32];
-        for (int i = 0; i < count; ++i) {
-            ImPlotItem* item = GetItem(label_ids[i]);
-            IM_ASSERT(item != NULL);
-
-            const bool skip = sum <= 0.0 || (ignore_hidden && item != NULL && !item->Show);
-            if (!skip) {
-                const double percent = normalize ? (double)values[i] / sum : (double)values[i];
-
-                a1 = a0 + 2 * IM_PI * percent;
-                if (item->Show) {
-                    ImFormatString(buffer, 32, fmt, (double)values[i]);
-                    ImVec2 size = ImGui::CalcTextSize(buffer);
-                    double angle = a0 + (a1 - a0) * 0.5;
-                    ImVec2 pos = PlotToPixels(center.x + 0.5 * radius * cos(angle), center.y + 0.5 * radius * sin(angle),IMPLOT_AUTO,IMPLOT_AUTO);
-                    ImU32 col  = CalcTextColor(ImGui::ColorConvertU32ToFloat4(item->Color));
-                    draw_list.AddText(pos - size * 0.5f, col, buffer);
-                }
-                a0 = a1;
-            }
-        }
-    }
-    PopPlotClipRect();
+    PlotPieChart<T>(label_ids, values, count, x, y, radius, PieChartFormatter, (void*)fmt, angle0, flags);
 }
 #define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotPieChart<T>(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
