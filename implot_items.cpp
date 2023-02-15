@@ -22,6 +22,7 @@
 
 // ImPlot v0.14
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "implot.h"
 #include "implot_internal.h"
 
@@ -81,7 +82,7 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
 //     unsigned long long  ImU64;  // 64-bit unsigned integer
 // (note: this list does *not* include `long`, `unsigned long` and `long double`)
 //
-// You can customize the supported types by defining IMPLOT_CUSTOM_NUMERIC_TYPES at compile time to define your own type list. 
+// You can customize the supported types by defining IMPLOT_CUSTOM_NUMERIC_TYPES at compile time to define your own type list.
 //    As an example, you could use the compile time define given by the line below in order to support only float and double.
 //        -DIMPLOT_CUSTOM_NUMERIC_TYPES="(float)(double)"
 //    In order to support all known C++ types, use:
