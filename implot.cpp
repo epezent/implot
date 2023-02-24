@@ -1910,8 +1910,7 @@ bool UpdateInput(ImPlotPlot& plot) {
                 if (IO.MouseDelta.x != 0 && !x_axis.IsPanLocked(increasing)) {
                     const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - IO.MouseDelta.x);
                     const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x - IO.MouseDelta.x);
-                    x_axis.SetMin(x_axis.IsInverted() ? plot_r : plot_l);
-                    x_axis.SetMax(x_axis.IsInverted() ? plot_l : plot_r);
+		            x_axis.SetRange(x_axis.IsInverted() ? plot_r : plot_l, x_axis.IsInverted() ? plot_l : plot_r);
                     if (axis_equal && x_axis.OrthoAxis != NULL)
                         x_axis.OrthoAxis->SetAspect(x_axis.GetAspect());
                     changed = true;
@@ -1926,8 +1925,7 @@ bool UpdateInput(ImPlotPlot& plot) {
                 if (IO.MouseDelta.y != 0 && !y_axis.IsPanLocked(increasing)) {
                     const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - IO.MouseDelta.y);
                     const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y - IO.MouseDelta.y);
-                    y_axis.SetMin(y_axis.IsInverted() ? plot_t : plot_b);
-                    y_axis.SetMax(y_axis.IsInverted() ? plot_b : plot_t);
+		            y_axis.SetRange(y_axis.IsInverted() ? plot_t : plot_b, y_axis.IsInverted() ? plot_b : plot_t);
                     if (axis_equal && y_axis.OrthoAxis != NULL)
                         y_axis.OrthoAxis->SetAspect(y_axis.GetAspect());
                     changed = true;
