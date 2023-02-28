@@ -468,7 +468,7 @@ struct ImPlotPoint {
     double x, y;
     ImPlotPoint()                         { x = y = 0.0;      }
     ImPlotPoint(double _x, double _y)     { x = _x; y = _y;   }
-    ImPlotPoint(const ImVec2& p)          { x = p.x; y = p.y; }
+    ImPlotPoint(const ImVec2& p)          { x = (double)p.x; y = (double)p.y; }
     double  operator[] (size_t idx) const { return (&x)[idx]; }
     double& operator[] (size_t idx)       { return (&x)[idx]; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
