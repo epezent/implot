@@ -2540,7 +2540,7 @@ void SetupFinish() {
     // (3) calc left/right pad
     PadAndDatumAxesY(plot,pad_left,pad_right,gp.CurrentAlignmentV);
 
-    const float plot_width = plot.CanvasRect.GetWidth() - pad_left - pad_right;
+    const float plot_width = ImMax(0.0f, plot.CanvasRect.GetWidth() - pad_left - pad_right);
 
     // (4) get x ticks
     for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
