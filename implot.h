@@ -145,7 +145,7 @@ enum ImPlotFlags_ {
 // Options for plot axes (see SetupAxis).
 enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_None          = 0,       // default
-    ImPlotAxisFlags_NoLabel       = 1 << 0,  // the axis label will not be displayed (axis labels are also hidden if the supplied string name is NULL)
+    ImPlotAxisFlags_NoLabel       = 1 << 0,  // the axis label will not be displayed (axis labels are also hidden if the supplied string name is nullptr)
     ImPlotAxisFlags_NoGridLines   = 1 << 1,  // no grid lines will be displayed
     ImPlotAxisFlags_NoTickMarks   = 1 << 2,  // no tick marks will be displayed
     ImPlotAxisFlags_NoTickLabels  = 1 << 3,  // no text labels will be displayed
@@ -596,9 +596,9 @@ namespace ImPlot {
 
 // Creates a new ImPlot context. Call this after ImGui::CreateContext.
 IMPLOT_API ImPlotContext* CreateContext();
-// Destroys an ImPlot context. Call this before ImGui::DestroyContext. NULL = destroy current context.
-IMPLOT_API void DestroyContext(ImPlotContext* ctx = NULL);
-// Returns the current ImPlot context. NULL if no context has ben set.
+// Destroys an ImPlot context. Call this before ImGui::DestroyContext. nullptr = destroy current context.
+IMPLOT_API void DestroyContext(ImPlotContext* ctx = nullptr);
+// Returns the current ImPlot context. nullptr if no context has ben set.
 IMPLOT_API ImPlotContext* GetCurrentContext();
 // Sets the current ImPlot context.
 IMPLOT_API void SetCurrentContext(ImPlotContext* ctx);
@@ -690,8 +690,8 @@ IMPLOT_API bool BeginSubplots(const char* title_id,
                              int cols,
                              const ImVec2& size,
                              ImPlotSubplotFlags flags = 0,
-                             float* row_ratios        = NULL,
-                             float* col_ratios        = NULL);
+                             float* row_ratios        = nullptr,
+                             float* col_ratios        = nullptr);
 
 // Only call EndSubplots() if BeginSubplots() returns true! Typically called at the end
 // of an if statement conditioned on BeginSublots(). See example above.
@@ -726,24 +726,24 @@ IMPLOT_API void EndSubplots();
 //   call it yourself, then the first subsequent plotting or utility function will
 //   call it for you.
 
-// Enables an axis or sets the label and/or flags for an existing axis. Leave #label = NULL for no label.
-IMPLOT_API void SetupAxis(ImAxis axis, const char* label=NULL, ImPlotAxisFlags flags=0);
+// Enables an axis or sets the label and/or flags for an existing axis. Leave #label = nullptr for no label.
+IMPLOT_API void SetupAxis(ImAxis axis, const char* label=nullptr, ImPlotAxisFlags flags=0);
 // Sets an axis range limits. If ImPlotCond_Always is used, the axes limits will be locked.
 IMPLOT_API void SetupAxisLimits(ImAxis axis, double v_min, double v_max, ImPlotCond cond = ImPlotCond_Once);
-// Links an axis range limits to external values. Set to NULL for no linkage. The pointer data must remain valid until EndPlot.
+// Links an axis range limits to external values. Set to nullptr for no linkage. The pointer data must remain valid until EndPlot.
 IMPLOT_API void SetupAxisLinks(ImAxis axis, double* link_min, double* link_max);
 // Sets the format of numeric axis labels via formater specifier (default="%g"). Formated values will be double (i.e. use %f).
 IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
 // Sets the format of numeric axis labels via formatter callback. Given #value, write a label into #buff. Optionally pass user data.
-IMPLOT_API void SetupAxisFormat(ImAxis axis, ImPlotFormatter formatter, void* data=NULL);
+IMPLOT_API void SetupAxisFormat(ImAxis axis, ImPlotFormatter formatter, void* data=nullptr);
 // Sets an axis' ticks and optionally the labels. To keep the default ticks, set #keep_default=true.
-IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[]=NULL, bool keep_default=false);
+IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, const char* const labels[]=nullptr, bool keep_default=false);
 // Sets an axis' ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
-IMPLOT_API void SetupAxisTicks(ImAxis axis, double v_min, double v_max, int n_ticks, const char* const labels[]=NULL, bool keep_default=false);
+IMPLOT_API void SetupAxisTicks(ImAxis axis, double v_min, double v_max, int n_ticks, const char* const labels[]=nullptr, bool keep_default=false);
 // Sets an axis' scale using built-in options.
 IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotScale scale);
 // Sets an axis' scale using user supplied forward and inverse transfroms.
-IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotTransform forward, ImPlotTransform inverse, void* data=NULL);
+IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotTransform forward, ImPlotTransform inverse, void* data=nullptr);
 // Sets an axis' limits constraints.
 IMPLOT_API void SetupAxisLimitsConstraints(ImAxis axis, double v_min, double v_max);
 // Sets an axis' zoom constraints.
@@ -788,7 +788,7 @@ IMPLOT_API void SetupFinish();
 
 // Sets an upcoming axis range limits. If ImPlotCond_Always is used, the axes limits will be locked.
 IMPLOT_API void SetNextAxisLimits(ImAxis axis, double v_min, double v_max, ImPlotCond cond = ImPlotCond_Once);
-// Links an upcoming axis range limits to external values. Set to NULL for no linkage. The pointer data must remain valid until EndPlot!
+// Links an upcoming axis range limits to external values. Set to nullptr for no linkage. The pointer data must remain valid until EndPlot!
 IMPLOT_API void SetNextAxisLinks(ImAxis axis, double* link_min, double* link_max);
 // Set an upcoming axis to auto fit to its data.
 IMPLOT_API void SetNextAxisToFit(ImAxis axis);
@@ -890,10 +890,10 @@ IMPLOT_TMP void PlotStems(const char* label_id, const T* xs, const T* ys, int co
 // Plots infinite vertical or horizontal lines (e.g. for references or asymptotes).
 IMPLOT_TMP void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLinesFlags flags=0, int offset=0, int stride=sizeof(T));
 
-// Plots a pie chart. Center and radius are in plot units. #label_fmt can be set to NULL for no labels.
+// Plots a pie chart. Center and radius are in plot units. #label_fmt can be set to nullptr for no labels.
 IMPLOT_TMP void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* label_fmt="%.1f", double angle0=90, ImPlotPieChartFlags flags=0);
 
-// Plots a 2D heatmap chart. Values are expected to be in row-major order by default. Leave #scale_min and scale_max both at 0 for automatic color scaling, or set them to a predefined range. #label_fmt can be set to NULL for no labels.
+// Plots a 2D heatmap chart. Values are expected to be in row-major order by default. Leave #scale_min and scale_max both at 0 for automatic color scaling, or set them to a predefined range. #label_fmt can be set to nullptr for no labels.
 IMPLOT_TMP void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min=0, double scale_max=0, const char* label_fmt="%.1f", const ImPlotPoint& bounds_min=ImPlotPoint(0,0), const ImPlotPoint& bounds_max=ImPlotPoint(1,1), ImPlotHeatmapFlags flags=0);
 
 // Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBin_ method. If #range is left unspecified, the min/max of #values will be used as the range.
@@ -1077,13 +1077,13 @@ IMPLOT_API void EndDragDropSource();
 IMPLOT_API ImPlotStyle& GetStyle();
 
 // Style plot colors for current ImGui style (default).
-IMPLOT_API void StyleColorsAuto(ImPlotStyle* dst = NULL);
+IMPLOT_API void StyleColorsAuto(ImPlotStyle* dst = nullptr);
 // Style plot colors for ImGui "Classic".
-IMPLOT_API void StyleColorsClassic(ImPlotStyle* dst = NULL);
+IMPLOT_API void StyleColorsClassic(ImPlotStyle* dst = nullptr);
 // Style plot colors for ImGui "Dark".
-IMPLOT_API void StyleColorsDark(ImPlotStyle* dst = NULL);
+IMPLOT_API void StyleColorsDark(ImPlotStyle* dst = nullptr);
 // Style plot colors for ImGui "Light".
-IMPLOT_API void StyleColorsLight(ImPlotStyle* dst = NULL);
+IMPLOT_API void StyleColorsLight(ImPlotStyle* dst = nullptr);
 
 // Use PushStyleX to temporarily modify your ImPlotStyle. The modification
 // will last until the matching call to PopStyleX. You MUST call a pop for
@@ -1150,7 +1150,7 @@ IMPLOT_API ImPlotColormap AddColormap(const char* name, const ImU32*  cols, int 
 
 // Returns the number of available colormaps (i.e. the built-in + user-added count).
 IMPLOT_API int GetColormapCount();
-// Returns a null terminated string name for a colormap given an index. Returns NULL if index is invalid.
+// Returns a null terminated string name for a colormap given an index. Returns nullptr if index is invalid.
 IMPLOT_API const char* GetColormapName(ImPlotColormap cmap);
 // Returns an index number for a colormap given a valid string name. Returns -1 if name is invalid.
 IMPLOT_API ImPlotColormap GetColormapIndex(const char* name);
@@ -1179,18 +1179,18 @@ IMPLOT_API ImVec4 SampleColormap(float t, ImPlotColormap cmap = IMPLOT_AUTO);
 // Shows a vertical color scale with linear spaced ticks using the specified color map. Use double hashes to hide label (e.g. "##NoLabel"). If scale_min > scale_max, the scale to color mapping will be reversed.
 IMPLOT_API void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0), const char* format = "%g", ImPlotColormapScaleFlags flags = 0, ImPlotColormap cmap = IMPLOT_AUTO);
 // Shows a horizontal slider with a colormap gradient background. Optionally returns the color sampled at t in [0 1].
-IMPLOT_API bool ColormapSlider(const char* label, float* t, ImVec4* out = NULL, const char* format = "", ImPlotColormap cmap = IMPLOT_AUTO);
+IMPLOT_API bool ColormapSlider(const char* label, float* t, ImVec4* out = nullptr, const char* format = "", ImPlotColormap cmap = IMPLOT_AUTO);
 // Shows a button with a colormap gradient brackground.
 IMPLOT_API bool ColormapButton(const char* label, const ImVec2& size = ImVec2(0,0), ImPlotColormap cmap = IMPLOT_AUTO);
 
 // When items in a plot sample their color from a colormap, the color is cached and does not change
 // unless explicitly overriden. Therefore, if you change the colormap after the item has already been plotted,
 // item colors will NOT update. If you need item colors to resample the new colormap, then use this
-// function to bust the cached colors. If #plot_title_id is NULL, then every item in EVERY existing plot
+// function to bust the cached colors. If #plot_title_id is nullptr, then every item in EVERY existing plot
 // will be cache busted. Otherwise only the plot specified by #plot_title_id will be busted. For the
 // latter, this function must be called in the same ImGui ID scope that the plot is in. You should rarely if ever
 // need this function, but it is available for applications that require runtime colormap swaps (e.g. Heatmaps demo).
-IMPLOT_API void BustColorCache(const char* plot_title_id = NULL);
+IMPLOT_API void BustColorCache(const char* plot_title_id = nullptr);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Input Mapping
@@ -1200,9 +1200,9 @@ IMPLOT_API void BustColorCache(const char* plot_title_id = NULL);
 IMPLOT_API ImPlotInputMap& GetInputMap();
 
 // Default input mapping: pan = LMB drag, box select = RMB drag, fit = LMB double click, context menu = RMB click, zoom = scroll.
-IMPLOT_API void MapInputDefault(ImPlotInputMap* dst = NULL);
+IMPLOT_API void MapInputDefault(ImPlotInputMap* dst = nullptr);
 // Reverse input mapping: pan = RMB drag, box select = LMB drag, fit = LMB double click, context menu = RMB click, zoom = scroll.
-IMPLOT_API void MapInputReverse(ImPlotInputMap* dst = NULL);
+IMPLOT_API void MapInputReverse(ImPlotInputMap* dst = nullptr);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Miscellaneous
@@ -1227,18 +1227,18 @@ IMPLOT_API bool ShowColormapSelector(const char* label);
 // Shows ImPlot input map selector dropdown menu.
 IMPLOT_API bool ShowInputMapSelector(const char* label);
 // Shows ImPlot style editor block (not a window).
-IMPLOT_API void ShowStyleEditor(ImPlotStyle* ref = NULL);
+IMPLOT_API void ShowStyleEditor(ImPlotStyle* ref = nullptr);
 // Add basic help/info block for end users (not a window).
 IMPLOT_API void ShowUserGuide();
 // Shows ImPlot metrics/debug information window.
-IMPLOT_API void ShowMetricsWindow(bool* p_popen = NULL);
+IMPLOT_API void ShowMetricsWindow(bool* p_popen = nullptr);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Demo
 //-----------------------------------------------------------------------------
 
 // Shows the ImPlot demo window (add implot_demo.cpp to your sources!)
-IMPLOT_API void ShowDemoWindow(bool* p_open = NULL);
+IMPLOT_API void ShowDemoWindow(bool* p_open = nullptr);
 
 }  // namespace ImPlot
 
@@ -1276,16 +1276,16 @@ namespace ImPlot {
 
 // OBSOLETED in v0.13 -> PLANNED REMOVAL in v1.0
 IMPLOT_DEPRECATED( IMPLOT_API bool BeginPlot(const char* title_id,
-                                             const char* x_label,  // = NULL,
-                                             const char* y_label,  // = NULL,
+                                             const char* x_label,  // = nullptr,
+                                             const char* y_label,  // = nullptr,
                                              const ImVec2& size       = ImVec2(-1,0),
                                              ImPlotFlags flags        = ImPlotFlags_None,
                                              ImPlotAxisFlags x_flags  = 0,
                                              ImPlotAxisFlags y_flags  = 0,
                                              ImPlotAxisFlags y2_flags = ImPlotAxisFlags_AuxDefault,
                                              ImPlotAxisFlags y3_flags = ImPlotAxisFlags_AuxDefault,
-                                             const char* y2_label     = NULL,
-                                             const char* y3_label     = NULL) );
+                                             const char* y2_label     = nullptr,
+                                             const char* y3_label     = nullptr) );
 
 } // namespace ImPlot
 
