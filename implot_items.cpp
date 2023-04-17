@@ -285,15 +285,15 @@ ImPlotItem* RegisterOrGetItem(const char* label_id, ImPlotItemFlags flags, bool*
     ImPlotContext& gp = *GImPlot;
     ImPlotItemGroup& Items = *gp.CurrentItems;
     ImGuiID id = Items.GetItemID(label_id);
-    if (just_created != NULL)
-        *just_created = Items.GetItem(id) == NULL;
+    if (just_created != nullptr)
+        *just_created = Items.GetItem(id) == nullptr;
     ImPlotItem* item = Items.GetOrAddItem(id);
     if (item->SeenThisFrame)
         return item;
     item->SeenThisFrame = true;
     int idx = Items.GetItemIndex(item);
     item->ID = id;
-    if (!ImHasFlag(flags, ImPlotItemFlags_NoLegend) && ImGui::FindRenderedTextEnd(label_id, NULL) != label_id) {
+    if (!ImHasFlag(flags, ImPlotItemFlags_NoLegend) && ImGui::FindRenderedTextEnd(label_id, nullptr) != label_id) {
         Items.Legend.Indices.push_back(idx);
         item->NameOffset = Items.Legend.Labels.size();
         Items.Legend.Labels.append(label_id, label_id + strlen(label_id) + 1);
@@ -311,7 +311,7 @@ ImPlotItem* GetItem(const char* label_id) {
 
 bool IsItemHidden(const char* label_id) {
     ImPlotItem* item = GetItem(label_id);
-    return item != NULL && !item->Show;
+    return item != nullptr && !item->Show;
 }
 
 ImPlotItem* GetCurrentItem() {
@@ -368,17 +368,17 @@ void BustItemCache() {
 
 void BustColorCache(const char* plot_title_id) {
     ImPlotContext& gp = *GImPlot;
-    if (plot_title_id == NULL) {
+    if (plot_title_id == nullptr) {
         BustItemCache();
     }
     else {
         ImGuiID id = ImGui::GetCurrentWindow()->GetID(plot_title_id);
         ImPlotPlot* plot = gp.Plots.GetByKey(id);
-        if (plot != NULL)
+        if (plot != nullptr)
             plot->Items.Reset();
         else {
             ImPlotSubplot* subplot = gp.Subplots.GetByKey(id);
-            if (subplot != NULL)
+            if (subplot != nullptr)
                 subplot->Items.Reset();
         }
     }
@@ -394,7 +394,7 @@ static const float ITEM_HIGHLIGHT_MARK_SCALE = 1.25f;
 // Begins a new item. Returns false if the item should not be plotted.
 bool BeginItem(const char* label_id, ImPlotItemFlags flags, ImPlotCol recolor_from) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != NULL, "PlotX() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "PlotX() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     bool just_created;
     ImPlotItem* item = RegisterOrGetItem(label_id, flags, &just_created);
@@ -422,7 +422,7 @@ bool BeginItem(const char* label_id, ImPlotItemFlags flags, ImPlotCol recolor_fr
         // reset next item data
         gp.NextItemData.Reset();
         gp.PreviousItem = item;
-        gp.CurrentItem  = NULL;
+        gp.CurrentItem  = nullptr;
         return false;
     }
     else {
@@ -481,7 +481,7 @@ void EndItem() {
     gp.NextItemData.Reset();
     // set current item
     gp.PreviousItem = gp.CurrentItem;
-    gp.CurrentItem  = NULL;
+    gp.CurrentItem  = nullptr;
 }
 
 //-----------------------------------------------------------------------------
@@ -785,7 +785,7 @@ struct Transformer1 {
     { }
 
     template <typename T> IMPLOT_INLINE float operator()(T p) const {
-        if (TransformFwd != NULL) {
+        if (TransformFwd != nullptr) {
             double s = TransformFwd(p, TransformData);
             double t = (s - ScaMin) / (ScaMax - ScaMin);
             p = PltMin + (PltMax - PltMin) * t;
@@ -2172,7 +2172,7 @@ IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& cent
 
 template <typename T>
 void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags) {
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != nullptr, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList & draw_list = *GetPlotDrawList();
     double sum = 0;
     for (int i = 0; i < count; ++i)
@@ -2200,7 +2200,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
         }
         a0 = a1;
     }
-    if (fmt != NULL) {
+    if (fmt != nullptr) {
         a0 = angle0 * 2 * IM_PI / 360.0;
         a1 = angle0 * 2 * IM_PI / 360.0;
         char buffer[32];
@@ -2325,7 +2325,7 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
         RenderPrimitives1<RendererRectC>(getter);
     }
     // labels
-    if (fmt != NULL) {
+    if (fmt != nullptr) {
         const double w = (bounds_max.x - bounds_min.x) / cols;
         const double h = (bounds_max.y - bounds_min.y) / rows;
         const ImPlotPoint half_size(w*0.5,h*0.5);
@@ -2535,7 +2535,7 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
 
     if (BeginItemEx(label_id, FitterRect(range))) {
         ImDrawList& draw_list = *GetPlotDrawList();
-        RenderHeatmap(draw_list, &bin_counts.Data[0], y_bins, x_bins, 0, max_count, NULL, range.Min(), range.Max(), false, col_maj);
+        RenderHeatmap(draw_list, &bin_counts.Data[0], y_bins, x_bins, 0, max_count, nullptr, range.Min(), range.Max(), false, col_maj);
         EndItem();
     }
     return max_count;
@@ -2648,7 +2648,7 @@ void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPo
 //-----------------------------------------------------------------------------
 
 void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, ImPlotTextFlags flags) {
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != NULL, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != nullptr, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     ImDrawList & draw_list = *GetPlotDrawList();
     PushPlotClipRect();
