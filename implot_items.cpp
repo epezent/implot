@@ -1900,8 +1900,9 @@ void PlotBarGroups(const char* const label_ids[], const T* values, int item_coun
     const bool stack = ImHasFlag(flags, ImPlotBarGroupsFlags_Stacked);
     if (stack) {
         SetupLock();
-        GImPlot->TempDouble1.resize(4*group_count);
-        double* temp = GImPlot->TempDouble1.Data;
+        ImPlotContext& gp = *GImPlot;
+        gp.TempDouble1.resize(4*group_count);
+        double* temp = gp.TempDouble1.Data;
         double* neg =      &temp[0];
         double* pos =      &temp[group_count];
         double* curr_min = &temp[group_count*2];
@@ -2254,7 +2255,8 @@ struct GetterHeatmapRowMaj {
         rect.Pos = p;
         rect.HalfSize = HalfSize;
         const float t = ImClamp((float)ImRemap01(val, ScaleMin, ScaleMax),0.0f,1.0f);
-        rect.Color = GImPlot->ColormapData.LerpTable(GImPlot->Style.Colormap, t);
+        ImPlotContext& gp = *GImPlot;
+        rect.Color = gp.ColormapData.LerpTable(gp.Style.Colormap, t);
         return rect;
     }
     const T* const Values;
@@ -2288,7 +2290,8 @@ struct GetterHeatmapColMaj {
         rect.Pos = p;
         rect.HalfSize = HalfSize;
         const float t = ImClamp((float)ImRemap01(val, ScaleMin, ScaleMax),0.0f,1.0f);
-        rect.Color = GImPlot->ColormapData.LerpTable(GImPlot->Style.Colormap, t);
+        ImPlotContext& gp = *GImPlot;
+        rect.Color = gp.ColormapData.LerpTable(gp.Style.Colormap, t);
         return rect;
     }
     const T* const Values;
@@ -2409,8 +2412,9 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
     else
         width = range.Size() / bins;
 
-    ImVector<double>& bin_centers = GImPlot->TempDouble1;
-    ImVector<double>& bin_counts  = GImPlot->TempDouble2;
+    ImPlotContext& gp = *GImPlot;
+    ImVector<double>& bin_centers = gp.TempDouble1;
+    ImVector<double>& bin_counts  = gp.TempDouble2;
     bin_centers.resize(bins);
     bin_counts.resize(bins);
     int below = 0;
@@ -2507,7 +2511,8 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
 
     const int bins = x_bins * y_bins;
 
-    ImVector<double>& bin_counts = GImPlot->TempDouble1;
+    ImPlotContext& gp = *GImPlot;
+    ImVector<double>& bin_counts = gp.TempDouble1;
     bin_counts.resize(bins);
 
     for (int b = 0; b < bins; ++b)
