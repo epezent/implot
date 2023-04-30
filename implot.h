@@ -466,11 +466,12 @@ enum ImPlotBin_ {
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
 struct ImPlotPoint {
     double x, y;
-    ImPlotPoint()                         { x = y = 0.0;      }
-    ImPlotPoint(double _x, double _y)     { x = _x; y = _y;   }
-    ImPlotPoint(const ImVec2& p)          { x = p.x; y = p.y; }
-    double  operator[] (size_t idx) const { return (&x)[idx]; }
-    double& operator[] (size_t idx)       { return (&x)[idx]; }
+    ImPlotPoint()                                   { x = y = 0.0;                         }
+    ImPlotPoint(double _x, double _y)               { x = _x; y = _y;                      }
+    ImPlotPoint(const ImVec2& p)                    { x = p.x; y = p.y;                    }
+    double  operator[] (size_t idx) const           { return (&x)[idx];                    }
+    double& operator[] (size_t idx)                 { return (&x)[idx];                    }
+    bool operator==(const ImPlotPoint& point) const { return x == point.x && y == point.y; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
     IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h
                                  // to convert back and forth between your math types and ImPlotPoint.
