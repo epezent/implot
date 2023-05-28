@@ -1003,13 +1003,13 @@ int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt, b
         const int hr   = Tm.tm_hour;
         switch(fmt) {
             case ImPlotTimeFmt_Us:        return snprintf(buffer, size, ".%03d %03d", ms, us);
-            case ImPlotTimeFmt_SUs:       return snprintf(buffer, size, ":%02d.%03d %03d", sec, ms, us);
-            case ImPlotTimeFmt_SMs:       return snprintf(buffer, size, ":%02d.%03d", sec, ms);
-            case ImPlotTimeFmt_S:         return snprintf(buffer, size, ":%02d", sec);
-            case ImPlotTimeFmt_HrMinSMs:  return snprintf(buffer, size, "%02d:%02d:%02d.%03d", hr, min, sec, ms);
-            case ImPlotTimeFmt_HrMinS:    return snprintf(buffer, size, "%02d:%02d:%02d", hr, min, sec);
-            case ImPlotTimeFmt_HrMin:     return snprintf(buffer, size, "%02d:%02d", hr, min);
-            case ImPlotTimeFmt_Hr:        return snprintf(buffer, size, "%02d:00", hr);
+            case ImPlotTimeFmt_SUs:       return snprintf(buffer, size, "%02dm%02d.%03d %03d", min, sec, ms, us);
+            case ImPlotTimeFmt_SMs:       return snprintf(buffer, size, "%02dm%02d.%03ds", min, sec, ms);
+            case ImPlotTimeFmt_S:         return snprintf(buffer, size, "%02dm%02ds", min, sec);
+            case ImPlotTimeFmt_HrMinSMs:  return snprintf(buffer, size, "%02df%02dm%02d.%03ds", hr, min, sec, ms);
+            case ImPlotTimeFmt_HrMinS:    return snprintf(buffer, size, "%02dh%02dm%02ds", hr, min, sec);
+            case ImPlotTimeFmt_HrMin:     return snprintf(buffer, size, "%02dh%02dm", hr, min);
+            case ImPlotTimeFmt_Hr:        return snprintf(buffer, size, "%02dh00", hr);
             default:                      return 0;
         }
     }
@@ -1020,7 +1020,7 @@ int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt, b
             case ImPlotTimeFmt_Us:        return snprintf(buffer, size, ".%03d %03d", ms, us);
             case ImPlotTimeFmt_SUs:       return snprintf(buffer, size, ":%02d.%03d %03d", sec, ms, us);
             case ImPlotTimeFmt_SMs:       return snprintf(buffer, size, ":%02d.%03d", sec, ms);
-            case ImPlotTimeFmt_S:         return snprintf(buffer, size, ":%02d", sec);
+            case ImPlotTimeFmt_S:         return snprintf(buffer, size, "%02d:%02d", min, sec);
             case ImPlotTimeFmt_HrMinSMs:  return snprintf(buffer, size, "%d:%02d:%02d.%03d%s", hr, min, sec, ms, ap);
             case ImPlotTimeFmt_HrMinS:    return snprintf(buffer, size, "%d:%02d:%02d%s", hr, min, sec, ap);
             case ImPlotTimeFmt_HrMin:     return snprintf(buffer, size, "%d:%02d%s", hr, min, ap);
@@ -1198,7 +1198,7 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                 LabelTickTime(tick_min,ticks.TextBuffer,t1,fmt0);
                 ticks.Append(tick_min);
                 //GUISTAC: Make this parametric
-                /*
+                
                 // major level 1 tick
                 ImPlotTick tick_maj(t1.ToDouble(),true,true);
                 tick_maj.Level = 1;
@@ -1208,7 +1208,7 @@ void AddTicksTime(const ImPlotRange& range, float plot_width, ImPlotTickCollecti
                     tick_maj.ShowLabel = false;
                 last_major = this_major;
                 ticks.Append(tick_maj);
-                */
+                
             }
             // add minor ticks up until next major
             if (minor_per_major > 1 && (t_min <= t2 && t1 <= t_max)) {
