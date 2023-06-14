@@ -3991,7 +3991,11 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
 
     bool dragging = false;
     bool hovered = false, held = false;
-    ImRect b_rect(pc.x-DRAG_GRAB_HALF_SIZE,pc.y-DRAG_GRAB_HALF_SIZE,pc.x+DRAG_GRAB_HALF_SIZE,pc.y+DRAG_GRAB_HALF_SIZE);
+    ImVec2 dragBoxPoint1 = PlotToPixels(*x_min*y_max,IMPLOT_AUTO, IMPLOT_AUTO);
+    ImVec2 dragBoxPoint2 = PlotToPixels(*x_min*y_min,IMPLOT_AUTO, IMPLOT_AUTO);
+    ImVec2 dragBoxPoint3 = PlotToPixels(*x_max*y_min,IMPLOT_AUTO, IMPLOT_AUTO);
+    ImVec2 dragBoxPoint4 = PlotToPixels(*x_max*y_max,IMPLOT_AUTO, IMPLOT_AUTO);
+    ImRect b_rect(dragBoxPoint1.x, dragBoxPoint1.y, dragBoxPoint3.x, dragBoxPoint3.y);
 
     ImGui::KeepAliveID(id);
     if (input)
