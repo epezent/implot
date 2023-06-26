@@ -133,6 +133,11 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #define ImDrawFlags_RoundCornersAll ImDrawCornerFlags_All
 #endif
 
+// Support for pre-1.89.7 versions.
+#if (IMGUI_VERSION_NUM < 18966)
+#define ImGuiButtonFlags_AllowOverlap ImGuiButtonFlags_AllowItemOverlap
+#endif
+
 // Visual Studio warnings
 #ifdef _MSC_VER
 #pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
@@ -1808,7 +1813,7 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     // BUTTON STATE -----------------------------------------------------------
 
-    const ImGuiButtonFlags plot_button_flags = ImGuiButtonFlags_AllowItemOverlap
+    const ImGuiButtonFlags plot_button_flags = ImGuiButtonFlags_AllowOverlap
                                              | ImGuiButtonFlags_PressedOnClick
                                              | ImGuiButtonFlags_PressedOnDoubleClick
                                              | ImGuiButtonFlags_MouseButtonLeft
@@ -1818,7 +1823,9 @@ bool UpdateInput(ImPlotPlot& plot) {
                                              | plot_button_flags;
 
     const bool plot_clicked = ImGui::ButtonBehavior(plot.PlotRect,plot.ID,&plot.Hovered,&plot.Held,plot_button_flags);
-    ImGui::SetItemAllowOverlap();
+#if (IMGUI_VERSION_NUM < 18966)
+    ImGui::SetItemAllowOverlap(); // Handled by ButtonBehavior()
+#endif
 
     if (plot_clicked) {
         if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) && IO.MouseClicked[gp.InputMap.Select] && ImHasFlag(IO.KeyMods, gp.InputMap.SelectMod)) {
