@@ -1136,7 +1136,6 @@ struct ImPlotSubplot {
         ID                          = 0;
         Flags = PreviousFlags       = ImPlotSubplotFlags_None;
         Rows = Cols = CurrentIdx    = 0;
-        FrameHovered                = false;
         Items.Legend.Location       = ImPlotLocation_North;
         Items.Legend.Flags          = ImPlotLegendFlags_Horizontal|ImPlotLegendFlags_Outside;
         Items.Legend.CanGoInside    = false;
