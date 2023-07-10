@@ -1276,18 +1276,24 @@ void Demo_SubplotsSizing() {
     static float cratios[] = {5,1,1,1,1,1};
     ImGui::DragScalarN("Row Ratios",ImGuiDataType_Float,rratios,rows,0.01f,nullptr);
     ImGui::DragScalarN("Col Ratios",ImGuiDataType_Float,cratios,cols,0.01f,nullptr);
-    if (ImPlot::BeginSubplots("My Subplots", rows, cols, ImVec2(-1,400), flags, rratios, cratios)) {
-        for (int i = 0; i < rows*cols; ++i) {
-            if (ImPlot::BeginPlot("",ImVec2(),ImPlotFlags_NoLegend)) {
-                ImPlot::SetupAxes(nullptr,nullptr,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations);
-                float fi = 0.01f * (i+1);
-                ImPlot::SetNextLineStyle(SampleColormap((float)i/(float)(rows*cols-1),ImPlotColormap_Jet));
-                ImPlot::PlotLineG("data",SinewaveGetter,&fi,1000);
-                ImPlot::EndPlot();
-            }
-        }
-        ImPlot::EndSubplots();
-    }
+	if (ImPlot::BeginSubplots("My Subplots", rows, cols, ImVec2(-1,400), flags, rratios, cratios))
+	{
+		for (int i = 0; i < rows*cols; ++i)
+		{
+			if (ImPlot::BeginPlot("",ImVec2(),ImPlotFlags_NoLegend))
+			{
+				ImPlot::SetupAxes(nullptr,nullptr,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations);
+				float fi = 0.01f * (i+1);
+				if(rows*cols > 1)
+				{
+					ImPlot::SetNextLineStyle(SampleColormap((float)i/(float)(rows*cols-1),ImPlotColormap_Jet));
+				}
+				ImPlot::PlotLineG("data",SinewaveGetter,&fi,1000);
+				ImPlot::EndPlot();
+			}
+		}
+		ImPlot::EndSubplots();
+	}
 }
 
 //-----------------------------------------------------------------------------
