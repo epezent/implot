@@ -1555,7 +1555,7 @@ void ShowPlotContextMenu(ImPlotPlot& plot) {
             ImFlipFlag(plot.Flags, ImPlotFlags_Crosshairs);
         ImGui::EndMenu();
     }
-    if (gp.CurrentSubplot != nullptr && !ImHasFlag(gp.CurrentPlot->Flags, ImPlotSubplotFlags_NoMenus)) {
+    if (gp.CurrentSubplot != nullptr && !ImHasFlag(gp.CurrentSubplot->Flags, ImPlotSubplotFlags_NoMenus)) {
         ImGui::Separator();
         if ((ImGui::BeginMenu("Subplots"))) {
             ShowSubplotsContextMenu(*gp.CurrentSubplot);
