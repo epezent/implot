@@ -2597,8 +2597,8 @@ void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags
                 //do not extend plot outside plot range
                 if (pMin.x < x_axis.PixelMin) pMin.x = x_axis.PixelMin;
                 if (pMax.x < x_axis.PixelMin) pMax.x = x_axis.PixelMin;
-                if (pMin.x > x_axis.PixelMax) pMin.x = x_axis.PixelMax;
-                if (pMax.x > x_axis.PixelMax) pMax.x = x_axis.PixelMax;
+                if (pMin.x > x_axis.PixelMax) pMin.x = x_axis.PixelMax - 1; //fix issue related to https://github.com/ocornut/imgui/issues/3976
+                if (pMax.x > x_axis.PixelMax) pMax.x = x_axis.PixelMax - 1; //fix issue related to https://github.com/ocornut/imgui/issues/3976
                 //plot a rectangle that extends up to x2 with y1 height
                 if ((pMax.x > pMin.x) && (gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                     // ImVec4 colAlpha = item->Color;
