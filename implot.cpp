@@ -1303,12 +1303,12 @@ bool DragFloat(const char*, F*, float, F, F) {
 
 template <>
 bool DragFloat<double>(const char* label, double* v, float v_speed, double v_min, double v_max) {
-    return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, "%.3f", 1);
+    return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, "%.3g", 1);
 }
 
 template <>
 bool DragFloat<float>(const char* label, float* v, float v_speed, float v_min, float v_max) {
-    return ImGui::DragScalar(label, ImGuiDataType_Float, v, v_speed, &v_min, &v_max, "%.3f", 1);
+    return ImGui::DragScalar(label, ImGuiDataType_Float, v, v_speed, &v_min, &v_max, "%.3g", 1);
 }
 
 inline void BeginDisabledControls(bool cond) {
