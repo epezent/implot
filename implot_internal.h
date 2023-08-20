@@ -907,8 +907,9 @@ struct ImPlotAxis
     }
 
     void PullLinks() {
-        if (LinkedMin) { SetMin(*LinkedMin,true); }
-        if (LinkedMax) { SetMax(*LinkedMax,true); }
+        if (LinkedMin && LinkedMax) { SetRange(*LinkedMin, *LinkedMax); }
+        else if (LinkedMin) { SetMin(*LinkedMin,true); }
+        else if (LinkedMax) { SetMax(*LinkedMax,true); }
     }
 };
 
