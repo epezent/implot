@@ -31,9 +31,9 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 ## Legend
 
-- `ImPlotLegendFlags_Scroll`
 - improve legend icons (e.g. adopt markers, gradients, etc)
-- make legend frame use ButtonBehavior (maybe impossible)
+- generalize legend rendering for plots and subplots
+- add draggable scroll bar if users need it
 
 ## Tools / Misc.
 
@@ -98,3 +98,5 @@ Ideally every `PlotX` function should use our faster rendering pipeline when it 
 - add `PlotBarGroups` wrapper that makes rendering groups of bars easier, with stacked bar support
 - `PlotBars` restore outlines
 - add hover/active color for plot axes
+- make legend frame use ButtonBehavior
+- `ImPlotLegendFlags_Scroll` (default behavior)
