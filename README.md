@@ -67,7 +67,7 @@ ImGui::End();
 ![Usage](https://raw.githubusercontent.com/wiki/epezent/implot/screenshots3/example.PNG)
 
 
-Of course, there's much more you can do with ImPlot... 
+Of course, there's much more you can do with ImPlot...
 
 ## Demos
 
@@ -157,10 +157,6 @@ A: Maybe. Check the demo, gallery, or Announcements ([2020](https://github.com/e
 
 A: No, and likely never will since ImGui only deals in 2D rendering.
 
-**Q: My plot lines look like crap!**
-
-A: By default, no anti-aliasing is done on line plots for performance gains. If you use at least 4x MSAA, then you likely won't even notice. However, you can enable software AA per-plot with the `ImPlotFlags_AntiAliased` flag, or globally with `ImPlot::GetStyle().AntiAliasedLines = true;`.
-
 **Q: Does ImPlot provide analytic tools?**
 
 A: Not exactly, but it does give you the ability to query plot sub-ranges, with which you can process your data however you like.
@@ -175,4 +171,4 @@ A: Like ImGui, it is recommended that you compile and link ImPlot as a *static* 
 
 **Q: Can ImPlot be used with other languages/bindings?**
 
-A: Yes, you can use the generated C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. [DearPyGui](https://github.com/hoffstadt/DearPyGui) provides a Python wrapper, among other things. [DearImGui/DearImPlot](https://github.com/aybe/DearImGui) provides bindings for .NET. [imgui-java](https://github.com/SpaiR/imgui-java) provides bindings for Java. A Rust binding, [implot-rs](https://github.com/4bb4/implot-rs), is currently in the works. An example using Emscripten can be found [here](https://github.com/pthom/implot_demo).
+A: Yes, you can use the generated C binding, [cimplot](https://github.com/cimgui/cimplot) with most high level languages. [DearPyGui](https://github.com/hoffstadt/DearPyGui) provides a Python wrapper, among other things. [DearImGui/DearImPlot](https://github.com/aybe/DearImGui) provides bindings for .NET. [imgui-java](https://github.com/SpaiR/imgui-java) provides bindings for Java. [ImPlot.jl](https://github.com/wsphillips/ImPlot.jl) provides bindings for Julia. A Rust binding, [implot-rs](https://github.com/4bb4/implot-rs), is currently in the works. An example using Emscripten can be found [here](https://github.com/pthom/implot_demo).
