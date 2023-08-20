@@ -1978,15 +1978,12 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     // SCROLL INPUT -----------------------------------------------------------
 
-    // plot capture scroll if any axis is hovered or held; prevents concurrent window scrolling
-    if (any_hov) {
-        ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.ID);
-    }
-
-    if (any_hov && IO.MouseWheel != 0 && ImHasFlag(IO.KeyMods, gp.InputMap.ZoomMod)) {
+    if (any_hov && ImHasFlag(IO.KeyMods, gp.InputMap.ZoomMod)) {
 
         float zoom_rate = gp.InputMap.ZoomRate;
-        if (IO.MouseWheel > 0)
+        if (IO.MouseWheel == 0.0f) 
+            zoom_rate = 0;        
+        else if (IO.MouseWheel > 0) 
             zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));
         ImVec2 rect_size = plot.PlotRect.GetSize();
         float tx = ImRemap(IO.MousePos.x, plot.PlotRect.Min.x, plot.PlotRect.Max.x, 0.0f, 1.0f);
@@ -1997,14 +1994,17 @@ bool UpdateInput(ImPlotPlot& plot) {
             const bool equal_zoom   = axis_equal && x_axis.OrthoAxis != nullptr;
             const bool equal_locked = (equal_zoom != false) && x_axis.OrthoAxis->IsInputLocked();
             if (x_hov[i] && !x_axis.IsInputLocked() && !equal_locked) {
-                float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
-                const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - rect_size.x * tx * zoom_rate * correction);
-                const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x + rect_size.x * (1 - tx) * zoom_rate * correction);
-                x_axis.SetMin(x_axis.IsInverted() ? plot_r : plot_l);
-                x_axis.SetMax(x_axis.IsInverted() ? plot_l : plot_r);
-                if (axis_equal && x_axis.OrthoAxis != nullptr)
-                    x_axis.OrthoAxis->SetAspect(x_axis.GetAspect());
-                changed = true;
+                ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.ID);
+                if (zoom_rate != 0.0f) {
+                    float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
+                    const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - rect_size.x * tx * zoom_rate * correction);
+                    const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x + rect_size.x * (1 - tx) * zoom_rate * correction);
+                    x_axis.SetMin(x_axis.IsInverted() ? plot_r : plot_l);
+                    x_axis.SetMax(x_axis.IsInverted() ? plot_l : plot_r);
+                    if (axis_equal && x_axis.OrthoAxis != nullptr)
+                        x_axis.OrthoAxis->SetAspect(x_axis.GetAspect());
+                    changed = true;
+                }
             }
         }
         for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
@@ -2012,14 +2012,17 @@ bool UpdateInput(ImPlotPlot& plot) {
             const bool equal_zoom   = axis_equal && y_axis.OrthoAxis != nullptr;
             const bool equal_locked = equal_zoom && y_axis.OrthoAxis->IsInputLocked();
             if (y_hov[i] && !y_axis.IsInputLocked() && !equal_locked) {
-                float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
-                const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - rect_size.y * ty * zoom_rate * correction);
-                const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y + rect_size.y * (1 - ty) * zoom_rate * correction);
-                y_axis.SetMin(y_axis.IsInverted() ? plot_t : plot_b);
-                y_axis.SetMax(y_axis.IsInverted() ? plot_b : plot_t);
-                if (axis_equal && y_axis.OrthoAxis != nullptr)
-                    y_axis.OrthoAxis->SetAspect(y_axis.GetAspect());
-                changed = true;
+                ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.ID);
+                if (zoom_rate != 0.0f) {
+                    float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
+                    const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - rect_size.y * ty * zoom_rate * correction);
+                    const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y + rect_size.y * (1 - ty) * zoom_rate * correction);
+                    y_axis.SetMin(y_axis.IsInverted() ? plot_t : plot_b);
+                    y_axis.SetMax(y_axis.IsInverted() ? plot_b : plot_t);
+                    if (axis_equal && y_axis.OrthoAxis != nullptr)
+                        y_axis.OrthoAxis->SetAspect(y_axis.GetAspect());
+                    changed = true;
+                }
             }
         }
     }
@@ -3054,18 +3057,17 @@ void EndPlot() {
         ImGui::KeepAliveID(plot.Items.ID);
         ImGui::ButtonBehavior(legend.RectClamped, plot.Items.ID, &legend.Hovered, &legend.Held, legend_button_flags);
         legend.Hovered = legend.Hovered || (ImGui::IsWindowHovered() && legend.RectClamped.Contains(IO.MousePos));
-
-        if (legend.Hovered) {
-            ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.Items.ID);
-        }
-        
+       
         if (legend_scrollable) {
-            if (legend.Hovered && IO.MouseWheel != 0.0f) {
-                ImVec2 max_step = legend.Rect.GetSize() * 0.67f;
-                float font_size = ImGui::GetCurrentWindow()->CalcFontSize();
-                float scroll_step = ImFloor(ImMin(2 * font_size, max_step.x));
-                legend.Scroll.x += scroll_step * IO.MouseWheel;
-                legend.Scroll.y += scroll_step * IO.MouseWheel;
+            if (legend.Hovered) {
+                ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.Items.ID);
+                if (IO.MouseWheel != 0.0f) {
+                    ImVec2 max_step = legend.Rect.GetSize() * 0.67f;
+                    float font_size = ImGui::GetCurrentWindow()->CalcFontSize();
+                    float scroll_step = ImFloor(ImMin(2 * font_size, max_step.x));
+                    legend.Scroll.x += scroll_step * IO.MouseWheel;
+                    legend.Scroll.y += scroll_step * IO.MouseWheel;
+                }
             }            
             const ImVec2 min_scroll_offset = legend.RectClamped.GetSize() - legend.Rect.GetSize();
             legend.Scroll.x = ImClamp(legend.Scroll.x, min_scroll_offset.x, 0.0f);
@@ -3574,18 +3576,17 @@ void EndSubplots() {
         ImGui::KeepAliveID(subplot.Items.ID);
         ImGui::ButtonBehavior(legend.RectClamped, subplot.Items.ID, &legend.Hovered, &legend.Held, legend_button_flags);
         legend.Hovered = legend.Hovered || (subplot.FrameHovered && legend.RectClamped.Contains(ImGui::GetIO().MousePos));
-
-        if (legend.Hovered) {
-            ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, subplot.Items.ID);
-        }
         
         if (legend_scrollable) {
-            if (legend.Hovered && IO.MouseWheel != 0.0f) {
-                ImVec2 max_step = legend.Rect.GetSize() * 0.67f;
-                float font_size = ImGui::GetCurrentWindow()->CalcFontSize();
-                float scroll_step = ImFloor(ImMin(2 * font_size, max_step.x));
-                legend.Scroll.x += scroll_step * IO.MouseWheel;
-                legend.Scroll.y += scroll_step * IO.MouseWheel;
+            if (legend.Hovered) {
+                ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, subplot.Items.ID);
+                if (IO.MouseWheel != 0.0f) {
+                    ImVec2 max_step = legend.Rect.GetSize() * 0.67f;
+                    float font_size = ImGui::GetCurrentWindow()->CalcFontSize();
+                    float scroll_step = ImFloor(ImMin(2 * font_size, max_step.x));
+                    legend.Scroll.x += scroll_step * IO.MouseWheel;
+                    legend.Scroll.y += scroll_step * IO.MouseWheel;
+                }
             }                    
             const ImVec2 min_scroll_offset = legend.RectClamped.GetSize() - legend.Rect.GetSize();
             legend.Scroll.x = ImClamp(legend.Scroll.x, min_scroll_offset.x, 0.0f);
