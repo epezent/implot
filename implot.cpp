@@ -3045,7 +3045,6 @@ void EndPlot() {
         plot.Items.GetItemByIndex(i)->LegendHovered = false;
     // render legend
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoLegend) && plot.Items.GetLegendCount() > 0) {
-        
         ImPlotLegend& legend = plot.Items.Legend;
         const bool   legend_out  = ImHasFlag(legend.Flags, ImPlotLegendFlags_Outside);
         const bool   legend_horz = ImHasFlag(legend.Flags, ImPlotLegendFlags_Horizontal);
@@ -3070,18 +3069,19 @@ void EndPlot() {
         ImGui::KeepAliveID(plot.Items.ID);
         ImGui::ButtonBehavior(legend.RectClamped, plot.Items.ID, &legend.Hovered, &legend.Held, legend_button_flags);
         legend.Hovered = legend.Hovered || (ImGui::IsWindowHovered() && legend.Rect.Contains(IO.MousePos));
+
+        if (legend.Hovered) {
+            ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.Items.ID);
+        }
         
         if (legend_scrollable) {
-            if (legend.Hovered) {
-                ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.Items.ID);
-                if (IO.MouseWheel != 0.0f) {
-                    ImVec2 max_step = legend.Rect.GetSize() * 0.67f;
-                    float font_size = ImGui::GetCurrentWindow()->CalcFontSize();
-                    float scroll_step = ImFloor(ImMin(2 * font_size, max_step.x));
-                    legend.Scroll.x += scroll_step * IO.MouseWheel;
-                    legend.Scroll.y += scroll_step * IO.MouseWheel;
-                }
-            }
+            if (legend.Hovered && IO.MouseWheel != 0.0f) {
+                ImVec2 max_step = legend.Rect.GetSize() * 0.67f;
+                float font_size = ImGui::GetCurrentWindow()->CalcFontSize();
+                float scroll_step = ImFloor(ImMin(2 * font_size, max_step.x));
+                legend.Scroll.x += scroll_step * IO.MouseWheel;
+                legend.Scroll.y += scroll_step * IO.MouseWheel;
+            }            
             const ImVec2 min_scroll_offset = legend.RectClamped.GetSize() - legend.Rect.GetSize();
             legend.Scroll.x = ImClamp(legend.Scroll.x, min_scroll_offset.x, 0.0f);
             legend.Scroll.y = ImClamp(legend.Scroll.y, min_scroll_offset.y, 0.0f);            
@@ -3589,18 +3589,19 @@ void EndSubplots() {
         ImGui::KeepAliveID(subplot.Items.ID);
         ImGui::ButtonBehavior(legend.RectClamped, subplot.Items.ID, &legend.Hovered, &legend.Held, legend_button_flags);
         legend.Hovered = legend.Hovered || (subplot.FrameHovered && legend.Rect.Contains(ImGui::GetIO().MousePos));
+
+        if (legend.Hovered) {
+            ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, subplot.Items.ID);
+        }
         
         if (legend_scrollable) {
-            if (legend.Hovered) {
-                ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, subplot.Items.ID);
-                if (IO.MouseWheel != 0.0f) {
-                    ImVec2 max_step = legend.Rect.GetSize() * 0.67f;
-                    float font_size = ImGui::GetCurrentWindow()->CalcFontSize();
-                    float scroll_step = ImFloor(ImMin(2 * font_size, max_step.x));
-                    legend.Scroll.x += scroll_step * IO.MouseWheel;
-                    legend.Scroll.y += scroll_step * IO.MouseWheel;
-                }
-            }        
+            if (legend.Hovered && IO.MouseWheel != 0.0f) {
+                ImVec2 max_step = legend.Rect.GetSize() * 0.67f;
+                float font_size = ImGui::GetCurrentWindow()->CalcFontSize();
+                float scroll_step = ImFloor(ImMin(2 * font_size, max_step.x));
+                legend.Scroll.x += scroll_step * IO.MouseWheel;
+                legend.Scroll.y += scroll_step * IO.MouseWheel;
+            }                    
             const ImVec2 min_scroll_offset = legend.RectClamped.GetSize() - legend.Rect.GetSize();
             legend.Scroll.x = ImClamp(legend.Scroll.x, min_scroll_offset.x, 0.0f);
             legend.Scroll.y = ImClamp(legend.Scroll.y, min_scroll_offset.y, 0.0f);            
