@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2022 Evan Pezent
+// Copyright (c) 2023 Evan Pezent
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.15
+// ImPlot v0.16
 
 // Table of Contents:
 //
@@ -60,7 +60,7 @@
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "0.15"
+#define IMPLOT_VERSION "0.16"
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.

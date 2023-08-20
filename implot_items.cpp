@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2020 Evan Pezent
+// Copyright (c) 2023 Evan Pezent
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.15
+// ImPlot v0.16
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "implot.h"
