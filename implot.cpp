@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.16
+// ImPlot v0.17
 
 /*
 
@@ -31,6 +31,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2023/08/20 (0.17) - ImPlotFlags_NoChild was removed as child windows are no longer needed to capture scroll. You can safely remove this flag if you were using it. 
 - 2023/06/26 (0.15) - Various build fixes related to updates in Dear ImGui internals.
 - 2022/11/25 (0.15) - Make PlotText honor ImPlotItemFlags_NoFit.
 - 2022/06/19 (0.14) - The signature of ColormapScale has changed to accommodate a new ImPlotColormapScaleFlags parameter

@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.16
+// ImPlot v0.17
 
 // Table of Contents:
 //
@@ -60,7 +60,7 @@
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "0.16"
+#define IMPLOT_VERSION "0.17"
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
