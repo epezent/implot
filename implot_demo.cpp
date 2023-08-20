@@ -1289,7 +1289,7 @@ void Demo_SubplotsSizing() {
                 if (rows*cols > 1) {
                     ImPlot::SetNextLineStyle(SampleColormap((float)i/(float)(rows*cols-1),ImPlotColormap_Jet));
                 }
-                char label[8];
+                char label[16];
                 snprintf(label, sizeof(label), "data%d", id++);
                 ImPlot::PlotLineG(label,SinewaveGetter,&fi,1000);
                 ImPlot::EndPlot();
@@ -2317,7 +2317,7 @@ ImPlotPoint Spiral(int idx, void*) {
 
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size) {
     ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
-    if (ImPlot::BeginPlot(id,size,ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild)) {
+    if (ImPlot::BeginPlot(id,size,ImPlotFlags_CanvasOnly)) {
         ImPlot::SetupAxes(nullptr,nullptr,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(0, count - 1, min_v, max_v, ImGuiCond_Always);
         ImPlot::SetNextLineStyle(col);

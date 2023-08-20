@@ -135,10 +135,9 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoInputs      = 1 << 3,  // the user will not be able to interact with the plot
     ImPlotFlags_NoMenus       = 1 << 4,  // the user will not be able to open context menus
     ImPlotFlags_NoBoxSelect   = 1 << 5,  // the user will not be able to box-select
-    ImPlotFlags_NoChild       = 1 << 6,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_NoFrame       = 1 << 7,  // the ImGui frame will not be rendered
-    ImPlotFlags_Equal         = 1 << 8,  // x and y axes pairs will be constrained to have the same units/pixel
-    ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_NoFrame       = 1 << 6,  // the ImGui frame will not be rendered
+    ImPlotFlags_Equal         = 1 << 7,  // x and y axes pairs will be constrained to have the same units/pixel
+    ImPlotFlags_Crosshairs    = 1 << 8,  // the default mouse cursor will be replaced with a crosshair when hovered
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText
 };
 

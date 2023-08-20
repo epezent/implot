@@ -1218,9 +1218,6 @@ struct ImPlotContext {
     ImPlotAnnotationCollection Annotations;
     ImPlotTagCollection        Tags;
 
-    // Flags
-    bool ChildWindowMade;
-
     // Style and Colormaps
     ImPlotStyle                 Style;
     ImVector<ImGuiColorMod>     ColorModifiers;

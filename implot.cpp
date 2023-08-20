@@ -492,10 +492,6 @@ void Initialize(ImPlotContext* ctx) {
 }
 
 void ResetCtxForNextPlot(ImPlotContext* ctx) {
-    // end child window if it was made
-    if (ctx->ChildWindowMade)
-        ImGui::EndChild();
-    ctx->ChildWindowMade = false;
     // reset the next plot/item data
     ctx->NextPlotData.Reset();
     ctx->NextItemData.Reset();
@@ -1982,6 +1978,11 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     // SCROLL INPUT -----------------------------------------------------------
 
+    // plot capture scroll if any axis is hovered or held; prevents concurrent window scrolling
+    if (any_hov) {
+        ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.ID);
+    }
+
     if (any_hov && IO.MouseWheel != 0 && ImHasFlag(IO.KeyMods, gp.InputMap.ZoomMod)) {
 
         float zoom_rate = gp.InputMap.ZoomRate;
@@ -2424,22 +2425,6 @@ bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
     for (int i = 0; i < ImAxis_COUNT; ++i)
         ApplyNextPlotData(i);
 
-    // capture scroll with a child region
-    if (!ImHasFlag(plot.Flags, ImPlotFlags_NoChild)) {
-        ImVec2 child_size;
-        if (gp.CurrentSubplot != nullptr)
-            child_size = gp.CurrentSubplot->CellSize;
-        else
-            child_size = ImVec2(size.x == 0 ? gp.Style.PlotDefaultSize.x : size.x, size.y == 0 ? gp.Style.PlotDefaultSize.y : size.y);
-        ImGui::BeginChild(title_id, child_size, false, ImGuiWindowFlags_NoScrollbar);
-        Window = ImGui::GetCurrentWindow();
-        Window->ScrollMax.y = 1.0f;
-        gp.ChildWindowMade = true;
-    }
-    else {
-        gp.ChildWindowMade = false;
-    }
-
     // clear text buffers
     plot.ClearTextBuffer();
     plot.SetTitle(title_id);
@@ -2462,7 +2447,7 @@ bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
         ResetCtxForNextPlot(GImPlot);
         return false;
     }
-
+    
     // setup items (or dont)
     if (gp.CurrentItems == nullptr)
         gp.CurrentItems = &plot.Items;
@@ -3068,7 +3053,7 @@ void EndPlot() {
                                                     | ImGuiButtonFlags_FlattenChildren;
         ImGui::KeepAliveID(plot.Items.ID);
         ImGui::ButtonBehavior(legend.RectClamped, plot.Items.ID, &legend.Hovered, &legend.Held, legend_button_flags);
-        legend.Hovered = legend.Hovered || (ImGui::IsWindowHovered() && legend.Rect.Contains(IO.MousePos));
+        legend.Hovered = legend.Hovered || (ImGui::IsWindowHovered() && legend.RectClamped.Contains(IO.MousePos));
 
         if (legend.Hovered) {
             ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.Items.ID);
@@ -3588,7 +3573,7 @@ void EndSubplots() {
                                                     | ImGuiButtonFlags_FlattenChildren;
         ImGui::KeepAliveID(subplot.Items.ID);
         ImGui::ButtonBehavior(legend.RectClamped, subplot.Items.ID, &legend.Hovered, &legend.Held, legend_button_flags);
-        legend.Hovered = legend.Hovered || (subplot.FrameHovered && legend.Rect.Contains(ImGui::GetIO().MousePos));
+        legend.Hovered = legend.Hovered || (subplot.FrameHovered && legend.RectClamped.Contains(ImGui::GetIO().MousePos));
 
         if (legend.Hovered) {
             ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, subplot.Items.ID);
