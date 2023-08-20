@@ -1287,7 +1287,7 @@ struct RendererShaded : RendererBase {
             return false;
         }
         const int intersect = (P11.y > P12.y && P22.y > P21.y) || (P12.y > P11.y && P21.y > P22.y);
-        ImVec2 intersection = Intersection(P11,P21,P12,P22);
+        const ImVec2 intersection = intersect == 0 ? ImVec2(0,0) : Intersection(P11,P21,P12,P22);
         draw_list._VtxWritePtr[0].pos = P11;
         draw_list._VtxWritePtr[0].uv  = UV;
         draw_list._VtxWritePtr[0].col = Col;
