@@ -2559,7 +2559,7 @@ void SetupFinish() {
     // (2) get y tick labels (needed for left/right pad)
     for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
         ImPlotAxis& axis = plot.YAxis(i);
-        if (axis.WillRender() && axis.ShowDefaultTicks) {
+        if (axis.WillRender() && axis.ShowDefaultTicks && plot_height > 0) {
             axis.Locator(axis.Ticker, axis.Range, plot_height, true, axis.Formatter, axis.FormatterData);
         }
     }
@@ -2572,7 +2572,7 @@ void SetupFinish() {
     // (4) get x ticks
     for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
         ImPlotAxis& axis = plot.XAxis(i);
-        if (axis.WillRender() && axis.ShowDefaultTicks) {
+        if (axis.WillRender() && axis.ShowDefaultTicks && plot_width > 0) {
             axis.Locator(axis.Ticker, axis.Range, plot_width, false, axis.Formatter, axis.FormatterData);
         }
     }
