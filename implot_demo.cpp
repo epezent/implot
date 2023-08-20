@@ -1272,6 +1272,10 @@ void Demo_SubplotsSizing() {
     static int cols = 3;
     ImGui::SliderInt("Rows",&rows,1,5);
     ImGui::SliderInt("Cols",&cols,1,5);
+    if (rows < 1 || cols < 1) {
+        ImGui::TextColored(ImVec4(1,0,0,1), "Nice try, but the number of rows and columns must be greater than 0!");
+        return;
+    }
     static float rratios[] = {5,1,1,1,1,1};
     static float cratios[] = {5,1,1,1,1,1};
     ImGui::DragScalarN("Row Ratios",ImGuiDataType_Float,rratios,rows,0.01f,nullptr);
@@ -1281,7 +1285,9 @@ void Demo_SubplotsSizing() {
             if (ImPlot::BeginPlot("",ImVec2(),ImPlotFlags_NoLegend)) {
                 ImPlot::SetupAxes(nullptr,nullptr,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations);
                 float fi = 0.01f * (i+1);
-                ImPlot::SetNextLineStyle(SampleColormap((float)i/(float)(rows*cols-1),ImPlotColormap_Jet));
+                if (rows*cols > 1) {
+                    ImPlot::SetNextLineStyle(SampleColormap((float)i/(float)(rows*cols-1),ImPlotColormap_Jet));
+                }
                 ImPlot::PlotLineG("data",SinewaveGetter,&fi,1000);
                 ImPlot::EndPlot();
             }
