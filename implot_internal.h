@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.16
+// ImPlot v0.17
 
 // You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
@@ -966,9 +966,11 @@ struct ImPlotLegend
     ImPlotLegendFlags PreviousFlags;
     ImPlotLocation    Location;
     ImPlotLocation    PreviousLocation;
+    ImVec2            Scroll;
     ImVector<int>     Indices;
     ImGuiTextBuffer   Labels;
     ImRect            Rect;
+    ImRect            RectClamped;
     bool              Hovered;
     bool              Held;
     bool              CanGoInside;
@@ -978,6 +980,7 @@ struct ImPlotLegend
         CanGoInside  = true;
         Hovered      = Held = false;
         Location     = PreviousLocation = ImPlotLocation_NorthWest;
+        Scroll       = ImVec2(0,0);
     }
 
     void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
@@ -1215,9 +1218,6 @@ struct ImPlotContext {
     ImPlotAnnotationCollection Annotations;
     ImPlotTagCollection        Tags;
 
-    // Flags
-    bool ChildWindowMade;
-
     // Style and Colormaps
     ImPlotStyle                 Style;
     ImVector<ImGuiColorMod>     ColorModifiers;
@@ -1414,13 +1414,15 @@ IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bo
 
 // Gets the position of an inner rect that is located inside of an outer rect according to an ImPlotLocation and padding amount.
 IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlotLocation location, const ImVec2& pad = ImVec2(0,0));
-// Calculates the bounding box size of a legend
+// Calculates the bounding box size of a legend _before_ clipping.
 IMPLOT_API ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& spacing, bool vertical);
+// Clips calculated legend size
+IMPLOT_API bool ClampLegendRect(ImRect& legend_rect, const ImRect& outer_rect, const ImVec2& pad);      
 // Renders legend entries into a bounding box
 IMPLOT_API bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, bool vertical, ImDrawList& DrawList);
-// Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
+// Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window! This is not thoroughly tested nor scrollable!).
 IMPLOT_API void ShowAltLegend(const char* title_id, bool vertical = true, const ImVec2 size = ImVec2(0,0), bool interactable = true);
-// Shows an legends's context menu.
+// Shows a legend's context menu.
 IMPLOT_API bool ShowLegendContextMenu(ImPlotLegend& legend, bool visible);
 
 //-----------------------------------------------------------------------------

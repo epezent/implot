@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.16
+// ImPlot v0.17
 
 // Table of Contents:
 //
@@ -60,7 +60,7 @@
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "0.16"
+#define IMPLOT_VERSION "0.17"
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
@@ -135,10 +135,9 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoInputs      = 1 << 3,  // the user will not be able to interact with the plot
     ImPlotFlags_NoMenus       = 1 << 4,  // the user will not be able to open context menus
     ImPlotFlags_NoBoxSelect   = 1 << 5,  // the user will not be able to box-select
-    ImPlotFlags_NoChild       = 1 << 6,  // a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)
-    ImPlotFlags_NoFrame       = 1 << 7,  // the ImGui frame will not be rendered
-    ImPlotFlags_Equal         = 1 << 8,  // x and y axes pairs will be constrained to have the same units/pixel
-    ImPlotFlags_Crosshairs    = 1 << 9,  // the default mouse cursor will be replaced with a crosshair when hovered
+    ImPlotFlags_NoFrame       = 1 << 6,  // the ImGui frame will not be rendered
+    ImPlotFlags_Equal         = 1 << 7,  // x and y axes pairs will be constrained to have the same units/pixel
+    ImPlotFlags_Crosshairs    = 1 << 8,  // the default mouse cursor will be replaced with a crosshair when hovered
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText
 };
 
@@ -754,7 +753,7 @@ IMPLOT_API void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFl
 // Sets the primary X and Y axes range limits. If ImPlotCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
 IMPLOT_API void SetupAxesLimits(double x_min, double x_max, double y_min, double y_max, ImPlotCond cond = ImPlotCond_Once);
 
-// Sets up the plot legend.
+// Sets up the plot legend. This can also be called immediately after BeginSubplots when using ImPlotSubplotFlags_ShareItems. 
 IMPLOT_API void SetupLegend(ImPlotLocation location, ImPlotLegendFlags flags=0);
 // Set the location of the current plot's mouse position text (default = South|East).
 IMPLOT_API void SetupMouseText(ImPlotLocation location, ImPlotMouseTextFlags flags=0);
