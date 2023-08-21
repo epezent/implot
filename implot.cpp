@@ -3914,15 +3914,19 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     const ImGuiID id = ImGui::GetCurrentWindow()->GetID(n_id);
     ImRect rect(pos.x-grab_half_size,pos.y-grab_half_size,pos.x+grab_half_size,pos.y+grab_half_size);
     bool hovered = false, held = false;
+    bool clicked = false;
 
     ImGui::KeepAliveID(id);
     if (input)
-        ImGui::ButtonBehavior(rect,id,&hovered,&held);
+        clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
 
     bool dragging = false;
     if (held && ImGui::IsMouseDragging(0)) {
         *x = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
         *y = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
+        dragging = true;
+    }
+    if (clicked && ImHasFlag(flags, ImPlotDragToolFlags_ClickIsDrag)) {
         dragging = true;
     }
 
@@ -3959,10 +3963,11 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     const ImGuiID id = ImGui::GetCurrentWindow()->GetID(n_id);
     ImRect rect(x-grab_half_size,yt,x+grab_half_size,yb);
     bool hovered = false, held = false;
+    bool clicked = false;
 
     ImGui::KeepAliveID(id);
     if (input)
-        ImGui::ButtonBehavior(rect,id,&hovered,&held);
+        clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
 
     if ((hovered || held) && show_curs)
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
@@ -3974,6 +3979,9 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     bool dragging = false;
     if (held && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
+        dragging = true;
+    }
+    if (clicked && ImHasFlag(flags, ImPlotDragToolFlags_ClickIsDrag)) {
         dragging = true;
     }
 
@@ -4011,10 +4019,11 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     const ImGuiID id = ImGui::GetCurrentWindow()->GetID(n_id);
     ImRect rect(xl,y-grab_half_size,xr,y+grab_half_size);
     bool hovered = false, held = false;
+    bool clicked = false;
 
     ImGui::KeepAliveID(id);
     if (input)
-        ImGui::ButtonBehavior(rect,id,&hovered,&held);
+        clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
 
     if ((hovered || held) && show_curs)
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
@@ -4026,6 +4035,9 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     bool dragging = false;
     if (held && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
+        dragging = true;
+    }
+    if (clicked && ImHasFlag(flags, ImPlotDragToolFlags_ClickIsDrag)) {
         dragging = true;
     }
 
@@ -4081,11 +4093,12 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
 
     bool dragging = false;
     bool hovered = false, held = false;
+    bool clicked = false;
     ImRect b_rect(pc.x-DRAG_GRAB_HALF_SIZE,pc.y-DRAG_GRAB_HALF_SIZE,pc.x+DRAG_GRAB_HALF_SIZE,pc.y+DRAG_GRAB_HALF_SIZE);
 
     ImGui::KeepAliveID(id);
     if (input)
-        ImGui::ButtonBehavior(b_rect,id,&hovered,&held);
+        clicked = ImGui::ButtonBehavior(b_rect,id,&hovered,&held);
 
     if ((hovered || held) && show_curs)
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
@@ -4095,6 +4108,9 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
             *y[i] = pp.y;
             *x[i] = pp.x;
         }
+        dragging = true;
+    }
+    if (clicked && ImHasFlag(flags, ImPlotDragToolFlags_ClickIsDrag)) {
         dragging = true;
     }
 
