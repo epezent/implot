@@ -463,41 +463,43 @@ enum ImPlotBin_ {
 };
 
 // Double precision version of ImVec2 used by ImPlot. Extensible by end users.
+IM_MSVC_RUNTIME_CHECKS_OFF
 struct ImPlotPoint {
     double x, y;
-    ImPlotPoint()                         { x = y = 0.0;      }
-    ImPlotPoint(double _x, double _y)     { x = _x; y = _y;   }
-    ImPlotPoint(const ImVec2& p)          { x = (double)p.x; y = (double)p.y; }
-    double  operator[] (size_t idx) const { return (&x)[idx]; }
-    double& operator[] (size_t idx)       { return (&x)[idx]; }
+    constexpr ImPlotPoint()                     : x(0.0), y(0.0) { }
+    constexpr ImPlotPoint(double _x, double _y) : x(_x), y(_y) { }
+    constexpr ImPlotPoint(const ImVec2& p)      : x((double)p.x), y((double)p.y) { }
+    double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1); return ((double*)(void*)(char*)this)[idx]; }
+    double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1); return ((const double*)(const void*)(const char*)this)[idx]; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
     IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h
                                  // to convert back and forth between your math types and ImPlotPoint.
 #endif
 };
+IM_MSVC_RUNTIME_CHECKS_RESTORE
 
 // Range defined by a min/max value.
 struct ImPlotRange {
     double Min, Max;
-    ImPlotRange()                         { Min = 0; Max = 0;                                         }
-    ImPlotRange(double _min, double _max) { Min = _min; Max = _max;                                   }
-    bool Contains(double value) const     { return value >= Min && value <= Max;                      }
-    double Size() const                   { return Max - Min;                                         }
-    double Clamp(double value) const      { return (value < Min) ? Min : (value > Max) ? Max : value; }
+    constexpr ImPlotRange()                         : Min(0.0), Max(0.0) { }
+    constexpr ImPlotRange(double _min, double _max) : Min(_min), Max(_max) { }
+    bool Contains(double value) const               { return value >= Min && value <= Max;                      }
+    double Size() const                             { return Max - Min;                                         }
+    double Clamp(double value) const                { return (value < Min) ? Min : (value > Max) ? Max : value; }
 };
 
 // Combination of two range limits for X and Y axes. Also an AABB defined by Min()/Max().
 struct ImPlotRect {
     ImPlotRange X, Y;
-    ImPlotRect()                                                       {                                                               }
-    ImPlotRect(double x_min, double x_max, double y_min, double y_max) { X.Min = x_min; X.Max = x_max; Y.Min = y_min; Y.Max = y_max;   }
-    bool Contains(const ImPlotPoint& p) const                          { return Contains(p.x, p.y);                                    }
-    bool Contains(double x, double y) const                            { return X.Contains(x) && Y.Contains(y);                        }
-    ImPlotPoint Size() const                                           { return ImPlotPoint(X.Size(), Y.Size());                       }
-    ImPlotPoint Clamp(const ImPlotPoint& p)                            { return Clamp(p.x, p.y);                                       }
-    ImPlotPoint Clamp(double x, double y)                              { return ImPlotPoint(X.Clamp(x),Y.Clamp(y));                    }
-    ImPlotPoint Min() const                                            { return ImPlotPoint(X.Min, Y.Min);                             }
-    ImPlotPoint Max() const                                            { return ImPlotPoint(X.Max, Y.Max);                             }
+    constexpr ImPlotRect()                                                       : X(0.0,0.0), Y(0.0,0.0) { }
+    constexpr ImPlotRect(double x_min, double x_max, double y_min, double y_max) : X(x_min, x_max), Y(y_min, y_max) { }
+    bool Contains(const ImPlotPoint& p) const                                    { return Contains(p.x, p.y);                 }
+    bool Contains(double x, double y) const                                      { return X.Contains(x) && Y.Contains(y);     }
+    ImPlotPoint Size() const                                                     { return ImPlotPoint(X.Size(), Y.Size());    }
+    ImPlotPoint Clamp(const ImPlotPoint& p)                                      { return Clamp(p.x, p.y);                    }
+    ImPlotPoint Clamp(double x, double y)                                        { return ImPlotPoint(X.Clamp(x),Y.Clamp(y)); }
+    ImPlotPoint Min() const                                                      { return ImPlotPoint(X.Min, Y.Min);          }
+    ImPlotPoint Max() const                                                      { return ImPlotPoint(X.Max, Y.Max);          }
 };
 
 // Plot style structure
@@ -753,7 +755,7 @@ IMPLOT_API void SetupAxes(const char* x_label, const char* y_label, ImPlotAxisFl
 // Sets the primary X and Y axes range limits. If ImPlotCond_Always is used, the axes limits will be locked (shorthand for two calls to SetupAxisLimits).
 IMPLOT_API void SetupAxesLimits(double x_min, double x_max, double y_min, double y_max, ImPlotCond cond = ImPlotCond_Once);
 
-// Sets up the plot legend. This can also be called immediately after BeginSubplots when using ImPlotSubplotFlags_ShareItems. 
+// Sets up the plot legend. This can also be called immediately after BeginSubplots when using ImPlotSubplotFlags_ShareItems.
 IMPLOT_API void SetupLegend(ImPlotLocation location, ImPlotLegendFlags flags=0);
 // Set the location of the current plot's mouse position text (default = South|East).
 IMPLOT_API void SetupMouseText(ImPlotLocation location, ImPlotMouseTextFlags flags=0);
