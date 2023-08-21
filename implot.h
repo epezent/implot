@@ -926,14 +926,15 @@ IMPLOT_API void PlotDummy(const char* label_id, ImPlotDummyFlags flags=0);
 // Like the item plotting functions above, they apply to the current x and y
 // axes, which can be changed with `SetAxis/SetAxes`.
 
+// When provided #clicked, #hovered, #held will be set to true if draggable item is clicked, hovered or held.
 // Shows a draggable point at x,y. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragPoint(int id, double* x, double* y, const ImVec4& col, float size = 4, ImPlotDragToolFlags flags=0);
+IMPLOT_API bool DragPoint(int id, double* x, double* y, const ImVec4& col, float size = 4, ImPlotDragToolFlags flags = 0, bool* clicked = nullptr, bool* hovered = nullptr, bool* held = nullptr);
 // Shows a draggable vertical guide line at an x-value. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragLineX(int id, double* x, const ImVec4& col, float thickness = 1, ImPlotDragToolFlags flags=0);
+IMPLOT_API bool DragLineX(int id, double* x, const ImVec4& col, float thickness = 1, ImPlotDragToolFlags flags = 0, bool* clicked = nullptr, bool* hovered = nullptr, bool* held = nullptr);
 // Shows a draggable horizontal guide line at a y-value. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragLineY(int id, double* y, const ImVec4& col, float thickness = 1, ImPlotDragToolFlags flags=0);
+IMPLOT_API bool DragLineY(int id, double* y, const ImVec4& col, float thickness = 1, ImPlotDragToolFlags flags = 0, bool* clicked = nullptr, bool* hovered = nullptr, bool* held = nullptr);
 // Shows a draggable and resizeable rectangle.
-IMPLOT_API bool DragRect(int id, double* x1, double* y1, double* x2, double* y2, const ImVec4& col, ImPlotDragToolFlags flags=0);
+IMPLOT_API bool DragRect(int id, double* x1, double* y1, double* x2, double* y2, const ImVec4& col, ImPlotDragToolFlags flags = 0, bool* clicked = nullptr, bool* hovered = nullptr, bool* held = nullptr);
 
 // Shows an annotation callout at a chosen point. Clamping keeps annotations in the plot area. Annotations are always rendered on top.
 IMPLOT_API void Annotation(double x, double y, const ImVec4& col, const ImVec2& pix_offset, bool clamp, bool round = false);
