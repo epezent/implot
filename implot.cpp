@@ -4170,9 +4170,11 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
 
     const bool mouse_inside = rect_grab.Contains(ImGui::GetMousePos());
     const bool mouse_clicked = ImGui::IsMouseClicked(0);
+    const bool mouse_down = ImGui::IsMouseDown(0);
     if (input && mouse_inside) {
         if (out_clicked) *out_clicked = *out_clicked || mouse_clicked;
-        if (out_hovered) *out_hovered = true;        
+        if (out_hovered) *out_hovered = true;
+        if (out_held)    *out_held    = *out_held    || mouse_down;
     }
 
     PushPlotClipRect();
