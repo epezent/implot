@@ -1421,12 +1421,15 @@ void Demo_DragPoints() {
     ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
     ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
     ImPlotAxisFlags ax_flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
+    bool clicked = false;
+    bool hovered = false;
+    bool held = false;
     if (ImPlot::BeginPlot("##Bezier",ImVec2(-1,0),ImPlotFlags_CanvasOnly)) {
         ImPlot::SetupAxes(nullptr,nullptr,ax_flags,ax_flags);
         ImPlot::SetupAxesLimits(0,1,0,1);
         static ImPlotPoint P[] = {ImPlotPoint(.05f,.05f), ImPlotPoint(0.2,0.4),  ImPlotPoint(0.8,0.6),  ImPlotPoint(.95f,.95f)};
 
-        ImPlot::DragPoint(0,&P[0].x,&P[0].y, ImVec4(0,0.9f,0,1),4,flags);
+        ImPlot::DragPoint(0,&P[0].x,&P[0].y, ImVec4(0,0.9f,0,1),4,flags, &clicked, &hovered, &held);
         ImPlot::DragPoint(1,&P[1].x,&P[1].y, ImVec4(1,0.5f,1,1),4,flags);
         ImPlot::DragPoint(2,&P[2].x,&P[2].y, ImVec4(0,0.5f,1,1),4,flags);
         ImPlot::DragPoint(3,&P[3].x,&P[3].y, ImVec4(0,0.9f,0,1),4,flags);
@@ -1452,6 +1455,7 @@ void Demo_DragPoints() {
 
         ImPlot::EndPlot();
     }
+    ImGui::Text("First point is %sclicked, %shovered, %sheld", clicked ? "" : "not ", hovered ? "" : "not ", held ? "" : "not ");
 }
 
 //-----------------------------------------------------------------------------
@@ -1463,13 +1467,16 @@ void Demo_DragLines() {
     static double y1 = 0.25;
     static double y2 = 0.75;
     static double f = 0.1;
+    bool clicked = false;
+    bool hovered = false;
+    bool held = false;
     static ImPlotDragToolFlags flags = ImPlotDragToolFlags_None;
     ImGui::CheckboxFlags("NoCursors", (unsigned int*)&flags, ImPlotDragToolFlags_NoCursors); ImGui::SameLine();
     ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
     ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
     if (ImPlot::BeginPlot("##lines",ImVec2(-1,0))) {
         ImPlot::SetupAxesLimits(0,1,0,1);
-        ImPlot::DragLineX(0,&x1,ImVec4(1,1,1,1),1,flags);
+        ImPlot::DragLineX(0,&x1,ImVec4(1,1,1,1),1,flags, &clicked, &hovered, &held);
         ImPlot::DragLineX(1,&x2,ImVec4(1,1,1,1),1,flags);
         ImPlot::DragLineY(2,&y1,ImVec4(1,1,1,1),1,flags);
         ImPlot::DragLineY(3,&y2,ImVec4(1,1,1,1),1,flags);
@@ -1482,6 +1489,7 @@ void Demo_DragLines() {
         ImPlot::DragLineY(120482,&f,ImVec4(1,0.5f,1,1),1,flags);
         ImPlot::EndPlot();
     }
+    ImGui::Text("First vertical line is %sclicked, %shovered, %sheld", clicked ? "" : "not ", hovered ? "" : "not ", held ? "" : "not ");
 }
 
 //-----------------------------------------------------------------------------
@@ -1494,6 +1502,9 @@ void Demo_DragRects() {
     static float y_data3[512];
     static float sampling_freq = 44100;
     static float freq = 500;
+    bool clicked = false;
+    bool hovered = false;
+    bool held = false;
     for (size_t i = 0; i < 512; ++i) {
         const float t = i / sampling_freq;
         x_data[i] = t;
@@ -1515,7 +1526,7 @@ void Demo_DragRects() {
         ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
         ImPlot::PlotLine("Signal 2", x_data, y_data2, 512);
         ImPlot::PlotLine("Signal 3", x_data, y_data3, 512);
-        ImPlot::DragRect(0,&rect.X.Min,&rect.Y.Min,&rect.X.Max,&rect.Y.Max,ImVec4(1,0,1,1),flags);
+        ImPlot::DragRect(0,&rect.X.Min,&rect.Y.Min,&rect.X.Max,&rect.Y.Max,ImVec4(1,0,1,1),flags, &clicked, &hovered, &held);
         ImPlot::EndPlot();
     }
     if (ImPlot::BeginPlot("##rect",ImVec2(-1,150), ImPlotFlags_CanvasOnly)) {
@@ -1526,6 +1537,7 @@ void Demo_DragRects() {
         ImPlot::PlotLine("Signal 3", x_data, y_data3, 512);
         ImPlot::EndPlot();
     }
+    ImGui::Text("Rect is %sclicked, %shovered, %sheld", clicked ? "" : "not ", hovered ? "" : "not ", held ? "" : "not ");
 }
 
 //-----------------------------------------------------------------------------

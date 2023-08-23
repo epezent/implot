@@ -3894,7 +3894,7 @@ IMPLOT_API void TagYV(double y, const ImVec4& color, const char* fmt, va_list ar
 
 static const float DRAG_GRAB_HALF_SIZE = 4.0f;
 
-bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, ImPlotDragToolFlags flags, bool* is_clicked, bool* is_hovered, bool* is_held) {
+bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, ImPlotDragToolFlags flags, bool* out_clicked, bool* out_hovered, bool* out_held) {
     ImGui::PushID("#IMPLOT_DRAG_POINT");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != nullptr, "DragPoint() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
@@ -3918,12 +3918,12 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     ImGui::KeepAliveID(id);
     if (input) {
         bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
-        if (is_clicked)
-            *is_clicked = clicked;
-        if (is_hovered)
-            *is_hovered = hovered;
-        if (is_held)
-            *is_held = held;
+        if (out_clicked)
+            *out_clicked = clicked;
+        if (out_hovered)
+            *out_hovered = hovered;
+        if (out_held)
+            *out_held = held;
     }
 
     bool dragging = false;
@@ -3946,7 +3946,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     return dragging;
 }
 
-bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPlotDragToolFlags flags, bool* is_clicked, bool* is_hovered, bool* is_held) {
+bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPlotDragToolFlags flags, bool* out_clicked, bool* out_hovered, bool* out_held) {
     // ImGui::PushID("#IMPLOT_DRAG_LINE_X");
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "DragLineX() needs to be called between BeginPlot() and EndPlot()!");
@@ -3970,12 +3970,12 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImGui::KeepAliveID(id);
     if (input) {
         bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
-        if (is_clicked)
-            *is_clicked = clicked;
-        if (is_hovered)
-            *is_hovered = hovered;
-        if (is_held)
-            *is_held = held;
+        if (out_clicked)
+            *out_clicked = clicked;
+        if (out_hovered)
+            *out_hovered = hovered;
+        if (out_held)
+            *out_held = held;
     }
 
     if ((hovered || held) && show_curs)
@@ -4004,7 +4004,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     return dragging;
 }
 
-bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPlotDragToolFlags flags, bool* is_clicked, bool* is_hovered, bool* is_held) {
+bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPlotDragToolFlags flags, bool* out_clicked, bool* out_hovered, bool* out_held) {
     ImGui::PushID("#IMPLOT_DRAG_LINE_Y");
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "DragLineY() needs to be called between BeginPlot() and EndPlot()!");
@@ -4029,12 +4029,12 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImGui::KeepAliveID(id);
     if (input) {
         bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
-        if (is_clicked)
-            *is_clicked = clicked;
-        if (is_hovered)
-            *is_hovered = hovered;
-        if (is_held)
-            *is_held = held;
+        if (out_clicked)
+            *out_clicked = clicked;
+        if (out_hovered)
+            *out_hovered = hovered;
+        if (out_held)
+            *out_held = held;
     }
 
     if ((hovered || held) && show_curs)
@@ -4063,7 +4063,7 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     return dragging;
 }
 
-bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_max, const ImVec4& col, ImPlotDragToolFlags flags, bool* is_clicked, bool* is_hovered, bool* is_held) {
+bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_max, const ImVec4& col, ImPlotDragToolFlags flags, bool* out_clicked, bool* out_hovered, bool* out_held) {
     ImGui::PushID("#IMPLOT_DRAG_RECT");
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != nullptr, "DragRect() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
@@ -4106,13 +4106,8 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
 
     ImGui::KeepAliveID(id);
     if (input) {
-        bool clicked = ImGui::ButtonBehavior(b_rect,id,&hovered,&held);
-        if (is_clicked)
-            *is_clicked = clicked;
-        if (is_hovered)
-            *is_hovered = hovered;
-        if (is_held)
-            *is_held = held;
+        // middle point
+        ImGui::ButtonBehavior(b_rect,id,&hovered,&held); 
     }
 
     if ((hovered || held) && show_curs)
@@ -4171,6 +4166,20 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
         }
     }
 
+    if (input) {
+        // Entire rectangle
+        ImGuiID r_id = id + 5;
+        ImGui::KeepAliveID(r_id);
+        bool is_hovered = false;
+        bool is_held = false;
+        bool is_clicked = ImGui::ButtonBehavior(rect, r_id, &is_hovered, &is_held);
+        if (out_clicked)
+            *out_clicked = is_clicked;
+        if (out_hovered)
+            *out_hovered = is_hovered;
+        if (out_held)
+            *out_held = is_held;
+    }
 
     PushPlotClipRect();
     ImDrawList& DrawList = *GetPlotDrawList();
@@ -4192,8 +4201,8 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     return dragging;
 }
 
-bool DragRect(int id, ImPlotRect* bounds, const ImVec4& col, ImPlotDragToolFlags flags, bool* is_clicked, bool* is_hovered, bool* is_held) {
-    return DragRect(id, &bounds->X.Min, &bounds->Y.Min,&bounds->X.Max, &bounds->Y.Max, col, flags, is_clicked, is_hovered, is_held);
+bool DragRect(int id, ImPlotRect* bounds, const ImVec4& col, ImPlotDragToolFlags flags, bool* out_clicked, bool* out_hovered, bool* out_held) {
+    return DragRect(id, &bounds->X.Min, &bounds->Y.Min,&bounds->X.Max, &bounds->Y.Max, col, flags, out_clicked, out_hovered, out_held);
 }
 
 //-----------------------------------------------------------------------------
