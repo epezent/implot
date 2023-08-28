@@ -2327,8 +2327,8 @@ struct GetterHeatmapColMaj {
     { }
     template <typename I> IMPLOT_INLINE RectC operator()(I idx) const {
         double val = (double)Values[idx];
-        const int r = idx % Cols;
-        const int c = idx / Cols;
+        const int r = idx % Rows;
+        const int c = idx / Rows;
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
         RectC rect;
         rect.Pos = p;
