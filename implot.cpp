@@ -341,8 +341,8 @@ void AddTextVertical(ImDrawList *DrawList, ImVec2 pos, ImU32 col, const char *te
     ImGuiContext& g = *GImGui;
     ImFont* font = g.Font;
     // Align to be pixel perfect
-    pos.x = IM_FLOOR(pos.x);
-    pos.y = IM_FLOOR(pos.y);
+    pos.x = ImFloor(pos.x);
+    pos.y = ImFloor(pos.y);
     const float scale = g.FontSize / font->FontSize;
     const char* s = text_begin;
     int chars_exp = (int)(text_end - s);
