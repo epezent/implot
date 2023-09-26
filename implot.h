@@ -286,8 +286,9 @@ enum ImPlotInfLinesFlags_ {
 
 // Flags for PlotPieChart
 enum ImPlotPieChartFlags_ {
-    ImPlotPieChartFlags_None      = 0,      // default
-    ImPlotPieChartFlags_Normalize = 1 << 10 // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
+    ImPlotPieChartFlags_None         = 0,       // default
+    ImPlotPieChartFlags_Normalize    = 1 << 10, // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
+    ImPlotPieChartFlags_IgnoreHidden = 1 << 11  // ignore hidden slices when drawing the pie chart (as if they were not there)
 };
 
 // Flags for PlotHeatmap
@@ -892,6 +893,7 @@ IMPLOT_TMP void PlotStems(const char* label_id, const T* xs, const T* ys, int co
 IMPLOT_TMP void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLinesFlags flags=0, int offset=0, int stride=sizeof(T));
 
 // Plots a pie chart. Center and radius are in plot units. #label_fmt can be set to nullptr for no labels.
+IMPLOT_TMP void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, ImPlotFormatter fmt, void* fmt_data=nullptr, double angle0=90, ImPlotPieChartFlags flags=0);
 IMPLOT_TMP void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* label_fmt="%.1f", double angle0=90, ImPlotPieChartFlags flags=0);
 
 // Plots a 2D heatmap chart. Values are expected to be in row-major order by default. Leave #scale_min and scale_max both at 0 for automatic color scaling, or set them to a predefined range. #label_fmt can be set to nullptr for no labels.

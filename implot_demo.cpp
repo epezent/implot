@@ -610,10 +610,8 @@ void Demo_PieCharts() {
     static ImPlotPieChartFlags flags = 0;
     ImGui::SetNextItemWidth(250);
     ImGui::DragFloat4("Values", data1, 0.01f, 0, 1);
-    if ((data1[0] + data1[1] + data1[2] + data1[3]) < 1) {
-        ImGui::SameLine();
-        CHECKBOX_FLAG(flags,ImPlotPieChartFlags_Normalize);
-    }
+    CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Normalize);
+    CHECKBOX_FLAG(flags, ImPlotPieChartFlags_IgnoreHidden);
 
     if (ImPlot::BeginPlot("##Pie1", ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
