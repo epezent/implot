@@ -2778,7 +2778,7 @@ void EndPlot() {
 
     // FINAL RENDER -----------------------------------------------------------
 
-    const bool render_border  = gp.Style.PlotBorderSize > 0 && gp.Style.Colors[ImPlotCol_PlotBorder].w > 0;
+    const bool render_border  = gp.Style.PlotBorderSize > 0 && GetStyleColorVec4(ImPlotCol_PlotBorder).w > 0;
     const bool any_x_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_X1], IMPLOT_NUM_X_AXES);
     const bool any_y_held = plot.Held    || AnyAxesHeld(&plot.Axes[ImAxis_Y1], IMPLOT_NUM_Y_AXES);
 
