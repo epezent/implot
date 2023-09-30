@@ -240,6 +240,7 @@ const char* GetStyleColorName(ImPlotCol col) {
 const char* GetMarkerName(ImPlotMarker marker) {
     switch (marker) {
         case ImPlotMarker_None:     return "None";
+        case ImPlotMarker_Auto:     return "Auto";
         case ImPlotMarker_Circle:   return "Circle";
         case ImPlotMarker_Square:   return "Square";
         case ImPlotMarker_Diamond:  return "Diamond";
@@ -697,8 +698,8 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
 // Locators
 //-----------------------------------------------------------------------------
 
-static const float TICK_FILL_X = 0.8f;
-static const float TICK_FILL_Y = 1.0f;
+constexpr float TICK_FILL_X = 0.8f;
+constexpr float TICK_FILL_Y = 1.0f;
 
 void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data) {
     if (range.Min == range.Max)
@@ -834,7 +835,7 @@ void AddTicksCustom(const double* values, const char* const labels[], int n, ImP
 //-----------------------------------------------------------------------------
 
 // this may not be thread safe?
-static const double TimeUnitSpans[ImPlotTimeUnit_COUNT] = {
+constexpr double TimeUnitSpans[ImPlotTimeUnit_COUNT] = {
     0.000001,
     0.001,
     1,
@@ -846,7 +847,7 @@ static const double TimeUnitSpans[ImPlotTimeUnit_COUNT] = {
 };
 
 inline ImPlotTimeUnit GetUnitForRange(double range) {
-    static double cutoffs[ImPlotTimeUnit_COUNT] = {0.001, 1, 60, 3600, 86400, 2629800, 31557600, IMPLOT_MAX_TIME};
+    constexpr double cutoffs[ImPlotTimeUnit_COUNT] = {0.001, 1, 60, 3600, 86400, 2629800, 31557600, IMPLOT_MAX_TIME};
     for (int i = 0; i < ImPlotTimeUnit_COUNT; ++i) {
         if (range <= cutoffs[i])
             return (ImPlotTimeUnit)i;
@@ -866,28 +867,28 @@ inline int LowerBoundStep(int max_divs, const int* divs, const int* step, int si
 
 inline int GetTimeStep(int max_divs, ImPlotTimeUnit unit) {
     if (unit == ImPlotTimeUnit_Ms || unit == ImPlotTimeUnit_Us) {
-        static const int step[] = {500,250,200,100,50,25,20,10,5,2,1};
-        static const int divs[] = {2,4,5,10,20,40,50,100,200,500,1000};
+        constexpr int step[] = {500,250,200,100,50,25,20,10,5,2,1};
+        constexpr int divs[] = {2,4,5,10,20,40,50,100,200,500,1000};
         return LowerBoundStep(max_divs, divs, step, 11);
     }
     if (unit == ImPlotTimeUnit_S || unit == ImPlotTimeUnit_Min) {
-        static const int step[] = {30,15,10,5,1};
-        static const int divs[] = {2,4,6,12,60};
+        constexpr int step[] = {30,15,10,5,1};
+        constexpr int divs[] = {2,4,6,12,60};
         return LowerBoundStep(max_divs, divs, step, 5);
     }
     else if (unit == ImPlotTimeUnit_Hr) {
-        static const int step[] = {12,6,3,2,1};
-        static const int divs[] = {2,4,8,12,24};
+        constexpr int step[] = {12,6,3,2,1};
+        constexpr int divs[] = {2,4,8,12,24};
         return LowerBoundStep(max_divs, divs, step, 5);
     }
     else if (unit == ImPlotTimeUnit_Day) {
-        static const int step[] = {14,7,2,1};
-        static const int divs[] = {2,4,14,28};
+        constexpr int step[] = {14,7,2,1};
+        constexpr int divs[] = {2,4,14,28};
         return LowerBoundStep(max_divs, divs, step, 4);
     }
     else if (unit == ImPlotTimeUnit_Mo) {
-        static const int step[] = {6,3,2,1};
-        static const int divs[] = {2,4,6,12};
+        constexpr int step[] = {6,3,2,1};
+        constexpr int divs[] = {2,4,6,12};
         return LowerBoundStep(max_divs, divs, step, 4);
     }
     return 0;
@@ -1803,8 +1804,8 @@ static inline void RenderSelectionRect(ImDrawList& DrawList, const ImVec2& p_min
 // Input Handling
 //-----------------------------------------------------------------------------
 
-static const float MOUSE_CURSOR_DRAG_THRESHOLD = 5.0f;
-static const float BOX_SELECT_DRAG_THRESHOLD   = 4.0f;
+constexpr float MOUSE_CURSOR_DRAG_THRESHOLD = 5.0f;
+constexpr float BOX_SELECT_DRAG_THRESHOLD   = 4.0f;
 
 bool UpdateInput(ImPlotPlot& plot) {
 
@@ -3251,9 +3252,9 @@ void EndPlot() {
 // BEGIN/END SUBPLOT
 //-----------------------------------------------------------------------------
 
-static const float SUBPLOT_BORDER_SIZE             = 1.0f;
-static const float SUBPLOT_SPLITTER_HALF_THICKNESS = 4.0f;
-static const float SUBPLOT_SPLITTER_FEEDBACK_TIMER = 0.06f;
+constexpr float SUBPLOT_BORDER_SIZE             = 1.0f;
+constexpr float SUBPLOT_SPLITTER_HALF_THICKNESS = 4.0f;
+constexpr float SUBPLOT_SPLITTER_FEEDBACK_TIMER = 0.06f;
 
 void SubplotSetCell(int row, int col) {
     ImPlotContext& gp      = *GImPlot;
@@ -3881,7 +3882,7 @@ IMPLOT_API void TagYV(double y, const ImVec4& color, const char* fmt, va_list ar
     TagV(gp.CurrentPlot->CurrentY, y, color, fmt, args);
 }
 
-static const float DRAG_GRAB_HALF_SIZE = 4.0f;
+constexpr float DRAG_GRAB_HALF_SIZE = 4.0f;
 
 bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, ImPlotDragToolFlags flags, bool* out_clicked, bool* out_hovered, bool* out_held) {
     ImGui::PushID("#IMPLOT_DRAG_POINT");
@@ -4468,6 +4469,14 @@ void PopStyleVar(int count) {
     }
 }
 
+ImPlotMarker NextMarker() {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentItems != nullptr, "NextMarker() needs to be called between BeginPlot() and EndPlot()!");
+    const int idx = gp.CurrentItems->MarkerIdx % ImPlotMarker_COUNT;
+    ++gp.CurrentItems->MarkerIdx;
+    return idx;
+}
+    
 //------------------------------------------------------------------------------
 // [Section] Colormaps
 //------------------------------------------------------------------------------
@@ -4541,7 +4550,7 @@ ImU32 NextColormapColorU32() {
 
 ImVec4 NextColormapColor() {
     return ImGui::ColorConvertU32ToFloat4(NextColormapColorU32());
-}
+}    
 
 int GetColormapSize(ImPlotColormap cmap) {
     ImPlotContext& gp = *GImPlot;
@@ -5299,7 +5308,7 @@ void ShowMetricsWindow(bool* p_popen) {
                             ImVec4 temp = ImGui::ColorConvertU32ToFloat4(item->Color);
                             if (ImGui::ColorEdit4("Color",&temp.x, ImGuiColorEditFlags_NoInputs))
                                 item->Color = ImGui::ColorConvertFloat4ToU32(temp);
-
+                            ImGui::BulletText("Marker: %s", GetMarkerName(item->Marker));
                             ImGui::BulletText("NameOffset: %d",item->NameOffset);
                             ImGui::BulletText("Name: %s", item->NameOffset != -1 ? plot.Items.Legend.Labels.Buf.Data + item->NameOffset : "N/A");
                             ImGui::BulletText("Hovered: %s",item->LegendHovered ? "true" : "false");

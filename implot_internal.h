@@ -53,20 +53,23 @@
 // to ImPlotStyleVar_ over time.
 
 // Minimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
-#define IMPLOT_MIN_TIME  0
+constexpr double IMPLOT_MIN_TIME = 0;
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
-#define IMPLOT_MAX_TIME  32503680000
+constexpr double IMPLOT_MAX_TIME = 32503680000;
+
 // Default label format for axis labels
-#define IMPLOT_LABEL_FORMAT "%g"
+constexpr const char* IMPLOT_LABEL_FORMAT = "%g";
 // Max character size for tick labels
-#define IMPLOT_LABEL_MAX_SIZE 32
+constexpr int IMPLOT_LABEL_MAX_SIZE = 32;
+
+// Number of X axes
+constexpr int IMPLOT_NUM_X_AXES = ImAxis_Y1;
+// Number of Y axes
+constexpr int IMPLOT_NUM_Y_AXES = ImAxis_COUNT - IMPLOT_NUM_X_AXES;
 
 //-----------------------------------------------------------------------------
 // [SECTION] Macros
 //-----------------------------------------------------------------------------
-
-#define IMPLOT_NUM_X_AXES ImAxis_Y1
-#define IMPLOT_NUM_Y_AXES (ImAxis_COUNT - IMPLOT_NUM_X_AXES)
 
 // Split ImU32 color into RGB components [0 255]
 #define IM_COL32_SPLIT_RGB(col,r,g,b) \
@@ -227,9 +230,10 @@ static inline bool ImOverlaps(T min_a, T max_a, T min_b, T max_b) {
 // [SECTION] ImPlot Enums
 //-----------------------------------------------------------------------------
 
-typedef int ImPlotTimeUnit;    // -> enum ImPlotTimeUnit_
-typedef int ImPlotDateFmt;     // -> enum ImPlotDateFmt_
-typedef int ImPlotTimeFmt;     // -> enum ImPlotTimeFmt_
+typedef int ImPlotTimeUnit;       // -> enum ImPlotTimeUnit_
+typedef int ImPlotDateFmt;        // -> enum ImPlotDateFmt_
+typedef int ImPlotTimeFmt;        // -> enum ImPlotTimeFmt_
+typedef int ImPlotMarkerInternal; // -> enum ImPlotMarkerInternal_
 
 enum ImPlotTimeUnit_ {
     ImPlotTimeUnit_Us,  // microsecond
@@ -263,6 +267,10 @@ enum ImPlotTimeFmt_ {              // default        [ 24 Hour Clock ]
     ImPlotTimeFmt_HrMinS,          // 7:21:29pm      [ 19:21:29     ]
     ImPlotTimeFmt_HrMin,           // 7:21pm         [ 19:21        ]
     ImPlotTimeFmt_Hr               // 7pm            [ 19:00        ]
+};
+
+enum ImPlotMarkerInternal_ {
+    ImPlotMarker_Invalid = -3
 };
 
 //-----------------------------------------------------------------------------
@@ -962,6 +970,7 @@ struct ImPlotItem
 {
     ImGuiID      ID;
     ImU32        Color;
+    ImPlotMarker Marker;
     ImRect       LegendHoverRect;
     int          NameOffset;
     bool         Show;
@@ -971,6 +980,7 @@ struct ImPlotItem
     ImPlotItem() {
         ID            = 0;
         Color         = IM_COL32_WHITE;
+        Marker        = ImPlotMarker_None;
         NameOffset    = -1;
         Show          = true;
         SeenThisFrame = false;
@@ -1014,8 +1024,9 @@ struct ImPlotItemGroup
     ImPlotLegend       Legend;
     ImPool<ImPlotItem> ItemPool;
     int                ColormapIdx;
+    ImPlotMarker       MarkerIdx;
 
-    ImPlotItemGroup() { ID = 0; ColormapIdx = 0; }
+    ImPlotItemGroup() { ID = 0; ColormapIdx = 0; MarkerIdx = 0; }
 
     int         GetItemCount() const             { return ItemPool.GetBufSize();                                 }
     ImGuiID     GetItemID(const char*  label_id) { return ImGui::GetID(label_id); /* GetIDWithSeed */            }
@@ -1199,6 +1210,7 @@ struct ImPlotNextItemData {
     float           DigitalBitGap;    // TODO: remove
     bool            RenderLine;
     bool            RenderFill;
+    bool            RenderMarkers;
     bool            HasHidden;
     bool            Hidden;
     ImPlotCond      HiddenCond;
@@ -1318,12 +1330,12 @@ IMPLOT_API void ShowSubplotsContextMenu(ImPlotSubplot& subplot);
 //-----------------------------------------------------------------------------
 
 // Begins a new item. Returns false if the item should not be plotted. Pushes PlotClipRect.
-IMPLOT_API bool BeginItem(const char* label_id, const ImPlotSpec& spec = ImPlotSpec(), const ImVec4& label_col = IMPLOT_AUTO_COL);
+IMPLOT_API bool BeginItem(const char* label_id, const ImPlotSpec& spec = ImPlotSpec(), const ImVec4& item_col = IMPLOT_AUTO_COL, ImPlotMarker item_mkr = ImPlotMarker_Invalid);
 
 // Same as above but with fitting functionality.
 template <typename _Fitter>
-bool BeginItemEx(const char* label_id, const _Fitter& fitter, const ImPlotSpec& spec, const ImVec4& label_col = IMPLOT_AUTO_COL) {
-    if (BeginItem(label_id, spec, label_col)) {
+bool BeginItemEx(const char* label_id, const _Fitter& fitter, const ImPlotSpec& spec, const ImVec4& item_col = IMPLOT_AUTO_COL, ImPlotMarker item_mkr = ImPlotMarker_Invalid) {
+    if (BeginItem(label_id, spec, item_col, item_mkr)) {
         ImPlotPlot& plot = *GetCurrentPlot();
         if (plot.FitThisFrame && !ImHasFlag(spec.Flags, ImPlotItemFlags_NoFit))
             fitter.Fit(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]);
@@ -1556,7 +1568,7 @@ static inline bool IsLeapYear(int year) {
 }
 // Returns the number of days in a month, accounting for Feb. leap years. #month is zero indexed.
 static inline int GetDaysInMonth(int year, int month) {
-    static const int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    constexpr int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     return  days[month] + (int)(month == 1 && IsLeapYear(year));
 }
 

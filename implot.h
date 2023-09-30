@@ -65,12 +65,13 @@
 #define IMPLOT_VERSION "0.17 WIP"
 // ImPlot version integer encoded as XYYZZ (X=major, YY=minor, ZZ=patch).
 #define IMPLOT_VERSION_NUM 1700
-// Indicates variable should deduced automatically.
-#define IMPLOT_AUTO -1
-// Special color used to indicate that a color should be deduced automatically.
-#define IMPLOT_AUTO_COL ImVec4(0,0,0,-1)
 // Macro for templated plotting functions; keeps header clean.
 #define IMPLOT_TMP template <typename T> IMPLOT_API
+
+// Indicates variable should deduced automatically.
+constexpr int IMPLOT_AUTO = -1;
+// Special color used to indicate that a color should be deduced automatically.
+constexpr ImVec4 IMPLOT_AUTO_COL = ImVec4(0,0,0,-1);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Enums and Types
@@ -413,7 +414,8 @@ enum ImPlotScale_ {
 
 // Marker specifications.
 enum ImPlotMarker_ {
-    ImPlotMarker_None = -1, // no marker
+    ImPlotMarker_None = -2, // no marker
+    ImPlotMarker_Auto = -1, // automatic marker selection
     ImPlotMarker_Circle,    // a circle marker (default)
     ImPlotMarker_Square,    // a square maker
     ImPlotMarker_Diamond,   // a diamond marker
@@ -1153,7 +1155,10 @@ IMPLOT_API ImVec4 GetLastItemColor();
 IMPLOT_API const char* GetStyleColorName(ImPlotCol idx);
 // Returns the null terminated string name for an ImPlotMarker.
 IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
-
+    
+// Returns the next marker and advances the marker for the current plot. You need to call this between Begin/EndPlot!
+IMPLOT_API ImPlotMarker NextMarker();
+    
 //-----------------------------------------------------------------------------
 // [SECTION] Colormaps
 //-----------------------------------------------------------------------------
@@ -1223,7 +1228,7 @@ IMPLOT_API void BustColorCache(const char* plot_title_id = nullptr);
 //-----------------------------------------------------------------------------
 // [SECTION] Input Mapping
 //-----------------------------------------------------------------------------
-
+    
 // Provides access to input mapping structure for permanent modifications to controls for pan, select, etc.
 IMPLOT_API ImPlotInputMap& GetInputMap();
 

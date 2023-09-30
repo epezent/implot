@@ -369,11 +369,11 @@ void BustColorCache(const char* plot_title_id) {
 // [SECTION] BeginItem / EndItem
 //-----------------------------------------------------------------------------
 
-static const float ITEM_HIGHLIGHT_LINE_SCALE = 2.0f;
-static const float ITEM_HIGHLIGHT_MARK_SCALE = 1.25f;
+constexpr float ITEM_HIGHLIGHT_LINE_SCALE = 2.0f;
+constexpr float ITEM_HIGHLIGHT_MARK_SCALE = 1.25f;
 
 // Begins a new item. Returns false if the item should not be plotted.
-bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& label_col) {
+bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& item_col, ImPlotMarker item_mkr) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "PlotX() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
@@ -383,14 +383,27 @@ bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& label
     gp.CurrentItem = item;
     ImPlotNextItemData& s = gp.NextItemData;
     // set/override item color
-    if (!IsColorAuto(label_col))
-        item->Color = ImGui::ColorConvertFloat4ToU32(label_col);
+    if (!IsColorAuto(item_col))
+        item->Color = ImGui::ColorConvertFloat4ToU32(item_col);
     else if (just_created)
         item->Color = NextColormapColorU32();
     if (gp.NextItemData.HasHidden) {
         if (just_created || gp.NextItemData.HiddenCond == ImGuiCond_Always)
             item->Show = !gp.NextItemData.Hidden;
     }
+    // set/override item marker
+    if (item_mkr != ImPlotMarker_Invalid) {
+        if (item_mkr != ImPlotMarker_Auto) {
+            item->Marker = item_mkr;
+        }
+        else if (just_created && item_mkr == ImPlotMarker_Auto) {
+            item->Marker = NextMarker();
+        }
+        else if (item_mkr == ImPlotMarker_Auto && item->Marker == ImPlotMarker_None) {
+            item->Marker = NextMarker();
+        }
+    }
+    // return false if not shown
     if (!item->Show) {
         // reset next item data
         gp.NextItemData.Reset();
@@ -405,6 +418,7 @@ bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& label
         s.Spec.LineColor = IsColorAuto(s.Spec.LineColor) ? item_color : s.Spec.LineColor;
         s.Spec.FillColor = IsColorAuto(s.Spec.FillColor) ? s.Spec.LineColor : s.Spec.FillColor;
         s.Spec.FillColor.w *= s.Spec.FillAlpha;
+        s.Spec.Marker = item->Marker;
         // SPEC-TODO: remove
         s.DigitalBitHeight = gp.Style.DigitalBitHeight;
         s.DigitalBitGap =  gp.Style.DigitalBitGap;
@@ -425,6 +439,7 @@ bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& label
         // set render flags
         s.RenderLine = s.Spec.LineColor.w > 0 && s.Spec.LineWeight > 0;
         s.RenderFill = s.Spec.FillColor.w > 0;
+        s.RenderMarkers = s.Spec.Marker >= 0 && (s.RenderFill || s.RenderLine);
         // push rendering clip rect
         PushPlotClipRect();
         return true;
@@ -1452,15 +1467,15 @@ struct RendererMarkersLine : RendererBase {
     mutable ImVec2 UV1;
 };
 
-static const ImVec2 MARKER_FILL_CIRCLE[10]  = {ImVec2(1.0f, 0.0f), ImVec2(0.809017f, 0.58778524f),ImVec2(0.30901697f, 0.95105654f),ImVec2(-0.30901703f, 0.9510565f),ImVec2(-0.80901706f, 0.5877852f),ImVec2(-1.0f, 0.0f),ImVec2(-0.80901694f, -0.58778536f),ImVec2(-0.3090171f, -0.9510565f),ImVec2(0.30901712f, -0.9510565f),ImVec2(0.80901694f, -0.5877853f)};
-static const ImVec2 MARKER_FILL_SQUARE[4]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2)};
-static const ImVec2 MARKER_FILL_DIAMOND[4]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(0, 1)};
-static const ImVec2 MARKER_FILL_UP[3]       = {ImVec2(SQRT_3_2,0.5f),ImVec2(0,-1),ImVec2(-SQRT_3_2,0.5f)};
-static const ImVec2 MARKER_FILL_DOWN[3]     = {ImVec2(SQRT_3_2,-0.5f),ImVec2(0,1),ImVec2(-SQRT_3_2,-0.5f)};
-static const ImVec2 MARKER_FILL_LEFT[3]     = {ImVec2(-1,0), ImVec2(0.5, SQRT_3_2), ImVec2(0.5, -SQRT_3_2)};
-static const ImVec2 MARKER_FILL_RIGHT[3]    = {ImVec2(1,0), ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, -SQRT_3_2)};
-
-static const ImVec2 MARKER_LINE_CIRCLE[20]  = {
+constexpr ImVec2 MARKER_FILL_CIRCLE[10]  = {ImVec2(1.0f, 0.0f), ImVec2(0.809017f, 0.58778524f),ImVec2(0.30901697f, 0.95105654f),ImVec2(-0.30901703f, 0.9510565f),ImVec2(-0.80901706f, 0.5877852f),ImVec2(-1.0f, 0.0f),ImVec2(-0.80901694f, -0.58778536f),ImVec2(-0.3090171f, -0.9510565f),ImVec2(0.30901712f, -0.9510565f),ImVec2(0.80901694f, -0.5877853f)};
+constexpr ImVec2 MARKER_FILL_SQUARE[4]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2)};
+constexpr ImVec2 MARKER_FILL_DIAMOND[4]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(0, 1)};
+constexpr ImVec2 MARKER_FILL_UP[3]       = {ImVec2(SQRT_3_2,0.5f),ImVec2(0,-1),ImVec2(-SQRT_3_2,0.5f)};
+constexpr ImVec2 MARKER_FILL_DOWN[3]     = {ImVec2(SQRT_3_2,-0.5f),ImVec2(0,1),ImVec2(-SQRT_3_2,-0.5f)};
+constexpr ImVec2 MARKER_FILL_LEFT[3]     = {ImVec2(-1,0), ImVec2(0.5, SQRT_3_2), ImVec2(0.5, -SQRT_3_2)};
+constexpr ImVec2 MARKER_FILL_RIGHT[3]    = {ImVec2(1,0), ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, -SQRT_3_2)};
+    
+constexpr ImVec2 MARKER_LINE_CIRCLE[20]  = {
     ImVec2(1.0f, 0.0f),
     ImVec2(0.809017f, 0.58778524f),
     ImVec2(0.809017f, 0.58778524f),
@@ -1482,15 +1497,15 @@ static const ImVec2 MARKER_LINE_CIRCLE[20]  = {
     ImVec2(0.80901694f, -0.5877853f),
     ImVec2(1.0f, 0.0f)
 };
-static const ImVec2 MARKER_LINE_SQUARE[8]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,SQRT_1_2)};
-static const ImVec2 MARKER_LINE_DIAMOND[8]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(-1, 0), ImVec2(0, 1), ImVec2(0, 1), ImVec2(1, 0)};
-static const ImVec2 MARKER_LINE_UP[6]       = {ImVec2(SQRT_3_2,0.5f), ImVec2(0,-1),ImVec2(0,-1),ImVec2(-SQRT_3_2,0.5f),ImVec2(-SQRT_3_2,0.5f),ImVec2(SQRT_3_2,0.5f)};
-static const ImVec2 MARKER_LINE_DOWN[6]     = {ImVec2(SQRT_3_2,-0.5f),ImVec2(0,1),ImVec2(0,1),ImVec2(-SQRT_3_2,-0.5f), ImVec2(-SQRT_3_2,-0.5f), ImVec2(SQRT_3_2,-0.5f)};
-static const ImVec2 MARKER_LINE_LEFT[6]     = {ImVec2(-1,0), ImVec2(0.5, SQRT_3_2),  ImVec2(0.5, SQRT_3_2),  ImVec2(0.5, -SQRT_3_2) , ImVec2(0.5, -SQRT_3_2) , ImVec2(-1,0) };
-static const ImVec2 MARKER_LINE_RIGHT[6]    = {ImVec2(1,0),  ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, -SQRT_3_2), ImVec2(-0.5, -SQRT_3_2), ImVec2(1,0) };
-static const ImVec2 MARKER_LINE_ASTERISK[6] = {ImVec2(-SQRT_3_2, -0.5f), ImVec2(SQRT_3_2, 0.5f),  ImVec2(-SQRT_3_2, 0.5f), ImVec2(SQRT_3_2, -0.5f), ImVec2(0, -1), ImVec2(0, 1)};
-static const ImVec2 MARKER_LINE_PLUS[4]     = {ImVec2(-1, 0), ImVec2(1, 0), ImVec2(0, -1), ImVec2(0, 1)};
-static const ImVec2 MARKER_LINE_CROSS[4]    = {ImVec2(-SQRT_1_2,-SQRT_1_2),ImVec2(SQRT_1_2,SQRT_1_2),ImVec2(SQRT_1_2,-SQRT_1_2),ImVec2(-SQRT_1_2,SQRT_1_2)};
+constexpr ImVec2 MARKER_LINE_SQUARE[8]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,SQRT_1_2)};
+constexpr ImVec2 MARKER_LINE_DIAMOND[8]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(-1, 0), ImVec2(0, 1), ImVec2(0, 1), ImVec2(1, 0)};
+constexpr ImVec2 MARKER_LINE_UP[6]       = {ImVec2(SQRT_3_2,0.5f), ImVec2(0,-1),ImVec2(0,-1),ImVec2(-SQRT_3_2,0.5f),ImVec2(-SQRT_3_2,0.5f),ImVec2(SQRT_3_2,0.5f)};
+constexpr ImVec2 MARKER_LINE_DOWN[6]     = {ImVec2(SQRT_3_2,-0.5f),ImVec2(0,1),ImVec2(0,1),ImVec2(-SQRT_3_2,-0.5f), ImVec2(-SQRT_3_2,-0.5f), ImVec2(SQRT_3_2,-0.5f)};
+constexpr ImVec2 MARKER_LINE_LEFT[6]     = {ImVec2(-1,0), ImVec2(0.5, SQRT_3_2),  ImVec2(0.5, SQRT_3_2),  ImVec2(0.5, -SQRT_3_2) , ImVec2(0.5, -SQRT_3_2) , ImVec2(-1,0) };
+constexpr ImVec2 MARKER_LINE_RIGHT[6]    = {ImVec2(1,0),  ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, -SQRT_3_2), ImVec2(-0.5, -SQRT_3_2), ImVec2(1,0) };
+constexpr ImVec2 MARKER_LINE_ASTERISK[6] = {ImVec2(-SQRT_3_2, -0.5f), ImVec2(SQRT_3_2, 0.5f),  ImVec2(-SQRT_3_2, 0.5f), ImVec2(SQRT_3_2, -0.5f), ImVec2(0, -1), ImVec2(0, 1)};
+constexpr ImVec2 MARKER_LINE_PLUS[4]     = {ImVec2(-1, 0), ImVec2(1, 0), ImVec2(0, -1), ImVec2(0, 1)};
+constexpr ImVec2 MARKER_LINE_CROSS[4]    = {ImVec2(-SQRT_1_2,-SQRT_1_2),ImVec2(SQRT_1_2,SQRT_1_2),ImVec2(SQRT_1_2,-SQRT_1_2),ImVec2(-SQRT_1_2,SQRT_1_2)};
 
 template <typename _Getter>
 void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool rend_fill, ImU32 col_fill, bool rend_line, ImU32 col_line, float weight) {
@@ -1527,7 +1542,7 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool 
 
 template <typename _Getter>
 void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter1<_Getter>(getter), spec, spec.LineColor)) {
+    if (BeginItemEx(label_id, Fitter1<_Getter>(getter), spec, spec.LineColor, spec.Marker)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
@@ -1559,7 +1574,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
             }
         }
         // render markers
-        if (s.Spec.Marker != ImPlotMarker_None) {
+        if (s.RenderMarkers) {
             if (ImHasFlag(spec.Flags, ImPlotLineFlags_NoClip)) {
                 PopPlotClipRect();
                 PushPlotClipRect(s.Spec.Size);
@@ -1602,21 +1617,22 @@ void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int c
 
 template <typename Getter>
 void PlotScatterEx(const char* label_id, const Getter& getter, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.LineColor)) {
+    // force scatter to render a marker even if none
+    ImPlotMarker marker = spec.Marker == ImPlotMarker_None ? ImPlotMarker_Auto: spec.Marker;
+    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.LineColor, marker)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
         }
         const ImPlotNextItemData& s = GetItemData();
-        ImPlotMarker marker = s.Spec.Marker == ImPlotMarker_None ? ImPlotMarker_Circle: s.Spec.Marker;
-        if (marker != ImPlotMarker_None) {
+        if (s.RenderMarkers) {
             if (ImHasFlag(spec.Flags,ImPlotScatterFlags_NoClip)) {
                 PopPlotClipRect();
                 PushPlotClipRect(s.Spec.Size);
             }
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-            RenderMarkers<Getter>(getter, marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
+            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
@@ -1652,7 +1668,7 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 
 template <typename Getter>
 void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.LineColor)) {
+    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.LineColor, spec.Marker)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
@@ -1675,7 +1691,7 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
             }
         }
         // render markers
-        if (s.Spec.Marker != ImPlotMarker_None) {
+        if (s.RenderMarkers) {
             PopPlotClipRect();
             PushPlotClipRect(s.Spec.Size);
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
@@ -2055,7 +2071,7 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 
 template <typename _GetterM, typename _GetterB>
 void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _GetterB& getter_base, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter2<_GetterM,_GetterB>(getter_mark,getter_base), spec, spec.LineColor)) {
+    if (BeginItemEx(label_id, Fitter2<_GetterM,_GetterB>(getter_mark,getter_base), spec, spec.LineColor, spec.Marker)) {
         if (getter_mark.Count <= 0 || getter_base.Count <= 0) {
             EndItem();
             return;
@@ -2067,7 +2083,7 @@ void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _Gette
             RenderPrimitives2<RendererLineSegments2>(getter_mark, getter_base, col_line, s.Spec.LineWeight);
         }
         // render markers
-        if (s.Spec.Marker != ImPlotMarker_None) {
+        if (s.RenderMarkers) {
             PopPlotClipRect();
             PushPlotClipRect(s.Spec.Size);
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
