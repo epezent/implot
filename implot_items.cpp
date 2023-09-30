@@ -119,7 +119,12 @@ template <typename T>
 struct MaxIdx { static const unsigned int Value; };
 template <> const unsigned int MaxIdx<unsigned short>::Value = 65535;
 template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
-
+    
+template <typename T>
+int Stride(const ImPlotSpec& spec) {
+    return spec.Stride == IMPLOT_AUTO ? sizeof(T) : spec.Stride;    
+}
+    
 IMPLOT_INLINE void GetLineRenderProps(const ImDrawList& draw_list, float& half_weight, ImVec2& tex_uv0, ImVec2& tex_uv1) {
     const bool aa = ImHasFlag(draw_list.Flags, ImDrawListFlags_AntiAliasedLines) &&
                     ImHasFlag(draw_list.Flags, ImDrawListFlags_AntiAliasedLinesUseTex);
@@ -323,34 +328,6 @@ ImPlotItem* GetCurrentItem() {
     return gp.CurrentItem;
 }
 
-void SetNextLineStyle(const ImVec4& col, float weight) {
-    ImPlotContext& gp = *GImPlot;
-    gp.NextItemData.Colors[ImPlotCol_Line] = col;
-    gp.NextItemData.LineWeight             = weight;
-}
-
-void SetNextFillStyle(const ImVec4& col, float alpha) {
-    ImPlotContext& gp = *GImPlot;
-    gp.NextItemData.Colors[ImPlotCol_Fill] = col;
-    gp.NextItemData.FillAlpha              = alpha;
-}
-
-void SetNextMarkerStyle(ImPlotMarker marker, float size, const ImVec4& fill, float weight, const ImVec4& outline) {
-    ImPlotContext& gp = *GImPlot;
-    gp.NextItemData.Marker                          = marker;
-    gp.NextItemData.Colors[ImPlotCol_MarkerFill]    = fill;
-    gp.NextItemData.MarkerSize                      = size;
-    gp.NextItemData.Colors[ImPlotCol_MarkerOutline] = outline;
-    gp.NextItemData.MarkerWeight                    = weight;
-}
-
-void SetNextErrorBarStyle(const ImVec4& col, float size, float weight) {
-    ImPlotContext& gp = *GImPlot;
-    gp.NextItemData.Colors[ImPlotCol_ErrorBar] = col;
-    gp.NextItemData.ErrorBarSize               = size;
-    gp.NextItemData.ErrorBarWeight             = weight;
-}
-
 ImVec4 GetLastItemColor() {
     ImPlotContext& gp = *GImPlot;
     if (gp.PreviousItem)
@@ -396,28 +373,20 @@ static const float ITEM_HIGHLIGHT_LINE_SCALE = 2.0f;
 static const float ITEM_HIGHLIGHT_MARK_SCALE = 1.25f;
 
 // Begins a new item. Returns false if the item should not be plotted.
-bool BeginItem(const char* label_id, ImPlotItemFlags flags, ImPlotCol recolor_from) {
+bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& label_col) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "PlotX() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     bool just_created;
-    ImPlotItem* item = RegisterOrGetItem(label_id, flags, &just_created);
+    ImPlotItem* item = RegisterOrGetItem(label_id, spec.Flags, &just_created);
     // set current item
     gp.CurrentItem = item;
     ImPlotNextItemData& s = gp.NextItemData;
     // set/override item color
-    if (recolor_from != -1) {
-        if (!IsColorAuto(s.Colors[recolor_from]))
-            item->Color = ImGui::ColorConvertFloat4ToU32(s.Colors[recolor_from]);
-        else if (!IsColorAuto(gp.Style.Colors[recolor_from]))
-            item->Color = ImGui::ColorConvertFloat4ToU32(gp.Style.Colors[recolor_from]);
-        else if (just_created)
-            item->Color = NextColormapColorU32();
-    }
-    else if (just_created) {
+    if (!IsColorAuto(label_col))
+        item->Color = ImGui::ColorConvertFloat4ToU32(label_col);
+    else if (just_created)
         item->Color = NextColormapColorU32();
-    }
-    // hide/show item
     if (gp.NextItemData.HasHidden) {
         if (just_created || gp.NextItemData.HiddenCond == ImGuiCond_Always)
             item->Show = !gp.NextItemData.Hidden;
@@ -431,32 +400,20 @@ bool BeginItem(const char* label_id, ImPlotItemFlags flags, ImPlotCol recolor_fr
     }
     else {
         ImVec4 item_color = ImGui::ColorConvertU32ToFloat4(item->Color);
-        // stage next item colors
-        s.Colors[ImPlotCol_Line]           = IsColorAuto(s.Colors[ImPlotCol_Line])          ? ( IsColorAuto(ImPlotCol_Line)           ? item_color                 : gp.Style.Colors[ImPlotCol_Line]          ) : s.Colors[ImPlotCol_Line];
-        s.Colors[ImPlotCol_Fill]           = IsColorAuto(s.Colors[ImPlotCol_Fill])          ? ( IsColorAuto(ImPlotCol_Fill)           ? item_color                 : gp.Style.Colors[ImPlotCol_Fill]          ) : s.Colors[ImPlotCol_Fill];
-        s.Colors[ImPlotCol_MarkerOutline]  = IsColorAuto(s.Colors[ImPlotCol_MarkerOutline]) ? ( IsColorAuto(ImPlotCol_MarkerOutline)  ? s.Colors[ImPlotCol_Line]   : gp.Style.Colors[ImPlotCol_MarkerOutline] ) : s.Colors[ImPlotCol_MarkerOutline];
-        s.Colors[ImPlotCol_MarkerFill]     = IsColorAuto(s.Colors[ImPlotCol_MarkerFill])    ? ( IsColorAuto(ImPlotCol_MarkerFill)     ? s.Colors[ImPlotCol_Line]   : gp.Style.Colors[ImPlotCol_MarkerFill]    ) : s.Colors[ImPlotCol_MarkerFill];
-        s.Colors[ImPlotCol_ErrorBar]       = IsColorAuto(s.Colors[ImPlotCol_ErrorBar])      ? ( GetStyleColorVec4(ImPlotCol_ErrorBar)                                                                         ) : s.Colors[ImPlotCol_ErrorBar];
-        // stage next item style vars
-        s.LineWeight         = s.LineWeight       < 0 ? gp.Style.LineWeight       : s.LineWeight;
-        s.Marker             = s.Marker           < 0 ? gp.Style.Marker           : s.Marker;
-        s.MarkerSize         = s.MarkerSize       < 0 ? gp.Style.MarkerSize       : s.MarkerSize;
-        s.MarkerWeight       = s.MarkerWeight     < 0 ? gp.Style.MarkerWeight     : s.MarkerWeight;
-        s.FillAlpha          = s.FillAlpha        < 0 ? gp.Style.FillAlpha        : s.FillAlpha;
-        s.ErrorBarSize       = s.ErrorBarSize     < 0 ? gp.Style.ErrorBarSize     : s.ErrorBarSize;
-        s.ErrorBarWeight     = s.ErrorBarWeight   < 0 ? gp.Style.ErrorBarWeight   : s.ErrorBarWeight;
-        s.DigitalBitHeight   = s.DigitalBitHeight < 0 ? gp.Style.DigitalBitHeight : s.DigitalBitHeight;
-        s.DigitalBitGap      = s.DigitalBitGap    < 0 ? gp.Style.DigitalBitGap    : s.DigitalBitGap;
-        // apply alpha modifier(s)
-        s.Colors[ImPlotCol_Fill].w       *= s.FillAlpha;
-        s.Colors[ImPlotCol_MarkerFill].w *= s.FillAlpha; // TODO: this should be separate, if it at all
+        // stage next item spec
+        s.Spec = spec;
+        s.Spec.LineColor = IsColorAuto(s.Spec.LineColor) ? item_color : s.Spec.LineColor;
+        s.Spec.FillColor = IsColorAuto(s.Spec.FillColor) ? s.Spec.LineColor : s.Spec.FillColor;
+        s.Spec.FillColor.w *= s.Spec.FillAlpha;
+        // SPEC-TODO: remove
+        s.DigitalBitHeight = gp.Style.DigitalBitHeight;
+        s.DigitalBitGap =  gp.Style.DigitalBitGap;
         // apply highlight mods
         if (item->LegendHovered) {
             if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightItem)) {
-                s.LineWeight   *= ITEM_HIGHLIGHT_LINE_SCALE;
-                s.MarkerSize   *= ITEM_HIGHLIGHT_MARK_SCALE;
-                s.MarkerWeight *= ITEM_HIGHLIGHT_LINE_SCALE;
-                // TODO: how to highlight fills?
+                s.Spec.LineWeight *= ITEM_HIGHLIGHT_LINE_SCALE;
+                s.Spec.Size *= ITEM_HIGHLIGHT_MARK_SCALE;
+                // TODO: how to highlight fills? 
             }
             if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightAxis)) {
                 if (gp.CurrentPlot->EnabledAxesX() > 1)
@@ -466,10 +423,8 @@ bool BeginItem(const char* label_id, ImPlotItemFlags flags, ImPlotCol recolor_fr
             }
         }
         // set render flags
-        s.RenderLine       = s.Colors[ImPlotCol_Line].w          > 0 && s.LineWeight > 0;
-        s.RenderFill       = s.Colors[ImPlotCol_Fill].w          > 0;
-        s.RenderMarkerFill = s.Colors[ImPlotCol_MarkerFill].w    > 0;
-        s.RenderMarkerLine = s.Colors[ImPlotCol_MarkerOutline].w > 0 && s.MarkerWeight > 0;
+        s.RenderLine = s.Spec.LineColor.w > 0 && s.Spec.LineWeight > 0;
+        s.RenderFill = s.Spec.FillColor.w > 0;
         // push rendering clip rect
         PushPlotClipRect();
         return true;
@@ -1571,74 +1526,74 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool 
 //-----------------------------------------------------------------------------
 
 template <typename _Getter>
-void PlotLineEx(const char* label_id, const _Getter& getter, ImPlotLineFlags flags) {
-    if (BeginItemEx(label_id, Fitter1<_Getter>(getter), flags, ImPlotCol_Line)) {
+void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, Fitter1<_Getter>(getter), spec, spec.LineColor)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
         }
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1) {
-            if (ImHasFlag(flags, ImPlotLineFlags_Shaded) && s.RenderFill) {
-                const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+            if (ImHasFlag(spec.Flags, ImPlotLineFlags_Shaded) && s.RenderFill) {
+                const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
                 GetterOverrideY<_Getter> getter2(getter, 0);
                 RenderPrimitives2<RendererShaded>(getter,getter2,col_fill);
             }
             if (s.RenderLine) {
-                const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-                if (ImHasFlag(flags,ImPlotLineFlags_Segments)) {
-                    RenderPrimitives1<RendererLineSegments1>(getter,col_line,s.LineWeight);
+                const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
+                if (ImHasFlag(spec.Flags,ImPlotLineFlags_Segments)) {
+                    RenderPrimitives1<RendererLineSegments1>(getter,col_line,s.Spec.LineWeight);
                 }
-                else if (ImHasFlag(flags, ImPlotLineFlags_Loop)) {
-                    if (ImHasFlag(flags, ImPlotLineFlags_SkipNaN))
-                        RenderPrimitives1<RendererLineStripSkip>(GetterLoop<_Getter>(getter),col_line,s.LineWeight);
+                else if (ImHasFlag(spec.Flags, ImPlotLineFlags_Loop)) {
+                    if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                        RenderPrimitives1<RendererLineStripSkip>(GetterLoop<_Getter>(getter),col_line,s.Spec.LineWeight);
                     else
-                        RenderPrimitives1<RendererLineStrip>(GetterLoop<_Getter>(getter),col_line,s.LineWeight);
+                        RenderPrimitives1<RendererLineStrip>(GetterLoop<_Getter>(getter),col_line,s.Spec.LineWeight);
                 }
                 else {
-                    if (ImHasFlag(flags, ImPlotLineFlags_SkipNaN))
-                        RenderPrimitives1<RendererLineStripSkip>(getter,col_line,s.LineWeight);
+                    if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                        RenderPrimitives1<RendererLineStripSkip>(getter,col_line,s.Spec.LineWeight);
                     else
-                        RenderPrimitives1<RendererLineStrip>(getter,col_line,s.LineWeight);
+                        RenderPrimitives1<RendererLineStrip>(getter,col_line,s.Spec.LineWeight);
                 }
             }
         }
         // render markers
-        if (s.Marker != ImPlotMarker_None) {
-            if (ImHasFlag(flags, ImPlotLineFlags_NoClip)) {
+        if (s.Spec.Marker != ImPlotMarker_None) {
+            if (ImHasFlag(spec.Flags, ImPlotLineFlags_NoClip)) {
                 PopPlotClipRect();
-                PushPlotClipRect(s.MarkerSize);
+                PushPlotClipRect(s.Spec.Size);
             }
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            RenderMarkers<_Getter>(getter, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+            RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
 }
 
 template <typename T>
-void PlotLine(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride) {
-    GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
-    PlotLineEx(label_id, getter, flags);
+void PlotLine(const char* label_id, const T* values, int count, double xscale, double x0, const ImPlotSpec& spec) {
+    GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),count);
+    PlotLineEx(label_id, getter, spec);
 }
 
 template <typename T>
-void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags, int offset, int stride) {
-    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-    PlotLineEx(label_id, getter, flags);
+void PlotLine(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec) {
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+    PlotLineEx(label_id, getter, spec);
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotLine<T> (const char* label_id, const T* values, int count, double xscale, double x0, ImPlotLineFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotLine<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotLine<T> (const char* label_id, const T* values, int count, double xscale, double x0, const ImPlotSpec& spec); \
+    template IMPLOT_API void PlotLine<T>(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotLineFlags flags) {
+void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count, const ImPlotSpec& spec) {
     GetterFuncPtr getter(getter_func,data, count);
-    PlotLineEx(label_id, getter, flags);
+    PlotLineEx(label_id, getter, spec);
 }
 
 //-----------------------------------------------------------------------------
@@ -1646,49 +1601,49 @@ void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int c
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
-void PlotScatterEx(const char* label_id, const Getter& getter, ImPlotScatterFlags flags) {
-    if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_MarkerOutline)) {
+void PlotScatterEx(const char* label_id, const Getter& getter, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.LineColor)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
         }
         const ImPlotNextItemData& s = GetItemData();
-        ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle: s.Marker;
+        ImPlotMarker marker = s.Spec.Marker == ImPlotMarker_None ? ImPlotMarker_Circle: s.Spec.Marker;
         if (marker != ImPlotMarker_None) {
-            if (ImHasFlag(flags,ImPlotScatterFlags_NoClip)) {
+            if (ImHasFlag(spec.Flags,ImPlotScatterFlags_NoClip)) {
                 PopPlotClipRect();
-                PushPlotClipRect(s.MarkerSize);
+                PushPlotClipRect(s.Spec.Size);
             }
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            RenderMarkers<Getter>(getter, marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+            RenderMarkers<Getter>(getter, marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
 }
 
 template <typename T>
-void PlotScatter(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotScatterFlags flags, int offset, int stride) {
-    GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
-    PlotScatterEx(label_id, getter, flags);
+void PlotScatter(const char* label_id, const T* values, int count, double xscale, double x0, const ImPlotSpec& spec) {
+    GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,spec.Offset, Stride<T>(spec)),count);
+    PlotScatterEx(label_id, getter, spec);
 }
 
 template <typename T>
-void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags, int offset, int stride) {
-    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-    return PlotScatterEx(label_id, getter, flags);
+void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec) {
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,spec.Offset, Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset, Stride<T>(spec)),count);
+    return PlotScatterEx(label_id, getter, spec);
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotScatterFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* values, int count, double xscale, double x0, const ImPlotSpec& spec); \
+    template IMPLOT_API void PlotScatter<T>(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotScatterFlags flags) {
+void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, int count, const ImPlotSpec& spec) {
     GetterFuncPtr getter(getter_func,data, count);
-    return PlotScatterEx(label_id, getter, flags);
+    return PlotScatterEx(label_id, getter, spec);
 }
 
 //-----------------------------------------------------------------------------
@@ -1696,63 +1651,63 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
-void PlotStairsEx(const char* label_id, const Getter& getter, ImPlotStairsFlags flags) {
-    if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_Line)) {
+void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.LineColor)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
         }
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1) {
-            if (s.RenderFill && ImHasFlag(flags,ImPlotStairsFlags_Shaded)) {
-                const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
-                if (ImHasFlag(flags, ImPlotStairsFlags_PreStep))
+            if (s.RenderFill && ImHasFlag(spec.Flags,ImPlotStairsFlags_Shaded)) {
+                const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+                if (ImHasFlag(spec.Flags, ImPlotStairsFlags_PreStep))
                     RenderPrimitives1<RendererStairsPreShaded>(getter,col_fill);
                 else
                     RenderPrimitives1<RendererStairsPostShaded>(getter,col_fill);
             }
             if (s.RenderLine) {
-                const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-                if (ImHasFlag(flags, ImPlotStairsFlags_PreStep))
-                    RenderPrimitives1<RendererStairsPre>(getter,col_line,s.LineWeight);
+                const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
+                if (ImHasFlag(spec.Flags, ImPlotStairsFlags_PreStep))
+                    RenderPrimitives1<RendererStairsPre>(getter,col_line,s.Spec.LineWeight);
                 else
-                    RenderPrimitives1<RendererStairsPost>(getter,col_line,s.LineWeight);
+                    RenderPrimitives1<RendererStairsPost>(getter,col_line,s.Spec.LineWeight);
             }
         }
         // render markers
-        if (s.Marker != ImPlotMarker_None) {
+        if (s.Spec.Marker != ImPlotMarker_None) {
             PopPlotClipRect();
-            PushPlotClipRect(s.MarkerSize);
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            RenderMarkers<Getter>(getter, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+            PushPlotClipRect(s.Spec.Size);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
 }
 
 template <typename T>
-void PlotStairs(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotStairsFlags flags, int offset, int stride) {
-    GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
-    PlotStairsEx(label_id, getter, flags);
+void PlotStairs(const char* label_id, const T* values, int count, double xscale, double x0, const ImPlotSpec& spec) {
+    GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),count);
+    PlotStairsEx(label_id, getter, spec);
 }
 
 template <typename T>
-void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, ImPlotStairsFlags flags, int offset, int stride) {
-    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-    return PlotStairsEx(label_id, getter, flags);
+void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec) {
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+    return PlotStairsEx(label_id, getter, spec);
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotStairs<T> (const char* label_id, const T* values, int count, double xscale, double x0, ImPlotStairsFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotStairs<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotStairsFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotStairs<T> (const char* label_id, const T* values, int count, double xscale, double x0, const ImPlotSpec& spec); \
+    template IMPLOT_API void PlotStairs<T>(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotStairsFlags flags) {
+void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, const ImPlotSpec& spec) {
     GetterFuncPtr getter(getter_func,data, count);
-    return PlotStairsEx(label_id, getter, flags);
+    return PlotStairsEx(label_id, getter, spec);
 }
 
 //-----------------------------------------------------------------------------
@@ -1760,15 +1715,15 @@ void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int
 //-----------------------------------------------------------------------------
 
 template <typename Getter1, typename Getter2>
-void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, ImPlotShadedFlags flags) {
-    if (BeginItemEx(label_id, Fitter2<Getter1,Getter2>(getter1,getter2), flags, ImPlotCol_Fill)) {
+void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, Fitter2<Getter1,Getter2>(getter1,getter2), spec, spec.FillColor)) {
         if (getter1.Count <= 0 || getter2.Count <= 0) {
             EndItem();
             return;
         }
         const ImPlotNextItemData& s = GetItemData();
         if (s.RenderFill) {
-            const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+            const ImU32 col = ImGui::GetColorU32(s.Spec.FillColor);
             RenderPrimitives2<RendererShaded>(getter1,getter2,col);
         }
         EndItem();
@@ -1776,47 +1731,47 @@ void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& g
 }
 
 template <typename T>
-void PlotShaded(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, ImPlotShadedFlags flags, int offset, int stride) {
+void PlotShaded(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, const ImPlotSpec& spec) {
     if (!(y_ref > -DBL_MAX))
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;
     if (!(y_ref < DBL_MAX))
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
-    GetterXY<IndexerLin,IndexerIdx<T>> getter1(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
+    GetterXY<IndexerLin,IndexerIdx<T>> getter1(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),count);
     GetterXY<IndexerLin,IndexerConst>  getter2(IndexerLin(xscale,x0),IndexerConst(y_ref),count);
-    PlotShadedEx(label_id, getter1, getter2, flags);
+    PlotShadedEx(label_id, getter1, getter2, spec);
 }
 
 template <typename T>
-void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref, ImPlotShadedFlags flags, int offset, int stride) {
+void PlotShaded(const char* label_id, const T* xs, const T* ys, int count, double y_ref, const ImPlotSpec& spec) {
     if (y_ref == -HUGE_VAL)
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;
     if (y_ref == HUGE_VAL)
         y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
-    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-    GetterXY<IndexerIdx<T>,IndexerConst>  getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerConst(y_ref),count);
-    PlotShadedEx(label_id, getter1, getter2, flags);
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+    GetterXY<IndexerIdx<T>,IndexerConst>  getter2(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerConst(y_ref),count);
+    PlotShadedEx(label_id, getter1, getter2, spec);
 }
 
 
 template <typename T>
-void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, ImPlotShadedFlags flags, int offset, int stride) {
-    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys1,count,offset,stride),count);
-    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys2,count,offset,stride),count);
-    PlotShadedEx(label_id, getter1, getter2, flags);
+void PlotShaded(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, const ImPlotSpec& spec) {
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys1,count,spec.Offset,Stride<T>(spec)),count);
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter2(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys2,count,spec.Offset,Stride<T>(spec)),count);
+    PlotShadedEx(label_id, getter1, getter2, spec);
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, ImPlotShadedFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys, int count, double y_ref, ImPlotShadedFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, ImPlotShadedFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, const ImPlotSpec& spec); \
+    template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys, int count, double y_ref, const ImPlotSpec& spec); \
+    template IMPLOT_API void PlotShaded<T>(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, ImPlotGetter getter_func2, void* data2, int count, ImPlotShadedFlags flags) {
+void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, ImPlotGetter getter_func2, void* data2, int count, const ImPlotSpec& spec) {
     GetterFuncPtr getter1(getter_func1, data1, count);
     GetterFuncPtr getter2(getter_func2, data2, count);
-    PlotShadedEx(label_id, getter1, getter2, flags);
+    PlotShadedEx(label_id, getter1, getter2, spec);
 }
 
 //-----------------------------------------------------------------------------
@@ -1824,15 +1779,15 @@ void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, I
 //-----------------------------------------------------------------------------
 
 template <typename Getter1, typename Getter2>
-void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 getter2, double width, ImPlotBarsFlags flags) {
-    if (BeginItemEx(label_id, FitterBarV<Getter1,Getter2>(getter1,getter2,width), flags, ImPlotCol_Fill)) {
+void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 getter2, double width, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, FitterBarV<Getter1,Getter2>(getter1,getter2,width), spec, spec.FillColor)) {
         if (getter1.Count <= 0 || getter2.Count <= 0) {
             EndItem();
             return;
         }
         const ImPlotNextItemData& s = GetItemData();
-        const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
-        const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+        const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+        const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
         bool rend_fill = s.RenderFill;
         bool rend_line = s.RenderLine;
         if (rend_fill) {
@@ -1841,22 +1796,22 @@ void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 get
                 rend_line = false;
         }
         if (rend_line) {
-            RenderPrimitives2<RendererBarsLineV>(getter1,getter2,col_line,width,s.LineWeight);
+            RenderPrimitives2<RendererBarsLineV>(getter1,getter2,col_line,width,s.Spec.LineWeight);
         }
         EndItem();
     }
 }
 
 template <typename Getter1, typename Getter2>
-void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, double height, ImPlotBarsFlags flags) {
-    if (BeginItemEx(label_id, FitterBarH<Getter1,Getter2>(getter1,getter2,height), flags, ImPlotCol_Fill)) {
+void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, double height, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, FitterBarH<Getter1,Getter2>(getter1,getter2,height), spec, spec.FillColor)) {
         if (getter1.Count <= 0 || getter2.Count <= 0) {
             EndItem();
             return;
         }
         const ImPlotNextItemData& s = GetItemData();
-        const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
-        const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+        const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+        const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
         bool rend_fill = s.RenderFill;
         bool rend_line = s.RenderLine;
         if (rend_fill) {
@@ -1865,56 +1820,56 @@ void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& ge
                 rend_line = false;
         }
         if (rend_line) {
-            RenderPrimitives2<RendererBarsLineH>(getter1,getter2,col_line,height,s.LineWeight);
+            RenderPrimitives2<RendererBarsLineH>(getter1,getter2,col_line,height,s.Spec.LineWeight);
         }
         EndItem();
     }
 }
 
 template <typename T>
-void PlotBars(const char* label_id, const T* values, int count, double bar_size, double shift, ImPlotBarsFlags flags, int offset, int stride) {
-    if (ImHasFlag(flags, ImPlotBarsFlags_Horizontal)) {
-        GetterXY<IndexerIdx<T>,IndexerLin> getter1(IndexerIdx<T>(values,count,offset,stride),IndexerLin(1.0,shift),count);
+void PlotBars(const char* label_id, const T* values, int count, double bar_size, double shift, const ImPlotSpec& spec) {
+    if (ImHasFlag(spec.Flags, ImPlotBarsFlags_Horizontal)) {
+        GetterXY<IndexerIdx<T>,IndexerLin> getter1(IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),IndexerLin(1.0,shift),count);
         GetterXY<IndexerConst,IndexerLin>  getter2(IndexerConst(0),IndexerLin(1.0,shift),count);
-        PlotBarsHEx(label_id, getter1, getter2, bar_size, flags);
+        PlotBarsHEx(label_id, getter1, getter2, bar_size, spec);
     }
     else {
-        GetterXY<IndexerLin,IndexerIdx<T>> getter1(IndexerLin(1.0,shift),IndexerIdx<T>(values,count,offset,stride),count);
+        GetterXY<IndexerLin,IndexerIdx<T>> getter1(IndexerLin(1.0,shift),IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),count);
         GetterXY<IndexerLin,IndexerConst>  getter2(IndexerLin(1.0,shift),IndexerConst(0),count);
-        PlotBarsVEx(label_id, getter1, getter2, bar_size, flags);
+        PlotBarsVEx(label_id, getter1, getter2, bar_size, spec);
     }
 }
 
 template <typename T>
-void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double bar_size, ImPlotBarsFlags flags, int offset, int stride) {
-    if (ImHasFlag(flags, ImPlotBarsFlags_Horizontal)) {
-        GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-        GetterXY<IndexerConst, IndexerIdx<T>> getter2(IndexerConst(0),IndexerIdx<T>(ys,count,offset,stride),count);
-        PlotBarsHEx(label_id, getter1, getter2, bar_size, flags);
+void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double bar_size, const ImPlotSpec& spec) {
+    if (ImHasFlag(spec.Flags, ImPlotBarsFlags_Horizontal)) {
+        GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+        GetterXY<IndexerConst, IndexerIdx<T>> getter2(IndexerConst(0),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+        PlotBarsHEx(label_id, getter1, getter2, bar_size, spec);
     }
     else {
-        GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-        GetterXY<IndexerIdx<T>,IndexerConst>  getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerConst(0),count);
-        PlotBarsVEx(label_id, getter1, getter2, bar_size, flags);
+        GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+        GetterXY<IndexerIdx<T>,IndexerConst>  getter2(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerConst(0),count);
+        PlotBarsVEx(label_id, getter1, getter2, bar_size, spec);
     }
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotBars<T>(const char* label_id, const T* values, int count, double bar_size, double shift, ImPlotBarsFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotBars<T>(const char* label_id, const T* xs, const T* ys, int count, double bar_size, ImPlotBarsFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotBars<T>(const char* label_id, const T* values, int count, double bar_size, double shift, const ImPlotSpec& spec); \
+    template IMPLOT_API void PlotBars<T>(const char* label_id, const T* xs, const T* ys, int count, double bar_size, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
-void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, double bar_size, ImPlotBarsFlags flags) {
-    if (ImHasFlag(flags, ImPlotBarsFlags_Horizontal)) {
+void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, double bar_size, const ImPlotSpec& spec) {
+    if (ImHasFlag(spec.Flags, ImPlotBarsFlags_Horizontal)) {
         GetterFuncPtr getter1(getter_func, data, count);
         GetterOverrideX<GetterFuncPtr> getter2(getter1,0);
-        PlotBarsHEx(label_id, getter1, getter2, bar_size, flags);
+        PlotBarsHEx(label_id, getter1, getter2, bar_size, spec);
     }
     else {
         GetterFuncPtr getter1(getter_func, data, count);
         GetterOverrideY<GetterFuncPtr> getter2(getter1,0);
-        PlotBarsVEx(label_id, getter1, getter2, bar_size, flags);
+        PlotBarsVEx(label_id, getter1, getter2, bar_size, spec);
     }
 }
 
@@ -1923,9 +1878,11 @@ void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int c
 //-----------------------------------------------------------------------------
 
 template <typename T>
-void PlotBarGroups(const char* const label_ids[], const T* values, int item_count, int group_count, double group_size, double shift, ImPlotBarGroupsFlags flags) {
-    const bool horz = ImHasFlag(flags, ImPlotBarGroupsFlags_Horizontal);
-    const bool stack = ImHasFlag(flags, ImPlotBarGroupsFlags_Stacked);
+void PlotBarGroups(const char* const label_ids[], const T* values, int item_count, int group_count, double group_size, double shift, const ImPlotSpec& spec) {
+    const bool horz = ImHasFlag(spec.Flags, ImPlotBarGroupsFlags_Horizontal);
+    const bool stack = ImHasFlag(spec.Flags, ImPlotBarGroupsFlags_Stacked);
+    ImPlotSpec spec_bars = spec;
+    spec_bars.Flags = 0;
     if (stack) {
         SetupLock();
         ImPlotContext& gp = *GImPlot;
@@ -1956,7 +1913,7 @@ void PlotBarGroups(const char* const label_ids[], const T* values, int item_coun
                 }
                 GetterXY<IndexerIdx<double>,IndexerLin> getter1(IndexerIdx<double>(curr_min,group_count),IndexerLin(1.0,shift),group_count);
                 GetterXY<IndexerIdx<double>,IndexerLin> getter2(IndexerIdx<double>(curr_max,group_count),IndexerLin(1.0,shift),group_count);
-                PlotBarsHEx(label_ids[i],getter1,getter2,group_size,0);
+                PlotBarsHEx(label_ids[i],getter1,getter2,group_size,spec_bars);
             }
         }
         else {
@@ -1978,28 +1935,29 @@ void PlotBarGroups(const char* const label_ids[], const T* values, int item_coun
                 }
                 GetterXY<IndexerLin,IndexerIdx<double>> getter1(IndexerLin(1.0,shift),IndexerIdx<double>(curr_min,group_count),group_count);
                 GetterXY<IndexerLin,IndexerIdx<double>> getter2(IndexerLin(1.0,shift),IndexerIdx<double>(curr_max,group_count),group_count);
-                PlotBarsVEx(label_ids[i],getter1,getter2,group_size,0);
+                PlotBarsVEx(label_ids[i],getter1,getter2,group_size,spec_bars);
             }
         }
     }
     else {
         const double subsize = group_size / item_count;
         if (horz) {
+            spec_bars.Flags = ImPlotBarsFlags_Horizontal;
             for (int i = 0; i < item_count; ++i) {
                 const double subshift = (i+0.5)*subsize - group_size/2;
-                PlotBars(label_ids[i],&values[i*group_count],group_count,subsize,subshift+shift,ImPlotBarsFlags_Horizontal);
+                PlotBars(label_ids[i],&values[i*group_count],group_count,subsize,subshift+shift,spec_bars);
             }
         }
         else {
             for (int i = 0; i < item_count; ++i) {
                 const double subshift = (i+0.5)*subsize - group_size/2;
-                PlotBars(label_ids[i],&values[i*group_count],group_count,subsize,subshift+shift);
+                PlotBars(label_ids[i],&values[i*group_count],group_count,subsize,subshift+shift,spec_bars);
             }
         }
     }
 }
 
-#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotBarGroups<T>(const char* const label_ids[], const T* values, int items, int groups, double width, double shift, ImPlotBarGroupsFlags flags);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotBarGroups<T>(const char* const label_ids[], const T* values, int items, int groups, double width, double shift, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2008,24 +1966,24 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 template <typename _GetterPos, typename _GetterNeg>
-void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, ImPlotErrorBarsFlags flags) {
-    if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), flags, IMPLOT_AUTO)) {
+void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), spec, IMPLOT_AUTO_COL)) {
         if (getter_pos.Count <= 0 || getter_neg.Count <= 0) {
             EndItem();
             return;
         }
         const ImPlotNextItemData& s = GetItemData();
         ImDrawList& draw_list = *GetPlotDrawList();
-        const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_ErrorBar]);
-        const bool rend_whisker  = s.ErrorBarSize > 0;
-        const float half_whisker = s.ErrorBarSize * 0.5f;
+        const ImU32 col = ImGui::GetColorU32( IsColorAuto(spec.LineColor) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : s.Spec.LineColor );
+        const bool rend_whisker  = s.Spec.Size > 0;
+        const float half_whisker = s.Spec.Size * 0.5f;
         for (int i = 0; i < getter_pos.Count; ++i) {
             ImVec2 p1 = PlotToPixels(getter_neg(i),IMPLOT_AUTO,IMPLOT_AUTO);
             ImVec2 p2 = PlotToPixels(getter_pos(i),IMPLOT_AUTO,IMPLOT_AUTO);
-            draw_list.AddLine(p1,p2,col, s.ErrorBarWeight);
+            draw_list.AddLine(p1,p2,col, s.Spec.LineWeight);
             if (rend_whisker) {
-                draw_list.AddLine(p1 - ImVec2(half_whisker, 0), p1 + ImVec2(half_whisker, 0), col, s.ErrorBarWeight);
-                draw_list.AddLine(p2 - ImVec2(half_whisker, 0), p2 + ImVec2(half_whisker, 0), col, s.ErrorBarWeight);
+                draw_list.AddLine(p1 - ImVec2(half_whisker, 0), p1 + ImVec2(half_whisker, 0), col, s.Spec.LineWeight);
+                draw_list.AddLine(p2 - ImVec2(half_whisker, 0), p2 + ImVec2(half_whisker, 0), col, s.Spec.LineWeight);
             }
         }
         EndItem();
@@ -2033,24 +1991,24 @@ void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const 
 }
 
 template <typename _GetterPos, typename _GetterNeg>
-void PlotErrorBarsHEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, ImPlotErrorBarsFlags flags) {
-    if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), flags, IMPLOT_AUTO)) {
+void PlotErrorBarsHEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), spec, IMPLOT_AUTO_COL)) {
         if (getter_pos.Count <= 0 || getter_neg.Count <= 0) {
             EndItem();
             return;
         }
         const ImPlotNextItemData& s = GetItemData();
         ImDrawList& draw_list = *GetPlotDrawList();
-        const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_ErrorBar]);
-        const bool rend_whisker  = s.ErrorBarSize > 0;
-        const float half_whisker = s.ErrorBarSize * 0.5f;
+        const ImU32 col = ImGui::GetColorU32( IsColorAuto(spec.LineColor) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : s.Spec.LineColor );
+        const bool rend_whisker  = s.Spec.Size > 0;
+        const float half_whisker = s.Spec.Size * 0.5f;
         for (int i = 0; i < getter_pos.Count; ++i) {
             ImVec2 p1 = PlotToPixels(getter_neg(i),IMPLOT_AUTO,IMPLOT_AUTO);
             ImVec2 p2 = PlotToPixels(getter_pos(i),IMPLOT_AUTO,IMPLOT_AUTO);
-            draw_list.AddLine(p1, p2, col, s.ErrorBarWeight);
+            draw_list.AddLine(p1, p2, col, s.Spec.LineWeight);
             if (rend_whisker) {
-                draw_list.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, s.ErrorBarWeight);
-                draw_list.AddLine(p2 - ImVec2(0, half_whisker), p2 + ImVec2(0, half_whisker), col, s.ErrorBarWeight);
+                draw_list.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, s.Spec.LineWeight);
+                draw_list.AddLine(p2 - ImVec2(0, half_whisker), p2 + ImVec2(0, half_whisker), col, s.Spec.LineWeight);
             }
         }
         EndItem();
@@ -2058,36 +2016,36 @@ void PlotErrorBarsHEx(const char* label_id, const _GetterPos& getter_pos, const 
 }
 
 template <typename T>
-void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* err, int count, ImPlotErrorBarsFlags flags, int offset, int stride) {
-    PlotErrorBars(label_id, xs, ys, err, err, count, flags, offset, stride);
+void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* err, int count, const ImPlotSpec& spec) {
+    PlotErrorBars(label_id, xs, ys, err, err, count, spec);
 }
 
 template <typename T>
-void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, ImPlotErrorBarsFlags flags, int offset, int stride) {
-    IndexerIdx<T> indexer_x(xs, count,offset,stride);
-    IndexerIdx<T> indexer_y(ys, count,offset,stride);
-    IndexerIdx<T> indexer_n(neg,count,offset,stride);
-    IndexerIdx<T> indexer_p(pos,count,offset,stride);
-    GetterError<T> getter(xs, ys, neg, pos, count, offset, stride);
-    if (ImHasFlag(flags, ImPlotErrorBarsFlags_Horizontal)) {
+void PlotErrorBars(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, const ImPlotSpec& spec) {
+    IndexerIdx<T> indexer_x(xs, count,spec.Offset,Stride<T>(spec));
+    IndexerIdx<T> indexer_y(ys, count,spec.Offset,Stride<T>(spec));
+    IndexerIdx<T> indexer_n(neg,count,spec.Offset,Stride<T>(spec));
+    IndexerIdx<T> indexer_p(pos,count,spec.Offset,Stride<T>(spec));
+    GetterError<T> getter(xs, ys, neg, pos, count, spec.Offset, Stride<T>(spec));
+    if (ImHasFlag(spec.Flags, ImPlotErrorBarsFlags_Horizontal)) {
         IndexerAdd<IndexerIdx<T>,IndexerIdx<T>> indexer_xp(indexer_x, indexer_p, 1,  1);
         IndexerAdd<IndexerIdx<T>,IndexerIdx<T>> indexer_xn(indexer_x, indexer_n, 1, -1);
         GetterXY<IndexerAdd<IndexerIdx<T>,IndexerIdx<T>>,IndexerIdx<T>> getter_p(indexer_xp, indexer_y, count);
         GetterXY<IndexerAdd<IndexerIdx<T>,IndexerIdx<T>>,IndexerIdx<T>> getter_n(indexer_xn, indexer_y, count);
-        PlotErrorBarsHEx(label_id, getter_p, getter_n, flags);
+        PlotErrorBarsHEx(label_id, getter_p, getter_n, spec);
     }
     else {
         IndexerAdd<IndexerIdx<T>,IndexerIdx<T>> indexer_yp(indexer_y, indexer_p, 1,  1);
         IndexerAdd<IndexerIdx<T>,IndexerIdx<T>> indexer_yn(indexer_y, indexer_n, 1, -1);
         GetterXY<IndexerIdx<T>,IndexerAdd<IndexerIdx<T>,IndexerIdx<T>>> getter_p(indexer_x, indexer_yp, count);
         GetterXY<IndexerIdx<T>,IndexerAdd<IndexerIdx<T>,IndexerIdx<T>>> getter_n(indexer_x, indexer_yn, count);
-        PlotErrorBarsVEx(label_id, getter_p, getter_n, flags);
+        PlotErrorBarsVEx(label_id, getter_p, getter_n, spec);
     }
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* err, int count, ImPlotErrorBarsFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, ImPlotErrorBarsFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* err, int count, const ImPlotSpec& spec); \
+    template IMPLOT_API void PlotErrorBars<T>(const char* label_id, const T* xs, const T* ys, const T* neg, const T* pos, int count, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2096,8 +2054,8 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 template <typename _GetterM, typename _GetterB>
-void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _GetterB& getter_base, ImPlotStemsFlags flags) {
-    if (BeginItemEx(label_id, Fitter2<_GetterM,_GetterB>(getter_mark,getter_base), flags, ImPlotCol_Line)) {
+void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _GetterB& getter_base, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, Fitter2<_GetterM,_GetterB>(getter_mark,getter_base), spec, spec.LineColor)) {
         if (getter_mark.Count <= 0 || getter_base.Count <= 0) {
             EndItem();
             return;
@@ -2105,52 +2063,52 @@ void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _Gette
         const ImPlotNextItemData& s = GetItemData();
         // render stems
         if (s.RenderLine) {
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-            RenderPrimitives2<RendererLineSegments2>(getter_mark, getter_base, col_line, s.LineWeight);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
+            RenderPrimitives2<RendererLineSegments2>(getter_mark, getter_base, col_line, s.Spec.LineWeight);
         }
         // render markers
-        if (s.Marker != ImPlotMarker_None) {
+        if (s.Spec.Marker != ImPlotMarker_None) {
             PopPlotClipRect();
-            PushPlotClipRect(s.MarkerSize);
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            RenderMarkers<_GetterM>(getter_mark, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+            PushPlotClipRect(s.Spec.Size);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+            RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
 }
 
 template <typename T>
-void PlotStems(const char* label_id, const T* values, int count, double ref, double scale, double start, ImPlotStemsFlags flags, int offset, int stride) {
-    if (ImHasFlag(flags, ImPlotStemsFlags_Horizontal)) {
-        GetterXY<IndexerIdx<T>,IndexerLin> get_mark(IndexerIdx<T>(values,count,offset,stride),IndexerLin(scale,start),count);
+void PlotStems(const char* label_id, const T* values, int count, double ref, double scale, double start, const ImPlotSpec& spec) {
+    if (ImHasFlag(spec.Flags, ImPlotStemsFlags_Horizontal)) {
+        GetterXY<IndexerIdx<T>,IndexerLin> get_mark(IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),IndexerLin(scale,start),count);
         GetterXY<IndexerConst,IndexerLin>  get_base(IndexerConst(ref),IndexerLin(scale,start),count);
-        PlotStemsEx(label_id, get_mark, get_base, flags);
+        PlotStemsEx(label_id, get_mark, get_base, spec);
     }
     else {
-        GetterXY<IndexerLin,IndexerIdx<T>> get_mark(IndexerLin(scale,start),IndexerIdx<T>(values,count,offset,stride),count);
+        GetterXY<IndexerLin,IndexerIdx<T>> get_mark(IndexerLin(scale,start),IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),count);
         GetterXY<IndexerLin,IndexerConst>  get_base(IndexerLin(scale,start),IndexerConst(ref),count);
-        PlotStemsEx(label_id, get_mark, get_base, flags);
+        PlotStemsEx(label_id, get_mark, get_base, spec);
     }
 }
 
 template <typename T>
-void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double ref, ImPlotStemsFlags flags, int offset, int stride) {
-    if (ImHasFlag(flags, ImPlotStemsFlags_Horizontal)) {
-        GetterXY<IndexerIdx<T>,IndexerIdx<T>> get_mark(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-        GetterXY<IndexerConst,IndexerIdx<T>>  get_base(IndexerConst(ref),IndexerIdx<T>(ys,count,offset,stride),count);
-        PlotStemsEx(label_id, get_mark, get_base, flags);
+void PlotStems(const char* label_id, const T* xs, const T* ys, int count, double ref, const ImPlotSpec& spec) {
+    if (ImHasFlag(spec.Flags, ImPlotStemsFlags_Horizontal)) {
+        GetterXY<IndexerIdx<T>,IndexerIdx<T>> get_mark(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+        GetterXY<IndexerConst,IndexerIdx<T>>  get_base(IndexerConst(ref),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+        PlotStemsEx(label_id, get_mark, get_base, spec);
     }
     else {
-        GetterXY<IndexerIdx<T>,IndexerIdx<T>> get_mark(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-        GetterXY<IndexerIdx<T>,IndexerConst>  get_base(IndexerIdx<T>(xs,count,offset,stride),IndexerConst(ref),count);
-        PlotStemsEx(label_id, get_mark, get_base, flags);
+        GetterXY<IndexerIdx<T>,IndexerIdx<T>> get_mark(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+        GetterXY<IndexerIdx<T>,IndexerConst>  get_base(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerConst(ref),count);
+        PlotStemsEx(label_id, get_mark, get_base, spec);
     }
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotStems<T>(const char* label_id, const T* values, int count, double ref, double scale, double start, ImPlotStemsFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotStems<T>(const char* label_id, const T* xs, const T* ys, int count, double ref, ImPlotStemsFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotStems<T>(const char* label_id, const T* values, int count, double ref, double scale, double start, const ImPlotSpec& spec); \
+    template IMPLOT_API void PlotStems<T>(const char* label_id, const T* xs, const T* ys, int count, double ref, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2160,40 +2118,40 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 template <typename T>
-void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLinesFlags flags, int offset, int stride) {
+void PlotInfLines(const char* label_id, const T* values, int count, const ImPlotSpec& spec) {
     const ImPlotRect lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
-    if (ImHasFlag(flags, ImPlotInfLinesFlags_Horizontal)) {
-        GetterXY<IndexerConst,IndexerIdx<T>> getter_min(IndexerConst(lims.X.Min),IndexerIdx<T>(values,count,offset,stride),count);
-        GetterXY<IndexerConst,IndexerIdx<T>> getter_max(IndexerConst(lims.X.Max),IndexerIdx<T>(values,count,offset,stride),count);
-        if (BeginItemEx(label_id, FitterY<GetterXY<IndexerConst,IndexerIdx<T>>>(getter_min), flags, ImPlotCol_Line)) {
+    if (ImHasFlag(spec.Flags, ImPlotInfLinesFlags_Horizontal)) {
+        GetterXY<IndexerConst,IndexerIdx<T>> getter_min(IndexerConst(lims.X.Min),IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),count);
+        GetterXY<IndexerConst,IndexerIdx<T>> getter_max(IndexerConst(lims.X.Max),IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),count);
+        if (BeginItemEx(label_id, FitterY<GetterXY<IndexerConst,IndexerIdx<T>>>(getter_min), spec, spec.LineColor)) {
             if (count <= 0) {
                 EndItem();
                 return;
             }
             const ImPlotNextItemData& s = GetItemData();
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
             if (s.RenderLine)
-                RenderPrimitives2<RendererLineSegments2>(getter_min, getter_max, col_line, s.LineWeight);
+                RenderPrimitives2<RendererLineSegments2>(getter_min, getter_max, col_line, s.Spec.LineWeight);
             EndItem();
         }
     }
     else {
-        GetterXY<IndexerIdx<T>,IndexerConst> get_min(IndexerIdx<T>(values,count,offset,stride),IndexerConst(lims.Y.Min),count);
-        GetterXY<IndexerIdx<T>,IndexerConst> get_max(IndexerIdx<T>(values,count,offset,stride),IndexerConst(lims.Y.Max),count);
-        if (BeginItemEx(label_id, FitterX<GetterXY<IndexerIdx<T>,IndexerConst>>(get_min), flags, ImPlotCol_Line)) {
+        GetterXY<IndexerIdx<T>,IndexerConst> get_min(IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),IndexerConst(lims.Y.Min),count);
+        GetterXY<IndexerIdx<T>,IndexerConst> get_max(IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),IndexerConst(lims.Y.Max),count);
+        if (BeginItemEx(label_id, FitterX<GetterXY<IndexerIdx<T>,IndexerConst>>(get_min), spec, spec.LineColor)) {
             if (count <= 0) {
                 EndItem();
                 return;
             }
             const ImPlotNextItemData& s = GetItemData();
-            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
             if (s.RenderLine)
-                RenderPrimitives2<RendererLineSegments2>(get_min, get_max, col_line, s.LineWeight);
+                RenderPrimitives2<RendererLineSegments2>(get_min, get_max, col_line, s.Spec.LineWeight);
             EndItem();
         }
     }
 }
-#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotInfLines<T>(const char* label_id, const T* xs, int count, ImPlotInfLinesFlags flags, int offset, int stride);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotInfLines<T>(const char* label_id, const T* xs, int count, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2278,12 +2236,12 @@ double PieChartSum(const T* values, int count, bool ignore_hidden) {
 }
 
 template <typename T>
-void PlotPieChartEx(const char* const label_ids[], const T* values, int count, ImPlotPoint center, double radius, double angle0, ImPlotPieChartFlags flags) {
+void PlotPieChartEx(const char* const label_ids[], const T* values, int count, ImPlotPoint center, double radius, double angle0, const ImPlotSpec& spec) {
     ImDrawList& draw_list  = *GetPlotDrawList();
 
-    const bool ignore_hidden = ImHasFlag(flags, ImPlotPieChartFlags_IgnoreHidden);
+    const bool ignore_hidden = ImHasFlag(spec.Flags, ImPlotPieChartFlags_IgnoreHidden);
     const double sum         = PieChartSum(values, count, ignore_hidden);
-    const bool normalize     = ImHasFlag(flags, ImPlotPieChartFlags_Normalize) || sum > 1.0;
+    const bool normalize     = ImHasFlag(spec.Flags, ImPlotPieChartFlags_Normalize) || sum > 1.0;
 
     double a0 = angle0 * 2 * IM_PI / 360.0;
     double a1 = angle0 * 2 * IM_PI / 360.0;
@@ -2296,7 +2254,7 @@ void PlotPieChartEx(const char* const label_ids[], const T* values, int count, I
         if (!skip)
             a1 = a0 + 2 * IM_PI * percent;
 
-        if (BeginItemEx(label_ids[i], FitterRect(Pmin, Pmax))) {
+        if (BeginItemEx(label_ids[i], FitterRect(Pmin, Pmax), spec)) {
             const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
             if (sum > 0.0) {
                 ImU32 col = GetCurrentItem()->Color;
@@ -2321,25 +2279,25 @@ int PieChartFormatter(double value, char* buff, int size, void* data) {
 }
 
 template <typename T>
-void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags) {
-    PlotPieChart<T>(label_ids, values, count, x, y, radius, PieChartFormatter, (void*)fmt, angle0, flags);
+void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, const ImPlotSpec& spec) {
+    PlotPieChart<T>(label_ids, values, count, x, y, radius, PieChartFormatter, (void*)fmt, angle0, spec);
 }
-#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotPieChart<T>(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotPieChart<T>(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 template <typename T>
-void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, ImPlotFormatter fmt, void* fmt_data, double angle0, ImPlotPieChartFlags flags) {
+void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, ImPlotFormatter fmt, void* fmt_data, double angle0, const ImPlotSpec& spec) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != nullptr, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
     ImDrawList& draw_list = *GetPlotDrawList();
 
-    const bool ignore_hidden = ImHasFlag(flags, ImPlotPieChartFlags_IgnoreHidden);
+    const bool ignore_hidden = ImHasFlag(spec.Flags, ImPlotPieChartFlags_IgnoreHidden);
     const double sum = PieChartSum(values, count, ignore_hidden);
-    const bool normalize = ImHasFlag(flags, ImPlotPieChartFlags_Normalize) || sum > 1.0;
+    const bool normalize = ImHasFlag(spec.Flags, ImPlotPieChartFlags_Normalize) || sum > 1.0;
     ImPlotPoint center(x, y);
 
     PushPlotClipRect();
-    PlotPieChartEx(label_ids, values, count, center, radius, angle0, flags);
+    PlotPieChartEx(label_ids, values, count, center, radius, angle0, spec);
     if (fmt != nullptr) {
         double a0 = angle0 * 2 * IM_PI / 360.0;
         double a1 = angle0 * 2 * IM_PI / 360.0;
@@ -2369,7 +2327,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
     }
     PopPlotClipRect();
 }
-#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, ImPlotFormatter fmt, void* fmt_data, double angle0, ImPlotPieChartFlags flags);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, ImPlotFormatter fmt, void* fmt_data, double angle0, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2520,19 +2478,19 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
 }
 
 template <typename T>
-void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags) {
-    if (BeginItemEx(label_id, FitterRect(bounds_min, bounds_max))) {
+void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, FitterRect(bounds_min, bounds_max), spec)) {
         if (rows <= 0 || cols <= 0) {
             EndItem();
             return;
         }
         ImDrawList& draw_list = *GetPlotDrawList();
-        const bool col_maj = ImHasFlag(flags, ImPlotHeatmapFlags_ColMajor);
+        const bool col_maj = ImHasFlag(spec.Flags, ImPlotHeatmapFlags_ColMajor);
         RenderHeatmap(draw_list, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true, col_maj);
         EndItem();
     }
 }
-#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2541,11 +2499,11 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 template <typename T>
-double PlotHistogram(const char* label_id, const T* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags) {
+double PlotHistogram(const char* label_id, const T* values, int count, int bins, double bar_scale, ImPlotRange range, const ImPlotSpec& spec) {
 
-    const bool cumulative = ImHasFlag(flags, ImPlotHistogramFlags_Cumulative);
-    const bool density    = ImHasFlag(flags, ImPlotHistogramFlags_Density);
-    const bool outliers   = !ImHasFlag(flags, ImPlotHistogramFlags_NoOutliers);
+    const bool cumulative = ImHasFlag(spec.Flags, ImPlotHistogramFlags_Cumulative);
+    const bool density    = ImHasFlag(spec.Flags, ImPlotHistogramFlags_Density);
+    const bool outliers   = !ImHasFlag(spec.Flags, ImPlotHistogramFlags_NoOutliers);
 
     if (count <= 0 || bins == 0)
         return 0;
@@ -2612,13 +2570,18 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
             bin_counts[b] *= scale;
         max_count *= scale;
     }
-    if (ImHasFlag(flags, ImPlotHistogramFlags_Horizontal))
-        PlotBars(label_id, &bin_counts.Data[0], &bin_centers.Data[0], bins, bar_scale*width, ImPlotBarsFlags_Horizontal);
-    else
-        PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width);
+    ImPlotSpec spec_bars = spec;
+    if (ImHasFlag(spec.Flags, ImPlotHistogramFlags_Horizontal)) {
+        spec_bars.Flags = ImPlotBarsFlags_Horizontal;
+        PlotBars(label_id, &bin_counts.Data[0], &bin_centers.Data[0], bins, bar_scale*width, spec_bars);
+    }
+    else {
+        spec_bars.Flags = 0;
+        PlotBars(label_id, &bin_centers.Data[0], &bin_counts.Data[0], bins, bar_scale*width, spec_bars);
+    }
     return max_count;
 }
-#define INSTANTIATE_MACRO(T) template IMPLOT_API double PlotHistogram<T>(const char* label_id, const T* values, int count, int bins, double bar_scale, ImPlotRange range, ImPlotHistogramFlags flags);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API double PlotHistogram<T>(const char* label_id, const T* values, int count, int bins, double bar_scale, ImPlotRange range, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2627,12 +2590,12 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 template <typename T>
-double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags) {
+double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count, int x_bins, int y_bins, ImPlotRect range, const ImPlotSpec& spec) {
 
     // const bool cumulative = ImHasFlag(flags, ImPlotHistogramFlags_Cumulative); NOT SUPPORTED
-    const bool density  = ImHasFlag(flags, ImPlotHistogramFlags_Density);
-    const bool outliers = !ImHasFlag(flags, ImPlotHistogramFlags_NoOutliers);
-    const bool col_maj  = ImHasFlag(flags, ImPlotHistogramFlags_ColMajor);
+    const bool density  = ImHasFlag(spec.Flags, ImPlotHistogramFlags_Density);
+    const bool outliers = !ImHasFlag(spec.Flags, ImPlotHistogramFlags_NoOutliers);
+    const bool col_maj  = ImHasFlag(spec.Flags, ImPlotHistogramFlags_ColMajor);
 
     if (count <= 0 || x_bins == 0 || y_bins == 0)
         return 0;
@@ -2689,7 +2652,7 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
         max_count *= scale;
     }
 
-    if (BeginItemEx(label_id, FitterRect(range))) {
+    if (BeginItemEx(label_id, FitterRect(range), spec)) {
         if (y_bins <= 0 || x_bins <= 0) {
             EndItem();
             return max_count;
@@ -2700,7 +2663,7 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
     }
     return max_count;
 }
-#define INSTANTIATE_MACRO(T) template IMPLOT_API double PlotHistogram2D<T>(const char* label_id,   const T*   xs, const T*   ys, int count, int x_bins, int y_bins, ImPlotRect range, ImPlotHistogramFlags flags);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API double PlotHistogram2D<T>(const char* label_id,   const T*   xs, const T*   ys, int count, int x_bins, int y_bins, ImPlotRect range, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2711,8 +2674,8 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 // TODO: Make this behave like all the other plot types (.e. not fixed in y axis)
 
 template <typename Getter>
-void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags) {
-    if (BeginItem(label_id, flags, ImPlotCol_Fill)) {
+void PlotDigitalEx(const char* label_id, Getter getter, const ImPlotSpec& spec) {
+    if (BeginItem(label_id, spec, spec.FillColor)) {
         ImPlotContext& gp = *GImPlot;
         ImDrawList& draw_list = *GetPlotDrawList();
         const ImPlotNextItemData& s = GetItemData();
@@ -2730,7 +2693,7 @@ void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags
                     continue;
                 }
                 if (ImNanOrInf(itemData2.y)) itemData2.y = ImConstrainNan(ImConstrainInf(itemData2.y));
-                int pixY_0 = (int)(s.LineWeight);
+                int pixY_0 = (int)(s.Spec.LineWeight);
                 itemData1.y = ImMax(0.0, itemData1.y);
                 const float pixY_1 = s.DigitalBitHeight * (float)itemData1.y;
                 const int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1) + s.DigitalBitGap);
@@ -2757,7 +2720,7 @@ void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags
                 if ((gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                     // ImVec4 colAlpha = item->Color;
                     // colAlpha.w = item->Highlight ? 1.0f : 0.9f;
-                    draw_list.AddRectFilled(pMin, pMax, ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]));
+                    draw_list.AddRectFilled(pMin, pMax, ImGui::GetColorU32(s.Spec.FillColor));
                 }
                 itemData1 = itemData2;
             }
@@ -2770,18 +2733,18 @@ void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags
 
 
 template <typename T>
-void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, ImPlotDigitalFlags flags, int offset, int stride) {
-    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
-    return PlotDigitalEx(label_id, getter, flags);
+void PlotDigital(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec) {
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+    return PlotDigitalEx(label_id, getter, spec);
 }
-#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotDigital<T>(const char* label_id, const T* xs, const T* ys, int count, ImPlotDigitalFlags flags, int offset, int stride);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotDigital<T>(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotDigitalFlags flags) {
+void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, int count, const ImPlotSpec& spec) {
     GetterFuncPtr getter(getter_func,data,count);
-    return PlotDigitalEx(label_id, getter, flags);
+    return PlotDigitalEx(label_id, getter, spec);
 }
 
 //-----------------------------------------------------------------------------
@@ -2789,11 +2752,11 @@ void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, in
 //-----------------------------------------------------------------------------
 
 #ifdef IMGUI_HAS_TEXTURES
-void PlotImage(const char* label_id, ImTextureRef tex_ref, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, ImPlotImageFlags) {
+void PlotImage(const char* label_id, ImTextureRef tex_ref, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImPlotSpec& spec) {
 #else
-void PlotImage(const char* label_id, ImTextureID tex_ref, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, ImPlotImageFlags) {
+void PlotImage(const char* label_id, ImTextureID tex_ref, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImPlotSpec& spec) {
 #endif
-    if (BeginItemEx(label_id, FitterRect(bmin,bmax))) {
+    if (BeginItemEx(label_id, FitterRect(bmin,bmax), spec)) {
         ImU32 tint_col32 = ImGui::ColorConvertFloat4ToU32(tint_col);
         GetCurrentItem()->Color = tint_col32;
         ImDrawList& draw_list = *GetPlotDrawList();
@@ -2810,17 +2773,17 @@ void PlotImage(const char* label_id, ImTextureID tex_ref, const ImPlotPoint& bmi
 // [SECTION] PlotText
 //-----------------------------------------------------------------------------
 
-void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, ImPlotTextFlags flags) {
+void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, const ImPlotSpec& spec) {
     IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != nullptr, "PlotText() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     ImDrawList & draw_list = *GetPlotDrawList();
     PushPlotClipRect();
     ImU32 colTxt = GetStyleColorU32(ImPlotCol_InlayText);
-    if (ImHasFlag(flags,ImPlotTextFlags_Vertical)) {
+    if (ImHasFlag(spec.Flags,ImPlotTextFlags_Vertical)) {
         ImVec2 siz = CalcTextSizeVertical(text) * 0.5f;
         ImVec2 ctr = siz * 0.5f;
         ImVec2 pos = PlotToPixels(ImPlotPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) + ImVec2(-ctr.x, ctr.y) + pixel_offset;
-        if (FitThisFrame() && !ImHasFlag(flags, ImPlotItemFlags_NoFit)) {
+        if (FitThisFrame() && !ImHasFlag(spec.Flags, ImPlotItemFlags_NoFit)) {
             FitPoint(PixelsToPlot(pos));
             FitPoint(PixelsToPlot(pos.x + siz.x, pos.y - siz.y));
         }
@@ -2829,7 +2792,7 @@ void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, 
     else {
         ImVec2 siz = ImGui::CalcTextSize(text);
         ImVec2 pos = PlotToPixels(ImPlotPoint(x,y),IMPLOT_AUTO,IMPLOT_AUTO) - siz * 0.5f + pixel_offset;
-        if (FitThisFrame() && !ImHasFlag(flags, ImPlotItemFlags_NoFit)) {
+        if (FitThisFrame() && !ImHasFlag(spec.Flags, ImPlotItemFlags_NoFit)) {
             FitPoint(PixelsToPlot(pos));
             FitPoint(PixelsToPlot(pos+siz));
         }
@@ -2842,8 +2805,8 @@ void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, 
 // [SECTION] PlotDummy
 //-----------------------------------------------------------------------------
 
-void PlotDummy(const char* label_id, ImPlotDummyFlags flags) {
-    if (BeginItem(label_id, flags, ImPlotCol_Line))
+void PlotDummy(const char* label_id, const ImPlotSpec& spec) {
+    if (BeginItem(label_id, spec))
         EndItem();
 }
 

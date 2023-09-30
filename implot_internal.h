@@ -1194,30 +1194,18 @@ struct ImPlotNextPlotData
 
 // Temporary data storage for upcoming item
 struct ImPlotNextItemData {
-    ImVec4          Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
-    float           LineWeight;
-    ImPlotMarker    Marker;
-    float           MarkerSize;
-    float           MarkerWeight;
-    float           FillAlpha;
-    float           ErrorBarSize;
-    float           ErrorBarWeight;
-    float           DigitalBitHeight;
-    float           DigitalBitGap;
+    ImPlotSpec      Spec;
+    float           DigitalBitHeight; // TODO: remove
+    float           DigitalBitGap;    // TODO: remove
     bool            RenderLine;
     bool            RenderFill;
-    bool            RenderMarkerLine;
-    bool            RenderMarkerFill;
     bool            HasHidden;
     bool            Hidden;
     ImPlotCond      HiddenCond;
     ImPlotNextItemData() { Reset(); }
     void Reset() {
-        for (int i = 0; i < 5; ++i)
-            Colors[i] = IMPLOT_AUTO_COL;
-        LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
-        Marker        = IMPLOT_AUTO;
-        HasHidden     = Hidden = false;
+        Spec      = ImPlotSpec();
+        HasHidden = Hidden = false;
     }
 };
 
@@ -1330,14 +1318,14 @@ IMPLOT_API void ShowSubplotsContextMenu(ImPlotSubplot& subplot);
 //-----------------------------------------------------------------------------
 
 // Begins a new item. Returns false if the item should not be plotted. Pushes PlotClipRect.
-IMPLOT_API bool BeginItem(const char* label_id, ImPlotItemFlags flags=0, ImPlotCol recolor_from=IMPLOT_AUTO);
+IMPLOT_API bool BeginItem(const char* label_id, const ImPlotSpec& spec = ImPlotSpec(), const ImVec4& label_col = IMPLOT_AUTO_COL);
 
 // Same as above but with fitting functionality.
 template <typename _Fitter>
-bool BeginItemEx(const char* label_id, const _Fitter& fitter, ImPlotItemFlags flags=0, ImPlotCol recolor_from=IMPLOT_AUTO) {
-    if (BeginItem(label_id, flags, recolor_from)) {
+bool BeginItemEx(const char* label_id, const _Fitter& fitter, const ImPlotSpec& spec, const ImVec4& label_col = IMPLOT_AUTO_COL) {
+    if (BeginItem(label_id, spec, label_col)) {
         ImPlotPlot& plot = *GetCurrentPlot();
-        if (plot.FitThisFrame && !ImHasFlag(flags, ImPlotItemFlags_NoFit))
+        if (plot.FitThisFrame && !ImHasFlag(spec.Flags, ImPlotItemFlags_NoFit))
             fitter.Fit(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]);
         return true;
     }
