@@ -47,6 +47,7 @@
 
 #pragma once
 #include "imgui.h"
+#include "imgui_internal.h"
 #ifndef IMGUI_DISABLE
 
 //-----------------------------------------------------------------------------
@@ -133,7 +134,7 @@ enum ImAxis_ {
     ImAxis_COUNT
 };
 
-// Plotting properties
+// Plotting properties. These provide syntactic sugar for creating ImPlotSpecs from ImProp,value pairs.
 enum ImProp_ {
     ImProp_LineColor,
     ImProp_LineWeight,
@@ -239,14 +240,14 @@ enum ImPlotColormapScaleFlags_ {
     ImPlotColormapScaleFlags_Invert   = 1 << 2, // invert the colormap bar and axis scale (this only affects rendering; if you only want to reverse the scale mapping, make scale_min > scale_max)
 };
 
-// Flags for ANY PlotX function
+// Flags for ANY PlotX function. Used by setting ImPlotSpec::Flags.
 enum ImPlotItemFlags_ {
     ImPlotItemFlags_None     = 0,
     ImPlotItemFlags_NoLegend = 1 << 0, // the item won't have a legend entry displayed
     ImPlotItemFlags_NoFit    = 1 << 1, // the item won't be considered for plot fits
 };
 
-// Flags for PlotLine
+// Flags for PlotLine. Used by setting ImPlotSpec::Flags.
 enum ImPlotLineFlags_ {
     ImPlotLineFlags_None        = 0,       // default
     ImPlotLineFlags_Segments    = 1 << 10, // a line segment will be rendered from every two consecutive points
@@ -256,56 +257,56 @@ enum ImPlotLineFlags_ {
     ImPlotLineFlags_Shaded      = 1 << 14, // a filled region between the line and horizontal origin will be rendered; use PlotShaded for more advanced cases
 };
 
-// Flags for PlotScatter
+// Flags for PlotScatter. Used by setting ImPlotSpec::Flags.
 enum ImPlotScatterFlags_ {
     ImPlotScatterFlags_None   = 0,       // default
     ImPlotScatterFlags_NoClip = 1 << 10, // markers on the edge of a plot will not be clipped
 };
 
-// Flags for PlotStairs
+// Flags for PlotStairs. Used by setting ImPlotSpec::Flags.
 enum ImPlotStairsFlags_ {
     ImPlotStairsFlags_None     = 0,       // default
     ImPlotStairsFlags_PreStep  = 1 << 10, // the y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
     ImPlotStairsFlags_Shaded   = 1 << 11  // a filled region between the stairs and horizontal origin will be rendered; use PlotShaded for more advanced cases
 };
 
-// Flags for PlotShaded (placeholder)
+// Flags for PlotShaded (placeholder). Used by setting ImPlotSpec::Flags.
 enum ImPlotShadedFlags_ {
     ImPlotShadedFlags_None  = 0 // default
 };
 
-// Flags for PlotBars
+// Flags for PlotBars. Used by setting ImPlotSpec::Flags.
 enum ImPlotBarsFlags_ {
     ImPlotBarsFlags_None         = 0,       // default
     ImPlotBarsFlags_Horizontal   = 1 << 10, // bars will be rendered horizontally on the current y-axis
 };
 
-// Flags for PlotBarGroups
+// Flags for PlotBarGroups. Used by setting ImPlotSpec::Flags.
 enum ImPlotBarGroupsFlags_ {
     ImPlotBarGroupsFlags_None        = 0,       // default
     ImPlotBarGroupsFlags_Horizontal  = 1 << 10, // bar groups will be rendered horizontally on the current y-axis
     ImPlotBarGroupsFlags_Stacked     = 1 << 11, // items in a group will be stacked on top of each other
 };
 
-// Flags for PlotErrorBars
+// Flags for PlotErrorBars. Used by setting ImPlotSpec::Flags.
 enum ImPlotErrorBarsFlags_ {
     ImPlotErrorBarsFlags_None       = 0,       // default
     ImPlotErrorBarsFlags_Horizontal = 1 << 10, // error bars will be rendered horizontally on the current y-axis
 };
 
-// Flags for PlotStems
+// Flags for PlotStems. Used by setting ImPlotSpec::Flags.
 enum ImPlotStemsFlags_ {
     ImPlotStemsFlags_None       = 0,       // default
     ImPlotStemsFlags_Horizontal = 1 << 10, // stems will be rendered horizontally on the current y-axis
 };
 
-// Flags for PlotInfLines
+// Flags for PlotInfLines. Used by setting ImPlotSpec::Flags.
 enum ImPlotInfLinesFlags_ {
     ImPlotInfLinesFlags_None       = 0,      // default
     ImPlotInfLinesFlags_Horizontal = 1 << 10 // lines will be rendered horizontally on the current y-axis
 };
 
-// Flags for PlotPieChart
+// Flags for PlotPieChart. Used by setting ImPlotSpec::Flags.
 enum ImPlotPieChartFlags_ {
     ImPlotPieChartFlags_None         = 0,       // default
     ImPlotPieChartFlags_Normalize    = 1 << 10, // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
@@ -313,13 +314,13 @@ enum ImPlotPieChartFlags_ {
     ImPlotPieChartFlags_Exploding    = 1 << 12  // Explode legend-hovered slice
 };
 
-// Flags for PlotHeatmap
+// Flags for PlotHeatmap. Used by setting ImPlotSpec::Flags.
 enum ImPlotHeatmapFlags_ {
     ImPlotHeatmapFlags_None     = 0,       // default
     ImPlotHeatmapFlags_ColMajor = 1 << 10, // data will be read in column major order
 };
 
-// Flags for PlotHistogram and PlotHistogram2D
+// Flags for PlotHistogram and PlotHistogram2D. Used by setting ImPlotSpec::Flags.
 enum ImPlotHistogramFlags_ {
     ImPlotHistogramFlags_None       = 0,       // default
     ImPlotHistogramFlags_Horizontal = 1 << 10, // histogram bars will be rendered horizontally (not supported by PlotHistogram2D)
@@ -329,23 +330,23 @@ enum ImPlotHistogramFlags_ {
     ImPlotHistogramFlags_ColMajor   = 1 << 14  // data will be read in column major order (not supported by PlotHistogram)
 };
 
-// Flags for PlotDigital (placeholder)
+// Flags for PlotDigital (placeholder). Used by setting ImPlotSpec::Flags.
 enum ImPlotDigitalFlags_ {
     ImPlotDigitalFlags_None = 0 // default
 };
 
-// Flags for PlotImage (placeholder)
+// Flags for PlotImage (placeholder). Used by setting ImPlotSpec::Flags.
 enum ImPlotImageFlags_ {
     ImPlotImageFlags_None = 0 // default
 };
 
-// Flags for PlotText
+// Flags for PlotText. Used by setting ImPlotSpec::Flags.
 enum ImPlotTextFlags_ {
     ImPlotTextFlags_None     = 0,       // default
     ImPlotTextFlags_Vertical = 1 << 10  // text will be rendered vertically
 };
 
-// Flags for PlotDummy (placeholder)
+// Flags for PlotDummy (placeholder). Used by setting ImPlotSpec::Flags.
 enum ImPlotDummyFlags_ {
     ImPlotDummyFlags_None = 0 // default
 };
@@ -423,9 +424,9 @@ enum ImPlotMarker_ {
     ImPlotMarker_Down,      // an downward-pointing triangle marker
     ImPlotMarker_Left,      // an leftward-pointing triangle marker
     ImPlotMarker_Right,     // an rightward-pointing triangle marker
-    ImPlotMarker_Cross,     // a cross marker (not fillable)
-    ImPlotMarker_Plus,      // a plus marker (not fillable)
-    ImPlotMarker_Asterisk,  // a asterisk marker (not fillable)
+    ImPlotMarker_Cross,     // a cross marker (not fill-able)
+    ImPlotMarker_Plus,      // a plus marker (not fill-able)
+    ImPlotMarker_Asterisk,  // a asterisk marker (not fill-able)
     ImPlotMarker_COUNT
 };
 
@@ -470,37 +471,38 @@ enum ImPlotBin_ {
     ImPlotBin_Scott   = -4, // w = 3.49 * sigma / cbrt(n)
 };
 
-// Plot item styling specification data
-// TODO: merge with ImPlotNextItemData
-// issues:
-// - need to verify that stride offset work on functions previously not accepting them
-// - next plot item data needed?
-
+// Plot item styling specification. Provide these to PlotX functions to override styling, specify
+// offsetting or stride, or set optional flags. 
 struct ImPlotSpec {
-    ImVec4          LineColor  = IMPLOT_AUTO_COL;    // line color (applies to line, bar edges, marker edges)
-    float           LineWeight = 1.0f;               // line weight in pixels (applies to lines, bar edges, marker edges)
-    ImVec4          FillColor  = IMPLOT_AUTO_COL;    // fill color (applies to bar faces and shaded regions)
-    float           FillAlpha  = 1.0f;               // alpha multiplier (applies to FillColor)
-    ImPlotMarker    Marker     = ImPlotMarker_None;  // marker type
-    float           Size       = 4;                  // size of markers (radius) and error bar whiskers (widget/height) in pixels
-    int             Offset     = 0;                  // data offset
-    int             Stride     = IMPLOT_AUTO;        // data stride; defaults to sizeof(T) where T is the type passed to PlotX
-    ImPlotItemFlags Flags      = 0;                  // item flags
+    ImVec4          LineColor  = IMPLOT_AUTO_COL;       // line color (applies to lines, bar edges, marker edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    float           LineWeight = 1.0f;                  // line weight in pixels (applies to lines, bar edges, marker edges)
+    ImVec4          FillColor  = IMPLOT_AUTO_COL;       // fill color (applies to bar faces and shaded regions); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    float           FillAlpha  = 1.0f;                  // alpha multiplier (applies to FillColor)
+    ImPlotMarker    Marker     = ImPlotMarker_None;     // marker type; specify ImPlotMarker_Auto to use the next unused marker
+    float           Size       = 4;                     // size of markers (~radius) and error bar whiskers (widget/height) in pixels
+    int             Offset     = 0;                     // data index offset
+    int             Stride     = IMPLOT_AUTO;           // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
+    ImPlotItemFlags Flags      = ImPlotItemFlags_None;  // optional item flags; can be composed from common ImPlotItemFlags and/or specific ImPlotXFlags where X corresponds
+                                                        // with the PlotX function to which this is passed (e.g. ImPlotLineFlags is only compatible with PlotLine)
 
     ImPlotSpec() { }
-    
+
+    // Construct a plot item specification from ImProp,value pairs in any order, e.g. ImPlotSpec(ImProp_LineColor, my_color, ImProp_Marker, 4.0f)
     template <typename ...Args>
     ImPlotSpec(Args... args) {
-        static_assert((sizeof ...(Args)) % 2 == 0, "Incorrect number of arguments!");
+        static_assert((sizeof ...(Args)) % 2 == 0, "Odd number of arguments! You must provide ImProp,value pairs!");
         SetProp(args...);
     }
 
+    // Set properties from ImProp,value pairs in any order, e.g. SetProp(ImProp_LineColor, my_color, ImProp_Marker, 4.0f)
     template <typename Arg, typename ...Args>
     void SetProp(ImProp prop, Arg arg, Args... args) {
+        static_assert((sizeof ...(Args)) % 2 == 0, "Odd number of arguments! You must provide ImProp,value pairs!");
         SetProp(prop, arg);
         SetProp(args...);
     }
 
+    // Set a property from a scalar value.
     template <typename T>
     void SetProp(ImProp prop, T v) {
         switch (prop) {
@@ -513,14 +515,19 @@ struct ImPlotSpec {
         case ImProp_Offset     : Offset     = (int)v;                                   return;
         case ImProp_Stride     : Stride     = (int)v;                                   return;
         case ImProp_Flags      : Flags      = (ImPlotItemFlags)v;                       return;
+        default: break;
         }
+        IM_ASSERT(0 && "User provided ImProp which cannot be set from scalar value!");
     }   
 
+    // Set a property from an ImVec4 value.
     void SetProp(ImProp prop, const ImVec4& v) {
         switch (prop) {
         case ImProp_LineColor : LineColor = v; return;
         case ImProp_FillColor : FillColor = v; return;
+        default: break;
         }
+        IM_ASSERT(0 && "User provided ImProp which cannot be set from ImVec4 value!");
     }
 };
 
@@ -786,7 +793,7 @@ IMPLOT_API void SetupAxis(ImAxis axis, const char* label=nullptr, ImPlotAxisFlag
 IMPLOT_API void SetupAxisLimits(ImAxis axis, double v_min, double v_max, ImPlotCond cond = ImPlotCond_Once);
 // Links an axis range limits to external values. Set to nullptr for no linkage. The pointer data must remain valid until EndPlot.
 IMPLOT_API void SetupAxisLinks(ImAxis axis, double* link_min, double* link_max);
-// Sets the format of numeric axis labels via formater specifier (default="%g"). Formated values will be double (i.e. use %f).
+// Sets the format of numeric axis labels via formatter specifier (default="%g"). Formatted values will be double (i.e. use %f).
 IMPLOT_API void SetupAxisFormat(ImAxis axis, const char* fmt);
 // Sets the format of numeric axis labels via formatter callback. Given #value, write a label into #buff. Optionally pass user data.
 IMPLOT_API void SetupAxisFormat(ImAxis axis, ImPlotFormatter formatter, void* data=nullptr);
@@ -869,13 +876,13 @@ IMPLOT_API void SetNextAxesToFit();
 //
 // If you need to plot custom or non-homogenous data you have a few options:
 //
-// 1. If your data is a simple struct/class (e.g. Vector2f), you can use striding.
+// 1. If your data is a simple struct/class (e.g. Vector2f), you can use striding in your ImPlotSpec.
 //    This is the most performant option if applicable.
 //
 //    struct Vector2f { float X, Y; };
 //    ...
 //    Vector2f data[42];
-//    ImPlot::PlotLine("line", &data[0].x, &data[0].y, 42, 0, 0, sizeof(Vector2f));
+//    ImPlot::PlotLine("line", &data[0].x, &data[0].y, 42, {ImProp_Stride, sizeof(Vector2f});
 //
 // 2. Write a custom getter C function or C++ lambda and pass it and optionally your data to
 //    an ImPlot function post-fixed with a G (e.g. PlotScatterG). This has a slight performance

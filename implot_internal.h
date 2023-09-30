@@ -137,16 +137,23 @@ static inline double ImConstrainLog(double val) { return val <= 0 ? 0.001f : val
 static inline double ImConstrainTime(double val) { return val < IMPLOT_MIN_TIME ? IMPLOT_MIN_TIME : (val > IMPLOT_MAX_TIME ? IMPLOT_MAX_TIME : val); }
 // True if two numbers are approximately equal using units in the last place.
 static inline bool ImAlmostEqual(double v1, double v2, int ulp = 2) { return ImAbs(v1-v2) < DBL_EPSILON * ImAbs(v1+v2) * ulp || ImAbs(v1-v2) < DBL_MIN; }
+
+// Template machinery to enable indexing C arrays, STL containers, and ImPlot Indexers/Getters.
+template<typename TContainer> struct value_type { using type = typename TContainer::value_type; };
+template<typename T> struct value_type<const T*> { using type = T; };
+template<typename T> struct value_type<T*> { using type = T; };
+template<typename TContainer> using value_type_t = typename value_type<TContainer>::type;
+
 // Finds min value in an unsorted array
-template <typename T>
-static inline T ImMinArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] < m) { m = values[i]; } } return m; }
+template <typename TContainer>
+static inline value_type_t<TContainer> ImMinArray(const TContainer& values, int count) { value_type_t<TContainer> m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] < m) { m = values[i]; } } return m; }
 // Finds the max value in an unsorted array
-template <typename T>
-static inline T ImMaxArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] > m) { m = values[i]; } } return m; }
+template <typename TContainer>
+static inline value_type_t<TContainer> ImMaxArray(const value_type_t<TContainer>& values, int count) { value_type_t<TContainer> m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] > m) { m = values[i]; } } return m; }
 // Finds the min and max value in an unsorted array
-template <typename T>
-static inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_out) {
-    T Min = values[0]; T Max = values[0];
+template <typename TContainer>
+static inline void ImMinMaxArray(const TContainer& values, int count, value_type_t<TContainer>* min_out, value_type_t<TContainer>* max_out) {
+    value_type_t<TContainer> Min = values[0]; value_type_t<TContainer> Max = values[0];
     for (int i = 1; i < count; ++i) {
         if (values[i] < Min) { Min = values[i]; }
         if (values[i] > Max) { Max = values[i]; }
@@ -154,16 +161,16 @@ static inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_
     *min_out = Min; *max_out = Max;
 }
 // Finds the sim of an array
-template <typename T>
-static inline T ImSum(const T* values, int count) {
-    T sum  = 0;
+template <typename TContainer>
+static inline value_type_t<TContainer> ImSum(const TContainer& values, int count) {
+    value_type_t<TContainer> sum  = 0;
     for (int i = 0; i < count; ++i)
         sum += values[i];
     return sum;
 }
 // Finds the mean of an array
-template <typename T>
-static inline double ImMean(const T* values, int count) {
+template <typename TContainer>
+static inline double ImMean(const TContainer& values, int count) {
     double den = 1.0 / count;
     double mu  = 0;
     for (int i = 0; i < count; ++i)
@@ -171,8 +178,8 @@ static inline double ImMean(const T* values, int count) {
     return mu;
 }
 // Finds the sample standard deviation of an array
-template <typename T>
-static inline double ImStdDev(const T* values, int count) {
+template <typename TContainer>
+static inline double ImStdDev(const TContainer& values, int count) {
     double den = 1.0 / (count - 1.0);
     double mu  = ImMean(values, count);
     double x   = 0;
@@ -180,6 +187,7 @@ static inline double ImStdDev(const T* values, int count) {
         x += ((double)values[i] - mu) * ((double)values[i] - mu) * den;
     return sqrt(x);
 }
+
 // Mix color a and b by factor s in [0 256]
 static inline ImU32 ImMixU32(ImU32 a, ImU32 b, ImU32 s) {
 #ifdef IMPLOT_MIX64
@@ -760,7 +768,7 @@ struct ImPlotAxis
         PickerTimeMin = ImPlotTime::FromDouble(Range.Min);
         UpdateTransformCache();
         return true;
-    };
+    }
 
     inline bool SetMax(double _max, bool force=false) {
         if (!force && IsLockedMax())
@@ -779,7 +787,7 @@ struct ImPlotAxis
         PickerTimeMax = ImPlotTime::FromDouble(Range.Max);
         UpdateTransformCache();
         return true;
-    };
+    }
 
     inline void SetRange(double v1, double v2) {
         Range.Min = ImMin(v1,v2);
@@ -1538,8 +1546,8 @@ void FillRange(ImVector<T>& buffer, int n, T vmin, T vmax) {
 }
 
 // Calculate histogram bin counts and widths
-template <typename T>
-static inline void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
+template <typename TContainer>
+static inline void CalculateBins(const TContainer& values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
     switch (meth) {
         case ImPlotBin_Sqrt:
             bins_out  = (int)ceil(sqrt(count));
