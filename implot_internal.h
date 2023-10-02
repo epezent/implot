@@ -1214,8 +1214,6 @@ struct ImPlotNextPlotData
 // Temporary data storage for upcoming item
 struct ImPlotNextItemData {
     ImPlotSpec      Spec;
-    float           DigitalBitHeight; // TODO: remove
-    float           DigitalBitGap;    // TODO: remove
     bool            RenderLine;
     bool            RenderFill;
     bool            RenderMarkers;

@@ -419,9 +419,6 @@ bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& item_
         s.Spec.FillColor = IsColorAuto(s.Spec.FillColor) ? s.Spec.LineColor : s.Spec.FillColor;
         s.Spec.FillColor.w *= s.Spec.FillAlpha;
         s.Spec.Marker = item->Marker;
-        // SPEC-TODO: remove
-        s.DigitalBitHeight = gp.Style.DigitalBitHeight;
-        s.DigitalBitGap =  gp.Style.DigitalBitGap;
         // apply highlight mods
         if (item->LegendHovered) {
             if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightItem)) {
@@ -2700,6 +2697,7 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 // TODO: Make this behave like all the other plot types (.e. not fixed in y axis)
+// TODO: Currently broken if x or y axis is inverted! (what should happen in this case, anyway?)
 
 template <typename Getter>
 void PlotDigitalEx(const char* label_id, Getter getter, const ImPlotSpec& spec) {
@@ -2720,11 +2718,13 @@ void PlotDigitalEx(const char* label_id, Getter getter, const ImPlotSpec& spec) 
                     itemData1 = itemData2;
                     continue;
                 }
-                if (ImNanOrInf(itemData2.y)) itemData2.y = ImConstrainNan(ImConstrainInf(itemData2.y));
+                if (ImNanOrInf(itemData2.y)) {
+                    itemData2.y = ImConstrainNan(ImConstrainInf(itemData2.y));
+                }
                 int pixY_0 = (int)(s.Spec.LineWeight);
                 itemData1.y = ImMax(0.0, itemData1.y);
-                const float pixY_1 = s.DigitalBitHeight * (float)itemData1.y;
-                const int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1) + s.DigitalBitGap);
+                const float pixY_1 = s.Spec.Size * (float)itemData1.y;
+                const int pixY_chPosOffset = (int)(ImMax(s.Spec.Size, pixY_1) + s.Style.DigitalSpacing);
                 pixYMax = ImMax(pixYMax, pixY_chPosOffset);
                 ImVec2 pMin = PlotToPixels(itemData1,IMPLOT_AUTO,IMPLOT_AUTO);
                 ImVec2 pMax = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO);
@@ -2743,7 +2743,6 @@ void PlotDigitalEx(const char* label_id, Getter getter, const ImPlotSpec& spec) 
                 // do not extend plot outside plot range
                 pMin.x = ImClamp(pMin.x, !x_axis.IsInverted() ? x_axis.PixelMin : x_axis.PixelMax, !x_axis.IsInverted() ? x_axis.PixelMax - 1 : x_axis.PixelMin - 1);
                 pMax.x = ImClamp(pMax.x, !x_axis.IsInverted() ? x_axis.PixelMin : x_axis.PixelMax, !x_axis.IsInverted() ? x_axis.PixelMax - 1 : x_axis.PixelMin - 1);
-
                 //plot a rectangle that extends up to x2 with y1 height
                 if ((gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                     // ImVec4 colAlpha = item->Color;

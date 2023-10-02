@@ -382,6 +382,8 @@ enum ImPlotCol_ {
 
 // Plot styling variables.
 enum ImPlotStyleVar_ {
+    ImPlotStyleVar_PlotDefaultSize,    // ImVec2, default size used when ImVec2(0,0) is passed to BeginPlot
+    ImPlotStyleVar_PlotMinSize,        // ImVec2, minimum size plot frame can be when shrunk
     ImPlotStyleVar_PlotBorderSize,     // float,  thickness of border around plot area
     ImPlotStyleVar_MinorAlpha,         // float,  alpha multiplier applied to minor axis grid lines
     ImPlotStyleVar_MajorTickLen,       // ImVec2, major tick lengths for X and Y axes
@@ -398,10 +400,7 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_MousePosPadding,    // ImVec2, padding between plot edge and interior info text
     ImPlotStyleVar_AnnotationPadding,  // ImVec2, text padding around annotation labels
     ImPlotStyleVar_FitPadding,         // ImVec2, additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
-    ImPlotStyleVar_PlotDefaultSize,    // ImVec2, default size used when ImVec2(0,0) is passed to BeginPlot
-    ImPlotStyleVar_PlotMinSize,        // ImVec2, minimum size plot frame can be when shrunk
-    ImPlotStyleVar_DigitalBitHeight,   // float,  digital channels bit height (at 1) in pixels
-    ImPlotStyleVar_DigitalBitGap,      // float,  digital channels bit padding gap in pixels
+    ImPlotStyleVar_DigitalSpacing,     // float,  digital plots padding gap in pixels
     ImPlotStyleVar_COUNT
 };
 
@@ -479,7 +478,7 @@ struct ImPlotSpec {
     ImVec4          FillColor  = IMPLOT_AUTO_COL;       // fill color (applies to bar faces and shaded regions); IMPLOT_AUTO_COL will use next Colormap color or current item color
     float           FillAlpha  = 1.0f;                  // alpha multiplier (applies to FillColor)
     ImPlotMarker    Marker     = ImPlotMarker_None;     // marker type; specify ImPlotMarker_Auto to use the next unused marker
-    float           Size       = 4;                     // size of markers (~radius) and error bar whiskers (widget/height) in pixels
+    float           Size       = 4;                     // size of markers (radius), error bar whiskers (width or height), and digital bars (height) *in pixels*
     int             Offset     = 0;                     // data index offset
     int             Stride     = IMPLOT_AUTO;           // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
     ImPlotItemFlags Flags      = ImPlotItemFlags_None;  // optional item flags; can be composed from common ImPlotItemFlags and/or specific ImPlotXFlags where X corresponds
@@ -517,7 +516,7 @@ struct ImPlotSpec {
         case ImProp_Flags      : Flags      = (ImPlotItemFlags)v;                       return;
         default: break;
         }
-        IM_ASSERT(0 && "User provided ImProp which cannot be set from scalar value!");
+        IM_ASSERT(0 && "User provided an ImProp which cannot be set from scalar value!");
     }   
 
     // Set a property from an ImVec4 value.
@@ -527,7 +526,7 @@ struct ImPlotSpec {
         case ImProp_FillColor : FillColor = v; return;
         default: break;
         }
-        IM_ASSERT(0 && "User provided ImProp which cannot be set from ImVec4 value!");
+        IM_ASSERT(0 && "User provided an ImProp which cannot be set from ImVec4 value!");
     }
 };
 
@@ -573,6 +572,9 @@ struct ImPlotRect {
 
 // Plot style structure
 struct ImPlotStyle {
+    // plot styling
+    ImVec2  PlotDefaultSize;         // = 400,300 default size used when ImVec2(0,0) is passed to BeginPlot
+    ImVec2  PlotMinSize;             // = 200,150 minimum size plot frame can be when shrunk
     float   PlotBorderSize;          // = 1,      line thickness of border around plot area
     float   MinorAlpha;              // = 0.25    alpha multiplier applied to minor axis grid lines
     ImVec2  MajorTickLen;            // = 10,10   major tick lengths for X and Y axes
@@ -581,6 +583,7 @@ struct ImPlotStyle {
     ImVec2  MinorTickSize;           // = 1,1     line thickness of minor ticks
     ImVec2  MajorGridSize;           // = 1,1     line thickness of major grid lines
     ImVec2  MinorGridSize;           // = 1,1     line thickness of minor grid lines
+    // plot padding
     ImVec2  PlotPadding;             // = 10,10   padding between widget frame and plot area, labels, or outside legends (i.e. main padding)
     ImVec2  LabelPadding;            // = 5,5     padding between axes labels, tick labels, and plot edge
     ImVec2  LegendPadding;           // = 10,10   legend padding from plot edges
@@ -589,10 +592,7 @@ struct ImPlotStyle {
     ImVec2  MousePosPadding;         // = 10,10   padding between plot edge and interior mouse location text
     ImVec2  AnnotationPadding;       // = 2,2     text padding around annotation labels
     ImVec2  FitPadding;              // = 0,0     additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
-    ImVec2  PlotDefaultSize;         // = 400,300 default size used when ImVec2(0,0) is passed to BeginPlot
-    ImVec2  PlotMinSize;             // = 200,150 minimum size plot frame can be when shrunk
-    float   DigitalBitHeight;        // = 8,      digital channels bit height (at y = 1.0f) in pixels
-    float   DigitalBitGap;           // = 4,      digital channels bit padding gap in pixels
+    float   DigitalSpacing;          // = 4,      digital plot padding gap in pixels
     // style colors
     ImVec4  Colors[ImPlotCol_COUNT]; // Array of styling colors. Indexable with ImPlotCol_ enums.
     // colormap
@@ -755,7 +755,7 @@ IMPLOT_API bool BeginSubplots(const char* title_id,
                              float* col_ratios        = nullptr);
 
 // Only call EndSubplots() if BeginSubplots() returns true! Typically called at the end
-// of an if statement conditioned on BeginSublots(). See example above.
+// of an if statement conditioned on BeginSubplots(). See example above.
 IMPLOT_API void EndSubplots();
 
 //-----------------------------------------------------------------------------

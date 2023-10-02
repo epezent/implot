@@ -823,14 +823,16 @@ void Demo_DigitalPlots() {
     ImGui::Unindent();
 
     static bool paused = false;
-    static ScrollingBuffer dataDigital[2];
+    static ScrollingBuffer dataDigital[3];
     static ScrollingBuffer dataAnalog[2];
-    static bool showDigital[2] = {true, false};
+    static bool showDigital[3] = {true, false, false};
     static bool showAnalog[2] = {true, false};
 
     char label[32];
+    ImGui::Checkbox("Pause", &paused);
     ImGui::Checkbox("digital_0", &showDigital[0]); ImGui::SameLine();
     ImGui::Checkbox("digital_1", &showDigital[1]); ImGui::SameLine();
+    ImGui::Checkbox("digital_2", &showDigital[2]); ImGui::SameLine();
     ImGui::Checkbox("analog_0",  &showAnalog[0]);  ImGui::SameLine();
     ImGui::Checkbox("analog_1",  &showAnalog[1]);
 
@@ -844,6 +846,8 @@ void Demo_DigitalPlots() {
                 dataDigital[0].AddPoint(t, sinf(2*t) > 0.45);
             if (showDigital[1])
                 dataDigital[1].AddPoint(t, sinf(2*t) < 0.45);
+            if (showDigital[2])
+                dataDigital[2].AddPoint(t, sinf(50*t) > 0.5);
             // Analog signal values
             if (showAnalog[0])
                 dataAnalog[0].AddPoint(t, sinf(2*t));
@@ -854,12 +858,13 @@ void Demo_DigitalPlots() {
     if (ImPlot::BeginPlot("##Digital")) {
         ImPlot::SetupAxisLimits(ImAxis_X1, t - 10.0, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
         ImPlot::SetupAxisLimits(ImAxis_Y1, -1, 1);
-        for (int i = 0; i < 2; ++i) {
+        for (int i = 0; i < 3; ++i) {
             if (showDigital[i] && dataDigital[i].Data.size() > 0) {
                 snprintf(label, sizeof(label), "digital_%d", i);
                 ImPlot::PlotDigital(label, &dataDigital[i].Data[0].x, &dataDigital[i].Data[0].y, dataDigital[i].Data.size(), {
                     ImProp_Offset, dataDigital[i].Offset,
-                    ImProp_Stride, 2 * sizeof(float)
+                    ImProp_Stride, 2 * sizeof(float),
+                    ImProp_Size, (i+1) * 4
                 });
             }
         }
@@ -2441,6 +2446,8 @@ void StyleSeaborn() {
     colors[ImPlotCol_Selection]     = ImVec4(1.00f, 0.65f, 0.00f, 1.00f);
     colors[ImPlotCol_Crosshairs]    = ImVec4(0.23f, 0.10f, 0.64f, 0.50f);
 
+    style.MousePosPadding  = ImVec2(5,5);
+    style.PlotMinSize      = ImVec2(300,225);
     style.PlotBorderSize   = 0;
     style.MinorAlpha       = 1.0f;
     style.MajorTickLen     = ImVec2(0,0);
@@ -2452,10 +2459,7 @@ void StyleSeaborn() {
     style.PlotPadding      = ImVec2(12,12);
     style.LabelPadding     = ImVec2(5,5);
     style.LegendPadding    = ImVec2(5,5);
-    style.MousePosPadding  = ImVec2(5,5);
-    style.PlotMinSize      = ImVec2(300,225);
-    style.DigitalBitHeight = 8;
-    style.DigitalBitGap    = 4;
+    style.DigitalSpacing   = 4;
 }
 
 } // namespace MyImPlot

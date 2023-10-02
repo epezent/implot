@@ -178,7 +178,9 @@ ImPlotInputMap::ImPlotInputMap() {
     ImPlot::MapInputDefault(this);
 }
 
-ImPlotStyle::ImPlotStyle() {    
+ImPlotStyle::ImPlotStyle() {
+    PlotDefaultSize    = ImVec2(400,300);
+    PlotMinSize        = ImVec2(200,150);
     PlotBorderSize     = 1;
     MinorAlpha         = 0.25f;
     MajorTickLen       = ImVec2(10,10);
@@ -195,10 +197,7 @@ ImPlotStyle::ImPlotStyle() {
     MousePosPadding    = ImVec2(10,10);
     AnnotationPadding  = ImVec2(2,2);
     FitPadding         = ImVec2(0,0);
-    PlotDefaultSize    = ImVec2(400,300);
-    PlotMinSize        = ImVec2(200,150);
-    DigitalBitHeight   = 8;
-    DigitalBitGap      = 4;
+    DigitalSpacing     = 4;
     
     ImPlot::StyleColorsAuto(this);
 
@@ -305,7 +304,6 @@ static const ImPlotStyleVarInfo GPlotStyleVarInfo[] =
     { ImGuiDataType_Float, 2, (ImU32)offsetof(ImPlotStyle, MousePosPadding)    }, // ImPlotStyleVar_MousePosPadding
     { ImGuiDataType_Float, 2, (ImU32)offsetof(ImPlotStyle, AnnotationPadding)  }, // ImPlotStyleVar_AnnotationPadding
     { ImGuiDataType_Float, 2, (ImU32)offsetof(ImPlotStyle, FitPadding)         }, // ImPlotStyleVar_FitPadding
-    { ImGuiDataType_Float, 2, (ImU32)offsetof(ImPlotStyle, DigitalPadding)     }, // ImPlotStyleVar_DigitalPadding
     { ImGuiDataType_Float, 1, (ImU32)offsetof(ImPlotStyle, DigitalSpacing)     }, // ImPlotStyleVar_DigitalSpacing
 };
 
@@ -4947,6 +4945,8 @@ void ShowStyleEditor(ImPlotStyle* ref) {
     if (ImGui::BeginTabBar("##StyleEditor")) {
         if (ImGui::BeginTabItem("Variables")) {
             ImGui::Text("Plot Styling");
+            ImGui::SliderFloat2("PlotDefaultSize", (float*)&style.PlotDefaultSize, 0.0f, 1000, "%.0f");
+            ImGui::SliderFloat2("PlotMinSize", (float*)&style.PlotMinSize, 0.0f, 300, "%.0f");
             ImGui::SliderFloat("PlotBorderSize", &style.PlotBorderSize, 0.0f, 2.0f, "%.0f");
             ImGui::SliderFloat("MinorAlpha", &style.MinorAlpha, 0.0f, 1.0f, "%.2f");
             ImGui::SliderFloat2("MajorTickLen", (float*)&style.MajorTickLen, 0.0f, 20.0f, "%.0f");
@@ -4955,8 +4955,6 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SliderFloat2("MinorTickSize", (float*)&style.MinorTickSize, 0.0f, 2.0f, "%.1f");
             ImGui::SliderFloat2("MajorGridSize", (float*)&style.MajorGridSize, 0.0f, 2.0f, "%.1f");
             ImGui::SliderFloat2("MinorGridSize", (float*)&style.MinorGridSize, 0.0f, 2.0f, "%.1f");
-            ImGui::SliderFloat2("PlotDefaultSize", (float*)&style.PlotDefaultSize, 0.0f, 1000, "%.0f");
-            ImGui::SliderFloat2("PlotMinSize", (float*)&style.PlotMinSize, 0.0f, 300, "%.0f");
             ImGui::Text("Plot Padding");
             ImGui::SliderFloat2("PlotPadding", (float*)&style.PlotPadding, 0.0f, 20.0f, "%.0f");
             ImGui::SliderFloat2("LabelPadding", (float*)&style.LabelPadding, 0.0f, 20.0f, "%.0f");
@@ -4966,9 +4964,7 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SliderFloat2("MousePosPadding", (float*)&style.MousePosPadding, 0.0f, 20.0f, "%.0f");
             ImGui::SliderFloat2("AnnotationPadding", (float*)&style.AnnotationPadding, 0.0f, 5.0f, "%.0f");
             ImGui::SliderFloat2("FitPadding", (float*)&style.FitPadding, 0, 0.2f, "%.2f");
-            ImGui::Text("Miscellaneous");
-            ImGui::SliderFloat("DigitalBitHeight", &style.DigitalBitHeight, 0.0f, 20.0f, "%.1f");
-            ImGui::SliderFloat("DigitalBitGap", &style.DigitalBitGap, 0.0f, 20.0f, "%.1f");
+            ImGui::SliderFloat("DigitalSpacing", &style.DigitalSpacing, 0.0f, 20.0f, "%.1f");
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Colors")) {
