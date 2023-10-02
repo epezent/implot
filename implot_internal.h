@@ -51,21 +51,24 @@
 // Constants can be changed unless stated otherwise. We may move some of these
 // to ImPlotStyleVar_ over time.
 
-// Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
-#define IMPLOT_MIN_TIME  0
+// Minimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
+constexpr double IMPLOT_MIN_TIME = 0;
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
-#define IMPLOT_MAX_TIME  32503680000
+constexpr double IMPLOT_MAX_TIME = 32503680000;
+
 // Default label format for axis labels
-#define IMPLOT_LABEL_FORMAT "%g"
+constexpr const char* IMPLOT_LABEL_FORMAT = "%g";
 // Max character size for tick labels
-#define IMPLOT_LABEL_MAX_SIZE 32
+constexpr int IMPLOT_LABEL_MAX_SIZE = 32;
+
+// Number of X axes
+constexpr int IMPLOT_NUM_X_AXES = ImAxis_Y1;
+// Number of Y axes
+constexpr int IMPLOT_NUM_Y_AXES = ImAxis_COUNT - IMPLOT_NUM_X_AXES;
 
 //-----------------------------------------------------------------------------
 // [SECTION] Macros
 //-----------------------------------------------------------------------------
-
-#define IMPLOT_NUM_X_AXES ImAxis_Y1
-#define IMPLOT_NUM_Y_AXES (ImAxis_COUNT - IMPLOT_NUM_X_AXES)
 
 // Split ImU32 color into RGB components [0 255]
 #define IM_COL32_SPLIT_RGB(col,r,g,b) \
@@ -133,16 +136,23 @@ static inline double ImConstrainLog(double val) { return val <= 0 ? 0.001f : val
 static inline double ImConstrainTime(double val) { return val < IMPLOT_MIN_TIME ? IMPLOT_MIN_TIME : (val > IMPLOT_MAX_TIME ? IMPLOT_MAX_TIME : val); }
 // True if two numbers are approximately equal using units in the last place.
 static inline bool ImAlmostEqual(double v1, double v2, int ulp = 2) { return ImAbs(v1-v2) < DBL_EPSILON * ImAbs(v1+v2) * ulp || ImAbs(v1-v2) < DBL_MIN; }
+
+// Template machinery to enable indexing C arrays, STL containers, and ImPlot Indexers/Getters.
+template<typename TContainer> struct value_type { using type = typename TContainer::value_type; };
+template<typename T> struct value_type<const T*> { using type = T; };
+template<typename T> struct value_type<T*> { using type = T; };
+template<typename TContainer> using value_type_t = typename value_type<TContainer>::type;
+
 // Finds min value in an unsorted array
-template <typename T>
-static inline T ImMinArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] < m) { m = values[i]; } } return m; }
+template <typename TContainer>
+static inline value_type_t<TContainer> ImMinArray(const TContainer& values, int count) { value_type_t<TContainer> m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] < m) { m = values[i]; } } return m; }
 // Finds the max value in an unsorted array
-template <typename T>
-static inline T ImMaxArray(const T* values, int count) { T m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] > m) { m = values[i]; } } return m; }
+template <typename TContainer>
+static inline value_type_t<TContainer> ImMaxArray(const value_type_t<TContainer>& values, int count) { value_type_t<TContainer> m = values[0]; for (int i = 1; i < count; ++i) { if (values[i] > m) { m = values[i]; } } return m; }
 // Finds the min and max value in an unsorted array
-template <typename T>
-static inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_out) {
-    T Min = values[0]; T Max = values[0];
+template <typename TContainer>
+static inline void ImMinMaxArray(const TContainer& values, int count, value_type_t<TContainer>* min_out, value_type_t<TContainer>* max_out) {
+    value_type_t<TContainer> Min = values[0]; value_type_t<TContainer> Max = values[0];
     for (int i = 1; i < count; ++i) {
         if (values[i] < Min) { Min = values[i]; }
         if (values[i] > Max) { Max = values[i]; }
@@ -150,16 +160,16 @@ static inline void ImMinMaxArray(const T* values, int count, T* min_out, T* max_
     *min_out = Min; *max_out = Max;
 }
 // Finds the sim of an array
-template <typename T>
-static inline T ImSum(const T* values, int count) {
-    T sum  = 0;
+template <typename TContainer>
+static inline value_type_t<TContainer> ImSum(const TContainer& values, int count) {
+    value_type_t<TContainer> sum  = 0;
     for (int i = 0; i < count; ++i)
         sum += values[i];
     return sum;
 }
 // Finds the mean of an array
-template <typename T>
-static inline double ImMean(const T* values, int count) {
+template <typename TContainer>
+static inline double ImMean(const TContainer& values, int count) {
     double den = 1.0 / count;
     double mu  = 0;
     for (int i = 0; i < count; ++i)
@@ -167,8 +177,8 @@ static inline double ImMean(const T* values, int count) {
     return mu;
 }
 // Finds the sample standard deviation of an array
-template <typename T>
-static inline double ImStdDev(const T* values, int count) {
+template <typename TContainer>
+static inline double ImStdDev(const TContainer& values, int count) {
     double den = 1.0 / (count - 1.0);
     double mu  = ImMean(values, count);
     double x   = 0;
@@ -176,6 +186,7 @@ static inline double ImStdDev(const T* values, int count) {
         x += ((double)values[i] - mu) * ((double)values[i] - mu) * den;
     return sqrt(x);
 }
+
 // Mix color a and b by factor s in [0 256]
 static inline ImU32 ImMixU32(ImU32 a, ImU32 b, ImU32 s) {
 #ifdef IMPLOT_MIX64
@@ -226,9 +237,10 @@ static inline bool ImOverlaps(T min_a, T max_a, T min_b, T max_b) {
 // [SECTION] ImPlot Enums
 //-----------------------------------------------------------------------------
 
-typedef int ImPlotTimeUnit;    // -> enum ImPlotTimeUnit_
-typedef int ImPlotDateFmt;     // -> enum ImPlotDateFmt_
-typedef int ImPlotTimeFmt;     // -> enum ImPlotTimeFmt_
+typedef int ImPlotTimeUnit;       // -> enum ImPlotTimeUnit_
+typedef int ImPlotDateFmt;        // -> enum ImPlotDateFmt_
+typedef int ImPlotTimeFmt;        // -> enum ImPlotTimeFmt_
+typedef int ImPlotMarkerInternal; // -> enum ImPlotMarkerInternal_
 
 enum ImPlotTimeUnit_ {
     ImPlotTimeUnit_Us,  // microsecond
@@ -262,6 +274,10 @@ enum ImPlotTimeFmt_ {              // default        [ 24 Hour Clock ]
     ImPlotTimeFmt_HrMinS,          // 7:21:29pm      [ 19:21:29     ]
     ImPlotTimeFmt_HrMin,           // 7:21pm         [ 19:21        ]
     ImPlotTimeFmt_Hr               // 7pm            [ 19:00        ]
+};
+
+enum ImPlotMarkerInternal_ {
+    ImPlotMarker_Invalid = -3
 };
 
 //-----------------------------------------------------------------------------
@@ -731,7 +747,7 @@ struct ImPlotAxis
         PickerTimeMin = ImPlotTime::FromDouble(Range.Min);
         UpdateTransformCache();
         return true;
-    };
+    }
 
     inline bool SetMax(double _max, bool force=false) {
         if (!force && IsLockedMax())
@@ -750,7 +766,7 @@ struct ImPlotAxis
         PickerTimeMax = ImPlotTime::FromDouble(Range.Max);
         UpdateTransformCache();
         return true;
-    };
+    }
 
     inline void SetRange(double v1, double v2) {
         Range.Min = ImMin(v1,v2);
@@ -941,6 +957,7 @@ struct ImPlotItem
 {
     ImGuiID      ID;
     ImU32        Color;
+    ImPlotMarker Marker;
     ImRect       LegendHoverRect;
     int          NameOffset;
     bool         Show;
@@ -950,6 +967,7 @@ struct ImPlotItem
     ImPlotItem() {
         ID            = 0;
         Color         = IM_COL32_WHITE;
+        Marker        = ImPlotMarker_None;
         NameOffset    = -1;
         Show          = true;
         SeenThisFrame = false;
@@ -993,8 +1011,9 @@ struct ImPlotItemGroup
     ImPlotLegend       Legend;
     ImPool<ImPlotItem> ItemPool;
     int                ColormapIdx;
+    ImPlotMarker       MarkerIdx;
 
-    ImPlotItemGroup() { ID = 0; ColormapIdx = 0; }
+    ImPlotItemGroup() { ID = 0; ColormapIdx = 0; MarkerIdx = 0; }
 
     int         GetItemCount() const             { return ItemPool.GetBufSize();                                 }
     ImGuiID     GetItemID(const char*  label_id) { return ImGui::GetID(label_id); /* GetIDWithSeed */            }
@@ -1173,30 +1192,18 @@ struct ImPlotNextPlotData
 
 // Temporary data storage for upcoming item
 struct ImPlotNextItemData {
-    ImVec4          Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
-    float           LineWeight;
-    ImPlotMarker    Marker;
-    float           MarkerSize;
-    float           MarkerWeight;
-    float           FillAlpha;
-    float           ErrorBarSize;
-    float           ErrorBarWeight;
-    float           DigitalBitHeight;
-    float           DigitalBitGap;
+    ImPlotSpec      Spec;
     bool            RenderLine;
     bool            RenderFill;
-    bool            RenderMarkerLine;
-    bool            RenderMarkerFill;
+    bool            RenderMarkers;
     bool            HasHidden;
     bool            Hidden;
     ImPlotCond      HiddenCond;
     ImPlotNextItemData() { Reset(); }
     void Reset() {
-        for (int i = 0; i < 5; ++i)
-            Colors[i] = IMPLOT_AUTO_COL;
-        LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
-        Marker        = IMPLOT_AUTO;
-        HasHidden     = Hidden = false;
+        Spec      = ImPlotSpec();
+        HasHidden = Hidden = false;
+        HiddenCond = ImPlotCond_None;
     }
 };
 
@@ -1309,14 +1316,14 @@ IMPLOT_API void ShowSubplotsContextMenu(ImPlotSubplot& subplot);
 //-----------------------------------------------------------------------------
 
 // Begins a new item. Returns false if the item should not be plotted. Pushes PlotClipRect.
-IMPLOT_API bool BeginItem(const char* label_id, ImPlotItemFlags flags=0, ImPlotCol recolor_from=IMPLOT_AUTO);
+IMPLOT_API bool BeginItem(const char* label_id, const ImPlotSpec& spec = ImPlotSpec(), const ImVec4& item_col = IMPLOT_AUTO_COL, ImPlotMarker item_mkr = ImPlotMarker_Invalid);
 
 // Same as above but with fitting functionality.
 template <typename _Fitter>
-bool BeginItemEx(const char* label_id, const _Fitter& fitter, ImPlotItemFlags flags=0, ImPlotCol recolor_from=IMPLOT_AUTO) {
-    if (BeginItem(label_id, flags, recolor_from)) {
+bool BeginItemEx(const char* label_id, const _Fitter& fitter, const ImPlotSpec& spec, const ImVec4& item_col = IMPLOT_AUTO_COL, ImPlotMarker item_mkr = ImPlotMarker_Invalid) {
+    if (BeginItem(label_id, spec, item_col, item_mkr)) {
         ImPlotPlot& plot = *GetCurrentPlot();
-        if (plot.FitThisFrame && !ImHasFlag(flags, ImPlotItemFlags_NoFit))
+        if (plot.FitThisFrame && !ImHasFlag(spec.Flags, ImPlotItemFlags_NoFit))
             fitter.Fit(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]);
         return true;
     }
@@ -1517,8 +1524,8 @@ void FillRange(ImVector<T>& buffer, int n, T vmin, T vmax) {
 }
 
 // Calculate histogram bin counts and widths
-template <typename T>
-static inline void CalculateBins(const T* values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
+template <typename TContainer>
+static inline void CalculateBins(const TContainer& values, int count, ImPlotBin meth, const ImPlotRange& range, int& bins_out, double& width_out) {
     switch (meth) {
         case ImPlotBin_Sqrt:
             bins_out  = (int)ceil(sqrt(count));
@@ -1547,7 +1554,7 @@ static inline bool IsLeapYear(int year) {
 }
 // Returns the number of days in a month, accounting for Feb. leap years. #month is zero indexed.
 static inline int GetDaysInMonth(int year, int month) {
-    static const int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    constexpr int days[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     return  days[month] + (int)(month == 1 && IsLeapYear(year));
 }
 
