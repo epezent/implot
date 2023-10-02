@@ -400,7 +400,8 @@ enum ImPlotStyleVar_ {
     ImPlotStyleVar_MousePosPadding,    // ImVec2, padding between plot edge and interior info text
     ImPlotStyleVar_AnnotationPadding,  // ImVec2, text padding around annotation labels
     ImPlotStyleVar_FitPadding,         // ImVec2, additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
-    ImPlotStyleVar_DigitalSpacing,     // float,  digital plots padding gap in pixels
+    ImPlotStyleVar_DigitalPadding,     // float,  digital plot padding from bottom in pixels
+    ImPlotStyleVar_DigitalSpacing,     // float,  digital plot spacing gap in pixels
     ImPlotStyleVar_COUNT
 };
 
@@ -471,7 +472,25 @@ enum ImPlotBin_ {
 };
 
 // Plot item styling specification. Provide these to PlotX functions to override styling, specify
-// offsetting or stride, or set optional flags. 
+// offsetting or stride, or set optional flags. This struct can be used in the following ways:
+//
+// 1. By declaring and defining a struct instance:
+//
+//    ImPlotSpec spec;
+//    spec.LineColor = ImVec4(1,0,0,1);
+//    spec.LineWeight = 2.0f;
+//    spec.Marker = ImPlotMarker_Circle;
+//    spec.Flags = ImPlotItemFlags_NoLegend | ImPlotLineFlags_Segments;
+//    ImPlot::PlotLine("MyLine", xs, ys, 100, spec);
+//
+// 2. Inline using ImProp,value pairs (order does NOT matter):
+//
+//    ImPlot::PlotLine("MyLine", xs, ys, 100, {
+//      ImProp_LineColor, ImVec4(1,0,0,1),
+//      ImProp_LineWeight, 2.0f,
+//      ImProp_Marker, ImPlotMarker_Circle,
+//      ImProp_Flags, ImPlotItemFlags_NoLegend | ImPlotLineFlags_Segments
+//    });
 struct ImPlotSpec {
     ImVec4          LineColor  = IMPLOT_AUTO_COL;       // line color (applies to lines, bar edges, marker edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
     float           LineWeight = 1.0f;                  // line weight in pixels (applies to lines, bar edges, marker edges)
@@ -592,7 +611,8 @@ struct ImPlotStyle {
     ImVec2  MousePosPadding;         // = 10,10   padding between plot edge and interior mouse location text
     ImVec2  AnnotationPadding;       // = 2,2     text padding around annotation labels
     ImVec2  FitPadding;              // = 0,0     additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
-    float   DigitalSpacing;          // = 4,      digital plot padding gap in pixels
+    float   DigitalPadding;          // = 20,     digital plot padding from bottom in pixels
+    float   DigitalSpacing;          // = 4,      digital plot spacing gap in pixels
     // style colors
     ImVec4  Colors[ImPlotCol_COUNT]; // Array of styling colors. Indexable with ImPlotCol_ enums.
     // colormap

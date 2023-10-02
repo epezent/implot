@@ -2728,7 +2728,7 @@ void PlotDigitalEx(const char* label_id, Getter getter, const ImPlotSpec& spec) 
                 pixYMax = ImMax(pixYMax, pixY_chPosOffset);
                 ImVec2 pMin = PlotToPixels(itemData1,IMPLOT_AUTO,IMPLOT_AUTO);
                 ImVec2 pMax = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO);
-                const int pixY_Offset = 0; //20 pixel from bottom due to mouse cursor label
+                const int pixY_Offset = (int)gp.Style.DigitalPadding;
                 const float y_ref = y_axis.IsInverted() ? y_axis.PixelMax : y_axis.PixelMin;
                 pMin.y = y_ref - (gp.DigitalPlotOffset + pixY_Offset);
                 pMax.y = y_ref - (gp.DigitalPlotOffset + pixY_0 + (int)pixY_1 + pixY_Offset);

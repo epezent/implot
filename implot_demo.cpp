@@ -1959,6 +1959,52 @@ void Demo_Tables() {
 
 //-----------------------------------------------------------------------------
 
+void Demo_ItemStylingAndSpec() {
+    static ImVec2 data1[20];
+    for (int i = 0; i < 20; ++i) {
+        data1[i].x = i * 1/19.0f;
+        data1[i].y = data1[i].x * data1[i].x;
+    }
+    static ImVec2 data2[20];
+    for (int i = 0; i < 20; ++i) {
+        data2[i].x = i * 1/19.0f;
+        data2[i].y = data2[i].x * data2[i].x * data2[i].x;
+    }
+    if (ImPlot::BeginPlot("##SpecStyling")) {
+        ImPlot::SetupAxes("x","y");
+
+        // Two options for using ImPlotSpec:
+
+        // 1. By declaring and defining a struct instance:
+        ImPlotSpec spec;
+        spec.LineColor = ImVec4(1,1,0,1);
+        spec.LineWeight = 1.0f;
+        spec.FillColor = ImVec4(1,0.5f,0,1);
+        spec.FillAlpha = 0.5f;
+        spec.Marker = ImPlotMarker_Square;
+        spec.Size = 6;
+        spec.Stride = sizeof(ImVec2);
+        spec.Flags = ImPlotItemFlags_NoLegend | ImPlotLineFlags_Shaded;
+        ImPlot::PlotLine("Line 1", &data1[0].x, &data1[0].y, 20, spec);
+        
+        // 2. Inline using ImProp,value pairs (order does NOT matter):
+        ImPlot::PlotLine("Line 2", &data2[0].x, &data2[0].y, 20, {
+            ImProp_LineColor, ImVec4(0,1,1,1),
+            ImProp_LineWeight, 1.0f,
+            ImProp_FillColor, ImVec4(0,0,1,1),
+            ImProp_FillAlpha, 0.5f,
+            ImProp_Marker, ImPlotMarker_Diamond,
+            ImProp_Size, 6,
+            ImProp_Stride, sizeof(ImVec2),
+            ImProp_Flags, ImPlotItemFlags_NoLegend | ImPlotLineFlags_Shaded
+        });
+        
+        ImPlot::EndPlot();
+    }    
+}
+    
+//-----------------------------------------------------------------------------
+
 void Demo_OffsetAndStride() {
     static const int k_circles    = 11;
     static const int k_points_per = 50;
@@ -2349,6 +2395,7 @@ void ShowDemoWindow(bool* p_open) {
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Tools")) {
+            DemoHeader("Item Styling and Spec", Demo_ItemStylingAndSpec);
             DemoHeader("Offset and Stride", Demo_OffsetAndStride);
             DemoHeader("Drag Points", Demo_DragPoints);
             DemoHeader("Drag Lines", Demo_DragLines);
@@ -2459,6 +2506,7 @@ void StyleSeaborn() {
     style.PlotPadding      = ImVec2(12,12);
     style.LabelPadding     = ImVec2(5,5);
     style.LegendPadding    = ImVec2(5,5);
+    style.DigitalPadding   = 20;
     style.DigitalSpacing   = 4;
 }
 
