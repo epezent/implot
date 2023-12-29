@@ -467,11 +467,11 @@ enum ImPlotBin_ {
 IM_MSVC_RUNTIME_CHECKS_OFF
 struct ImPlotPoint {
     double x, y;
-    constexpr ImPlotPoint()                     : x(0.0), y(0.0) { }
-    constexpr ImPlotPoint(double _x, double _y) : x(_x), y(_y) { }
-    constexpr ImPlotPoint(const ImVec2& p)      : x((double)p.x), y((double)p.y) { }
-    double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1); return ((double*)(void*)(char*)this)[idx]; }
-    double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1); return ((const double*)(const void*)(const char*)this)[idx]; }
+    IMPLOT_API constexpr ImPlotPoint()                     : x(0.0), y(0.0) { }
+    IMPLOT_API constexpr ImPlotPoint(double _x, double _y) : x(_x), y(_y) { }
+    IMPLOT_API constexpr ImPlotPoint(const ImVec2& p)      : x((double)p.x), y((double)p.y) { }
+    IMPLOT_API double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1); return ((double*)(void*)(char*)this)[idx]; }
+    IMPLOT_API double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1); return ((const double*)(const void*)(const char*)this)[idx]; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
     IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h
                                  // to convert back and forth between your math types and ImPlotPoint.
@@ -482,25 +482,25 @@ IM_MSVC_RUNTIME_CHECKS_RESTORE
 // Range defined by a min/max value.
 struct ImPlotRange {
     double Min, Max;
-    constexpr ImPlotRange()                         : Min(0.0), Max(0.0) { }
-    constexpr ImPlotRange(double _min, double _max) : Min(_min), Max(_max) { }
-    bool Contains(double value) const               { return value >= Min && value <= Max;                      }
-    double Size() const                             { return Max - Min;                                         }
-    double Clamp(double value) const                { return (value < Min) ? Min : (value > Max) ? Max : value; }
+    IMPLOT_API constexpr ImPlotRange()                         : Min(0.0), Max(0.0) { }
+    IMPLOT_API constexpr ImPlotRange(double _min, double _max) : Min(_min), Max(_max) { }
+    IMPLOT_API bool Contains(double value) const               { return value >= Min && value <= Max;                      }
+    IMPLOT_API double Size() const                             { return Max - Min;                                         }
+    IMPLOT_API double Clamp(double value) const                { return (value < Min) ? Min : (value > Max) ? Max : value; }
 };
 
 // Combination of two range limits for X and Y axes. Also an AABB defined by Min()/Max().
 struct ImPlotRect {
     ImPlotRange X, Y;
-    constexpr ImPlotRect()                                                       : X(0.0,0.0), Y(0.0,0.0) { }
-    constexpr ImPlotRect(double x_min, double x_max, double y_min, double y_max) : X(x_min, x_max), Y(y_min, y_max) { }
-    bool Contains(const ImPlotPoint& p) const                                    { return Contains(p.x, p.y);                 }
-    bool Contains(double x, double y) const                                      { return X.Contains(x) && Y.Contains(y);     }
-    ImPlotPoint Size() const                                                     { return ImPlotPoint(X.Size(), Y.Size());    }
-    ImPlotPoint Clamp(const ImPlotPoint& p)                                      { return Clamp(p.x, p.y);                    }
-    ImPlotPoint Clamp(double x, double y)                                        { return ImPlotPoint(X.Clamp(x),Y.Clamp(y)); }
-    ImPlotPoint Min() const                                                      { return ImPlotPoint(X.Min, Y.Min);          }
-    ImPlotPoint Max() const                                                      { return ImPlotPoint(X.Max, Y.Max);          }
+    IMPLOT_API constexpr ImPlotRect()                                                       : X(0.0,0.0), Y(0.0,0.0) { }
+    IMPLOT_API constexpr ImPlotRect(double x_min, double x_max, double y_min, double y_max) : X(x_min, x_max), Y(y_min, y_max) { }
+    IMPLOT_API bool Contains(const ImPlotPoint& p) const                                    { return Contains(p.x, p.y);                 }
+    IMPLOT_API bool Contains(double x, double y) const                                      { return X.Contains(x) && Y.Contains(y);     }
+    IMPLOT_API ImPlotPoint Size() const                                                     { return ImPlotPoint(X.Size(), Y.Size());    }
+    IMPLOT_API ImPlotPoint Clamp(const ImPlotPoint& p)                                      { return Clamp(p.x, p.y);                    }
+    IMPLOT_API ImPlotPoint Clamp(double x, double y)                                        { return ImPlotPoint(X.Clamp(x),Y.Clamp(y)); }
+    IMPLOT_API ImPlotPoint Min() const                                                      { return ImPlotPoint(X.Min, Y.Min);          }
+    IMPLOT_API ImPlotPoint Max() const                                                      { return ImPlotPoint(X.Max, Y.Max);          }
 };
 
 // Plot style structure
