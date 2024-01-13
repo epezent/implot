@@ -670,9 +670,30 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
                       ? false
                       : ImGui::ButtonBehavior(button_bb, item->ID, &item_hov, &item_hld);
 
-        if (item_clk)
-            item->Show = !item->Show;
-
+        if (item_clk) {
+            ImGuiIO& IO = ImGui::GetIO();
+            if (IO.KeyCtrl && IO.KeyShift) {
+                // select all items
+                for (int j = 0; j < num_items; ++j) {
+                    ImPlotItem* item_j = items.GetLegendItem(indices[j]);
+                    item_j->Show = true;
+                }
+            }
+            else if (IO.KeyCtrl) {
+                // select the item and deselect all others
+                for (int j = 0; j < num_items; ++j) {
+                    ImPlotItem* item_j = items.GetLegendItem(indices[j]);
+                    if (item_j->Show) {
+                        item_j->Show = false;
+                    }
+                }
+                item->Show = true;
+            }
+            else {
+                // select/deselect the item
+                item->Show = !item->Show;
+            }
+        }
 
         const bool can_hover = (item_hov)
                              && (!ImHasFlag(items.Legend.Flags, ImPlotLegendFlags_NoHighlightItem)
