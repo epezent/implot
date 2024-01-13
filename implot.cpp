@@ -694,6 +694,30 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
                 item->Show = !item->Show;
             }
         }
+        else {
+            // multiple selection
+            static bool selecting_multiple_items = false;
+
+            if (item_hov) {
+                selecting_multiple_items = true;
+            }
+
+            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+                selecting_multiple_items = false;
+            }
+
+            if (selecting_multiple_items &&
+                ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
+                ImGui::IsMouseHoveringRect(button_bb.Min, button_bb.Max)) {
+                ImGuiIO& IO = ImGui::GetIO();
+                if (IO.KeyCtrl) {
+                    item->Show = true;
+                }
+                else if (IO.KeyAlt) {
+                    item->Show = false;
+                }
+            }
+        }
 
         const bool can_hover = (item_hov)
                              && (!ImHasFlag(items.Legend.Flags, ImPlotLegendFlags_NoHighlightItem)
