@@ -22,7 +22,9 @@
 
 // ImPlot v0.17
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "implot.h"
 #include "implot_internal.h"
 
