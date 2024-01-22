@@ -829,7 +829,7 @@ IMPLOT_API void SetNextAxesToFit();
 //    an ImPlot function post-fixed with a G (e.g. PlotScatterG). This has a slight performance
 //    cost, but probably not enough to worry about unless your data is very large. Examples:
 //
-//    ImPlotPoint MyDataGetter(void* data, int idx) {
+//    ImPlotPoint MyDataGetter(int idx, void* data) {
 //        MyData* my_data = (MyData*)data;
 //        ImPlotPoint p;
 //        p.x = my_data->GetTime(idx);
