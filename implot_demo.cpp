@@ -384,6 +384,19 @@ void Demo_ShadedPlots() {
         ImPlot::PopStyleVar();
         ImPlot::EndPlot();
     }
+    if (ImPlot::BeginPlot("Shaded Clip Plots")) {
+        ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
+        ImPlot::SetNextLineStyle(ImVec4(0.0f,1.0f,0.0f,0.25f));
+        ImPlot::SetNextFillStyle(ImVec4(0.0f,1.0f,0.0f,0.25f));
+        ImPlot::PlotLine("Overlapping",xs,ys4,1001);
+        ImPlot::PlotShadedClip("Overlapping",xs,ys3,ys4,1001);
+        ImPlot::SetNextLineStyle(ImVec4(1.0f,0.0f,0.0f,0.25f));
+        ImPlot::SetNextFillStyle(ImVec4(1.0f,0.0f,0.0f,0.25f));
+        ImPlot::PlotLine("Overlapping",xs,ys3,1001);
+        ImPlot::PlotShadedClip("Overlapping",xs,ys4,ys3,1001);
+        ImPlot::PopStyleVar();
+        ImPlot::EndPlot();
+    }
 }
 
 //-----------------------------------------------------------------------------
