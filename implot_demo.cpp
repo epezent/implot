@@ -252,7 +252,8 @@ void ShowInputMapping() {
     InputMapping("SelectCancel",&map.SelectCancel,nullptr);
     InputMapping("Menu",&map.Menu,nullptr);
     InputMapping("OverrideMod",nullptr,&map.OverrideMod);
-    InputMapping("ZoomMod",nullptr,&map.ZoomMod);
+    InputMapping("ZoomPanToggleMod", nullptr, &map.ZoomPanToggleMod);
+    ImGui::SliderFloat("ScrollPanRate", &map.ScrollPanRate, -100, 100);
     ImGui::SliderFloat("ZoomRate",&map.ZoomRate,-1,1);
 }
 

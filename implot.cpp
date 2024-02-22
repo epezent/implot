@@ -1979,13 +1979,63 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     // SCROLL INPUT -----------------------------------------------------------
 
-    if (any_hov && ImHasFlag(IO.KeyMods, gp.InputMap.ZoomMod)) {
+    bool scrollWheelPans = gp.InputMap.ScrollWheelPans;
+    if (gp.InputMap.ZoomPanToggleMod != ImGuiMod_None && ImHasFlag(IO.KeyMods, gp.InputMap.ZoomPanToggleMod)) {
+        scrollWheelPans = !scrollWheelPans;
+    }
 
-        float zoom_rate = gp.InputMap.ZoomRate;
-        if (IO.MouseWheel == 0.0f)
-            zoom_rate = 0;
-        else if (IO.MouseWheel > 0)
-            zoom_rate = (-zoom_rate) / (1.0f + (2.0f * zoom_rate));
+    if (any_hov && scrollWheelPans) {
+
+        float two_finger_panning_rate = gp.InputMap.ScrollPanRate;
+        float delta_x = IO.MouseWheelH * two_finger_panning_rate;
+        float delta_y = IO.MouseWheel * two_finger_panning_rate;
+
+        for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
+            ImPlotAxis& x_axis = plot.XAxis(i);
+            if (!x_axis.IsInputLocked()) {
+                ImGui::SetKeyOwner(ImGuiKey_MouseWheelX, plot.ID);
+                bool increasing = x_axis.IsInverted() ? delta_x > 0 : delta_x < 0;
+                if (delta_x != 0 && !x_axis.IsPanLocked(increasing)) {
+                    const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - delta_x);
+                    const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x - delta_x);
+                    x_axis.SetMin(x_axis.IsInverted() ? plot_r : plot_l);
+                    x_axis.SetMax(x_axis.IsInverted() ? plot_l : plot_r);
+                    if (axis_equal && x_axis.OrthoAxis != nullptr)
+                        x_axis.OrthoAxis->SetAspect(x_axis.GetAspect());
+                    changed = true;
+                }
+            }
+        }
+        for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
+            ImPlotAxis& y_axis = plot.YAxis(i);
+            if (!y_axis.IsInputLocked()) {
+                ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.ID);
+                bool increasing = y_axis.IsInverted() ? delta_y > 0 : delta_y < 0;
+                if (delta_y != 0 && !y_axis.IsPanLocked(increasing)) {
+                    const double plot_l = y_axis.PixelsToPlot(plot.PlotRect.Min.y - delta_y);
+                    const double plot_r = y_axis.PixelsToPlot(plot.PlotRect.Max.y - delta_y);
+                    y_axis.SetMin(y_axis.IsInverted() ? plot_l : plot_r);
+                    y_axis.SetMax(y_axis.IsInverted() ? plot_r : plot_l);
+                    if (axis_equal && y_axis.OrthoAxis != nullptr)
+                        y_axis.OrthoAxis->SetAspect(y_axis.GetAspect());
+                    changed = true;
+                }
+            }
+        }
+    }
+    if (any_hov && !scrollWheelPans) {
+
+        float zoom_rate_y = gp.InputMap.ZoomRate;
+        if (IO.MouseWheel > 0)
+            zoom_rate_y = (zoom_rate_y) / (1.0f + (2.0f * zoom_rate_y));
+        const float delta_y = IO.MouseWheel * zoom_rate_y;
+
+        float zoom_rate_x = gp.InputMap.ZoomRate;
+        if (IO.MouseWheelH < 0)
+            zoom_rate_x = (zoom_rate_x) / (1.0f + (2.0f * zoom_rate_x));
+
+        const float delta_x = gp.InputMap.ZoomBothAxis ? delta_y : -IO.MouseWheelH * zoom_rate_x;
+
         ImVec2 rect_size = plot.PlotRect.GetSize();
         float tx = ImRemap(IO.MousePos.x, plot.PlotRect.Min.x, plot.PlotRect.Max.x, 0.0f, 1.0f);
         float ty = ImRemap(IO.MousePos.y, plot.PlotRect.Min.y, plot.PlotRect.Max.y, 0.0f, 1.0f);
@@ -1995,11 +2045,11 @@ bool UpdateInput(ImPlotPlot& plot) {
             const bool equal_zoom   = axis_equal && x_axis.OrthoAxis != nullptr;
             const bool equal_locked = (equal_zoom != false) && x_axis.OrthoAxis->IsInputLocked();
             if (x_hov[i] && !x_axis.IsInputLocked() && !equal_locked) {
-                ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.ID);
-                if (zoom_rate != 0.0f) {
+                ImGui::SetKeyOwner(ImGuiKey_MouseWheelX, plot.ID);
+                if (delta_x != 0.0f) {
                     float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
-                    const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - rect_size.x * tx * zoom_rate * correction);
-                    const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x + rect_size.x * (1 - tx) * zoom_rate * correction);
+                    const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - rect_size.x * tx * delta_x * correction);
+                    const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x + rect_size.x * (1 - tx) * delta_x * correction);
                     x_axis.SetMin(x_axis.IsInverted() ? plot_r : plot_l);
                     x_axis.SetMax(x_axis.IsInverted() ? plot_l : plot_r);
                     if (axis_equal && x_axis.OrthoAxis != nullptr)
@@ -2014,10 +2064,10 @@ bool UpdateInput(ImPlotPlot& plot) {
             const bool equal_locked = equal_zoom && y_axis.OrthoAxis->IsInputLocked();
             if (y_hov[i] && !y_axis.IsInputLocked() && !equal_locked) {
                 ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.ID);
-                if (zoom_rate != 0.0f) {
+                if (delta_y != 0.0f) {
                     float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
-                    const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - rect_size.y * ty * zoom_rate * correction);
-                    const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y + rect_size.y * (1 - ty) * zoom_rate * correction);
+                    const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - rect_size.y * ty * delta_y * correction);
+                    const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y + rect_size.y * (1 - ty) * delta_y * correction);
                     y_axis.SetMin(y_axis.IsInverted() ? plot_t : plot_b);
                     y_axis.SetMax(y_axis.IsInverted() ? plot_b : plot_t);
                     if (axis_equal && y_axis.OrthoAxis != nullptr)
@@ -4785,34 +4835,40 @@ ImPlotInputMap& GetInputMap() {
 
 void MapInputDefault(ImPlotInputMap* dst) {
     ImPlotInputMap& map = dst ? *dst : GetInputMap();
-    map.Pan             = ImGuiMouseButton_Left;
-    map.PanMod          = ImGuiMod_None;
-    map.Fit             = ImGuiMouseButton_Left;
-    map.Menu            = ImGuiMouseButton_Right;
-    map.Select          = ImGuiMouseButton_Right;
-    map.SelectMod       = ImGuiMod_None;
-    map.SelectCancel    = ImGuiMouseButton_Left;
-    map.SelectHorzMod   = ImGuiMod_Alt;
-    map.SelectVertMod   = ImGuiMod_Shift;
-    map.OverrideMod     = ImGuiMod_Ctrl;
-    map.ZoomMod         = ImGuiMod_None;
-    map.ZoomRate        = 0.1f;
+    map.Pan               = ImGuiMouseButton_Left;
+    map.PanMod            = ImGuiMod_None;
+    map.Fit               = ImGuiMouseButton_Left;
+    map.Menu              = ImGuiMouseButton_Right;
+    map.Select            = ImGuiMouseButton_Right;
+    map.SelectMod         = ImGuiMod_None;
+    map.SelectCancel      = ImGuiMouseButton_Left;
+    map.SelectHorzMod     = ImGuiMod_Alt;
+    map.SelectVertMod     = ImGuiMod_Shift;
+    map.OverrideMod       = ImGuiMod_Ctrl;
+    map.ZoomPanToggleMod  = ImGuiMod_None;
+    map.ScrollWheelPans   = false;
+    map.ZoomBothAxis      = true;
+    map.ZoomRate          = 0.1f;
+    map.ScrollPanRate     = 20.f;
 }
 
 void MapInputReverse(ImPlotInputMap* dst) {
     ImPlotInputMap& map = dst ? *dst : GetInputMap();
-    map.Pan             = ImGuiMouseButton_Right;
-    map.PanMod          = ImGuiMod_None;
-    map.Fit             = ImGuiMouseButton_Left;
-    map.Menu            = ImGuiMouseButton_Right;
-    map.Select          = ImGuiMouseButton_Left;
-    map.SelectMod       = ImGuiMod_None;
-    map.SelectCancel    = ImGuiMouseButton_Right;
-    map.SelectHorzMod   = ImGuiMod_Alt;
-    map.SelectVertMod   = ImGuiMod_Shift;
-    map.OverrideMod     = ImGuiMod_Ctrl;
-    map.ZoomMod         = ImGuiMod_None;
-    map.ZoomRate        = 0.1f;
+    map.Pan               = ImGuiMouseButton_Right;
+    map.PanMod            = ImGuiMod_None;
+    map.Fit               = ImGuiMouseButton_Left;
+    map.Menu              = ImGuiMouseButton_Right;
+    map.Select            = ImGuiMouseButton_Left;
+    map.SelectMod         = ImGuiMod_None;
+    map.SelectCancel      = ImGuiMouseButton_Right;
+    map.SelectHorzMod     = ImGuiMod_Alt;
+    map.SelectVertMod     = ImGuiMod_Shift;
+    map.OverrideMod       = ImGuiMod_Ctrl;
+    map.ZoomPanToggleMod  = ImGuiMod_None;
+    map.ScrollWheelPans   = false;
+    map.ZoomBothAxis      = true;
+    map.ZoomRate          = 0.1f;
+    map.ScrollPanRate     = 20.f;
 }
 
 //-----------------------------------------------------------------------------
