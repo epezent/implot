@@ -1173,29 +1173,31 @@ struct ImPlotNextPlotData
 
 // Temporary data storage for upcoming item
 struct ImPlotNextItemData {
-    ImVec4          Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
-    float           LineWeight;
-    ImPlotMarker    Marker;
-    float           MarkerSize;
-    float           MarkerWeight;
-    float           FillAlpha;
-    float           ErrorBarSize;
-    float           ErrorBarWeight;
-    float           DigitalBitHeight;
-    float           DigitalBitGap;
-    bool            RenderLine;
-    bool            RenderFill;
-    bool            RenderMarkerLine;
-    bool            RenderMarkerFill;
-    bool            HasHidden;
-    bool            Hidden;
-    ImPlotCond      HiddenCond;
+    ImVec4              Colors[5]; // ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar
+    float               LineWeight;
+    ImPlotMarker        Marker;
+    float               MarkerSize;
+    float               MarkerWeight;
+    ImPlotMarkerMode    MarkerMode;
+    float               FillAlpha;
+    float               ErrorBarSize;
+    float               ErrorBarWeight;
+    float               DigitalBitHeight;
+    float               DigitalBitGap;
+    bool                RenderLine;
+    bool                RenderFill;
+    bool                RenderMarkerLine;
+    bool                RenderMarkerFill;
+    bool                HasHidden;
+    bool                Hidden;
+    ImPlotCond          HiddenCond;
     ImPlotNextItemData() { Reset(); }
     void Reset() {
         for (int i = 0; i < 5; ++i)
             Colors[i] = IMPLOT_AUTO_COL;
         LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker        = IMPLOT_AUTO;
+        MarkerMode    = IMPLOT_AUTO;
         HasHidden     = Hidden = false;
     }
 };
