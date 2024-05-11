@@ -1036,6 +1036,7 @@ ImPlotTime FloorTime(const ImPlotTime& t, ImPlotTimeUnit unit) {
         case ImPlotTimeUnit_Min: gp.Tm.tm_sec  = 0; break;
         default:                 return t;
     }
+    if (unit >= ImPlotTimeUnit_Day) gp.Tm.tm_isdst = -1;
     return MkTime(&gp.Tm);
 }
 
