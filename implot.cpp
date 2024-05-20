@@ -923,8 +923,10 @@ tm* GetGmtTime(const ImPlotTime& t, tm* ptm)
     return ptm;
   else
     return nullptr;
-#else
+#elif defined(__STDC_WANT_LIB_EXT1__)
   return gmtime_s(&t.S, ptm);
+#else
+  return gmtime_r(&t.S, ptm);
 #endif
 }
 
@@ -942,8 +944,10 @@ tm* GetLocTime(const ImPlotTime& t, tm* ptm) {
     return ptm;
   else
     return nullptr;
-#else
+#elif defined(__STDC_WANT_LIB_EXT1__)
     return localtime_s(&t.S, ptm);
+#else
+    return localtime_r(&t.S, ptm);
 #endif
 }
 
