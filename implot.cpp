@@ -3906,6 +3906,8 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+    const bool lock_x = !ImHasFlag(flags, ImPlotDragToolFlags_LockX);
+    const bool lock_y = !ImHasFlag(flags, ImPlotDragToolFlags_LockY);
     const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, radius);
     const ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
     const ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
@@ -3925,8 +3927,12 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
 
     bool modified = false;
     if (held && ImGui::IsMouseDragging(0)) {
-        *x = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
-        *y = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
+        if (lock_x) {
+            *x = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
+        }
+        if (lock_y) {
+            *y = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
+        }
         modified = true;
     }
 

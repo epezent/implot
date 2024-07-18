@@ -1417,7 +1417,9 @@ void Demo_DragPoints() {
     static ImPlotDragToolFlags flags = ImPlotDragToolFlags_None;
     ImGui::CheckboxFlags("NoCursors", (unsigned int*)&flags, ImPlotDragToolFlags_NoCursors); ImGui::SameLine();
     ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
-    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
+    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs); ImGui::SameLine();
+    ImGui::CheckboxFlags("LockX", (unsigned int*)&flags, ImPlotDragToolFlags_LockX); ImGui::SameLine();
+    ImGui::CheckboxFlags("LockY", (unsigned int*)&flags, ImPlotDragToolFlags_LockY);
     ImPlotAxisFlags ax_flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
     bool clicked[4] = {false, false, false, false};
     bool hovered[4] = {false, false, false, false};
