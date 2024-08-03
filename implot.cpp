@@ -5171,7 +5171,7 @@ void ShowUserGuide() {
     ImGui::Indent();
         ImGui::BulletText("Left-click drag on axis labels to pan an individual axis.");
     ImGui::Unindent();
-    ImGui::BulletText("Scroll in the plot area to zoom both X any Y axes.");
+    ImGui::BulletText("Scroll in the plot area to zoom both X and Y axes.");
     ImGui::Indent();
         ImGui::BulletText("Scroll on axis labels to zoom an individual axis.");
     ImGui::Unindent();
