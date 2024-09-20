@@ -2135,6 +2135,8 @@ void SetupAxis(ImAxis idx, const char* label, ImPlotAxisFlags flags) {
     if (plot.JustCreated || flags != axis.PreviousFlags)
         axis.Flags = flags;
     axis.PreviousFlags = flags;
+    // cache previous range
+    axis.PreviousRange = ImPlotRange(axis.Range.Min, axis.Range.Max);
     // enable axis
     axis.Enabled = true;
     // set label
@@ -3737,6 +3739,16 @@ bool IsPlotHovered() {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "IsPlotHovered() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     return gp.CurrentPlot->Hovered;
+}
+
+bool IsPlotChanging() {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "IsPlotChanging() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
+    ImPlotPlot& plot = *gp.CurrentPlot;
+    bool differentX = plot.Axes[plot.CurrentX].Range.Min != plot.Axes[plot.CurrentX].PreviousRange.Min || plot.Axes[plot.CurrentX].Range.Max != plot.Axes[plot.CurrentX].PreviousRange.Max;
+    bool differentY = plot.Axes[plot.CurrentY].Range.Min != plot.Axes[plot.CurrentY].PreviousRange.Min || plot.Axes[plot.CurrentY].Range.Max != plot.Axes[plot.CurrentY].PreviousRange.Max;
+    return differentX || differentY;
 }
 
 bool IsAxisHovered(ImAxis axis) {
