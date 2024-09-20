@@ -77,6 +77,8 @@ An online version of the demo is hosted [here](https://traineq.org/implot_demo/s
 
 More sophisticated demos requiring lengthier code and/or third-party libraries can be found in a separate repository: [implot_demos](https://github.com/epezent/implot_demos). Here, you will find advanced signal processing and ImPlot usage in action. Please read the `Contributing` section of that repository if you have an idea for a new demo!
 
+[![Open in DevZero](https://assets.devzero.io/open-in-devzero.svg)](https://www.devzero.io/dashboard/recipes/new?repo-url=https://github.com/epezent/implot)
+
 ## Integration
 
 0) Set up an [ImGui](https://github.com/ocornut/imgui) environment if you don't already have one.
