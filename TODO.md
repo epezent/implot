@@ -37,7 +37,6 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 ## Tools / Misc.
 
-- add `IsPlotChanging` to detect change in limits
 - add ability to extend plot/axis context menus
 - add LTTB downsampling for lines
 - add box selection to axes
@@ -80,6 +79,7 @@ Ideally every `PlotX` function should use our faster rendering pipeline when it 
 |PlotDummy|-|-|-|-|
 
 ## Completed
+- add `IsPlotChanging` to detect change in limits
 - make BeginPlot take fewer args:
 - make query a tool -> `DragRect`
 - rework DragLine/Point to use ButtonBehavior
