@@ -31,13 +31,13 @@
 
 #pragma once
 
-#include <time.h>
-#include "imgui_internal.h"
-
 #ifndef IMPLOT_VERSION
 #error Must include implot.h before implot_internal.h
 #endif
 
+#ifndef IMGUI_DISABLE
+#include <time.h>
+#include "imgui_internal.h"
 
 // Support for pre-1.84 versions. ImPool's GetSize() -> GetBufSize()
 #if (IMGUI_VERSION_NUM < 18303)
@@ -1667,3 +1667,5 @@ void Locator_Log10(ImPlotTicker& ticker, const ImPlotRange& range, float pixels,
 void Locator_SymLog(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
 
 } // namespace ImPlot
+
+#endif // #ifndef IMGUI_DISABLE

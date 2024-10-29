@@ -129,6 +129,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include "implot.h"
+#ifndef IMGUI_DISABLE
 #include "implot_internal.h"
 
 #include <stdlib.h>
@@ -5885,3 +5886,5 @@ bool BeginPlot(const char* title, const char* x_label, const char* y1_label, con
 #endif
 
 }  // namespace ImPlot
+
+#endif // #ifndef IMGUI_DISABLE

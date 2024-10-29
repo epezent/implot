@@ -28,6 +28,7 @@
 #endif
 
 #include "implot.h"
+#ifndef IMGUI_DISABLE
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -2477,3 +2478,5 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
 }
 
 } // namespace MyImplot
+
+#endif // #ifndef IMGUI_DISABLE
