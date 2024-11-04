@@ -2200,20 +2200,53 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 // [SECTION] PlotPieChart
 //-----------------------------------------------------------------------------
 
-IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col) {
+IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col, bool detached = false) {
     const float resolution = 50 / (2 * IM_PI);
     ImVec2 buffer[52];
-    buffer[0] = PlotToPixels(center,IMPLOT_AUTO,IMPLOT_AUTO);
+    
     int n = ImMax(3, (int)((a1 - a0) * resolution));
     double da = (a1 - a0) / (n - 1);
     int i = 0;
-    for (; i < n; ++i) {
-        double a = a0 + i * da;
-        buffer[i + 1] = PlotToPixels(center.x + radius * cos(a), center.y + radius * sin(a),IMPLOT_AUTO,IMPLOT_AUTO);
+
+    if (detached) {
+        const double offset = 0.08; // Offset of the detached slice
+        const double width_scale = 0.95; // Scale factor for the width of the detached slice
+        
+        double a_mid = (a0 + a1) / 2;
+        double new_a0 = a_mid - (a1 - a0) * width_scale / 2;
+        double new_a1 = a_mid + (a1 - a0) * width_scale / 2;
+        double new_da = (new_a1 - new_a0) / (n - 1);
+        
+        ImPlotPoint offsetCenter(center.x + offset * cos(a_mid), center.y + offset * sin(a_mid));
+        
+        // Start point (center of the offset)
+        buffer[0] = PlotToPixels(offsetCenter, IMPLOT_AUTO, IMPLOT_AUTO);
+
+        for (; i < n; ++i) {
+            double a = new_a0 + i * new_da;
+            buffer[i + 1] = PlotToPixels(
+                offsetCenter.x + (radius + offset/2) * cos(a),
+                offsetCenter.y + (radius + offset/2) * sin(a),
+                IMPLOT_AUTO, IMPLOT_AUTO
+            );
+        }
+
+    } else {
+        buffer[0] = PlotToPixels(center, IMPLOT_AUTO, IMPLOT_AUTO);
+        for (; i < n; ++i) {
+            double a = a0 + i * da;
+            buffer[i + 1] = PlotToPixels(
+                center.x + radius * cos(a), 
+                center.y + radius * sin(a), 
+                IMPLOT_AUTO, IMPLOT_AUTO);
+        }
     }
-    buffer[i+1] = buffer[0];
+    // Close the shape
+    buffer[i + 1] = buffer[0];
+    
     // fill
-    draw_list.AddConvexPolyFilled(buffer, n + 1, col);
+    draw_list.AddConvexPolyFilled(buffer, n + 2, col);
+    
     // border (for AA)
     draw_list.AddPolyline(buffer, n + 2, col, 0, 2.0f);
 }
@@ -2257,21 +2290,21 @@ void PlotPieChartEx(const char* const label_ids[], const T* values, int count, I
     ImPlotPoint Pmax = ImPlotPoint(center.x + radius, center.y + radius);
     for (int i = 0; i < count; ++i) {
         ImPlotItem* item = GetItem(label_ids[i]);
-
         const double percent = normalize ? (double)values[i] / sum : (double)values[i];
         const bool skip      = sum <= 0.0 || (ignore_hidden && item != nullptr && !item->Show);
         if (!skip)
             a1 = a0 + 2 * IM_PI * percent;
 
         if (BeginItemEx(label_ids[i], FitterRect(Pmin, Pmax))) {
+            const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
             if (sum > 0.0) {
                 ImU32 col = GetCurrentItem()->Color;
                 if (percent < 0.5) {
-                    RenderPieSlice(draw_list, center, radius, a0, a1, col);
+                    RenderPieSlice(draw_list, center, radius, a0, a1, col, hovered);
                 }
                 else {
-                    RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col);
-                    RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col);
+                    RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col, hovered);
+                    RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col, hovered);
                 }
             }
             EndItem();
@@ -2323,7 +2356,9 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
                     fmt((double)values[i], buffer, 32, fmt_data);
                     ImVec2 size = ImGui::CalcTextSize(buffer);
                     double angle = a0 + (a1 - a0) * 0.5;
-                    ImVec2 pos = PlotToPixels(center.x + 0.5 * radius * cos(angle), center.y + 0.5 * radius * sin(angle), IMPLOT_AUTO, IMPLOT_AUTO);
+                    const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
+                    const double offset = (hovered ? 0.6 : 0.5) * radius; 
+                    ImVec2 pos = PlotToPixels(center.x + offset * cos(angle), center.y + offset * sin(angle), IMPLOT_AUTO, IMPLOT_AUTO);
                     ImU32 col = CalcTextColor(ImGui::ColorConvertU32ToFloat4(item->Color));
                     draw_list.AddText(pos - size * 0.5f, col, buffer);
                 }
