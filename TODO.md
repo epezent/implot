@@ -15,7 +15,6 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 - add `PlotBubbles` (see MATLAB bubble chart)
 - add non-zero references for `PlotBars` etc.
-- add exploding to `PlotPieChart` (on hover-highlight?)
 - fix appearance of `PlotBars` spacing
 
 ## Styling
@@ -80,6 +79,7 @@ Ideally every `PlotX` function should use our faster rendering pipeline when it 
 |PlotDummy|-|-|-|-|
 
 ## Completed
+- add exploding to `PlotPieChart` (on legend hover)
 - make BeginPlot take fewer args:
 - make query a tool -> `DragRect`
 - rework DragLine/Point to use ButtonBehavior
