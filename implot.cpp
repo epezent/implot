@@ -950,20 +950,6 @@ tm* GetLocTime(const ImPlotTime& t, tm* ptm) {
 #endif
 }
 
-inline ImPlotTime MkTime(struct tm *ptm) {
-    if (GetStyle().UseLocalTime)
-        return MkLocTime(ptm);
-    else
-        return MkGmtTime(ptm);
-}
-
-inline tm* GetTime(const ImPlotTime& t, tm* ptm) {
-    if (GetStyle().UseLocalTime)
-        return GetLocTime(t,ptm);
-    else
-        return GetGmtTime(t,ptm);
-}
-
 ImPlotTime MakeTime(int year, int month, int day, int hour, int min, int sec, int us) {
     tm& Tm = GImPlot->Tm;
 
@@ -991,6 +977,12 @@ int GetYear(const ImPlotTime& t) {
     tm& Tm = GImPlot->Tm;
     GetTime(t, &Tm);
     return Tm.tm_year + 1900;
+}
+
+int GetMonth(const ImPlotTime& t) {
+    tm& Tm = GImPlot->Tm;
+    ImPlot::GetTime(t, &Tm);
+    return Tm.tm_mon;
 }
 
 ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count) {
