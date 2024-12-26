@@ -982,8 +982,8 @@ IMPLOT_API ImPlotRect GetPlotLimits(ImAxis x_axis = IMPLOT_AUTO, ImAxis y_axis =
 
 // Returns true if the plot area in the current plot is hovered.
 IMPLOT_API bool IsPlotHovered();
-// Returns true if the limits of the current plot are changing.
-IMPLOT_API bool IsPlotChanging();
+// Returns true if the limits of the selected axis are changing.
+IMPLOT_API bool IsAxisRangeChanging(ImAxis axis);
 // Returns true if the axis label area in the current plot is hovered.
 IMPLOT_API bool IsAxisHovered(ImAxis axis);
 // Returns true if the bounding frame of a subplot is hovered.

@@ -79,7 +79,8 @@ Ideally every `PlotX` function should use our faster rendering pipeline when it 
 |PlotDummy|-|-|-|-|
 
 ## Completed
-- add `IsPlotChanging` to detect change in limits
+- add `IsAxisRangeChanging` to detect change in limits
+- add exploding to `PlotPieChart` (on legend hover)
 - make BeginPlot take fewer args:
 - make query a tool -> `DragRect`
 - rework DragLine/Point to use ButtonBehavior

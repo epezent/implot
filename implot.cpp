@@ -2135,8 +2135,6 @@ void SetupAxis(ImAxis idx, const char* label, ImPlotAxisFlags flags) {
     if (plot.JustCreated || flags != axis.PreviousFlags)
         axis.Flags = flags;
     axis.PreviousFlags = flags;
-    // cache previous range
-    axis.PreviousRange = ImPlotRange(axis.Range.Min, axis.Range.Max);
     // enable axis
     axis.Enabled = true;
     // set label
@@ -2630,6 +2628,11 @@ void SetupFinish() {
             else if (!ImAlmostEqual(xar,yar) && !x_axis.OrthoAxis->IsInputLocked())
                  x_axis.SetAspect(yar);
         }
+    }
+
+    // cache previous ranges
+    for(int i = 0; i < ImAxis_COUNT; i++) {
+        plot.Axes[i].PreviousRange = ImPlotRange(plot.Axes[i].Range.Min, plot.Axes[i].Range.Max);
     }
 
     // INPUT ------------------------------------------------------------------
@@ -3741,14 +3744,14 @@ bool IsPlotHovered() {
     return gp.CurrentPlot->Hovered;
 }
 
-bool IsPlotChanging() {
+bool IsAxisRangeChanging(ImAxis axis) {
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "IsPlotChanging() needs to be called between BeginPlot() and EndPlot()!");
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "IsAxisRangeChanging() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     ImPlotPlot& plot = *gp.CurrentPlot;
-    bool differentX = plot.Axes[plot.CurrentX].Range.Min != plot.Axes[plot.CurrentX].PreviousRange.Min || plot.Axes[plot.CurrentX].Range.Max != plot.Axes[plot.CurrentX].PreviousRange.Max;
-    bool differentY = plot.Axes[plot.CurrentY].Range.Min != plot.Axes[plot.CurrentY].PreviousRange.Min || plot.Axes[plot.CurrentY].Range.Max != plot.Axes[plot.CurrentY].PreviousRange.Max;
-    return differentX || differentY;
+    bool isMinDifferent = plot.Axes[axis].Range.Min != plot.Axes[axis].PreviousRange.Min;
+    bool isMaxDifferent = plot.Axes[axis].Range.Max != plot.Axes[axis].PreviousRange.Max;
+    return isMinDifferent || isMaxDifferent;
 }
 
 bool IsAxisHovered(ImAxis axis) {

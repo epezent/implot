@@ -2131,15 +2131,14 @@ void Demo_ColormapWidgets() {
 void Demo_PlotLimitsChanging() {
     unsigned int lin[10] = {8,8,9,7,8,8,8,9,7,8};
     unsigned int bar[10] = {1,2,5,3,4,1,2,5,3,4};
-    unsigned int dot[10] = {7,6,6,7,8,5,6,5,8,7};
 
     if (ImPlot::BeginPlot("##LimitsChanging")) {
         ImPlot::SetupAxes( "x-axis", "y-axis");
         ImPlot::SetupAxesLimits(-0.5f, 9.5f, 0, 10);
         ImPlot::PlotBars("Bars", bar, 10, 0.5f);
         ImPlot::PlotLine("Line", lin, 10);
-        bool is_changing = ImPlot::IsPlotChanging();
-        ImGui::Text("Axes are changing: %s", (is_changing ? "true" : "false"));
+        bool is_changing = ImPlot::IsAxisRangeChanging(ImAxis_X1);
+        ImGui::Text("Axis X1 is changing: %s", (is_changing ? "true" : "false"));
         ImPlot::EndPlot();
     }
 }
