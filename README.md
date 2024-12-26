@@ -155,7 +155,7 @@ A: Maybe. Check the demo, gallery, or Announcements ([2020](https://github.com/e
 
 **Q: Does ImPlot support 3D plots?**
 
-A: No, and likely never will since ImGui only deals in 2D rendering.
+A: An experimental extension to ImPlot, [ImPlot3D](https://github.com/brenocq/implot3d), provides a similar API for plotting and interacting with 3D data. 
 
 **Q: Does ImPlot provide analytic tools?**
 

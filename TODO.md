@@ -15,7 +15,6 @@ The list below represents a combination of high-priority work, nice-to-have feat
 
 - add `PlotBubbles` (see MATLAB bubble chart)
 - add non-zero references for `PlotBars` etc.
-- add exploding to `PlotPieChart` (on hover-highlight?)
 - fix appearance of `PlotBars` spacing
 
 ## Styling

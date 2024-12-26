@@ -46,6 +46,7 @@
 
 #pragma once
 #include "imgui.h"
+#ifndef IMGUI_DISABLE
 
 //-----------------------------------------------------------------------------
 // [SECTION] Macros and Defines
@@ -288,7 +289,8 @@ enum ImPlotInfLinesFlags_ {
 enum ImPlotPieChartFlags_ {
     ImPlotPieChartFlags_None         = 0,       // default
     ImPlotPieChartFlags_Normalize    = 1 << 10, // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
-    ImPlotPieChartFlags_IgnoreHidden = 1 << 11  // ignore hidden slices when drawing the pie chart (as if they were not there)
+    ImPlotPieChartFlags_IgnoreHidden = 1 << 11, // ignore hidden slices when drawing the pie chart (as if they were not there)
+    ImPlotPieChartFlags_Exploding    = 1 << 12  // Explode legend-hovered slice
 };
 
 // Flags for PlotHeatmap
@@ -1296,4 +1298,5 @@ IMPLOT_DEPRECATED( IMPLOT_API bool BeginPlot(const char* title_id,
 
 } // namespace ImPlot
 
-#endif
+#endif // #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
+#endif // #ifndef IMGUI_DISABLE
