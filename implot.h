@@ -589,6 +589,9 @@ typedef int (*ImPlotFormatter)(double value, char* buff, int size, void* user_da
 // Callback signature for data getter.
 typedef ImPlotPoint (*ImPlotGetter)(int idx, void* user_data);
 
+// Callback signature for color getter.
+typedef ImU32 (*ImPlotColorGetter)(ImPlotCol col, int idx, void* user_data);
+
 // Callback signature for axis transform.
 typedef double (*ImPlotTransform)(double value, void* user_data);
 
