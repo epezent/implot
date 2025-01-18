@@ -649,14 +649,18 @@ struct GetterError {
 
 struct ColorGetter {
     ColorGetter() { }
+    IMPLOT_INLINE void fill_colors() {
+        for (int i = 0; i < 5; i++) Colors[i] = ImGui::GetColorU32(GetItemData().Colors[i]);
+    }
     template <typename I> IMPLOT_INLINE ImU32 operator()(ImPlotCol col, I idx) const {
         (void)idx;
         IM_ASSERT(col < 5);
-        return ImGui::GetColorU32(GetItemData().Colors[col]);
+        return Colors[col];
     }
     IMPLOT_INLINE bool is_fill_eq_line() const {
-        return ImGui::GetColorU32(GetItemData().Colors[ImPlotCol_Fill]) == ImGui::GetColorU32(GetItemData().Colors[ImPlotCol_Line]);
+        return Colors[ImPlotCol_Fill] == Colors[ImPlotCol_Line];
     }
+    ImU32 Colors[5] = {};
 };
 
 /// Interprets a user's function pointer as ImU32 color
@@ -665,7 +669,9 @@ struct ColorGetterFuncPtr {
         Color(color),
         Data(data)
     { }
+    IMPLOT_INLINE void fill_colors() { }
     template <typename I> IMPLOT_INLINE ImU32 operator()(ImPlotCol col, I idx) const {
+        IM_ASSERT(col < 5);
         return Color(col, idx, Data);
     }
     IMPLOT_INLINE bool is_fill_eq_line() const { return false; }
@@ -1647,12 +1653,13 @@ void RenderMarkers(const _Getter& getter, const _ColorGetter& col, ImPlotMarker 
 //-----------------------------------------------------------------------------
 
 template <typename _Getter, typename _ColorGetter>
-void PlotLineEx(const char* label_id, const _Getter& getter, const _ColorGetter& color, ImPlotLineFlags flags) {
+void PlotLineEx(const char* label_id, const _Getter& getter, _ColorGetter& color, ImPlotLineFlags flags) {
     if (BeginItemEx(label_id, Fitter1<_Getter>(getter), flags, ImPlotCol_Line)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
         }
+        color.fill_colors();
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1) {
             if (ImHasFlag(flags, ImPlotLineFlags_Shaded) && s.RenderFill) {
@@ -1727,12 +1734,13 @@ void PlotLineCG(const char* label_id, ImPlotGetter getter_func, void* data, int 
 //-----------------------------------------------------------------------------
 
 template <typename Getter, typename ColorGetter>
-void PlotScatterEx(const char* label_id, const Getter& getter, const ColorGetter& color, ImPlotScatterFlags flags) {
+void PlotScatterEx(const char* label_id, const Getter& getter, ColorGetter& color, ImPlotScatterFlags flags) {
     if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_MarkerOutline)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
         }
+        color.fill_colors();
         const ImPlotNextItemData& s = GetItemData();
         ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle: s.Marker;
         if (marker != ImPlotMarker_None) {
@@ -1784,12 +1792,13 @@ void PlotScatterCG(const char* label_id, ImPlotGetter getter_func, void* data, i
 //-----------------------------------------------------------------------------
 
 template <typename Getter, typename ColorGetter>
-void PlotStairsEx(const char* label_id, const Getter& getter, const ColorGetter& color, ImPlotStairsFlags flags) {
+void PlotStairsEx(const char* label_id, const Getter& getter, ColorGetter& color, ImPlotStairsFlags flags) {
     if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_Line)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
         }
+        color.fill_colors();
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1) {
             if (s.RenderFill && ImHasFlag(flags,ImPlotStairsFlags_Shaded)) {
@@ -1847,12 +1856,13 @@ void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int
 //-----------------------------------------------------------------------------
 
 template <typename Getter1, typename Getter2, typename ColorGetter>
-void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, const ColorGetter& color, ImPlotShadedFlags flags) {
+void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, ColorGetter& color, ImPlotShadedFlags flags) {
     if (BeginItemEx(label_id, Fitter2<Getter1,Getter2>(getter1,getter2), flags, ImPlotCol_Fill)) {
         if (getter1.Count <= 0 || getter2.Count <= 0) {
             EndItem();
             return;
         }
+        color.fill_colors();
         const ImPlotNextItemData& s = GetItemData();
         if (s.RenderFill) {
             RenderPrimitives2<RendererShaded>(getter1,getter2,color);
@@ -1914,12 +1924,13 @@ void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, I
 //-----------------------------------------------------------------------------
 
 template <typename Getter1, typename Getter2, typename ColorGetter>
-void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, const ColorGetter& color, double width, ImPlotBarsFlags flags) {
+void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, ColorGetter& color, double width, ImPlotBarsFlags flags) {
     if (BeginItemEx(label_id, FitterBarV<Getter1,Getter2>(getter1,getter2,width), flags, ImPlotCol_Fill)) {
         if (getter1.Count <= 0 || getter2.Count <= 0) {
             EndItem();
             return;
         }
+        color.fill_colors();
         const ImPlotNextItemData& s = GetItemData();
         bool rend_fill = s.RenderFill;
         bool rend_line = s.RenderLine;
@@ -1936,12 +1947,13 @@ void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2& ge
 }
 
 template <typename Getter1, typename Getter2, typename ColorGetter>
-void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, const ColorGetter& color, double height, ImPlotBarsFlags flags) {
+void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, ColorGetter& color, double height, ImPlotBarsFlags flags) {
     if (BeginItemEx(label_id, FitterBarH<Getter1,Getter2>(getter1,getter2,height), flags, ImPlotCol_Fill)) {
         if (getter1.Count <= 0 || getter2.Count <= 0) {
             EndItem();
             return;
         }
+        color.fill_colors();
         const ImPlotNextItemData& s = GetItemData();
         bool rend_fill = s.RenderFill;
         bool rend_line = s.RenderLine;
@@ -2102,12 +2114,13 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 template <typename _GetterPos, typename _GetterNeg, typename _ColorGetter>
-void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, const _ColorGetter& color, ImPlotErrorBarsFlags flags) {
+void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, _ColorGetter& color, ImPlotErrorBarsFlags flags) {
     if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), flags, IMPLOT_AUTO)) {
         if (getter_pos.Count <= 0 || getter_neg.Count <= 0) {
             EndItem();
             return;
         }
+        color.fill_colors();
         const ImPlotNextItemData& s = GetItemData();
         ImDrawList& draw_list = *GetPlotDrawList();
         const bool rend_whisker  = s.ErrorBarSize > 0;
@@ -2127,12 +2140,13 @@ void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const 
 }
 
 template <typename _GetterPos, typename _GetterNeg, typename _ColorGetter>
-void PlotErrorBarsHEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, const _ColorGetter& color, ImPlotErrorBarsFlags flags) {
+void PlotErrorBarsHEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, _ColorGetter& color, ImPlotErrorBarsFlags flags) {
     if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), flags, IMPLOT_AUTO)) {
         if (getter_pos.Count <= 0 || getter_neg.Count <= 0) {
             EndItem();
             return;
         }
+        color.fill_colors();
         const ImPlotNextItemData& s = GetItemData();
         ImDrawList& draw_list = *GetPlotDrawList();
         const bool rend_whisker  = s.ErrorBarSize > 0;
@@ -2190,12 +2204,13 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 template <typename _GetterM, typename _GetterB, typename _ColorGetter>
-void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _GetterB& getter_base, const _ColorGetter& color, ImPlotStemsFlags flags) {
+void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _GetterB& getter_base, _ColorGetter& color, ImPlotStemsFlags flags) {
     if (BeginItemEx(label_id, Fitter2<_GetterM,_GetterB>(getter_mark,getter_base), flags, ImPlotCol_Line)) {
         if (getter_mark.Count <= 0 || getter_base.Count <= 0) {
             EndItem();
             return;
         }
+        color.fill_colors();
         const ImPlotNextItemData& s = GetItemData();
         // render stems
         if (s.RenderLine) {
@@ -2264,6 +2279,7 @@ void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLin
                 EndItem();
                 return;
             }
+            color.fill_colors();
             const ImPlotNextItemData& s = GetItemData();
             if (s.RenderLine)
                 RenderPrimitives2<RendererLineSegments2>(getter_min, getter_max, color, s.LineWeight);
@@ -2278,6 +2294,7 @@ void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLin
                 EndItem();
                 return;
             }
+            color.fill_colors();
             const ImPlotNextItemData& s = GetItemData();
             if (s.RenderLine)
                 RenderPrimitives2<RendererLineSegments2>(get_min, get_max, color, s.LineWeight);
