@@ -1773,6 +1773,12 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
     return PlotScatterEx(label_id, getter, color, flags);
 }
 
+void PlotScatterCG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotColorGetter color_func, void* color_data, ImPlotScatterFlags flags) {
+    GetterFuncPtr getter(getter_func,data, count);
+    ColorGetterFuncPtr color(color_func, color_data);
+    return PlotScatterEx(label_id, getter, color, flags);
+}
+
 //-----------------------------------------------------------------------------
 // [SECTION] PlotStairs
 //-----------------------------------------------------------------------------
