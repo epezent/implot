@@ -649,7 +649,7 @@ struct GetterError {
 
 struct ColorGetter {
     ColorGetter() { }
-    IMPLOT_INLINE void fill_colors() {
+    IMPLOT_INLINE void FillColors() {
         for (int i = 0; i < 5; i++) Colors[i] = ImGui::GetColorU32(GetItemData().Colors[i]);
     }
     template <typename I> IMPLOT_INLINE ImU32 operator()(ImPlotCol col, I idx) const {
@@ -657,7 +657,7 @@ struct ColorGetter {
         IM_ASSERT(col < 5);
         return Colors[col];
     }
-    IMPLOT_INLINE bool is_fill_eq_line() const {
+    IMPLOT_INLINE bool IsFillEqLine() const {
         return Colors[ImPlotCol_Fill] == Colors[ImPlotCol_Line];
     }
     ImU32 Colors[5] = {};
@@ -669,12 +669,12 @@ struct ColorGetterFuncPtr {
         Color(color),
         Data(data)
     { }
-    IMPLOT_INLINE void fill_colors() { }
+    IMPLOT_INLINE void FillColors() { }
     template <typename I> IMPLOT_INLINE ImU32 operator()(ImPlotCol col, I idx) const {
         IM_ASSERT(col < 5);
         return Color(col, idx, Data);
     }
-    IMPLOT_INLINE bool is_fill_eq_line() const { return false; }
+    IMPLOT_INLINE bool IsFillEqLine() const { return false; }
     ImPlotColorGetter Color;
     void* const Data;
 };
@@ -1659,7 +1659,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, _ColorGetter& color
             EndItem();
             return;
         }
-        color.fill_colors();
+        color.FillColors();
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1) {
             if (ImHasFlag(flags, ImPlotLineFlags_Shaded) && s.RenderFill) {
@@ -1740,7 +1740,7 @@ void PlotScatterEx(const char* label_id, const Getter& getter, ColorGetter& colo
             EndItem();
             return;
         }
-        color.fill_colors();
+        color.FillColors();
         const ImPlotNextItemData& s = GetItemData();
         ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle: s.Marker;
         if (marker != ImPlotMarker_None) {
@@ -1798,7 +1798,7 @@ void PlotStairsEx(const char* label_id, const Getter& getter, ColorGetter& color
             EndItem();
             return;
         }
-        color.fill_colors();
+        color.FillColors();
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1) {
             if (s.RenderFill && ImHasFlag(flags,ImPlotStairsFlags_Shaded)) {
@@ -1862,7 +1862,7 @@ void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& g
             EndItem();
             return;
         }
-        color.fill_colors();
+        color.FillColors();
         const ImPlotNextItemData& s = GetItemData();
         if (s.RenderFill) {
             RenderPrimitives2<RendererShaded>(getter1,getter2,color);
@@ -1930,13 +1930,13 @@ void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2& ge
             EndItem();
             return;
         }
-        color.fill_colors();
+        color.FillColors();
         const ImPlotNextItemData& s = GetItemData();
         bool rend_fill = s.RenderFill;
         bool rend_line = s.RenderLine;
         if (rend_fill) {
             RenderPrimitives2<RendererBarsFillV>(getter1,getter2,color,width);
-            if (rend_line && color.is_fill_eq_line())
+            if (rend_line && color.IsFillEqLine())
                 rend_line = false;
         }
         if (rend_line) {
@@ -1953,13 +1953,13 @@ void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& ge
             EndItem();
             return;
         }
-        color.fill_colors();
+        color.FillColors();
         const ImPlotNextItemData& s = GetItemData();
         bool rend_fill = s.RenderFill;
         bool rend_line = s.RenderLine;
         if (rend_fill) {
             RenderPrimitives2<RendererBarsFillH>(getter1,getter2,color,height);
-            if (rend_line && color.is_fill_eq_line())
+            if (rend_line && color.IsFillEqLine())
                 rend_line = false;
         }
         if (rend_line) {
@@ -2120,7 +2120,7 @@ void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const 
             EndItem();
             return;
         }
-        color.fill_colors();
+        color.FillColors();
         const ImPlotNextItemData& s = GetItemData();
         ImDrawList& draw_list = *GetPlotDrawList();
         const bool rend_whisker  = s.ErrorBarSize > 0;
@@ -2146,7 +2146,7 @@ void PlotErrorBarsHEx(const char* label_id, const _GetterPos& getter_pos, const 
             EndItem();
             return;
         }
-        color.fill_colors();
+        color.FillColors();
         const ImPlotNextItemData& s = GetItemData();
         ImDrawList& draw_list = *GetPlotDrawList();
         const bool rend_whisker  = s.ErrorBarSize > 0;
@@ -2210,7 +2210,7 @@ void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _Gette
             EndItem();
             return;
         }
-        color.fill_colors();
+        color.FillColors();
         const ImPlotNextItemData& s = GetItemData();
         // render stems
         if (s.RenderLine) {
@@ -2279,7 +2279,7 @@ void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLin
                 EndItem();
                 return;
             }
-            color.fill_colors();
+            color.FillColors();
             const ImPlotNextItemData& s = GetItemData();
             if (s.RenderLine)
                 RenderPrimitives2<RendererLineSegments2>(getter_min, getter_max, color, s.LineWeight);
@@ -2294,7 +2294,7 @@ void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLin
                 EndItem();
                 return;
             }
-            color.fill_colors();
+            color.FillColors();
             const ImPlotNextItemData& s = GetItemData();
             if (s.RenderLine)
                 RenderPrimitives2<RendererLineSegments2>(get_min, get_max, color, s.LineWeight);
