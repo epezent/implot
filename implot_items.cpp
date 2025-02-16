@@ -596,6 +596,20 @@ struct GetterFuncPtr {
     const int Count;
 };
 
+struct GetterFuncPtr3D {
+  GetterFuncPtr3D(ImPlotGetter3D getter, void* data, int count) :
+      Getter(getter),
+      Data(data),
+      Count(count)
+  { }
+  template <typename I> IMPLOT_INLINE ImPlotPoint3D operator()(I idx) const {
+    return Getter(idx, Data);
+  }
+  ImPlotGetter3D Getter;
+  void* const Data;
+  const int Count;
+};
+
 template <typename _Getter>
 struct GetterOverrideX {
     GetterOverrideX(_Getter getter, double x) : Getter(getter), X(x), Count(getter.Count) { }
@@ -1853,11 +1867,11 @@ void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlag
   }
 }
 
-//template <typename T>
-//void PlotBubbles(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride) {
-//  GetterXY<IndexerLin,IndexerIdx<T>> getter(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
-//  PlotBubblesEx(label_id, getter, flags);
-//}
+template <typename T>
+void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride) {
+  GetterXYZ<IndexerLin,IndexerIdx<T>,IndexerIdx<T>> getter(IndexerLin(xscale,x0), IndexerIdx<T>(values,count,offset,stride), IndexerIdx<T>(szs,count,offset,stride),count);
+  PlotBubblesEx(label_id, getter, flags);
+}
 
 template <typename T>
 void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride) {
@@ -1865,17 +1879,17 @@ void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, i
   return PlotBubblesEx(label_id, getter, flags);
 }
 
-//    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* values, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride);
 #define INSTANTIATE_MACRO(T) \
+    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride); \
     template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-//void PlotBubblesG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotBubblesFlags flags) {
-//  GetterFuncPtr getter(getter_func,data, count);
-//  return PlotBubblesEx(label_id, getter, flags);
-//}
+void PlotBubblesG(const char* label_id, ImPlotGetter3D getter_func, void* data, int count, ImPlotBubblesFlags flags) {
+  GetterFuncPtr3D getter(getter_func, data, count);
+  return PlotBubblesEx(label_id, getter, flags);
+}
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotStairs
