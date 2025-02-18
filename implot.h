@@ -885,9 +885,9 @@ IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, int 
 IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotScatterFlags flags=0);
 
 // Plots a bubble graph. Default marker is ImPlotMarker_Circle.
-IMPLOT_TMP void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, ImPlotBubblesFlags flags=0, int offset=0, int stride=sizeof(T));
-IMPLOT_TMP void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags=0, int offset=0, int stride=sizeof(T));
-IMPLOT_API void PlotBubblesG(const char* label_id, ImPlotGetter3D getter, void* data, int count, ImPlotBubblesFlags flags=0);
+IMPLOT_TMP void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, ImPlotBubblesFlags flags=0, float min_pxsize=3, float max_pxsize=50, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags=0, float min_pxsize=3, float max_pxsize=50, int offset=0, int stride=sizeof(T));
+IMPLOT_API void PlotBubblesG(const char* label_id, ImPlotGetter3D getter, void* data, int count, ImPlotBubblesFlags flags=0, float min_pxsize=3, float max_pxsize=50);
 
 // Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotStairsFlags flags=0, int offset=0, int stride=sizeof(T));

@@ -691,8 +691,8 @@ struct Fitter1 {
 };
 
 template <typename _Getter1>
-struct Fitter3D1 {
-  Fitter3D1(const _Getter1& getter) : Getter(getter) { }
+struct FitterBubbles1 {
+  FitterBubbles1(const _Getter1& getter) : Getter(getter) { }
   void Fit(ImPlotAxis& x_axis, ImPlotAxis& y_axis) const {
     for (int i = 0; i < Getter.Count; ++i) {
       ImPlotPoint3D p = Getter(i);
@@ -1537,19 +1537,23 @@ struct RendererMarkersLine : RendererBase {
 
 template <class _Getter>
 struct RendererVariableSizedMarkersFill : RendererBase {
-  RendererVariableSizedMarkersFill(const _Getter& getter, const ImVec2* marker, int count, ImU32 col) :
+  RendererVariableSizedMarkersFill(const _Getter& getter, const ImVec2* marker, int count, float min_size, float max_size, float min_pxsize, float max_pxsize, ImU32 col) :
       RendererBase(getter.Count, (count-2)*3, count),
       Getter(getter),
       Marker(marker),
       Count(count),
-      Col(col)
+      Col(col),
+      MinSize(min_size),
+      MaxSize(max_size),
+      MinPxSize(min_pxsize),
+      MaxPxSize(max_pxsize)
   { }
   void Init(ImDrawList& draw_list) const {
     UV = draw_list._Data->TexUvWhitePixel;
   }
   IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
     ImPlotPoint3D p3D = Getter(prim);
-    float size = (float) p3D.z;
+    float size = MinPxSize + (MaxPxSize - MinPxSize) * (((float) p3D.z) - MinSize)/(MaxSize - MinSize);
     ImVec2 p = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
     if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y) {
       for (int i = 0; i < Count; i++) {
@@ -1575,24 +1579,32 @@ struct RendererVariableSizedMarkersFill : RendererBase {
   const int Count;
   const ImU32 Col;
   mutable ImVec2 UV;
+  const float MinSize;
+  const float MaxSize;
+  const float MinPxSize;
+  const float MaxPxSize;
 };
 
 template <class _Getter>
 struct RendererVariableSizedMarkersLine : RendererBase {
-  RendererVariableSizedMarkersLine(const _Getter& getter, const ImVec2* marker, int count, float weight, ImU32 col) :
+  RendererVariableSizedMarkersLine(const _Getter& getter, const ImVec2* marker, int count, float min_size, float max_size, float min_pxsize, float max_pxsize, float weight, ImU32 col) :
       RendererBase(getter.Count, count/2*6, count/2*4),
       Getter(getter),
       Marker(marker),
       Count(count),
       HalfWeight(ImMax(1.0f,weight)*0.5f),
-      Col(col)
+      Col(col),
+      MinSize(min_size),
+      MaxSize(max_size),
+      MinPxSize(min_pxsize),
+      MaxPxSize(max_pxsize)
   { }
   void Init(ImDrawList& draw_list) const {
     GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
   }
   IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
     ImPlotPoint3D p3D = Getter(prim);
-    float size = (float) p3D.z;
+    float size = MinPxSize + (MaxPxSize - MinPxSize) * (((float) p3D.z) - MinSize)/(MaxSize - MinSize);
     ImVec2 p = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
     if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y) {
       for (int i = 0; i < Count; i = i + 2) {
@@ -1611,9 +1623,35 @@ struct RendererVariableSizedMarkersLine : RendererBase {
   const ImU32 Col;
   mutable ImVec2 UV0;
   mutable ImVec2 UV1;
+  const float MinSize;
+  const float MaxSize;
+  const float MinPxSize;
+  const float MaxPxSize;
 };
 
 static const ImVec2 MARKER_FILL_CIRCLE[10]  = {ImVec2(1.0f, 0.0f), ImVec2(0.809017f, 0.58778524f),ImVec2(0.30901697f, 0.95105654f),ImVec2(-0.30901703f, 0.9510565f),ImVec2(-0.80901706f, 0.5877852f),ImVec2(-1.0f, 0.0f),ImVec2(-0.80901694f, -0.58778536f),ImVec2(-0.3090171f, -0.9510565f),ImVec2(0.30901712f, -0.9510565f),ImVec2(0.80901694f, -0.5877853f)};
+static const ImVec2 MARKER_HIGH_RES_FILL_CIRCLE[20] = {
+    ImVec2(1.0f, 0.0f),
+    ImVec2(0.9510565f, 0.30901697f),
+    ImVec2(0.809017f, 0.58778524f),
+    ImVec2(0.58778524f, 0.809017f),
+    ImVec2(0.30901697f, 0.9510565f),
+    ImVec2(0.0f, 1.0f),
+    ImVec2(-0.30901697f, 0.9510565f),
+    ImVec2(-0.58778524f, 0.809017f),
+    ImVec2(-0.809017f, 0.58778524f),
+    ImVec2(-0.9510565f, 0.30901697f),
+    ImVec2(-1.0f, 0.0f),
+    ImVec2(-0.9510565f, -0.30901697f),
+    ImVec2(-0.809017f, -0.58778524f),
+    ImVec2(-0.58778524f, -0.809017f),
+    ImVec2(-0.30901697f, -0.9510565f),
+    ImVec2(0.0f, -1.0f),
+    ImVec2(0.30901697f, -0.9510565f),
+    ImVec2(0.58778524f, -0.809017f),
+    ImVec2(0.809017f, -0.58778524f),
+    ImVec2(0.9510565f, -0.30901697f)
+};
 static const ImVec2 MARKER_FILL_SQUARE[4]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2)};
 static const ImVec2 MARKER_FILL_DIAMOND[4]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(0, 1)};
 static const ImVec2 MARKER_FILL_UP[3]       = {ImVec2(SQRT_3_2,0.5f),ImVec2(0,-1),ImVec2(-SQRT_3_2,0.5f)};
@@ -1643,6 +1681,49 @@ static const ImVec2 MARKER_LINE_CIRCLE[20]  = {
     ImVec2(0.80901694f, -0.5877853f),
     ImVec2(1.0f, 0.0f)
 };
+static const ImVec2 MARKER_HIGH_RES_LINE_CIRCLE[40] = {
+    ImVec2(1.00000000f, 0.00000000f),
+    ImVec2(0.95105652f, 0.30901699f),
+    ImVec2(0.95105652f, 0.30901699f),
+    ImVec2(0.80901699f, 0.58778525f),
+    ImVec2(0.80901699f, 0.58778525f),
+    ImVec2(0.58778525f, 0.80901699f),
+    ImVec2(0.58778525f, 0.80901699f),
+    ImVec2(0.30901699f, 0.95105652f),
+    ImVec2(0.30901699f, 0.95105652f),
+    ImVec2(0.00000000f, 1.00000000f),
+    ImVec2(0.00000000f, 1.00000000f),
+    ImVec2(-0.30901699f, 0.95105652f),
+    ImVec2(-0.30901699f, 0.95105652f),
+    ImVec2(-0.58778525f, 0.80901699f),
+    ImVec2(-0.58778525f, 0.80901699f),
+    ImVec2(-0.80901699f, 0.58778525f),
+    ImVec2(-0.80901699f, 0.58778525f),
+    ImVec2(-0.95105652f, 0.30901699f),
+    ImVec2(-0.95105652f, 0.30901699f),
+    ImVec2(-1.00000000f, 0.00000000f),
+    ImVec2(-1.00000000f, 0.00000000f),
+    ImVec2(-0.95105652f, -0.30901699f),
+    ImVec2(-0.95105652f, -0.30901699f),
+    ImVec2(-0.80901699f, -0.58778525f),
+    ImVec2(-0.80901699f, -0.58778525f),
+    ImVec2(-0.58778525f, -0.80901699f),
+    ImVec2(-0.58778525f, -0.80901699f),
+    ImVec2(-0.30901699f, -0.95105652f),
+    ImVec2(-0.30901699f, -0.95105652f),
+    ImVec2(0.00000000f, -1.00000000f),
+    ImVec2(0.00000000f, -1.00000000f),
+    ImVec2(0.30901699f, -0.95105652f),
+    ImVec2(0.30901699f, -0.95105652f),
+    ImVec2(0.58778525f, -0.80901699f),
+    ImVec2(0.58778525f, -0.80901699f),
+    ImVec2(0.80901699f, -0.58778525f),
+    ImVec2(0.80901699f, -0.58778525f),
+    ImVec2(0.95105652f, -0.30901699f),
+    ImVec2(0.95105652f, -0.30901699f),
+    ImVec2(1.00000000f, 0.00000000f)
+};
+
 static const ImVec2 MARKER_LINE_SQUARE[8]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,SQRT_1_2)};
 static const ImVec2 MARKER_LINE_DIAMOND[8]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(-1, 0), ImVec2(0, 1), ImVec2(0, 1), ImVec2(1, 0)};
 static const ImVec2 MARKER_LINE_UP[6]       = {ImVec2(SQRT_3_2,0.5f), ImVec2(0,-1),ImVec2(0,-1),ImVec2(-SQRT_3_2,0.5f),ImVec2(-SQRT_3_2,0.5f),ImVec2(SQRT_3_2,0.5f)};
@@ -1683,30 +1764,30 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool 
 }
 
 template <typename _Getter>
-void RenderVariableSizedMarkers(const _Getter& getter, ImPlotMarker marker, bool rend_fill, ImU32 col_fill, bool rend_line, ImU32 col_line, float weight) {
+void RenderVariableSizedMarkers(const _Getter& getter, ImPlotMarker marker, float min_size, float max_size, float min_pxsize, float max_pxsize, bool rend_fill, ImU32 col_fill, bool rend_line, ImU32 col_line, float weight) {
   if (rend_fill) {
     switch (marker) {
-      case ImPlotMarker_Circle  : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_CIRCLE,10,col_fill); break;
-      case ImPlotMarker_Square  : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_SQUARE, 4,col_fill); break;
-      case ImPlotMarker_Diamond : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_DIAMOND,4,col_fill); break;
-      case ImPlotMarker_Up      : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_UP,     3,col_fill); break;
-      case ImPlotMarker_Down    : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_DOWN,   3,col_fill); break;
-      case ImPlotMarker_Left    : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_LEFT,   3,col_fill); break;
-      case ImPlotMarker_Right   : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_RIGHT,  3,col_fill); break;
+      case ImPlotMarker_Circle  : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_HIGH_RES_FILL_CIRCLE,20,min_size,max_size,min_pxsize,max_pxsize,col_fill); break;
+      case ImPlotMarker_Square  : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_SQUARE, 4,min_size,max_size,min_pxsize,max_pxsize,col_fill); break;
+      case ImPlotMarker_Diamond : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_DIAMOND,4,min_size,max_size,min_pxsize,max_pxsize,col_fill); break;
+      case ImPlotMarker_Up      : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_UP,     3,min_size,max_size,min_pxsize,max_pxsize,col_fill); break;
+      case ImPlotMarker_Down    : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_DOWN,   3,min_size,max_size,min_pxsize,max_pxsize,col_fill); break;
+      case ImPlotMarker_Left    : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_LEFT,   3,min_size,max_size,min_pxsize,max_pxsize,col_fill); break;
+      case ImPlotMarker_Right   : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_RIGHT,  3,min_size,max_size,min_pxsize,max_pxsize,col_fill); break;
     }
   }
   if (rend_line) {
     switch (marker) {
-      case ImPlotMarker_Circle    : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_CIRCLE, 20,weight,col_line); break;
-      case ImPlotMarker_Square    : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_SQUARE,  8,weight,col_line); break;
-      case ImPlotMarker_Diamond   : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_DIAMOND, 8,weight,col_line); break;
-      case ImPlotMarker_Up        : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_UP,      6,weight,col_line); break;
-      case ImPlotMarker_Down      : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_DOWN,    6,weight,col_line); break;
-      case ImPlotMarker_Left      : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_LEFT,    6,weight,col_line); break;
-      case ImPlotMarker_Right     : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_RIGHT,   6,weight,col_line); break;
-      case ImPlotMarker_Asterisk  : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_ASTERISK,6,weight,col_line); break;
-      case ImPlotMarker_Plus      : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_PLUS,    4,weight,col_line); break;
-      case ImPlotMarker_Cross     : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_CROSS,   4,weight,col_line); break;
+      case ImPlotMarker_Circle    : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_HIGH_RES_LINE_CIRCLE, 40,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
+      case ImPlotMarker_Square    : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_SQUARE,  8,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
+      case ImPlotMarker_Diamond   : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_DIAMOND, 8,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
+      case ImPlotMarker_Up        : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_UP,      6,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
+      case ImPlotMarker_Down      : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_DOWN,    6,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
+      case ImPlotMarker_Left      : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_LEFT,    6,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
+      case ImPlotMarker_Right     : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_RIGHT,   6,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
+      case ImPlotMarker_Asterisk  : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_ASTERISK,6,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
+      case ImPlotMarker_Plus      : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_PLUS,    4,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
+      case ImPlotMarker_Cross     : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_CROSS,   4,min_size,max_size,min_pxsize,max_pxsize,weight,col_line); break;
     }
   }
 }
@@ -1841,8 +1922,12 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
-void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlags flags) {
-  if (BeginItemEx(label_id, Fitter3D1<Getter>(getter), flags, ImPlotCol_MarkerOutline)) {
+void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlags flags, float min_pxsize, float max_pxsize) {
+  const ImPlotNextItemData& s0 = GetItemData();
+  bool is_marker_col_auto_fill = s0.Colors[ImPlotCol_MarkerFill].w < 0;
+  bool is_maker_line_auto_fill = s0.Colors[ImPlotCol_MarkerOutline].w < 0 && s0.MarkerWeight < 0;
+
+  if (BeginItemEx(label_id, FitterBubbles1<Getter>(getter), flags, ImPlotCol_MarkerOutline)) {
     if (getter.Count <= 0) {
       EndItem();
       return;
@@ -1852,43 +1937,52 @@ void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlag
     if (marker != ImPlotMarker_None) {
       if (ImHasFlag(flags,ImPlotBubblesFlags_NoClip)) {
         PopPlotClipRect();
-        PushPlotClipRect(s.MarkerSize);
+        PushPlotClipRect(max_pxsize);
       }
 
-      ImVec4 vec_col_line = s.Colors[ImPlotCol_MarkerOutline];
+      float min_size = HUGE_VAL;
+      float max_size = -HUGE_VAL;
+
+      for (int i = 0; i < getter.Count; i++) {
+        ImPlotPoint3D p = getter(i);
+        min_size = min_size < p.z ? min_size : p.z;
+        max_size = max_size > p.z ? max_size : p.z;
+      }
+
       ImVec4 vec_col_fill = s.Colors[ImPlotCol_MarkerFill];
-      if (vec_col_line.w == 1) vec_col_line.w *= 0.5f;
-      if (vec_col_fill.w == 1) vec_col_fill.w *= 0.5f;
-      const ImU32 col_line = ImGui::GetColorU32(vec_col_line);
+      if (is_marker_col_auto_fill) {
+          vec_col_fill.w *= 0.5f;
+      }
+      const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
       const ImU32 col_fill = ImGui::GetColorU32(vec_col_fill);
-      RenderVariableSizedMarkers<Getter>(getter, marker, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+      RenderVariableSizedMarkers<Getter>(getter, marker, min_size, max_size, min_pxsize, max_pxsize, s.RenderMarkerFill, col_fill, !is_maker_line_auto_fill, col_line, s.MarkerWeight);
     }
     EndItem();
   }
 }
 
 template <typename T>
-void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride) {
+void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, float min_pxsize, float max_pxsize, int offset, int stride) {
   GetterXYZ<IndexerLin,IndexerIdx<T>,IndexerIdx<T>> getter(IndexerLin(xscale,x0), IndexerIdx<T>(values,count,offset,stride), IndexerIdx<T>(szs,count,offset,stride),count);
-  PlotBubblesEx(label_id, getter, flags);
+  PlotBubblesEx(label_id, getter, flags, min_pxsize, max_pxsize);
 }
 
 template <typename T>
-void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride) {
+void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, float min_pxsize, float max_pxsize, int offset, int stride) {
   GetterXYZ<IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride), IndexerIdx<T>(szs,count,offset,stride),count);
-  return PlotBubblesEx(label_id, getter, flags);
+  return PlotBubblesEx(label_id, getter, flags, min_pxsize, max_pxsize);
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, float min_pxsize, float max_pxsize, int offset, int stride); \
+    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, float min_pxsize, float max_pxsize, int offset, int stride);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotBubblesG(const char* label_id, ImPlotGetter3D getter_func, void* data, int count, ImPlotBubblesFlags flags) {
+void PlotBubblesG(const char* label_id, ImPlotGetter3D getter_func, void* data, int count, ImPlotBubblesFlags flags, float min_pxsize, float max_pxsize) {
   GetterFuncPtr3D getter(getter_func, data, count);
-  return PlotBubblesEx(label_id, getter, flags);
+  return PlotBubblesEx(label_id, getter, flags, min_pxsize, max_pxsize);
 }
 
 //-----------------------------------------------------------------------------
