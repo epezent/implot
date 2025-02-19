@@ -416,6 +416,29 @@ void Demo_ScatterPlots() {
 
 //-----------------------------------------------------------------------------
 
+void Demo_BubblePlots() {
+    srand(0);
+    static float xs[20], ys1[20], ys2[20], szs1[20], szs2[20];
+    for (int i = 0; i < 20; ++i) {
+        xs[i] = i * 0.01f;
+        ys1[i] = (float)rand() / (float)RAND_MAX;
+        ys2[i] = 0.5f + 0.3f * (2.0f * ((float)rand() / (float)RAND_MAX) - 1.0f);
+
+        szs1[i] = 10.0f + 1000.0f * ((float)rand() / (float)RAND_MAX);
+        szs2[i] = 5.0f + 200.0f * ((float)rand() / (float)RAND_MAX);
+    }
+
+
+    if (ImPlot::BeginPlot("Bubble Plot")) {
+        ImPlot::PlotBubbles("Data 1", xs, ys1, szs1, 20);
+        ImPlot::SetNextMarkerStyle(IMPLOT_AUTO, IMPLOT_AUTO, IMPLOT_AUTO_COL, 1, IMPLOT_AUTO_COL);
+        ImPlot::PlotBubbles("Data 2", xs, ys2, szs2, 20, ImPlotBubblesFlags_None, 5, 20);
+        ImPlot::EndPlot();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 void Demo_StairstepPlots() {
     static float ys1[21], ys2[21];
     for (int i = 0; i < 21; ++i) {
@@ -2231,6 +2254,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Filled Line Plots", Demo_FilledLinePlots);
             DemoHeader("Shaded Plots##", Demo_ShadedPlots);
             DemoHeader("Scatter Plots", Demo_ScatterPlots);
+            DemoHeader("Bubble Plots", Demo_BubblePlots);
             DemoHeader("Realtime Plots", Demo_RealtimePlots);
             DemoHeader("Stairstep Plots", Demo_StairstepPlots);
             DemoHeader("Bar Plots", Demo_BarPlots);
