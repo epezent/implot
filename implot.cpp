@@ -3191,7 +3191,8 @@ void EndPlot() {
 
 
     // main ctx menu
-    if (can_ctx && plot.Hovered)
+    // if (can_ctx && plot.Hovered) <-- old line // OdehM 2025-02-20
+    if (can_ctx && !ImHasFlag(plot.Flags, ImPlotFlags_NoCentralMenu) && plot.Hovered) // <-- new line // OdehM 2025-02-20
         ImGui::OpenPopup("##PlotContext");
     if (ImGui::BeginPopup("##PlotContext")) {
         ShowPlotContextMenu(plot);
@@ -5858,6 +5859,37 @@ void StyleColorsLight(ImPlotStyle* dst) {
     colors[ImPlotCol_AxisBgActive]  = IMPLOT_AUTO_COL; // TODO
     colors[ImPlotCol_Selection]     = ImVec4(0.82f, 0.64f, 0.03f, 1.00f);
     colors[ImPlotCol_Crosshairs]    = ImVec4(0.00f, 0.00f, 0.00f, 0.50f);
+}
+
+//-----------------------------------------------------------------------------
+// [SECTION] Context Menu	// OdehM 2025-02-20
+//-----------------------------------------------------------------------------
+
+bool BeginCustomContext()
+{
+    ImPlotContext& gp = *GImPlot;
+
+    if (gp.CurrentPlot == nullptr) return false;
+
+    ImPlotPlot &plot  = *gp.CurrentPlot;
+
+    const bool can_ctx = plot.Hovered &&
+                         !plot.Items.Legend.Hovered &&
+                         !plot.ContextLocked && // <-- added
+                         ImGui::IsMouseReleased(ImGuiMouseButton_Right);
+
+    // main ctx menu
+    if (can_ctx)
+        ImGui::OpenPopup("##CustomPlotContext");
+
+    return ImGui::BeginPopup("##CustomPlotContext");
+}
+
+void EndCustomContext(bool include_default)
+{
+    if (include_default)
+        ShowPlotContextMenu(*(GImPlot->CurrentPlot));
+    ImGui::EndPopup();
 }
 
 //-----------------------------------------------------------------------------
