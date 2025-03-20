@@ -571,17 +571,21 @@ struct GetterXY {
 
 /// Interprets a user's function pointer as ImPlotPoints
 struct GetterFuncPtr {
-    GetterFuncPtr(ImPlotGetter getter, void* data, int count) :
+    GetterFuncPtr(ImPlotGetter getter, void* data, int count, int offset, int stride) :
         Getter(getter),
         Data(data),
-        Count(count)
+        Count(count),
+        Offset(offset),
+        Stride(stride)
     { }
     template <typename I> IMPLOT_INLINE ImPlotPoint operator()(I idx) const {
-        return Getter(idx, Data);
+        return Getter(idx * Stride + Offset, Data);
     }
     ImPlotGetter Getter;
     void* const Data;
     const int Count;
+    const int Offset;
+    const int Stride;
 };
 
 template <typename _Getter>
@@ -1635,8 +1639,8 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotLineFlags flags) {
-    GetterFuncPtr getter(getter_func,data, count);
+void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotLineFlags flags, int offset, int stride) {
+    GetterFuncPtr getter(getter_func,data, count, offset, stride);
     PlotLineEx(label_id, getter, flags);
 }
 
@@ -1685,8 +1689,8 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotScatterFlags flags) {
-    GetterFuncPtr getter(getter_func,data, count);
+void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotScatterFlags flags, int offset, int stride) {
+    GetterFuncPtr getter(getter_func,data, count, offset, stride);
     return PlotScatterEx(label_id, getter, flags);
 }
 
@@ -1749,8 +1753,8 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotStairsFlags flags) {
-    GetterFuncPtr getter(getter_func,data, count);
+void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotStairsFlags flags, int offset, int stride) {
+    GetterFuncPtr getter(getter_func,data, count, offset, stride);
     return PlotStairsEx(label_id, getter, flags);
 }
 
@@ -1812,9 +1816,9 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, ImPlotGetter getter_func2, void* data2, int count, ImPlotShadedFlags flags) {
-    GetterFuncPtr getter1(getter_func1, data1, count);
-    GetterFuncPtr getter2(getter_func2, data2, count);
+void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, ImPlotGetter getter_func2, void* data2, int count, ImPlotShadedFlags flags, int offset, int stride) {
+    GetterFuncPtr getter1(getter_func1, data1, count, offset, stride);
+    GetterFuncPtr getter2(getter_func2, data2, count, offset, stride);
     PlotShadedEx(label_id, getter1, getter2, flags);
 }
 
@@ -1904,14 +1908,14 @@ void PlotBars(const char* label_id, const T* xs, const T* ys, int count, double 
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
-void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, double bar_size, ImPlotBarsFlags flags) {
+void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int count, double bar_size, ImPlotBarsFlags flags, int offset, int stride) {
     if (ImHasFlag(flags, ImPlotBarsFlags_Horizontal)) {
-        GetterFuncPtr getter1(getter_func, data, count);
+        GetterFuncPtr getter1(getter_func, data, count, offset, stride);
         GetterOverrideX<GetterFuncPtr> getter2(getter1,0);
         PlotBarsHEx(label_id, getter1, getter2, bar_size, flags);
     }
     else {
-        GetterFuncPtr getter1(getter_func, data, count);
+        GetterFuncPtr getter1(getter_func, data, count, offset, stride);
         GetterOverrideY<GetterFuncPtr> getter2(getter1,0);
         PlotBarsVEx(label_id, getter1, getter2, bar_size, flags);
     }
@@ -2779,8 +2783,8 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
 // custom
-void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotDigitalFlags flags) {
-    GetterFuncPtr getter(getter_func,data,count);
+void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotDigitalFlags flags, int offset, int stride) {
+    GetterFuncPtr getter(getter_func,data,count, offset, stride);
     return PlotDigitalEx(label_id, getter, flags);
 }
 
