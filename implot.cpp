@@ -2150,7 +2150,7 @@ void SetupAxisLimits(ImAxis idx, double min_lim, double max_lim, ImPlotCond cond
     ImPlotPlot& plot = *gp.CurrentPlot;
     ImPlotAxis& axis = plot.Axes[idx];
     IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
-    if (!plot.Initialized || cond == ImPlotCond_Always)
+    if (!plot.Initialized || cond == ImPlotCond_Always || (!axis.HasRange && cond == ImPlotCond_Once))
         axis.SetRange(min_lim, max_lim);
     axis.HasRange  = true;
     axis.RangeCond = cond;
