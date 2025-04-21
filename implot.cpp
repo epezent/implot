@@ -2418,9 +2418,7 @@ bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
         plot.Axes[i].Reset();
         UpdateAxisColors(plot.Axes[i]);
     }
-    // ensure first axes enabled
-    plot.Axes[ImAxis_X1].Enabled = true;
-    plot.Axes[ImAxis_Y1].Enabled = true;
+
     // set initial axes
     plot.CurrentX = ImAxis_X1;
     plot.CurrentY = ImAxis_Y1;
@@ -2428,6 +2426,10 @@ bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
     // process next plot data (legacy)
     for (int i = 0; i < ImAxis_COUNT; ++i)
         ApplyNextPlotData(i);
+
+    // ensure first axes enabled
+    plot.Axes[ImAxis_X1].Enabled = true;
+    plot.Axes[ImAxis_Y1].Enabled = true;
 
     // clear text buffers
     plot.ClearTextBuffer();
