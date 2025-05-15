@@ -2545,6 +2545,7 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
     const bool cumulative = ImHasFlag(flags, ImPlotHistogramFlags_Cumulative);
     const bool density    = ImHasFlag(flags, ImPlotHistogramFlags_Density);
     const bool outliers   = !ImHasFlag(flags, ImPlotHistogramFlags_NoOutliers);
+    const bool ignoreWidth = ImHasFlag(flags, ImPlotHistogramFlags_NormalizeIgnoreWidth);
 
     if (count <= 0 || bins == 0)
         return 0;
@@ -2606,7 +2607,8 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
         max_count = bin_counts[bins-1];
     }
     else if (density) {
-        double scale = 1.0 / ((outliers ? count : counted) * width);
+        double selectedWidth = ignoreWidth ? 1.0 : width;
+        double scale = 1.0 / ((outliers ? count : counted) * selectedWidth);
         for (int b = 0; b < bins; ++b)
             bin_counts[b] *= scale;
         max_count *= scale;
