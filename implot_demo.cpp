@@ -1929,6 +1929,59 @@ void Demo_OffsetAndStride() {
     // offset++; uncomment for animation!
 }
 
+void Demo_HeatmapOffsets() {
+    static float values1[5][8] = {{0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f, 5.1f},
+                                  {2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f, 3.2f},
+                                  {1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f, 1.3f},
+                                  {0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f, 1.2f},
+                                  {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f, 5.1f}};
+    static float scale_min = 0;
+    static float scale_max = 6.3f;
+    static const char* xlabels[] = {"C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"};
+    static const char* ylabels[] = {"R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"};
+
+    static ImPlotColormap map = ImPlotColormap_Viridis;
+    if (ImPlot::ColormapButton(ImPlot::GetColormapName(map), ImVec2(225, 0), map)) {
+        map = (map + 1) % ImPlot::GetColormapCount();
+        // We bust the color cache of our plots so that item colors will
+        // resample the new colormap in the event that they have already
+        // been created. See documentation in implot.h.
+        BustColorCache("##Heatmap1");
+    }
+
+    ImGui::SameLine();
+    ImGui::LabelText("##Colormap Index", "%s", "Change Colormap");
+    ImGui::SetNextItemWidth(225);
+    ImGui::DragFloatRange2("Min / Max", &scale_min, &scale_max, 0.01f, -20, 20);
+
+    static ImPlotHeatmapFlags hm_flags = 0;
+
+    ImGui::CheckboxFlags("Column Major", (unsigned int*)&hm_flags, ImPlotHeatmapFlags_ColMajor);
+
+    static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks;
+
+    ImPlot::PushColormap(map);
+    const bool RowMajor = (hm_flags & ImPlotHeatmapFlags_ColMajor) == ImPlotHeatmapFlags_ColMajor;
+    int NumRows = !RowMajor ? 5 : 8;
+    int NumCols = RowMajor ? 5 : 8;
+    static int offset_rows = 0;
+    static int offset_cols = 0;
+    ImGui::SliderInt("Offset Rows", &offset_rows, -3 * NumRows, 3 * NumRows);
+    ImGui::SliderInt("Offset Cols", &offset_cols, -3 * NumCols, 3 * NumCols);
+    if (ImPlot::BeginPlot("##Heatmap1", ImVec2(225, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
+        ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
+        ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / 14.0, 1 - 1.0 / 14.0, NumCols, xlabels);
+        ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / 14.0, 0 + 1.0 / 14.0, NumRows, ylabels);
+        ImPlot::PlotHeatmap("heat", values1[0], NumRows, NumCols, scale_min, scale_max, "%g", ImPlotPoint(0, 0), ImPlotPoint(1, 1), hm_flags,
+                            offset_rows, offset_cols);
+        ImPlot::EndPlot();
+    }
+    ImGui::SameLine();
+    ImPlot::ColormapScale("##HeatScale", scale_min, scale_max, ImVec2(60, 225));
+
+    ImPlot::PopColormap();
+}
+
 //-----------------------------------------------------------------------------
 
 void Demo_CustomDataAndGetters() {
@@ -2278,6 +2331,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         if (ImGui::BeginTabItem("Tools")) {
             DemoHeader("Offset and Stride", Demo_OffsetAndStride);
+            DemoHeader("Heatmap Offset", Demo_HeatmapOffsets);
             DemoHeader("Drag Points", Demo_DragPoints);
             DemoHeader("Drag Lines", Demo_DragLines);
             DemoHeader("Drag Rects", Demo_DragRects);

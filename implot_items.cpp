@@ -2378,11 +2378,12 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 
 template <typename T>
 struct GetterHeatmapRowMaj {
-    GetterHeatmapRowMaj(const T* values, int rows, int cols, double scale_min, double scale_max, double width, double height, double xref, double yref, double ydir) :
+    GetterHeatmapRowMaj(const T* values, int count, int rows, int cols, int offset, double scale_min, double scale_max, double width, double height, double xref, double yref, double ydir) :
         Values(values),
-        Count(rows*cols),
+        Count(count),
         Rows(rows),
         Cols(cols),
+        Offset(offset),
         ScaleMin(scale_min),
         ScaleMax(scale_max),
         Width(width),
@@ -2393,7 +2394,7 @@ struct GetterHeatmapRowMaj {
         HalfSize(Width*0.5, Height*0.5)
     { }
     template <typename I> IMPLOT_INLINE RectC operator()(I idx) const {
-        double val = (double)Values[idx];
+        double val = (double)Values[(idx + Offset) % Count];
         const int r = idx / Cols;
         const int c = idx % Cols;
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
@@ -2406,18 +2407,19 @@ struct GetterHeatmapRowMaj {
         return rect;
     }
     const T* const Values;
-    const int Count, Rows, Cols;
+    const int Count, Rows, Cols, Offset;
     const double ScaleMin, ScaleMax, Width, Height, XRef, YRef, YDir;
     const ImPlotPoint HalfSize;
 };
 
 template <typename T>
 struct GetterHeatmapColMaj {
-    GetterHeatmapColMaj(const T* values, int rows, int cols, double scale_min, double scale_max, double width, double height, double xref, double yref, double ydir) :
+    GetterHeatmapColMaj(const T* values, int count, int rows, int cols, int offset, double scale_min, double scale_max, double width, double height, double xref, double yref, double ydir) :
         Values(values),
-        Count(rows*cols),
+        Count(count),
         Rows(rows),
         Cols(cols),
+        Offset(offset),
         ScaleMin(scale_min),
         ScaleMax(scale_max),
         Width(width),
@@ -2428,7 +2430,7 @@ struct GetterHeatmapColMaj {
         HalfSize(Width*0.5, Height*0.5)
     { }
     template <typename I> IMPLOT_INLINE RectC operator()(I idx) const {
-        double val = (double)Values[idx];
+        double val = (double)Values[(idx + Offset) % Count];
         const int r = idx % Rows;
         const int c = idx / Rows;
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
@@ -2441,18 +2443,19 @@ struct GetterHeatmapColMaj {
         return rect;
     }
     const T* const Values;
-    const int Count, Rows, Cols;
+    const int Count, Rows, Cols, Offset;
     const double ScaleMin, ScaleMax, Width, Height, XRef, YRef, YDir;
     const ImPlotPoint HalfSize;
 };
 
 template <typename T>
-void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, bool reverse_y, bool col_maj) {
+void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, bool reverse_y, bool col_maj, int offset_rows, int offset_cols) {
     ImPlotContext& gp = *GImPlot;
     Transformer2 transformer;
+    const int count = (cols * rows);
     if (scale_min == 0 && scale_max == 0) {
         T temp_min, temp_max;
-        ImMinMaxArray(values,rows*cols,&temp_min,&temp_max);
+        ImMinMaxArray(values, count, &temp_min, &temp_max);
         scale_min = (double)temp_min;
         scale_max = (double)temp_max;
     }
@@ -2465,12 +2468,15 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
     }
     const double yref = reverse_y ? bounds_max.y : bounds_min.y;
     const double ydir = reverse_y ? -1 : 1;
+    int offset;
     if (col_maj) {
-        GetterHeatmapColMaj<T> getter(values, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
+        offset = ImPosMod(rows * offset_cols, count) + ImPosMod(offset_rows, cols);
+        GetterHeatmapColMaj<T> getter(values, count, rows, cols, offset, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
         RenderPrimitives1<RendererRectC>(getter);
     }
     else {
-        GetterHeatmapRowMaj<T> getter(values, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
+        offset = ImPosMod(cols * offset_rows, count) + ImPosMod(offset_cols, rows);
+        GetterHeatmapRowMaj<T> getter(values, count, rows, cols, offset, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
         RenderPrimitives1<RendererRectC>(getter);
     }
     // labels
@@ -2487,9 +2493,10 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
                     p.y = yref + ydir * (0.5*h + r*h);
                     ImVec2 px = transformer(p);
                     char buff[32];
-                    ImFormatString(buff, 32, fmt, values[i]);
+                    int UsedIndex = (i + offset) % count;
+                    ImFormatString(buff, 32, fmt, values[UsedIndex]);
                     ImVec2 size = ImGui::CalcTextSize(buff);
-                    double t = ImClamp(ImRemap01((double)values[i], scale_min, scale_max),0.0,1.0);
+                    double t = ImClamp(ImRemap01((double)values[UsedIndex], scale_min, scale_max), 0.0, 1.0);
                     ImVec4 color = SampleColormap((float)t);
                     ImU32 col = CalcTextColor(color);
                     draw_list.AddText(px - size * 0.5f, col, buff);
@@ -2505,9 +2512,10 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
                     p.y = yref + ydir * (0.5*h + r*h);
                     ImVec2 px = transformer(p);
                     char buff[32];
-                    ImFormatString(buff, 32, fmt, values[i]);
+                    int UsedIndex = (i + offset) % count;
+                    ImFormatString(buff, 32, fmt, values[UsedIndex]);
                     ImVec2 size = ImGui::CalcTextSize(buff);
-                    double t = ImClamp(ImRemap01((double)values[i], scale_min, scale_max),0.0,1.0);
+                    double t = ImClamp(ImRemap01((double)values[UsedIndex], scale_min, scale_max), 0.0, 1.0);
                     ImVec4 color = SampleColormap((float)t);
                     ImU32 col = CalcTextColor(color);
                     draw_list.AddText(px - size * 0.5f, col, buff);
@@ -2519,7 +2527,7 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
 }
 
 template <typename T>
-void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags) {
+void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int offset_rows, int offset_cols) {
     if (BeginItemEx(label_id, FitterRect(bounds_min, bounds_max))) {
         if (rows <= 0 || cols <= 0) {
             EndItem();
@@ -2527,11 +2535,11 @@ void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, doub
         }
         ImDrawList& draw_list = *GetPlotDrawList();
         const bool col_maj = ImHasFlag(flags, ImPlotHeatmapFlags_ColMajor);
-        RenderHeatmap(draw_list, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true, col_maj);
+        RenderHeatmap(draw_list, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true, col_maj, offset_rows, offset_cols);
         EndItem();
     }
 }
-#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int offset_rows, int offset_cols);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2694,7 +2702,7 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
             return max_count;
         }
         ImDrawList& draw_list = *GetPlotDrawList();
-        RenderHeatmap(draw_list, &bin_counts.Data[0], y_bins, x_bins, 0, max_count, nullptr, range.Min(), range.Max(), false, col_maj);
+        RenderHeatmap(draw_list, &bin_counts.Data[0], y_bins, x_bins, 0, max_count, nullptr, range.Min(), range.Max(), false, col_maj, 0, 0);
         EndItem();
     }
     return max_count;
