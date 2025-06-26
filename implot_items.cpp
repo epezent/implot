@@ -2501,10 +2501,10 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
                     ImVec2 px = transformer(p);
                     char buff[32];
                     const int offset = col_index_offset + ((r + row_index_offset) < rows ? row_index_offset : (row_index_offset - rows));
-                    int UsedIndex = (i + offset) % count;
-                    ImFormatString(buff, 32, fmt, values[UsedIndex]);
+                    const int index = (i + offset) % count;
+                    ImFormatString(buff, 32, fmt, values[index]);
                     ImVec2 size = ImGui::CalcTextSize(buff);
-                    double t = ImClamp(ImRemap01((double)values[UsedIndex], scale_min, scale_max), 0.0, 1.0);
+                    double t = ImClamp(ImRemap01((double)values[index], scale_min, scale_max), 0.0, 1.0);
                     ImVec4 color = SampleColormap((float)t);
                     ImU32 col = CalcTextColor(color);
                     draw_list.AddText(px - size * 0.5f, col, buff);
@@ -2521,10 +2521,10 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
                     ImVec2 px = transformer(p);
                     char buff[32];
                     const int offset = row_index_offset + ((c + col_index_offset) < cols ? col_index_offset : (col_index_offset - cols));
-                    int UsedIndex = (i + offset) % count;
-                    ImFormatString(buff, 32, fmt, values[UsedIndex]);
+                    const int index = (i + offset) % count;
+                    ImFormatString(buff, 32, fmt, values[index]);
                     ImVec2 size = ImGui::CalcTextSize(buff);
-                    double t = ImClamp(ImRemap01((double)values[UsedIndex], scale_min, scale_max), 0.0, 1.0);
+                    double t = ImClamp(ImRemap01((double)values[index], scale_min, scale_max), 0.0, 1.0);
                     ImVec4 color = SampleColormap((float)t);
                     ImU32 col = CalcTextColor(color);
                     draw_list.AddText(px - size * 0.5f, col, buff);
