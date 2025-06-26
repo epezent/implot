@@ -1960,9 +1960,9 @@ void Demo_HeatmapOffsets() {
 
     static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks;
 
-    const bool RowMajor = (hm_flags & ImPlotHeatmapFlags_ColMajor) == ImPlotHeatmapFlags_ColMajor;
-    const int NumRows = RowMajor ? 8 : 5;
-    const int NumCols = RowMajor ? 5 : 8;
+    const bool row_major = (hm_flags & ImPlotHeatmapFlags_ColMajor) == ImPlotHeatmapFlags_ColMajor;
+    const int num_rows = row_major ? 8 : 5;
+    const int num_cols = row_major ? 5 : 8;
     static int offset_rows = 0;
     static int offset_cols = 0;
 
