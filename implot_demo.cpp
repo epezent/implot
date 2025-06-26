@@ -1966,16 +1966,16 @@ void Demo_HeatmapOffsets() {
     static int offset_rows = 0;
     static int offset_cols = 0;
 
-    ImGui::SliderInt("Offset Rows", &offset_rows, -3 * NumRows, 3 * NumRows);
-    ImGui::SliderInt("Offset Cols", &offset_cols, -3 * NumCols, 3 * NumCols);
+    ImGui::SliderInt("Offset Rows", &offset_rows, -3 * num_rows, 3 * num_rows);
+    ImGui::SliderInt("Offset Cols", &offset_cols, -3 * num_cols, 3 * num_cols);
 
     ImPlot::PushColormap(map);
 
     if (ImPlot::BeginPlot("##Heatmap1", ImVec2(500, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
         ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
-        ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / (NumCols * 2.0), 1 - 1.0 / (NumCols * 2.0), NumCols, xlabels);
-        ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / (NumRows * 2.0), 0 + 1.0 / (NumRows * 2.0), NumRows, ylabels);
-        ImPlot::PlotHeatmap("heat", values1[0], NumRows, NumCols, scale_min, scale_max, "%g", ImPlotPoint(0, 0), ImPlotPoint(1, 1), hm_flags,
+        ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / (num_cols * 2.0), 1 - 1.0 / (num_cols * 2.0), num_cols, xlabels);
+        ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / (num_rows * 2.0), 0 + 1.0 / (num_rows * 2.0), num_rows, ylabels);
+        ImPlot::PlotHeatmap("heat", values1[0], num_rows, num_cols, scale_min, scale_max, "%g", ImPlotPoint(0, 0), ImPlotPoint(1, 1), hm_flags,
                             offset_rows, offset_cols);
         ImPlot::EndPlot();
     }
