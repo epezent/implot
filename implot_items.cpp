@@ -2435,7 +2435,7 @@ struct GetterHeatmapColMaj {
     template <typename I> IMPLOT_INLINE RectC operator()(I idx) const {
         const int r = idx % Rows;
         const int c = idx / Rows;
-        const int offset = ColIndexOffset + ((r + RowIndexOffset) < Rows ? RowIndexOffset : RowIndexOffset - Rows);
+        const int offset = ColIndexOffset + ((r + RowIndexOffset) < Rows ? RowIndexOffset : (RowIndexOffset - Rows));
         double val = (double)Values[(idx + offset) % Count];
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
         RectC rect;
