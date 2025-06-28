@@ -2407,7 +2407,7 @@ struct HeatmapIndexerIdx {
         case  2: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + (size_t)((minor + MinorOffset) % num_minor) * MinorStride)); // Major+minor stride and minor offset
         case  1: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + (size_t)((minor)) * MinorStride)); // Major+minor stride and major offset
         case  0: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + (size_t)((minor + MinorOffset) % num_minor) * MinorStride)); // Major+minor stride and major+minor offset
-        default: return (double)(T(0);
+        default: return (double)(T(0));
         }
     }
     const T* const Data;
