@@ -1947,7 +1947,8 @@ void Demo_HeatmapOffsetAndStride() {
         // We bust the color cache of our plots so that item colors will
         // resample the new colormap in the event that they have already
         // been created. See documentation in implot.h.
-        BustColorCache("##Heatmap1");
+        BustColorCache("##HeatmapOffset");
+        BustColorCache("##HeatmapOffsetAndStride");
     }
 
     ImGui::SameLine();
@@ -1972,7 +1973,7 @@ void Demo_HeatmapOffsetAndStride() {
 
     ImPlot::PushColormap(map);
 
-    if (ImPlot::BeginPlot("##HeatmapOffsets", ImVec2(450, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
+    if (ImPlot::BeginPlot("##HeatmapOffset", ImVec2(450, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks;
         ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
         ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / (num_cols * 2.0), 1 - 1.0 / (num_cols * 4.0), num_cols, xlabels);
@@ -1983,7 +1984,7 @@ void Demo_HeatmapOffsetAndStride() {
     ImGui::SameLine();
     ImPlot::ColormapScale("##HeatScale", scale_min, scale_max, ImVec2(60, 225));
 
-    if (ImPlot::BeginPlot("##HeatmapStrides", ImVec2(450, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
+    if (ImPlot::BeginPlot("##HeatmapOffsetAndStride", ImVec2(450, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels;
         ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
         // The stride calculations should take into account when it either the row or the column divided by stride does not produces a integer value
