@@ -2511,7 +2511,6 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
         if (fmt != nullptr) {
             const double w = getter.Width;
             const double h = getter.Height;
-            const ImPlotPoint half_size = getter.HalfSize;
             const int count = getter.Count;
             int i = 0;
             for (int c = 0; c < cols; ++c) {
@@ -2541,7 +2540,6 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
         if (fmt != nullptr) {
             const double w = getter.Width;
             const double h = getter.Height;
-            const ImPlotPoint half_size = getter.HalfSize;
             const int count = getter.Count;
             int i = 0;
             for (int r = 0; r < rows; ++r) {
@@ -2566,14 +2564,14 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
 }
 
 template <typename T>
-void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset)
+void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset)
 {
     const bool col_maj = ImHasFlag(flags, ImPlotHeatmapFlags_ColMajor);
     PlotHeatmap<T>(label_id, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, flags, row_offset, col_offset, col_maj ? sizeof(T) : sizeof(T) * cols, !col_maj ? sizeof(T) : sizeof(T) * rows);
 }
 
 template <typename T>
-void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int stride_rows, int stride_cols) {
+void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int stride_rows, int stride_cols) {
     if (BeginItemEx(label_id, FitterRect(bounds_min, bounds_max))) {
         if (rows <= 0 || cols <= 0) {
             EndItem();
