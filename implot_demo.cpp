@@ -1929,16 +1929,17 @@ void Demo_OffsetAndStride() {
     // offset++; uncomment for animation!
 }
 
-void Demo_HeatmapOffsets() {
-    static float values1[5][8] = {{0.8f, 2.4f, 2.5f, 3.9f, 0.0f, 4.0f, 0.0f, 5.1f},
-                                  {2.4f, 0.0f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f, 3.2f},
-                                  {1.1f, 2.4f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f, 1.3f},
-                                  {0.6f, 0.0f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f, 1.2f},
-                                  {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f, 5.1f}};
+void Demo_HeatmapOffsetAndStride() {
+    static float values[6][12] = { {0.8f, 2.8f, 2.5f, 3.9f, 0.1f, 4.0f, 0.0f, 5.1f, 2.3f, 0.7f, 4.2f, 1.2f},
+                                    {2.4f, 0.2f, 4.0f, 1.0f, 2.7f, 0.0f, 0.0f, 3.2f, 3.5f, 2.1f, 1.3f, 1.4f},
+                                    {1.1f, 2.3f, 0.8f, 4.3f, 1.9f, 4.4f, 0.0f, 1.3f, 5.2f, 3.2f, 6.0f, 5.9f},
+                                    {0.6f, 0.4f, 0.3f, 0.0f, 3.1f, 0.0f, 0.0f, 1.2f, 1.4f, 4.5f, 4.6f, 4.7f},
+                                    {0.7f, 1.7f, 0.6f, 2.6f, 2.2f, 6.2f, 0.0f, 5.1f, 3.4f, 3.8f, 1.1f, 0.9f},
+                                    {0.2f, 2.6f, 6.1f, 1.2f, 4.2f, 5.2f, 0.0f, 4.1f, 1.2f, 2.8f, 4.8f, 0.8f} };
     static float scale_min = 0;
     static float scale_max = 6.3f;
-    static const char* xlabels[] = {"C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8"};
-    static const char* ylabels[] = {"R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"};
+    static const char* xlabels[] = { "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12" };
+    static const char* ylabels[] = { "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "C9", "C10", "C11", "C12" };
 
     static ImPlotColormap map = ImPlotColormap_Viridis;
     if (ImPlot::ColormapButton(ImPlot::GetColormapName(map), ImVec2(225, 0), map)) {
@@ -1958,29 +1959,46 @@ void Demo_HeatmapOffsets() {
 
     ImGui::CheckboxFlags("Column Major", (unsigned int*)&hm_flags, ImPlotHeatmapFlags_ColMajor);
 
-    static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks;
-
     const bool row_major = (hm_flags & ImPlotHeatmapFlags_ColMajor) == ImPlotHeatmapFlags_ColMajor;
-    const int num_rows = row_major ? 8 : 5;
-    const int num_cols = row_major ? 5 : 8;
+    const int num_rows = row_major ? 12 : 6;
+    const int num_cols = row_major ? 6 : 12;
     static int offset_rows = 0;
     static int offset_cols = 0;
+    static int stride_value = 2;
 
     ImGui::SliderInt("Offset Rows", &offset_rows, -3 * num_rows, 3 * num_rows);
     ImGui::SliderInt("Offset Cols", &offset_cols, -3 * num_cols, 3 * num_cols);
+    ImGui::SliderInt("Stride", &stride_value, 2, 4);
 
     ImPlot::PushColormap(map);
 
-    if (ImPlot::BeginPlot("##Heatmap1", ImVec2(500, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
+    if (ImPlot::BeginPlot("##HeatmapOffsets", ImVec2(450, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
+        static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks;
         ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
-        ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / (num_cols * 2.0), 1 - 1.0 / (num_cols * 2.0), num_cols, xlabels);
-        ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / (num_rows * 2.0), 0 + 1.0 / (num_rows * 2.0), num_rows, ylabels);
-        ImPlot::PlotHeatmap("heat", values1[0], num_rows, num_cols, scale_min, scale_max, "%g", ImPlotPoint(0, 0), ImPlotPoint(1, 1), hm_flags,
-                            offset_rows, offset_cols);
+        ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / (num_cols * 2.0), 1 - 1.0 / (num_cols * 4.0), num_cols, xlabels);
+        ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / (num_rows * 2.0), 0 + 1.0 / (num_rows * 4.0), num_rows, ylabels);
+        ImPlot::PlotHeatmap("Offset", values[0], num_rows, num_cols, scale_min, scale_max, "%g", ImPlotPoint(0, 0), ImPlotPoint(1, 1), hm_flags, offset_rows, offset_cols);
         ImPlot::EndPlot();
     }
     ImGui::SameLine();
     ImPlot::ColormapScale("##HeatScale", scale_min, scale_max, ImVec2(60, 225));
+
+    if (ImPlot::BeginPlot("##HeatmapStrides", ImVec2(450, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
+        static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels;
+        ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
+        // The stride calculations should take into account when it either the row or the column divided by stride does not produces a integer value
+        const int updated_num_rows = num_rows / stride_value + (num_rows % stride_value == 0 ? 0 : 1);
+        const int updated_num_cols = num_cols / stride_value + (num_cols % stride_value == 0 ? 0 : 1);
+        // Depending on whether row major is used or col major, the offset applied to the row and the column needs to be updated
+        const int stride_offset_rows = row_major ? 1 : num_cols;
+        const int stride_offset_cols = row_major ? num_rows : 1;
+        // Draw the plots with the strides applied
+        ImPlot::PlotHeatmap("NoStride", values[0], num_rows, num_cols, scale_min, scale_max, nullptr, ImPlotPoint(0, 0), ImPlotPoint(0.495, 0.49), hm_flags, offset_rows, offset_cols, sizeof(float) * stride_offset_rows, sizeof(float) * stride_offset_cols);
+        ImPlot::PlotHeatmap("RowStride", values[0], updated_num_rows, num_cols, scale_min, scale_max, nullptr, ImPlotPoint(0, 0.51), ImPlotPoint(0.495, 1), hm_flags, offset_rows, offset_cols, stride_value * sizeof(float) * stride_offset_rows, sizeof(float) * stride_offset_cols);
+        ImPlot::PlotHeatmap("ColStride", values[0], num_rows, updated_num_cols, scale_min, scale_max, nullptr, ImPlotPoint(0.505, 0), ImPlotPoint(1, 0.49), hm_flags, offset_rows, offset_cols, sizeof(float) * stride_offset_rows, stride_value * sizeof(float) * stride_offset_cols);
+        ImPlot::PlotHeatmap("RowColStride", values[0], updated_num_rows, updated_num_cols, scale_min, scale_max, nullptr, ImPlotPoint(0.505, 0.51), ImPlotPoint(1, 1), hm_flags, offset_rows, offset_cols, stride_value * sizeof(float) * stride_offset_rows, stride_value * sizeof(float) * stride_offset_cols);
+        ImPlot::EndPlot();
+    }
 
     ImPlot::PopColormap();
 }
@@ -2334,7 +2352,7 @@ void ShowDemoWindow(bool* p_open) {
         }
         if (ImGui::BeginTabItem("Tools")) {
             DemoHeader("Offset and Stride", Demo_OffsetAndStride);
-            DemoHeader("Heatmap Offsets", Demo_HeatmapOffsets);
+            DemoHeader("Heatmap Offset and Stride", Demo_HeatmapOffsetAndStride);
             DemoHeader("Drag Points", Demo_DragPoints);
             DemoHeader("Drag Lines", Demo_DragLines);
             DemoHeader("Drag Rects", Demo_DragRects);
