@@ -2566,6 +2566,13 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
 }
 
 template <typename T>
+void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset)
+{
+    const bool col_maj = ImHasFlag(flags, ImPlotHeatmapFlags_ColMajor);
+    PlotHeatmap<T>(label_id, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, flags, row_offset, col_offset, col_maj ? sizeof(T) : sizeof(T) * cols, !col_maj ? sizeof(T) : sizeof(T) * rows);
+}
+
+template <typename T>
 void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int stride_rows, int stride_cols) {
     if (BeginItemEx(label_id, FitterRect(bounds_min, bounds_max))) {
         if (rows <= 0 || cols <= 0) {
@@ -2578,16 +2585,10 @@ void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, doub
         EndItem();
     }
 }
-template <typename T>
-void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset)
-{
-    const bool col_maj = ImHasFlag(flags, ImPlotHeatmapFlags_ColMajor);
-    PlotHeatmap<T>(label_id, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, flags, row_offset, col_offset, col_maj ? sizeof(T) : sizeof(T) * cols, !col_maj ? sizeof(T) : sizeof(T) * rows);
-}
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int stride_rows, int stride_cols); \
-    template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset);
+    template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset); \
+    template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int stride_rows, int stride_cols);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
