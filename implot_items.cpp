@@ -2485,7 +2485,7 @@ struct GetterHeatmapColMaj {
 };
 
 template <typename T>
-void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, bool reverse_y, bool col_maj, int row_offset, int col_offset, int stride_rows, int stride_cols) {
+void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, bool reverse_y, bool col_maj, int row_offset, int col_offset, int row_stride, int col_stride) {
     ImPlotContext& gp = *GImPlot;
     Transformer2 transformer;
     if (scale_min == 0 && scale_max == 0) {
@@ -2504,7 +2504,7 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
     const double yref = reverse_y ? bounds_max.y : bounds_min.y;
     const double ydir = reverse_y ? -1 : 1;
     if (col_maj) {
-        HeatmapIndexerIdx<T> indexer(values, cols, rows, col_offset, row_offset, stride_cols, stride_rows);
+        HeatmapIndexerIdx<T> indexer(values, cols, rows, col_offset, row_offset, col_stride, row_stride);
         GetterHeatmapColMaj<T, HeatmapIndexerIdx<T>> getter(indexer, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
         RenderPrimitives1<RendererRectC>(getter);
 
@@ -2533,7 +2533,7 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
         }
     }
     else {
-        HeatmapIndexerIdx<T> indexer(values, rows, cols, row_offset, col_offset, stride_rows, stride_cols);
+        HeatmapIndexerIdx<T> indexer(values, rows, cols, row_offset, col_offset, row_stride, col_stride);
         GetterHeatmapRowMaj<T, HeatmapIndexerIdx<T>> getter(indexer, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
         RenderPrimitives1<RendererRectC>(getter);
 
@@ -2571,7 +2571,7 @@ void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, doub
 }
 
 template <typename T>
-void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int stride_rows, int stride_cols) {
+void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int row_stride, int col_stride) {
     if (BeginItemEx(label_id, FitterRect(bounds_min, bounds_max))) {
         if (rows <= 0 || cols <= 0) {
             EndItem();
@@ -2579,14 +2579,14 @@ void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, doub
         }
         ImDrawList& draw_list = *GetPlotDrawList();
         const bool col_maj = ImHasFlag(flags, ImPlotHeatmapFlags_ColMajor);
-        RenderHeatmap(draw_list, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true, col_maj, row_offset, col_offset, stride_rows, stride_cols);
+        RenderHeatmap(draw_list, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true, col_maj, row_offset, col_offset, row_stride, col_stride);
         EndItem();
     }
 }
 
 #define INSTANTIATE_MACRO(T) \
     template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset); \
-    template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int stride_rows, int stride_cols);
+    template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int row_stride, int col_stride);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
