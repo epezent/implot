@@ -1939,7 +1939,7 @@ void Demo_HeatmapOffsetAndStride() {
     static float scale_min = 0;
     static float scale_max = 6.3f;
     static const char* xlabels[] = { "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12" };
-    static const char* ylabels[] = { "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "C9", "C10", "C11", "C12" };
+    static const char* ylabels[] = { "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12" };
 
     static ImPlotColormap map = ImPlotColormap_Viridis;
     if (ImPlot::ColormapButton(ImPlot::GetColormapName(map), ImVec2(225, 0), map)) {
@@ -1976,8 +1976,8 @@ void Demo_HeatmapOffsetAndStride() {
     if (ImPlot::BeginPlot("##HeatmapOffset", ImVec2(450, 225), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
         static ImPlotAxisFlags axes_flags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks;
         ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
-        ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / (num_cols * 2.0), 1 - 1.0 / (num_cols * 4.0), num_cols, xlabels);
-        ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / (num_rows * 2.0), 0 + 1.0 / (num_rows * 4.0), num_rows, ylabels);
+        ImPlot::SetupAxisTicks(ImAxis_X1, 0 + 1.0 / (num_cols * 2.0), 1 - 1.0 / (num_cols * 2.0), num_cols, xlabels);
+        ImPlot::SetupAxisTicks(ImAxis_Y1, 1 - 1.0 / (num_rows * 2.0), 0 + 1.0 / (num_rows * 2.0), num_rows, ylabels);
         ImPlot::PlotHeatmap("Offset", values[0], num_rows, num_cols, scale_min, scale_max, "%g", ImPlotPoint(0, 0), ImPlotPoint(1, 1), hm_flags, row_offset, col_offset);
         ImPlot::EndPlot();
     }
