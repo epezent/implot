@@ -898,7 +898,7 @@ IMPLOT_TMP void PlotInfLines(const char* label_id, const T* values, int count, I
 IMPLOT_TMP void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, ImPlotFormatter fmt, void* fmt_data=nullptr, double angle0=90, ImPlotPieChartFlags flags=0);
 IMPLOT_TMP void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* label_fmt="%.1f", double angle0=90, ImPlotPieChartFlags flags=0);
 
-// Plots a 2D heatmap chart. Values are expected to be in row-major order by default. Leave #scale_min and scale_max both at 0 for automatic color scaling, or set them to a predefined range. #label_fmt can be set to nullptr for no labels
+// Plots a 2D heatmap chart. Values are expected to be in row-major order by default. Leave #scale_min and scale_max both at 0 for automatic color scaling, or set them to a predefined range. #label_fmt can be set to nullptr for no labels.
 IMPLOT_TMP void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min = 0, double scale_max = 0, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0, 0), const ImPlotPoint& bounds_max = ImPlotPoint(1, 1), ImPlotHeatmapFlags flags = 0, int row_offset = 0, int col_offset = 0);
 IMPLOT_TMP void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* label_fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset, int row_stride, int col_stride);
 
