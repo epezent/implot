@@ -2388,26 +2388,31 @@ struct HeatmapIndexerIdx {
         MinorStride(minor_stride),
         Type(((MinorOffset == 0) << 0) | ((MajorOffset == 0) << 1) | ((MinorStride == int(sizeof(T))) << 2) | ((MajorStride == int(sizeof(T)) * num_minor) << 3))
     { }
+
     template <typename I> IMPLOT_INLINE double operator()(I idx, int count, int major, int minor, int num_major, int num_minor) const {
+        return (double)GetData(idx, count, major, minor, num_major, num_minor);
+    }
+
+    template <typename I> IMPLOT_INLINE T GetData(I idx, int count, int major, int minor, int num_major, int num_minor) const {
         // Get the data based based on the type
         switch (Type) {
-        case 15: return (double)(Data[idx]); // No offset or stride
-        case 14: return (double)(Data[(((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count]); // Minor offset
-        case 13: return (double)(Data[(MajorOffset + idx) % count]); // Major offset
-        case 12: return (double)(Data[(MajorOffset + ((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count]); // Major+minor offset
-        case 11: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((idx)) * MinorStride)); // Minor stride
-        case 10: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count) * MinorStride)); // Minor stride and minor offset
-        case  9: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((MajorOffset + idx) % count) * MinorStride)); // Minor stride and major offset
-        case  8: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((MajorOffset + ((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count) * MinorStride)); // Minor stride and major + minor offset
-        case  7: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + minor * sizeof(T))); // Major stride
-        case  6: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + ((minor + MinorOffset) % num_minor) * sizeof(T))); // Major stride and minor offset
-        case  5: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + minor * sizeof(T))); // Major stride and major offset
-        case  4: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + ((minor + MinorOffset) % num_minor) * sizeof(T))); // Major stride and major+minor offset
-        case  3: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + (size_t)((minor)) * MinorStride)); // Major+minor stride
-        case  2: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + (size_t)((minor + MinorOffset) % num_minor) * MinorStride)); // Major+minor stride and minor offset
-        case  1: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + (size_t)((minor)) * MinorStride)); // Major+minor stride and major offset
-        case  0: return (double)(*(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + (size_t)((minor + MinorOffset) % num_minor) * MinorStride)); // Major+minor stride and major+minor offset
-        default: return (double)(T(0));
+        case 15: return Data[idx]; // No offset or stride
+        case 14: return Data[(((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count]; // Minor offset
+        case 13: return Data[(MajorOffset + idx) % count]; // Major offset
+        case 12: return Data[(MajorOffset + ((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count]; // Major+minor offset
+        case 11: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((idx)) * MinorStride); // Minor stride
+        case 10: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count) * MinorStride); // Minor stride and minor offset
+        case  9: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((MajorOffset + idx) % count) * MinorStride); // Minor stride and major offset
+        case  8: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((MajorOffset + ((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count) * MinorStride); // Minor stride and major + minor offset
+        case  7: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + minor * sizeof(T)); // Major stride
+        case  6: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + ((minor + MinorOffset) % num_minor) * sizeof(T)); // Major stride and minor offset
+        case  5: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + minor * sizeof(T)); // Major stride and major offset
+        case  4: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + ((minor + MinorOffset) % num_minor) * sizeof(T)); // Major stride and major+minor offset
+        case  3: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + (size_t)((minor)) * MinorStride); // Major+minor stride
+        case  2: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + (size_t)((minor + MinorOffset) % num_minor) * MinorStride); // Major+minor stride and minor offset
+        case  1: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + (size_t)((minor)) * MinorStride); // Major+minor stride and major offset
+        case  0: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + (size_t)((minor + MinorOffset) % num_minor) * MinorStride); // Major+minor stride and major+minor offset
+        default: return T(0);
         }
     }
     const T* const Data;
@@ -2484,13 +2489,34 @@ struct GetterHeatmapColMaj {
     const ImPlotPoint HalfSize;
 };
 
+template <typename T, typename _Indexer> IMPLOT_INLINE void ImHeatmapMinMaxArray(const _Indexer& indexer, int num_major, int num_minor, T* min_out, T* max_out) {
+    const int count = num_major * num_minor;
+    T Min = indexer.GetData(0, count, 0, 0, num_major, num_minor);
+    T Max = Min;
+    for (int i = 1; i < count; ++i) {
+        const int minor = i % num_minor;
+        const int major = i / num_minor;
+        const T Value = indexer.GetData(i, count, major, minor, num_major, num_minor);
+        if (Value < Min) { Min = Value; }
+        if (Value > Max) { Max = Value; }
+    }
+    *min_out = Min; *max_out = Max;
+}
+
 template <typename T>
 void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, bool reverse_y, bool col_maj, int row_offset, int col_offset, int row_stride, int col_stride) {
     ImPlotContext& gp = *GImPlot;
     Transformer2 transformer;
     if (scale_min == 0 && scale_max == 0) {
         T temp_min, temp_max;
-        ImMinMaxArray(values,rows*cols,&temp_min,&temp_max);
+        if (col_maj) {
+            const HeatmapIndexerIdx<T> indexer(values, cols, rows, col_offset, row_offset, col_stride, row_stride);
+            ImHeatmapMinMaxArray<T, HeatmapIndexerIdx<T>>(indexer, cols, rows, &temp_min, &temp_max);
+        }
+        else {
+            const HeatmapIndexerIdx<T> indexer(values, rows, cols, row_offset, col_offset, row_stride, col_stride);
+            ImHeatmapMinMaxArray<T, HeatmapIndexerIdx<T>>(indexer, rows, cols, &temp_min, &temp_max);
+        }
         scale_min = (double)temp_min;
         scale_max = (double)temp_max;
     }
@@ -2504,7 +2530,7 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
     const double yref = reverse_y ? bounds_max.y : bounds_min.y;
     const double ydir = reverse_y ? -1 : 1;
     if (col_maj) {
-        HeatmapIndexerIdx<T> indexer(values, cols, rows, col_offset, row_offset, col_stride, row_stride);
+        const HeatmapIndexerIdx<T> indexer(values, cols, rows, col_offset, row_offset, col_stride, row_stride);
         GetterHeatmapColMaj<T, HeatmapIndexerIdx<T>> getter(indexer, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
         RenderPrimitives1<RendererRectC>(getter);
 
@@ -2533,7 +2559,7 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
         }
     }
     else {
-        HeatmapIndexerIdx<T> indexer(values, rows, cols, row_offset, col_offset, row_stride, col_stride);
+        const HeatmapIndexerIdx<T> indexer(values, rows, cols, row_offset, col_offset, row_stride, col_stride);
         GetterHeatmapRowMaj<T, HeatmapIndexerIdx<T>> getter(indexer, rows, cols, scale_min, scale_max, (bounds_max.x - bounds_min.x) / cols, (bounds_max.y - bounds_min.y) / rows, bounds_min.x, yref, ydir);
         RenderPrimitives1<RendererRectC>(getter);
 
@@ -2564,8 +2590,7 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
 }
 
 template <typename T>
-void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset)
-{
+void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags, int row_offset, int col_offset) {
     const bool col_maj = ImHasFlag(flags, ImPlotHeatmapFlags_ColMajor);
     PlotHeatmap<T>(label_id, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, flags, row_offset, col_offset, col_maj ? sizeof(T) : sizeof(T) * cols, !col_maj ? sizeof(T) : sizeof(T) * rows);
 }
