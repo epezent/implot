@@ -2002,13 +2002,10 @@ void Demo_HeatmapOffsetAndStride() {
             {ImPlotPoint(0, 0.51), ImPlotPoint(0.495, 1)}, // Lower right corner
             {ImPlotPoint(0.505, 0.51), ImPlotPoint(1, 1)}, // Upper right corner
         };
-        // Change the position row and col stride depending on whether row or column major is used
-        const int row_stride_plot_pos = row_major ? 2 : 1;
-        const int col_stride_plot_pos = !row_major ? 2 : 1;
         // Draw the plots with the strides applied
         ImPlot::PlotHeatmap("NoStride", values[0], num_rows, num_cols, scale_min, scale_max, nullptr, plot_positions[0][0], plot_positions[0][1], hm_flags, row_offset, col_offset, row_stride_offset, col_stride_offset);
-        ImPlot::PlotHeatmap("RowStride", values[0], updated_num_rows, num_cols, scale_min, scale_max, nullptr, plot_positions[row_stride_plot_pos][0], plot_positions[row_stride_plot_pos][1], hm_flags, row_offset, col_offset, row_stride_value * row_stride_offset, col_stride_offset);
-        ImPlot::PlotHeatmap("ColStride", values[0], num_rows, updated_num_cols, scale_min, scale_max, nullptr, plot_positions[col_stride_plot_pos][0], plot_positions[col_stride_plot_pos][1], hm_flags, row_offset, col_offset, row_stride_offset, col_stride_value * col_stride_offset);
+        ImPlot::PlotHeatmap("RowStride", values[0], updated_num_rows, num_cols, scale_min, scale_max, nullptr, plot_positions[1][0], plot_positions[1][1], hm_flags, row_offset, col_offset, row_stride_value * row_stride_offset, col_stride_offset);
+        ImPlot::PlotHeatmap("ColStride", values[0], num_rows, updated_num_cols, scale_min, scale_max, nullptr, plot_positions[2][0], plot_positions[2][1], hm_flags, row_offset, col_offset, row_stride_offset, col_stride_value * col_stride_offset);
         ImPlot::PlotHeatmap("RowColStride", values[0], updated_num_rows, updated_num_cols, scale_min, scale_max, nullptr, plot_positions[3][0], plot_positions[3][1], hm_flags, row_offset, col_offset, row_stride_value * row_stride_offset, col_stride_value * col_stride_offset);
         ImPlot::EndPlot();
     }
