@@ -1943,15 +1943,15 @@ void Demo_HeatmapOffsetAndStride() {
 
     static ImPlotColormap map = ImPlotColormap_Viridis;
     static ImPlotHeatmapFlags hm_flags = 0;
-	const bool row_major = (hm_flags & ImPlotHeatmapFlags_ColMajor) == ImPlotHeatmapFlags_ColMajor;
-	const int num_rows = row_major ? 12 : 6;
-	const int num_cols = row_major ? 6 : 12;
-	static int row_offset = 0;
-	static int col_offset = 0;
-	static int row_stride_value = 2;
-	static int col_stride_value = 2;
+    const bool row_major = (hm_flags & ImPlotHeatmapFlags_ColMajor) == ImPlotHeatmapFlags_ColMajor;
+    const int num_rows = row_major ? 12 : 6;
+    const int num_cols = row_major ? 6 : 12;
+    static int row_offset = 0;
+    static int col_offset = 0;
+    static int row_stride_value = 2;
+    static int col_stride_value = 2;
 
-	ImGui::DragFloatRange2("Min / Max", &scale_min, &scale_max, 0.01f, -20, 20);
+    ImGui::DragFloatRange2("Min / Max", &scale_min, &scale_max, 0.01f, -20, 20);
     ImGui::CheckboxFlags("Column Major", (unsigned int*)&hm_flags, ImPlotHeatmapFlags_ColMajor);
     ImGui::SliderInt("Row Offset", &row_offset, -3 * num_rows, 3 * num_rows);
     ImGui::SliderInt("Column Offset", &col_offset, -3 * num_cols, 3 * num_cols);
