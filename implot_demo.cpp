@@ -1942,32 +1942,17 @@ void Demo_HeatmapOffsetAndStride() {
     static const char* ylabels[] = { "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11", "R12" };
 
     static ImPlotColormap map = ImPlotColormap_Viridis;
-    if (ImPlot::ColormapButton(ImPlot::GetColormapName(map), ImVec2(225, 0), map)) {
-        map = (map + 1) % ImPlot::GetColormapCount();
-        // We bust the color cache of our plots so that item colors will
-        // resample the new colormap in the event that they have already
-        // been created. See documentation in implot.h.
-        BustColorCache("##HeatmapOffset");
-        BustColorCache("##HeatmapOffsetAndStride");
-    }
-
-    ImGui::SameLine();
-    ImGui::LabelText("##Colormap Index", "%s", "Change Colormap");
-    ImGui::SetNextItemWidth(225);
-    ImGui::DragFloatRange2("Min / Max", &scale_min, &scale_max, 0.01f, -20, 20);
-
     static ImPlotHeatmapFlags hm_flags = 0;
+	const bool row_major = (hm_flags & ImPlotHeatmapFlags_ColMajor) == ImPlotHeatmapFlags_ColMajor;
+	const int num_rows = row_major ? 12 : 6;
+	const int num_cols = row_major ? 6 : 12;
+	static int row_offset = 0;
+	static int col_offset = 0;
+	static int row_stride_value = 2;
+	static int col_stride_value = 2;
 
+	ImGui::DragFloatRange2("Min / Max", &scale_min, &scale_max, 0.01f, -20, 20);
     ImGui::CheckboxFlags("Column Major", (unsigned int*)&hm_flags, ImPlotHeatmapFlags_ColMajor);
-
-    const bool row_major = (hm_flags & ImPlotHeatmapFlags_ColMajor) == ImPlotHeatmapFlags_ColMajor;
-    const int num_rows = row_major ? 12 : 6;
-    const int num_cols = row_major ? 6 : 12;
-    static int row_offset = 0;
-    static int col_offset = 0;
-    static int row_stride_value = 2;
-    static int col_stride_value = 2;
-
     ImGui::SliderInt("Row Offset", &row_offset, -3 * num_rows, 3 * num_rows);
     ImGui::SliderInt("Column Offset", &col_offset, -3 * num_cols, 3 * num_cols);
     ImGui::SliderInt("Row Stride", &row_stride_value, 1, 4);

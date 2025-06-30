@@ -2377,8 +2377,7 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 template<typename T, typename I, int Type>
-IMPLOT_INLINE T HeatmapIndexData(const T* const data, I idx, int count, int major, int minor, int num_major, int num_minor, int major_offset, int minor_offset, int major_stride, int minor_stride)
-{
+IMPLOT_INLINE T HeatmapIndexData(const T* const data, I idx, int count, int major, int minor, int num_major, int num_minor, int major_offset, int minor_offset, int major_stride, int minor_stride) {
     // Get the data based based on the type
     switch(Type) {
     case 15: return data[idx]; // No offset or stride
