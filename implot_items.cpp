@@ -2376,30 +2376,6 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 // [SECTION] PlotHeatmap
 //-----------------------------------------------------------------------------
 
-template <typename T, typename I, int Type>
-IMPLOT_INLINE T HeatmapIndexData(const T* const data, I idx, int count, int major, int minor, int num_major, int num_minor, int major_offset, int minor_offset, int major_stride, int minor_stride) {
-    // Get the data based based on the type
-    switch(Type) {
-    case 15: return data[idx]; // No offset or stride
-    case 14: return data[(((minor + minor_offset) < num_minor ? minor_offset : (minor_offset - num_minor)) + idx) % count]; // Minor offset
-    case 13: return data[(major_offset + idx) % count]; // Major offset
-    case 12: return data[(major_offset + ((minor + minor_offset) < num_minor ? minor_offset : (minor_offset - num_minor)) + idx) % count]; // Major+minor offset
-    case 11: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((idx)) * minor_stride); // Minor stride
-    case 10: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((((minor + minor_offset) < num_minor ? minor_offset : (minor_offset - num_minor)) + idx) % count) * minor_stride); // Minor stride and minor offset
-    case 9: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major_offset + idx) % count) * minor_stride); // Minor stride and major offset
-    case 8: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major_offset + ((minor + minor_offset) < num_minor ? minor_offset : (minor_offset - num_minor)) + idx) % count) * minor_stride); // Minor stride and major + minor offset
-    case 7: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major)) * major_stride + minor * sizeof(T)); // Major stride
-    case 6: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major)) * major_stride + ((minor + minor_offset) % num_minor) * sizeof(T)); // Major stride and minor offset
-    case 5: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major + major_offset) % num_major) * major_stride + minor * sizeof(T)); // Major stride and major offset
-    case 4: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major + major_offset) % num_major) * major_stride + ((minor + minor_offset) % num_minor) * sizeof(T)); // Major stride and major+minor offset
-    case 3: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major)) * major_stride + (size_t)((minor)) * minor_stride); // Major+minor stride
-    case 2: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major)) * major_stride + (size_t)((minor + minor_offset) % num_minor) * minor_stride); // Major+minor stride and minor offset
-    case 1: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major + major_offset) % num_major) * major_stride + (size_t)((minor)) * minor_stride); // Major+minor stride and major offset
-    case 0: return *(const T*)(const void*)((const unsigned char*)data + (size_t)((major + major_offset) % num_major) * major_stride + (size_t)((minor + minor_offset) % num_minor) * minor_stride); // Major+minor stride and major+minor offset
-    default: return T(0);
-    }
-}
-
 template <typename T>
 struct HeatmapIndexerIdx {
     HeatmapIndexerIdx(const T* data, int num_major, int num_minor, int major_offset, int minor_offset, int major_stride, int minor_stride) :
@@ -2409,46 +2385,38 @@ struct HeatmapIndexerIdx {
         MajorOffset((major_stride == int(sizeof(T)) * num_minor) ? ImPosMod(num_minor * major_offset, num_minor * num_major) : ImPosMod(major_offset, num_major)),
         MinorOffset(ImPosMod(minor_offset, num_minor)),
         MajorStride(major_stride),
-        MinorStride(minor_stride)
-    {
-        const int type = ((MinorOffset == 0) << 0) | ((MajorOffset == 0) << 1) | ((MinorStride == int(sizeof(T))) << 2) | ((MajorStride == int(sizeof(T)) * num_minor) << 3);
-        // Get the data based based on the type
-        switch(type) {
-        case 15: IndexDataFunc = &(HeatmapIndexData<T, int, 15>); break;
-        case 14: IndexDataFunc = &(HeatmapIndexData<T, int, 14>); break;
-        case 13: IndexDataFunc = &(HeatmapIndexData<T, int, 13>); break;
-        case 12: IndexDataFunc = &(HeatmapIndexData<T, int, 12>); break;
-        case 11: IndexDataFunc = &(HeatmapIndexData<T, int, 11>); break;
-        case 10: IndexDataFunc = &(HeatmapIndexData<T, int, 10>); break;
-        case 9: IndexDataFunc = &(HeatmapIndexData<T, int, 9>); break;
-        case 8: IndexDataFunc = &(HeatmapIndexData<T, int, 8>); break;
-        case 7: IndexDataFunc = &(HeatmapIndexData<T, int, 7>); break;
-        case 6: IndexDataFunc = &(HeatmapIndexData<T, int, 6>); break;
-        case 5: IndexDataFunc = &(HeatmapIndexData<T, int, 5>); break;
-        case 4: IndexDataFunc = &(HeatmapIndexData<T, int, 4>); break;
-        case 3: IndexDataFunc = &(HeatmapIndexData<T, int, 3>); break;
-        case 2: IndexDataFunc = &(HeatmapIndexData<T, int, 2>); break;
-        case 1: IndexDataFunc = &(HeatmapIndexData<T, int, 1>); break;
-        case 0: IndexDataFunc = &(HeatmapIndexData<T, int, 0>); break;
-        }
-    }
+        MinorStride(minor_stride),
+        Type(((MinorOffset == 0) << 0) | ((MajorOffset == 0) << 1) | ((MinorStride == int(sizeof(T))) << 2) | ((MajorStride == int(sizeof(T)) * num_minor) << 3))
+    { }
 
     template <typename I> IMPLOT_INLINE double operator()(I idx, int count, int major, int minor, int num_major, int num_minor) const {
         return (double)GetData(idx, count, major, minor, num_major, num_minor);
     }
 
     template <typename I> IMPLOT_INLINE T GetData(I idx, int count, int major, int minor, int num_major, int num_minor) const {
-        return IndexDataFunc(Data, idx, count, major, minor, num_major, num_minor, MajorOffset, MinorOffset, MajorStride, MinorStride);
+        // Get the data based based on the type
+        switch (Type) {
+        case 15: return Data[idx]; // No offset or stride
+        case 14: return Data[(((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count]; // Minor offset
+        case 13: return Data[(MajorOffset + idx) % count]; // Major offset
+        case 12: return Data[(MajorOffset + ((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count]; // Major+minor offset
+        case 11: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((idx)) * MinorStride); // Minor stride
+        case 10: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count) * MinorStride); // Minor stride and minor offset
+        case  9: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((MajorOffset + idx) % count) * MinorStride); // Minor stride and major offset
+        case  8: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((MajorOffset + ((minor + MinorOffset) < num_minor ? MinorOffset : (MinorOffset - num_minor)) + idx) % count) * MinorStride); // Minor stride and major + minor offset
+        case  7: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + minor * sizeof(T)); // Major stride
+        case  6: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + ((minor + MinorOffset) % num_minor) * sizeof(T)); // Major stride and minor offset
+        case  5: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + minor * sizeof(T)); // Major stride and major offset
+        case  4: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + ((minor + MinorOffset) % num_minor) * sizeof(T)); // Major stride and major+minor offset
+        case  3: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + (size_t)((minor)) * MinorStride); // Major+minor stride
+        case  2: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major)) * MajorStride + (size_t)((minor + MinorOffset) % num_minor) * MinorStride); // Major+minor stride and minor offset
+        case  1: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + (size_t)((minor)) * MinorStride); // Major+minor stride and major offset
+        case  0: return *(const T*)(const void*)((const unsigned char*)Data + (size_t)((major + MajorOffset) % num_major) * MajorStride + (size_t)((minor + MinorOffset) % num_minor) * MinorStride); // Major+minor stride and major+minor offset
+        default: return T(0);
+        }
     }
     const T* const Data;
-    const int MajorOffset, MinorOffset, MajorStride, MinorStride;
-
-    template<typename K, typename I>
-    struct IndexerTypeHelper
-    {
-        typedef K (*type)(const K* const, I, int, int, int, int, int, int, int, int, int);
-    };
-    typename IndexerTypeHelper<T, int>::type IndexDataFunc;
+    const int MajorOffset, MinorOffset, MajorStride, MinorStride, Type;
 };
 
 template <typename T, typename _Indexer>
