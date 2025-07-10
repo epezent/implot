@@ -2382,7 +2382,7 @@ struct HeatmapIndexerIdx {
         Data(data),
         // If the stride does not have to be applied then use the major offset index as the number of major columns to shift by instead of applying the shift for the indexes
         // It is a bit simpler to only have to append a constant to the index instead of having to add a constant to first determine the rows and then column offsets
-        MajorOffset((major_stride == int(sizeof(T)) * num_minor) ? ImPosMod(num_minor * major_offset, num_minor * num_major) : ImPosMod(major_offset, num_major)),
+        MajorOffset((major_stride == int(sizeof(T)) * num_minor && minor_stride > 0) ? ImPosMod(num_minor * major_offset, num_minor * num_major) : ImPosMod(major_offset, num_major)),
         MinorOffset(ImPosMod(minor_offset, num_minor)),
         MajorStride(major_stride),
         MinorStride(minor_stride),
