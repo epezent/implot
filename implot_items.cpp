@@ -569,6 +569,18 @@ struct GetterXY {
     const int Count;
 };
 
+template <typename _IndexerX, typename _IndexerY, typename _IndexerZ>
+struct GetterXYZ {
+    GetterXYZ(_IndexerX x, _IndexerY y, _IndexerZ z, int count) : IndexerX(x), IndexerY(y), IndexerZ(z), Count(count) { }
+    template <typename I> IMPLOT_INLINE ImVec4 operator()(I idx) const {
+        return ImVec4((float)IndexerX(idx), (float)IndexerY(idx), (float)IndexerZ(idx), 0.f);
+    }
+    const _IndexerX IndexerX;
+    const _IndexerY IndexerY;
+    const _IndexerZ IndexerZ;
+    const int Count;
+};
+
 /// Interprets a user's function pointer as ImPlotPoints
 struct GetterFuncPtr {
     GetterFuncPtr(ImPlotGetter getter, void* data, int count) :
@@ -1353,6 +1365,105 @@ struct RendererRectC : RendererBase {
     }
     const _Getter& Getter;
     mutable ImVec2 UV;
+};
+
+template <typename _Getter>
+struct RendererContourFill : RendererBase {
+    RendererContourFill(const _Getter& getter, int x_count, int y_count, ImU32 col, float scale_min, float scale_max) :
+        RendererBase((x_count - 1) * (y_count - 1), 6, 4),
+        Getter(getter),
+        XCount(x_count), YCount(y_count),
+        Col(col),
+        ScaleMin(scale_min), ScaleMax(scale_max)
+    {}
+
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        int x = prim % (XCount - 1);
+        int y = prim / (XCount - 1);
+
+        ImVec4 p_plot[4];
+        p_plot[0] = Getter(x + y * XCount);
+        p_plot[1] = Getter(x + 1 + y * XCount);
+        p_plot[2] = Getter(x + 1 + (y + 1) * XCount);
+        p_plot[3] = Getter(x + (y + 1) * XCount);
+        
+		// Check if the coordinates of vertices and their values are valid numbers
+        if (isnan(p_plot[0].x) || isnan(p_plot[0].y) || isnan(p_plot[0].z) || isnan(p_plot[1].x) || isnan(p_plot[1].y) || isnan(p_plot[1].z)
+         || isnan(p_plot[2].x) || isnan(p_plot[2].y) || isnan(p_plot[2].z) || isnan(p_plot[3].x) || isnan(p_plot[3].y) || isnan(p_plot[3].z))
+            return false;
+
+        // Compute colors
+        ImU32 cols[4] = {Col, Col, Col, Col};
+        float alpha = GImPlot->NextItemData.FillAlpha;
+        for (int i = 0; i < 4; i++) {
+            ImVec4 col = SampleColormap(ImClamp(ImRemap01(p_plot[i].z, ScaleMin, ScaleMax), 0.0f, 1.0f));
+            col.w *= alpha;
+            cols[i] = ImGui::ColorConvertFloat4ToU32(col);
+        }
+
+        // Project the quad vertices to screen space
+        ImVec2 p[4];
+        p[0] = PlotToPixels(ImVec2(p_plot[0].x, p_plot[0].y));
+        p[1] = PlotToPixels(ImVec2(p_plot[1].x, p_plot[1].y));
+        p[2] = PlotToPixels(ImVec2(p_plot[2].x, p_plot[2].y));
+        p[3] = PlotToPixels(ImVec2(p_plot[3].x, p_plot[3].y));
+
+        // Check if the quad is outside the culling box
+        if (!cull_rect.Contains(p[0]) && !cull_rect.Contains(p[1]) &&
+            !cull_rect.Contains(p[2]) && !cull_rect.Contains(p[3]))
+            return false;
+
+        // Add vertices for two triangles
+        draw_list._VtxWritePtr[0].pos.x = p[0].x;
+        draw_list._VtxWritePtr[0].pos.y = p[0].y;
+        draw_list._VtxWritePtr[0].uv = UV;
+        draw_list._VtxWritePtr[0].col = cols[0];
+
+        draw_list._VtxWritePtr[1].pos.x = p[1].x;
+        draw_list._VtxWritePtr[1].pos.y = p[1].y;
+        draw_list._VtxWritePtr[1].uv = UV;
+        draw_list._VtxWritePtr[1].col = cols[1];
+
+        draw_list._VtxWritePtr[2].pos.x = p[2].x;
+        draw_list._VtxWritePtr[2].pos.y = p[2].y;
+        draw_list._VtxWritePtr[2].uv = UV;
+        draw_list._VtxWritePtr[2].col = cols[2];
+
+        draw_list._VtxWritePtr[3].pos.x = p[3].x;
+        draw_list._VtxWritePtr[3].pos.y = p[3].y;
+        draw_list._VtxWritePtr[3].uv = UV;
+        draw_list._VtxWritePtr[3].col = cols[3];
+
+        draw_list._VtxWritePtr += 4;
+
+        // Add indices for two triangles
+        draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+        draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 1);
+        draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 2);
+
+        draw_list._IdxWritePtr[3] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+        draw_list._IdxWritePtr[4] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 2);
+        draw_list._IdxWritePtr[5] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 3);
+
+        draw_list._IdxWritePtr += 6;
+
+        // Update vertex count
+        draw_list._VtxCurrentIdx += 4;
+
+        return true;
+    }
+
+    const _Getter& Getter;
+    mutable ImVec2 UV;
+    const int XCount;
+    const int YCount;
+    const ImU32 Col;
+    const float ScaleMin;
+    const float ScaleMax;
 };
 
 //-----------------------------------------------------------------------------
@@ -2837,6 +2948,32 @@ void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, 
     }
     PopPlotClipRect();
 }
+
+//-----------------------------------------------------------------------------
+// [SECTION] PlotContourFill
+//-----------------------------------------------------------------------------
+
+template <typename T>
+void PlotContourFill(const char* label_id, const T* xs, const T* ys, const T* zs, int x_count, int y_count, double scale_min, double scale_max, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max) {
+    int count = x_count * y_count;
+    if (count < 4)
+        return;
+    GetterXYZ<IndexerIdx<T>, IndexerIdx<T>, IndexerIdx<T>> getter(IndexerIdx<T>(xs, count), IndexerIdx<T>(ys, count), IndexerIdx<T>(zs, count), count);
+    if (BeginItemEx(label_id, FitterRect(bounds_min, bounds_max), 0, ImPlotCol_Fill)) {
+        const ImPlotNextItemData& n = GetItemData();
+
+        // Render fill
+        if (getter.Count >= 4 && n.RenderFill) {
+            const ImU32 col_fill = ImGui::GetColorU32(n.Colors[ImPlotCol_Fill]);
+            RenderPrimitives1<RendererContourFill>(getter, x_count, y_count, col_fill, scale_min, scale_max);
+        }
+        EndItem();
+    }
+}
+
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotContourFill<T>(const char* label_id, const T* xs, const T* ys, const T* zs, int x_count, int y_count, double scale_min, double scale_max, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotDummy

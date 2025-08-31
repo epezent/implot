@@ -993,6 +993,48 @@ void Demo_NaNValues() {
         ImPlot::EndPlot();
     }
 }
+//-----------------------------------------------------------------------------
+
+void Demo_ContourFill() {
+    constexpr int M = 240;
+    constexpr int N = 160;
+    static float delta = 0.025f;
+    static float xs[M * N];
+    static float ys[M * N];
+    static float zs[M * N];
+
+    static float scale_min = FLT_MAX;
+    static float scale_max = -FLT_MAX;
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            int idx = j * M + i;
+            xs[idx] = -3.f + i * delta;
+            ys[idx] = -2.f + j * delta;
+            zs[idx] = (1.f - 0.5f * xs[idx] + powf(xs[idx], 5) + powf(ys[idx], 3)) * expf(-xs[idx] * xs[idx] - ys[idx] * ys[idx]);
+            scale_min = (scale_min < zs[idx]) ? scale_min : zs[idx];
+			scale_max = (scale_max > zs[idx]) ? scale_max : zs[idx];
+        }
+    }
+
+    // Choose colormap
+    const char* colormaps[] = { "Viridis", "Plasma", "Hot", "Cool", "Pink", "Jet", "Twilight", "RdBu", "BrBG", "PiYG", "Spectral", "Greys" };
+    static int sel_colormap = 5; // Jet by default
+    ImGui::SetNextItemWidth(360);
+    ImGui::Combo("##ContourColormap", &sel_colormap, colormaps, IM_ARRAYSIZE(colormaps));
+    ImGui::SameLine();
+    ImGui::Text("Choose colormap");
+    ImGui::SetNextItemWidth(360);
+    ImGui::DragFloatRange2("Min / Max", &scale_min, &scale_max, 0.01f, -3.f, 3.f);
+
+    ImPlot::PushColormap(colormaps[sel_colormap]);
+    if (ImPlot::BeginPlot("##Contour", ImVec2(M*2, N*2))) {
+        ImPlot::PlotContourFill("Filled Contour", xs, ys, zs, M, N, scale_min, scale_max, ImPlotPoint(-3.f, -2.f), ImPlotPoint(-3.f + M * delta, -2.f + N * delta));
+        ImPlot::EndPlot();
+    }
+    ImGui::SameLine();
+    ImPlot::ColormapScale("##Z-Scale", scale_min, scale_max, ImVec2(60, N*2));
+    ImPlot::PopColormap();
+}
 
 //-----------------------------------------------------------------------------
 
@@ -2254,6 +2296,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Images", Demo_Images);
             DemoHeader("Markers and Text", Demo_MarkersAndText);
             DemoHeader("NaN Values", Demo_NaNValues);
+            DemoHeader("Filled Contour", Demo_ContourFill);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Subplots")) {
