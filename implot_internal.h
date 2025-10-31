@@ -51,7 +51,7 @@
 // Constants can be changed unless stated otherwise. We may move some of these
 // to ImPlotStyleVar_ over time.
 
-// Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
+// Minimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
 #define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
 #define IMPLOT_MAX_TIME  32503680000
@@ -198,7 +198,7 @@ static inline ImU32 ImMixU32(ImU32 a, ImU32 b, ImU32 s) {
 #endif
 }
 
-// Lerp across an array of 32-bit collors given t in [0.0 1.0]
+// Lerp across an array of 32-bit colors given t in [0.0 1.0]
 static inline ImU32 ImLerpU32(const ImU32* colors, int size, float t) {
     int i1 = (int)((size - 1 ) * t);
     int i2 = i1 + 1;

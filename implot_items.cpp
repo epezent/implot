@@ -97,7 +97,7 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
     #define IMPLOT_NUMERIC_TYPES (ImS8)(ImU8)(ImS16)(ImU16)(ImS32)(ImU32)(ImS64)(ImU64)(float)(double)
 #endif
 
-// CALL_INSTANTIATE_FOR_NUMERIC_TYPES will duplicate the template instantion code `INSTANTIATE_MACRO(T)` on supported types.
+// CALL_INSTANTIATE_FOR_NUMERIC_TYPES will duplicate the template instantiation code `INSTANTIATE_MACRO(T)` on supported types.
 #define _CAT(x, y) _CAT_(x, y)
 #define _CAT_(x,y) x ## y
 #define _INSTANTIATE_FOR_NUMERIC_TYPES(chain) _CAT(_INSTANTIATE_FOR_NUMERIC_TYPES_1 chain, _END)
