@@ -48,6 +48,8 @@
 #include "imgui.h"
 #ifndef IMGUI_DISABLE
 
+#include <limits.h>     // INT_MAX
+
 //-----------------------------------------------------------------------------
 // [SECTION] Macros and Defines
 //-----------------------------------------------------------------------------
@@ -68,6 +70,8 @@
 #define IMPLOT_AUTO_COL ImVec4(0,0,0,-1)
 // Macro for templated plotting functions; keeps header clean.
 #define IMPLOT_TMP template <typename T> IMPLOT_API
+// Default stride to use for heatmaps
+#define IMPLOT_DEFAULT_HEATMAP_STRIDE INT_MAX
 
 //-----------------------------------------------------------------------------
 // [SECTION] Enums and Types
@@ -899,7 +903,7 @@ IMPLOT_TMP void PlotPieChart(const char* const label_ids[], const T* values, int
 IMPLOT_TMP void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* label_fmt="%.1f", double angle0=90, ImPlotPieChartFlags flags=0);
 
 // Plots a 2D heatmap chart. Values are expected to be in row-major order by default. Leave #scale_min and scale_max both at 0 for automatic color scaling, or set them to a predefined range. #label_fmt can be set to nullptr for no labels.
-IMPLOT_TMP void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min=0, double scale_max=0, const char* label_fmt="%.1f", const ImPlotPoint& bounds_min=ImPlotPoint(0,0), const ImPlotPoint& bounds_max=ImPlotPoint(1,1), ImPlotHeatmapFlags flags=0);
+IMPLOT_TMP void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min = 0, double scale_max = 0, const char* label_fmt = "%.1f", const ImPlotPoint& bounds_min = ImPlotPoint(0, 0), const ImPlotPoint& bounds_max = ImPlotPoint(1, 1), ImPlotHeatmapFlags flags = 0, int row_offset = 0, int col_offset = 0, int row_stride = IMPLOT_DEFAULT_HEATMAP_STRIDE, int col_stride = IMPLOT_DEFAULT_HEATMAP_STRIDE);
 
 // Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBin_ method. If #range is left unspecified, the min/max of #values will be used as the range.
 // Otherwise, outlier values outside of the range are not binned. The largest bin count or density is returned.
