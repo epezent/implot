@@ -2630,6 +2630,11 @@ void SetupFinish() {
         }
     }
 
+    // cache previous ranges
+    for(int i = 0; i < ImAxis_COUNT; i++) {
+        plot.Axes[i].PreviousRange = ImPlotRange(plot.Axes[i].Range.Min, plot.Axes[i].Range.Max);
+    }
+
     // INPUT ------------------------------------------------------------------
     if (!ImHasFlag(plot.Flags, ImPlotFlags_NoInputs))
         UpdateInput(plot);
@@ -3745,6 +3750,16 @@ bool IsPlotHovered() {
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "IsPlotHovered() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
     return gp.CurrentPlot->Hovered;
+}
+
+bool IsAxisRangeChanging(ImAxis axis) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "IsAxisRangeChanging() needs to be called between BeginPlot() and EndPlot()!");
+    SetupLock();
+    ImPlotPlot& plot = *gp.CurrentPlot;
+    bool isMinDifferent = plot.Axes[axis].Range.Min != plot.Axes[axis].PreviousRange.Min;
+    bool isMaxDifferent = plot.Axes[axis].Range.Max != plot.Axes[axis].PreviousRange.Max;
+    return isMinDifferent || isMaxDifferent;
 }
 
 bool IsAxisHovered(ImAxis axis) {
