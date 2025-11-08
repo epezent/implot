@@ -421,6 +421,7 @@ struct ImPlotColormapData {
 // ImPlotPoint with positive/negative error values
 struct ImPlotPointError {
     double X, Y, Neg, Pos;
+    ImPlotPointError() { X = 0; Y = 0; Neg = 0; Pos = 0; }
     ImPlotPointError(double x, double y, double neg, double pos) {
         X = x; Y = y; Neg = neg; Pos = pos;
     }
@@ -487,6 +488,14 @@ struct ImPlotTag {
     ImU32  ColorBg;
     ImU32  ColorFg;
     int    TextOffset;
+
+    ImPlotTag() {
+        Axis       = 0;
+        Value      = 0;
+        ColorBg    = 0;
+        ColorFg    = 0;
+        TextOffset = 0;
+    }
 };
 
 struct ImPlotTagCollection {
@@ -540,6 +549,17 @@ struct ImPlotTick
     bool   ShowLabel;
     int    Level;
     int    Idx;
+
+    ImPlotTick() {
+        PlotPos      = 0;
+        PixelPos     = 0;
+        LabelSize    = ImVec2(0,0);
+        TextOffset   = -1;
+        Major        = false;
+        ShowLabel    = false;
+        Level        = 0;
+        Idx          = -1;
+    }
 
     ImPlotTick(double value, bool major, int level, bool show_label) {
         PixelPos     = 0;
