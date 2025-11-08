@@ -1,6 +1,7 @@
 // MIT License
 
-// Copyright (c) 2023 Evan Pezent
+// Copyright (c) 2020-2024 Evan Pezent
+// Copyright (c) 2025 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -51,7 +52,7 @@
 // Constants can be changed unless stated otherwise. We may move some of these
 // to ImPlotStyleVar_ over time.
 
-// Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
+// Minimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
 #define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
 #define IMPLOT_MAX_TIME  32503680000
@@ -198,7 +199,7 @@ static inline ImU32 ImMixU32(ImU32 a, ImU32 b, ImU32 s) {
 #endif
 }
 
-// Lerp across an array of 32-bit collors given t in [0.0 1.0]
+// Lerp across an array of 32-bit colors given t in [0.0 1.0]
 static inline ImU32 ImLerpU32(const ImU32* colors, int size, float t) {
     int i1 = (int)((size - 1 ) * t);
     int i2 = i1 + 1;
@@ -420,6 +421,7 @@ struct ImPlotColormapData {
 // ImPlotPoint with positive/negative error values
 struct ImPlotPointError {
     double X, Y, Neg, Pos;
+    ImPlotPointError() { X = 0; Y = 0; Neg = 0; Pos = 0; }
     ImPlotPointError(double x, double y, double neg, double pos) {
         X = x; Y = y; Neg = neg; Pos = pos;
     }
@@ -486,6 +488,14 @@ struct ImPlotTag {
     ImU32  ColorBg;
     ImU32  ColorFg;
     int    TextOffset;
+
+    ImPlotTag() {
+        Axis       = 0;
+        Value      = 0;
+        ColorBg    = 0;
+        ColorFg    = 0;
+        TextOffset = 0;
+    }
 };
 
 struct ImPlotTagCollection {
@@ -539,6 +549,17 @@ struct ImPlotTick
     bool   ShowLabel;
     int    Level;
     int    Idx;
+
+    ImPlotTick() {
+        PlotPos      = 0;
+        PixelPos     = 0;
+        LabelSize    = ImVec2(0,0);
+        TextOffset   = -1;
+        Major        = false;
+        ShowLabel    = false;
+        Level        = 0;
+        Idx          = -1;
+    }
 
     ImPlotTick(double value, bool major, int level, bool show_label) {
         PixelPos     = 0;
@@ -1679,10 +1700,10 @@ static inline int Formatter_Time(double, char* buff, int size, void* data) {
 // [SECTION] Locator
 //------------------------------------------------------------------------------
 
-void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
-void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
-void Locator_Log10(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
-void Locator_SymLog(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+IMPLOT_API void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+IMPLOT_API void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+IMPLOT_API void Locator_Log10(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+IMPLOT_API void Locator_SymLog(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
 
 } // namespace ImPlot
 
