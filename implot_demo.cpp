@@ -379,8 +379,8 @@ void Demo_ShadedPlots() {
     ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
 
     if (ImPlot::BeginPlot("Shaded Plots")) {
-		ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Reverse); // reverse legend to match vertical order on plot
-		ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
+        ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Reverse); // reverse legend to match vertical order on plot
+        ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
         ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
         ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
         ImPlot::PlotShaded("Overlapping",xs,ys3,ys4,1001);
