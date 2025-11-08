@@ -2204,7 +2204,7 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col, bool detached = false) {
     const float resolution = 50 / (2 * IM_PI);
     ImVec2 buffer[52];
-    
+
     int n = ImMax(3, (int)((a1 - a0) * resolution));
     double da = (a1 - a0) / (n - 1);
     int i = 0;
@@ -2212,14 +2212,14 @@ IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& cent
     if (detached) {
         const double offset = 0.08; // Offset of the detached slice
         const double width_scale = 0.95; // Scale factor for the width of the detached slice
-        
+
         double a_mid = (a0 + a1) / 2;
         double new_a0 = a_mid - (a1 - a0) * width_scale / 2;
         double new_a1 = a_mid + (a1 - a0) * width_scale / 2;
         double new_da = (new_a1 - new_a0) / (n - 1);
-        
+
         ImPlotPoint offsetCenter(center.x + offset * cos(a_mid), center.y + offset * sin(a_mid));
-        
+
         // Start point (center of the offset)
         buffer[0] = PlotToPixels(offsetCenter, IMPLOT_AUTO, IMPLOT_AUTO);
 
@@ -2237,17 +2237,17 @@ IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& cent
         for (; i < n; ++i) {
             double a = a0 + i * da;
             buffer[i + 1] = PlotToPixels(
-                center.x + radius * cos(a), 
-                center.y + radius * sin(a), 
+                center.x + radius * cos(a),
+                center.y + radius * sin(a),
                 IMPLOT_AUTO, IMPLOT_AUTO);
         }
     }
     // Close the shape
     buffer[i + 1] = buffer[0];
-    
+
     // fill
     draw_list.AddConvexPolyFilled(buffer, n + 2, col);
-    
+
     // border (for AA)
     draw_list.AddPolyline(buffer, n + 2, col, 0, 2.0f);
 }
@@ -2318,7 +2318,7 @@ void PlotPieChartEx(const char* const label_ids[], const T* values, int count, I
 int PieChartFormatter(double value, char* buff, int size, void* data) {
     const char* fmt = (const char*)data;
     return snprintf(buff, size, fmt, value);
-};
+}
 
 template <typename T>
 void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags) {
@@ -2358,7 +2358,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
                     ImVec2 size = ImGui::CalcTextSize(buffer);
                     double angle = a0 + (a1 - a0) * 0.5;
                     const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
-                    const double offset = (hovered ? 0.6 : 0.5) * radius; 
+                    const double offset = (hovered ? 0.6 : 0.5) * radius;
                     ImVec2 pos = PlotToPixels(center.x + offset * cos(angle), center.y + offset * sin(angle), IMPLOT_AUTO, IMPLOT_AUTO);
                     ImU32 col = CalcTextColor(ImGui::ColorConvertU32ToFloat4(item->Color));
                     draw_list.AddText(pos - size * 0.5f, col, buffer);
