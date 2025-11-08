@@ -1,6 +1,7 @@
 // MIT License
 
-// Copyright (c) 2023 Evan Pezent
+// Copyright (c) 2020-2024 Evan Pezent
+// Copyright (c) 2025 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +56,7 @@
 // Define attributes of all API symbols declarations (e.g. for DLL under Windows)
 // Using ImPlot via a shared library is not recommended, because we don't guarantee
 // backward nor forward ABI compatibility and also function call overhead. If you
-// do use ImPlot as a DLL, be sure to call SetImGuiContext (see Miscellanous section).
+// do use ImPlot as a DLL, be sure to call SetImGuiContext (see Miscellaneous section).
 #ifndef IMPLOT_API
 #define IMPLOT_API
 #endif
@@ -123,14 +124,14 @@ enum ImAxis_ {
     ImAxis_Y1,     // enabled by default
     ImAxis_Y2,     // disabled by default
     ImAxis_Y3,     // disabled by default
-    // bookeeping
+    // bookkeeping
     ImAxis_COUNT
 };
 
 // Options for plots (see BeginPlot).
 enum ImPlotFlags_ {
     ImPlotFlags_None          = 0,       // default
-    ImPlotFlags_NoTitle       = 1 << 0,  // the plot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MyPlot")
+    ImPlotFlags_NoTitle       = 1 << 0,  // the plot title will not be displayed (titles are also hidden if preceded by double hashes, e.g. "##MyPlot")
     ImPlotFlags_NoLegend      = 1 << 1,  // the legend will not be displayed
     ImPlotFlags_NoMouseText   = 1 << 2,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
     ImPlotFlags_NoInputs      = 1 << 3,  // the user will not be able to interact with the plot
@@ -169,7 +170,7 @@ enum ImPlotAxisFlags_ {
 // Options for subplots (see BeginSubplot)
 enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_None        = 0,       // default
-    ImPlotSubplotFlags_NoTitle     = 1 << 0,  // the subplot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MySubplot")
+    ImPlotSubplotFlags_NoTitle     = 1 << 0,  // the subplot title will not be displayed (titles are also hidden if preceded by double hashes, e.g. "##MySubplot")
     ImPlotSubplotFlags_NoLegend    = 1 << 1,  // the legend will not be displayed (only applicable if ImPlotSubplotFlags_ShareItems is enabled)
     ImPlotSubplotFlags_NoMenus     = 1 << 2,  // the user will not be able to open context menus with right-click
     ImPlotSubplotFlags_NoResize    = 1 << 3,  // resize splitters between subplot cells will be not be provided
@@ -305,7 +306,7 @@ enum ImPlotHistogramFlags_ {
     ImPlotHistogramFlags_Horizontal = 1 << 10, // histogram bars will be rendered horizontally (not supported by PlotHistogram2D)
     ImPlotHistogramFlags_Cumulative = 1 << 11, // each bin will contain its count plus the counts of all previous bins (not supported by PlotHistogram2D)
     ImPlotHistogramFlags_Density    = 1 << 12, // counts will be normalized, i.e. the PDF will be visualized, or the CDF will be visualized if Cumulative is also set
-    ImPlotHistogramFlags_NoOutliers = 1 << 13, // exclude values outside the specifed histogram range from the count toward normalizing and cumulative counts
+    ImPlotHistogramFlags_NoOutliers = 1 << 13, // exclude values outside the specified histogram range from the count toward normalizing and cumulative counts
     ImPlotHistogramFlags_ColMajor   = 1 << 14  // data will be read in column major order (not supported by PlotHistogram)
 };
 
@@ -355,7 +356,7 @@ enum ImPlotCol_ {
     ImPlotCol_LegendText,    // legend text color (defaults to ImPlotCol_InlayText)
     ImPlotCol_TitleText,     // plot title text color (defaults to ImGuiCol_Text)
     ImPlotCol_InlayText,     // color of text appearing inside of plots (defaults to ImGuiCol_Text)
-    ImPlotCol_AxisText,      // axis label and tick lables color (defaults to ImGuiCol_Text)
+    ImPlotCol_AxisText,      // axis label and tick labels color (defaults to ImGuiCol_Text)
     ImPlotCol_AxisGrid,      // axis grid color (defaults to 25% ImPlotCol_AxisText)
     ImPlotCol_AxisTick,      // axis tick color (defaults to AxisGrid)
     ImPlotCol_AxisBg,        // background color of axis hover region (defaults to transparent)
@@ -404,7 +405,7 @@ enum ImPlotStyleVar_ {
 enum ImPlotScale_ {
     ImPlotScale_Linear = 0, // default linear scale
     ImPlotScale_Time,       // date/time scale
-    ImPlotScale_Log10,      // base 10 logartithmic scale
+    ImPlotScale_Log10,      // base 10 logarithmic scale
     ImPlotScale_SymLog,     // symmetric log scale
 };
 
@@ -645,7 +646,7 @@ IMPLOT_API void EndPlot();
 
 // Starts a subdivided plotting context. If the function returns true,
 // EndSubplots() MUST be called! Call BeginPlot/EndPlot AT MOST [rows*cols]
-// times in  between the begining and end of the subplot context. Plots are
+// times in  between the beginning and end of the subplot context. Plots are
 // added in row major order.
 //
 // Example:
@@ -746,7 +747,7 @@ IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, c
 IMPLOT_API void SetupAxisTicks(ImAxis axis, double v_min, double v_max, int n_ticks, const char* const labels[]=nullptr, bool keep_default=false);
 // Sets an axis' scale using built-in options.
 IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotScale scale);
-// Sets an axis' scale using user supplied forward and inverse transfroms.
+// Sets an axis' scale using user supplied forward and inverse transforms.
 IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotTransform forward, ImPlotTransform inverse, void* data=nullptr);
 // Sets an axis' limits constraints.
 IMPLOT_API void SetupAxisLimitsConstraints(ImAxis axis, double v_min, double v_max);
@@ -776,7 +777,7 @@ IMPLOT_API void SetupFinish();
 // using a preceding button or slider widget to change the plot limits). In
 // this case, you can use the `SetNext` API below. While this is not as feature
 // rich as the Setup API, most common needs are provided. These functions can be
-// called anwhere except for inside of `Begin/EndPlot`. For example:
+// called anywhere except for inside of `Begin/EndPlot`. For example:
 
 // if (ImGui::Button("Center Plot"))
 //     ImPlot::SetNextPlotLimits(-1,1,-1,1);
@@ -806,7 +807,7 @@ IMPLOT_API void SetNextAxesToFit();
 // [SECTION] Plot Items
 //-----------------------------------------------------------------------------
 
-// The main plotting API is provied below. Call these functions between
+// The main plotting API is provided below. Call these functions between
 // Begin/EndPlot and after any Setup API calls. Each plots data on the current
 // x and y axes, which can be changed with `SetAxis/Axes`.
 //
@@ -978,7 +979,7 @@ IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImAxis x_axis = IMPLOT_AUTO, 
 
 // Get the current Plot position (top-left) in pixels.
 IMPLOT_API ImVec2 GetPlotPos();
-// Get the curent Plot size in pixels.
+// Get the current Plot size in pixels.
 IMPLOT_API ImVec2 GetPlotSize();
 
 // Returns the mouse position in x,y coordinates of the current plot. Passing IMPLOT_AUTO uses the current axes.
@@ -1084,7 +1085,7 @@ IMPLOT_API void EndDragDropSource();
 //        manually set these colors to whatever you like, and further can Push/Pop
 //        them around individual plots for plot-specific styling (e.g. coloring axes).
 
-// Provides access to plot style structure for permanant modifications to colors, sizes, etc.
+// Provides access to plot style structure for permanent modifications to colors, sizes, etc.
 IMPLOT_API ImPlotStyle& GetStyle();
 
 // Style plot colors for current ImGui style (default).
@@ -1191,11 +1192,11 @@ IMPLOT_API ImVec4 SampleColormap(float t, ImPlotColormap cmap = IMPLOT_AUTO);
 IMPLOT_API void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0), const char* format = "%g", ImPlotColormapScaleFlags flags = 0, ImPlotColormap cmap = IMPLOT_AUTO);
 // Shows a horizontal slider with a colormap gradient background. Optionally returns the color sampled at t in [0 1].
 IMPLOT_API bool ColormapSlider(const char* label, float* t, ImVec4* out = nullptr, const char* format = "", ImPlotColormap cmap = IMPLOT_AUTO);
-// Shows a button with a colormap gradient brackground.
+// Shows a button with a colormap gradient background.
 IMPLOT_API bool ColormapButton(const char* label, const ImVec2& size = ImVec2(0,0), ImPlotColormap cmap = IMPLOT_AUTO);
 
 // When items in a plot sample their color from a colormap, the color is cached and does not change
-// unless explicitly overriden. Therefore, if you change the colormap after the item has already been plotted,
+// unless explicitly overridden. Therefore, if you change the colormap after the item has already been plotted,
 // item colors will NOT update. If you need item colors to resample the new colormap, then use this
 // function to bust the cached colors. If #plot_title_id is nullptr, then every item in EVERY existing plot
 // will be cache busted. Otherwise only the plot specified by #plot_title_id will be busted. For the
@@ -1207,7 +1208,7 @@ IMPLOT_API void BustColorCache(const char* plot_title_id = nullptr);
 // [SECTION] Input Mapping
 //-----------------------------------------------------------------------------
 
-// Provides access to input mapping structure for permanant modifications to controls for pan, select, etc.
+// Provides access to input mapping structure for permanent modifications to controls for pan, select, etc.
 IMPLOT_API ImPlotInputMap& GetInputMap();
 
 // Default input mapping: pan = LMB drag, box select = RMB drag, fit = LMB double click, context menu = RMB click, zoom = scroll.
