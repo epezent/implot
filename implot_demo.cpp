@@ -1,6 +1,7 @@
 // MIT License
 
-// Copyright (c) 2023 Evan Pezent
+// Copyright (c) 2020-2024 Evan Pezent
+// Copyright (c) 2025 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +29,7 @@
 #endif
 
 #include "implot.h"
+#ifndef IMGUI_DISABLE
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +44,8 @@
 #endif
 
 #define CHECKBOX_FLAG(flags, flag) ImGui::CheckboxFlags(#flag, (unsigned int*)&flags, flag)
+
+#if !defined(IMGUI_DISABLE_DEMO_WINDOWS)
 
 // Encapsulates examples for customizing ImPlot.
 namespace MyImPlot {
@@ -375,6 +379,7 @@ void Demo_ShadedPlots() {
     ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
 
     if (ImPlot::BeginPlot("Shaded Plots")) {
+        ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Reverse); // reverse legend to match vertical order on plot
         ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
         ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
         ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
@@ -612,6 +617,7 @@ void Demo_PieCharts() {
     ImGui::DragFloat4("Values", data1, 0.01f, 0, 1);
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Normalize);
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_IgnoreHidden);
+    CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Exploding);
 
     if (ImPlot::BeginPlot("##Pie1", ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
@@ -867,7 +873,14 @@ void Demo_Images() {
     ImGui::SliderFloat2("UV1", &uv1.x, -2, 2, "%.1f");
     ImGui::ColorEdit4("Tint",&tint.x);
     if (ImPlot::BeginPlot("##image")) {
-        ImPlot::PlotImage("my image",ImGui::GetIO().Fonts->TexID, bmin, bmax, uv0, uv1, tint);
+#ifdef IMGUI_HAS_TEXTURES
+        // We use the font atlas ImTextureRef for this demo, but in your real code when you submit
+        // an image that you have loaded yourself, you would normally have a ImTextureID which works
+        // just as well (as ImTextureRef can be constructed from ImTextureID).
+        ImPlot::PlotImage("my image", ImGui::GetIO().Fonts->TexRef, bmin, bmax, uv0, uv1, tint);
+#else
+        ImPlot::PlotImage("my image", ImGui::GetIO().Fonts->TexID, bmin, bmax, uv0, uv1, tint);
+#endif
         ImPlot::EndPlot();
     }
 }
@@ -1386,7 +1399,7 @@ void Demo_LegendOptions() {
 
     static int num_dummy_items = 25;
     ImGui::SliderInt("Num Dummy Items (Demo Scrolling)", &num_dummy_items, 0, 100);
-    
+
     if (ImPlot::BeginPlot("##Legend",ImVec2(-1,0))) {
         ImPlot::SetupLegend(loc, flags);
         static MyImPlot::WaveData data1(0.001, 0.2, 4, 0.2);
@@ -1405,11 +1418,11 @@ void Demo_LegendOptions() {
             char label[16];
             snprintf(label, sizeof(label), "Item %03d", i+4);
             ImPlot::PlotDummy(label);
-        }        
+        }
         ImPlot::EndPlot();
     }
-} 
-    
+}
+
 //-----------------------------------------------------------------------------
 
 void Demo_DragPoints() {
@@ -1948,7 +1961,7 @@ void Demo_CustomDataAndGetters() {
         ImPlot::PopStyleVar();
 
         // you can also pass C++ lambdas:
-        // auto lamda = [](void* data, int idx) { ... return ImPlotPoint(x,y); };
+        // auto lambda = [](void* data, int idx) { ... return ImPlotPoint(x,y); };
         // ImPlot::PlotLine("My Lambda", lambda, data, 1000);
 
         ImPlot::EndPlot();
@@ -2210,7 +2223,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::EndMenuBar();
     }
     //-------------------------------------------------------------------------
-    ImGui::Text("ImPlot says hello. (%s)", IMPLOT_VERSION);
+    ImGui::Text("ImPlot says hello! (%s) (%d)", IMPLOT_VERSION, IMPLOT_VERSION_NUM);
     // display warning about 16-bit indices
     static bool showWarning = sizeof(ImDrawIdx)*8 == 16 && (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) == false;
     if (showWarning) {
@@ -2388,11 +2401,11 @@ void StyleSeaborn() {
     style.PlotMinSize      = ImVec2(300,225);
 }
 
-} // namespaece MyImPlot
+} // namespace MyImPlot
 
 // WARNING:
 //
-// You can use "implot_internal.h" to build custom plotting fuctions or extend ImPlot.
+// You can use "implot_internal.h" to build custom plotting functions or extend ImPlot.
 // However, note that forward compatibility of this file is not guaranteed and the
 // internal API is subject to change. At some point we hope to bring more of this
 // into the public API and expose the necessary building blocks to fully support
@@ -2477,3 +2490,11 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
 }
 
 } // namespace MyImplot
+
+#else
+
+void ImPlot::ShowDemoWindow(bool* p_open) {}
+
+#endif
+
+#endif // #ifndef IMGUI_DISABLE
