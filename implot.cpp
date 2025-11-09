@@ -652,7 +652,7 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
     }
     // render
     for (int i = 0; i < num_items; ++i) {
-        const int idx           = indices[i];
+        const int idx           = ImHasFlag(items.Legend.Flags, ImPlotLegendFlags_Reverse) ? indices[num_items - 1 - i] : indices[i];
         ImPlotItem* item        = items.GetLegendItem(idx);
         const char* label       = items.GetLegendLabel(idx);
         const float label_width = ImGui::CalcTextSize(label, nullptr, true).x;
