@@ -1,6 +1,7 @@
 // MIT License
 
-// Copyright (c) 2023 Evan Pezent
+// Copyright (c) 2020-2024 Evan Pezent
+// Copyright (c) 2025 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -378,6 +379,7 @@ void Demo_ShadedPlots() {
     ImGui::DragFloat("Alpha",&alpha,0.01f,0,1);
 
     if (ImPlot::BeginPlot("Shaded Plots")) {
+        ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Reverse); // reverse legend to match vertical order on plot
         ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, alpha);
         ImPlot::PlotShaded("Uncertain Data",xs,ys1,ys2,1001);
         ImPlot::PlotLine("Uncertain Data", xs, ys, 1001);
@@ -1959,7 +1961,7 @@ void Demo_CustomDataAndGetters() {
         ImPlot::PopStyleVar();
 
         // you can also pass C++ lambdas:
-        // auto lamda = [](void* data, int idx) { ... return ImPlotPoint(x,y); };
+        // auto lambda = [](void* data, int idx) { ... return ImPlotPoint(x,y); };
         // ImPlot::PlotLine("My Lambda", lambda, data, 1000);
 
         ImPlot::EndPlot();
@@ -2221,7 +2223,7 @@ void ShowDemoWindow(bool* p_open) {
         ImGui::EndMenuBar();
     }
     //-------------------------------------------------------------------------
-    ImGui::Text("ImPlot says hello. (%s)", IMPLOT_VERSION);
+    ImGui::Text("ImPlot says hello! (%s) (%d)", IMPLOT_VERSION, IMPLOT_VERSION_NUM);
     // display warning about 16-bit indices
     static bool showWarning = sizeof(ImDrawIdx)*8 == 16 && (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) == false;
     if (showWarning) {
@@ -2399,11 +2401,11 @@ void StyleSeaborn() {
     style.PlotMinSize      = ImVec2(300,225);
 }
 
-} // namespaece MyImPlot
+} // namespace MyImPlot
 
 // WARNING:
 //
-// You can use "implot_internal.h" to build custom plotting fuctions or extend ImPlot.
+// You can use "implot_internal.h" to build custom plotting functions or extend ImPlot.
 // However, note that forward compatibility of this file is not guaranteed and the
 // internal API is subject to change. At some point we hope to bring more of this
 // into the public API and expose the necessary building blocks to fully support

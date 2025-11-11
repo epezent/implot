@@ -1,6 +1,7 @@
 // MIT License
 
-// Copyright (c) 2023 Evan Pezent
+// Copyright (c) 2020-2024 Evan Pezent
+// Copyright (c) 2025 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -55,13 +56,15 @@
 // Define attributes of all API symbols declarations (e.g. for DLL under Windows)
 // Using ImPlot via a shared library is not recommended, because we don't guarantee
 // backward nor forward ABI compatibility and also function call overhead. If you
-// do use ImPlot as a DLL, be sure to call SetImGuiContext (see Miscellanous section).
+// do use ImPlot as a DLL, be sure to call SetImGuiContext (see Miscellaneous section).
 #ifndef IMPLOT_API
 #define IMPLOT_API
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "0.17"
+#define IMPLOT_VERSION "0.17 WIP"
+// ImPlot version integer encoded as XYYZZ (X=major, YY=minor, ZZ=patch).
+#define IMPLOT_VERSION_NUM 1700
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
@@ -123,14 +126,14 @@ enum ImAxis_ {
     ImAxis_Y1,     // enabled by default
     ImAxis_Y2,     // disabled by default
     ImAxis_Y3,     // disabled by default
-    // bookeeping
+    // bookkeeping
     ImAxis_COUNT
 };
 
 // Options for plots (see BeginPlot).
 enum ImPlotFlags_ {
     ImPlotFlags_None          = 0,       // default
-    ImPlotFlags_NoTitle       = 1 << 0,  // the plot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MyPlot")
+    ImPlotFlags_NoTitle       = 1 << 0,  // the plot title will not be displayed (titles are also hidden if preceded by double hashes, e.g. "##MyPlot")
     ImPlotFlags_NoLegend      = 1 << 1,  // the legend will not be displayed
     ImPlotFlags_NoMouseText   = 1 << 2,  // the mouse position, in plot coordinates, will not be displayed inside of the plot
     ImPlotFlags_NoInputs      = 1 << 3,  // the user will not be able to interact with the plot
@@ -169,7 +172,7 @@ enum ImPlotAxisFlags_ {
 // Options for subplots (see BeginSubplot)
 enum ImPlotSubplotFlags_ {
     ImPlotSubplotFlags_None        = 0,       // default
-    ImPlotSubplotFlags_NoTitle     = 1 << 0,  // the subplot title will not be displayed (titles are also hidden if preceeded by double hashes, e.g. "##MySubplot")
+    ImPlotSubplotFlags_NoTitle     = 1 << 0,  // the subplot title will not be displayed (titles are also hidden if preceded by double hashes, e.g. "##MySubplot")
     ImPlotSubplotFlags_NoLegend    = 1 << 1,  // the legend will not be displayed (only applicable if ImPlotSubplotFlags_ShareItems is enabled)
     ImPlotSubplotFlags_NoMenus     = 1 << 2,  // the user will not be able to open context menus with right-click
     ImPlotSubplotFlags_NoResize    = 1 << 3,  // resize splitters between subplot cells will be not be provided
@@ -192,6 +195,7 @@ enum ImPlotLegendFlags_ {
     ImPlotLegendFlags_Outside         = 1 << 4, // legend will be rendered outside of the plot area
     ImPlotLegendFlags_Horizontal      = 1 << 5, // legend entries will be displayed horizontally
     ImPlotLegendFlags_Sort            = 1 << 6, // legend entries will be displayed in alphabetical order
+    ImPlotLegendFlags_Reverse         = 1 << 7, // legend entries will be displayed in reverse order
 };
 
 // Options for mouse hover text (see SetupMouseText)
@@ -305,7 +309,7 @@ enum ImPlotHistogramFlags_ {
     ImPlotHistogramFlags_Horizontal = 1 << 10, // histogram bars will be rendered horizontally (not supported by PlotHistogram2D)
     ImPlotHistogramFlags_Cumulative = 1 << 11, // each bin will contain its count plus the counts of all previous bins (not supported by PlotHistogram2D)
     ImPlotHistogramFlags_Density    = 1 << 12, // counts will be normalized, i.e. the PDF will be visualized, or the CDF will be visualized if Cumulative is also set
-    ImPlotHistogramFlags_NoOutliers = 1 << 13, // exclude values outside the specifed histogram range from the count toward normalizing and cumulative counts
+    ImPlotHistogramFlags_NoOutliers = 1 << 13, // exclude values outside the specified histogram range from the count toward normalizing and cumulative counts
     ImPlotHistogramFlags_ColMajor   = 1 << 14  // data will be read in column major order (not supported by PlotHistogram)
 };
 
@@ -355,7 +359,7 @@ enum ImPlotCol_ {
     ImPlotCol_LegendText,    // legend text color (defaults to ImPlotCol_InlayText)
     ImPlotCol_TitleText,     // plot title text color (defaults to ImGuiCol_Text)
     ImPlotCol_InlayText,     // color of text appearing inside of plots (defaults to ImGuiCol_Text)
-    ImPlotCol_AxisText,      // axis label and tick lables color (defaults to ImGuiCol_Text)
+    ImPlotCol_AxisText,      // axis label and tick labels color (defaults to ImGuiCol_Text)
     ImPlotCol_AxisGrid,      // axis grid color (defaults to 25% ImPlotCol_AxisText)
     ImPlotCol_AxisTick,      // axis tick color (defaults to AxisGrid)
     ImPlotCol_AxisBg,        // background color of axis hover region (defaults to transparent)
@@ -404,7 +408,7 @@ enum ImPlotStyleVar_ {
 enum ImPlotScale_ {
     ImPlotScale_Linear = 0, // default linear scale
     ImPlotScale_Time,       // date/time scale
-    ImPlotScale_Log10,      // base 10 logartithmic scale
+    ImPlotScale_Log10,      // base 10 logarithmic scale
     ImPlotScale_SymLog,     // symmetric log scale
 };
 
@@ -469,11 +473,11 @@ enum ImPlotBin_ {
 IM_MSVC_RUNTIME_CHECKS_OFF
 struct ImPlotPoint {
     double x, y;
-    constexpr ImPlotPoint()                     : x(0.0), y(0.0) { }
-    constexpr ImPlotPoint(double _x, double _y) : x(_x), y(_y) { }
-    constexpr ImPlotPoint(const ImVec2& p)      : x((double)p.x), y((double)p.y) { }
-    double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1); return ((double*)(void*)(char*)this)[idx]; }
-    double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1); return ((const double*)(const void*)(const char*)this)[idx]; }
+    IMPLOT_API constexpr ImPlotPoint()                     : x(0.0), y(0.0) { }
+    IMPLOT_API constexpr ImPlotPoint(double _x, double _y) : x(_x), y(_y) { }
+    IMPLOT_API constexpr ImPlotPoint(const ImVec2& p)      : x((double)p.x), y((double)p.y) { }
+    IMPLOT_API double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1); return ((double*)(void*)(char*)this)[idx]; }
+    IMPLOT_API double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1); return ((const double*)(const void*)(const char*)this)[idx]; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
     IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h
                                  // to convert back and forth between your math types and ImPlotPoint.
@@ -484,25 +488,25 @@ IM_MSVC_RUNTIME_CHECKS_RESTORE
 // Range defined by a min/max value.
 struct ImPlotRange {
     double Min, Max;
-    constexpr ImPlotRange()                         : Min(0.0), Max(0.0) { }
-    constexpr ImPlotRange(double _min, double _max) : Min(_min), Max(_max) { }
-    bool Contains(double value) const               { return value >= Min && value <= Max;                      }
-    double Size() const                             { return Max - Min;                                         }
-    double Clamp(double value) const                { return (value < Min) ? Min : (value > Max) ? Max : value; }
+    IMPLOT_API constexpr ImPlotRange()                         : Min(0.0), Max(0.0) { }
+    IMPLOT_API constexpr ImPlotRange(double _min, double _max) : Min(_min), Max(_max) { }
+    IMPLOT_API bool Contains(double value) const               { return value >= Min && value <= Max;                      }
+    IMPLOT_API double Size() const                             { return Max - Min;                                         }
+    IMPLOT_API double Clamp(double value) const                { return (value < Min) ? Min : (value > Max) ? Max : value; }
 };
 
 // Combination of two range limits for X and Y axes. Also an AABB defined by Min()/Max().
 struct ImPlotRect {
     ImPlotRange X, Y;
-    constexpr ImPlotRect()                                                       : X(0.0,0.0), Y(0.0,0.0) { }
-    constexpr ImPlotRect(double x_min, double x_max, double y_min, double y_max) : X(x_min, x_max), Y(y_min, y_max) { }
-    bool Contains(const ImPlotPoint& p) const                                    { return Contains(p.x, p.y);                 }
-    bool Contains(double x, double y) const                                      { return X.Contains(x) && Y.Contains(y);     }
-    ImPlotPoint Size() const                                                     { return ImPlotPoint(X.Size(), Y.Size());    }
-    ImPlotPoint Clamp(const ImPlotPoint& p)                                      { return Clamp(p.x, p.y);                    }
-    ImPlotPoint Clamp(double x, double y)                                        { return ImPlotPoint(X.Clamp(x),Y.Clamp(y)); }
-    ImPlotPoint Min() const                                                      { return ImPlotPoint(X.Min, Y.Min);          }
-    ImPlotPoint Max() const                                                      { return ImPlotPoint(X.Max, Y.Max);          }
+    IMPLOT_API constexpr ImPlotRect()                                                       : X(0.0,0.0), Y(0.0,0.0) { }
+    IMPLOT_API constexpr ImPlotRect(double x_min, double x_max, double y_min, double y_max) : X(x_min, x_max), Y(y_min, y_max) { }
+    IMPLOT_API bool Contains(const ImPlotPoint& p) const                                    { return Contains(p.x, p.y);                 }
+    IMPLOT_API bool Contains(double x, double y) const                                      { return X.Contains(x) && Y.Contains(y);     }
+    IMPLOT_API ImPlotPoint Size() const                                                     { return ImPlotPoint(X.Size(), Y.Size());    }
+    IMPLOT_API ImPlotPoint Clamp(const ImPlotPoint& p)                                      { return Clamp(p.x, p.y);                    }
+    IMPLOT_API ImPlotPoint Clamp(double x, double y)                                        { return ImPlotPoint(X.Clamp(x),Y.Clamp(y)); }
+    IMPLOT_API ImPlotPoint Min() const                                                      { return ImPlotPoint(X.Min, Y.Min);          }
+    IMPLOT_API ImPlotPoint Max() const                                                      { return ImPlotPoint(X.Max, Y.Max);          }
 };
 
 // Plot style structure
@@ -645,7 +649,7 @@ IMPLOT_API void EndPlot();
 
 // Starts a subdivided plotting context. If the function returns true,
 // EndSubplots() MUST be called! Call BeginPlot/EndPlot AT MOST [rows*cols]
-// times in  between the begining and end of the subplot context. Plots are
+// times in  between the beginning and end of the subplot context. Plots are
 // added in row major order.
 //
 // Example:
@@ -746,7 +750,7 @@ IMPLOT_API void SetupAxisTicks(ImAxis axis, const double* values, int n_ticks, c
 IMPLOT_API void SetupAxisTicks(ImAxis axis, double v_min, double v_max, int n_ticks, const char* const labels[]=nullptr, bool keep_default=false);
 // Sets an axis' scale using built-in options.
 IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotScale scale);
-// Sets an axis' scale using user supplied forward and inverse transfroms.
+// Sets an axis' scale using user supplied forward and inverse transforms.
 IMPLOT_API void SetupAxisScale(ImAxis axis, ImPlotTransform forward, ImPlotTransform inverse, void* data=nullptr);
 // Sets an axis' limits constraints.
 IMPLOT_API void SetupAxisLimitsConstraints(ImAxis axis, double v_min, double v_max);
@@ -776,7 +780,7 @@ IMPLOT_API void SetupFinish();
 // using a preceding button or slider widget to change the plot limits). In
 // this case, you can use the `SetNext` API below. While this is not as feature
 // rich as the Setup API, most common needs are provided. These functions can be
-// called anwhere except for inside of `Begin/EndPlot`. For example:
+// called anywhere except for inside of `Begin/EndPlot`. For example:
 
 // if (ImGui::Button("Center Plot"))
 //     ImPlot::SetNextPlotLimits(-1,1,-1,1);
@@ -806,7 +810,7 @@ IMPLOT_API void SetNextAxesToFit();
 // [SECTION] Plot Items
 //-----------------------------------------------------------------------------
 
-// The main plotting API is provied below. Call these functions between
+// The main plotting API is provided below. Call these functions between
 // Begin/EndPlot and after any Setup API calls. Each plots data on the current
 // x and y axes, which can be changed with `SetAxis/Axes`.
 //
@@ -937,13 +941,13 @@ IMPLOT_API void PlotDummy(const char* label_id, ImPlotDummyFlags flags=0);
 // user interactions can be retrieved through the optional output parameters.
 
 // Shows a draggable point at x,y. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragPoint(int id, double* x, double* y, const ImVec4& col, float size = 4, ImPlotDragToolFlags flags = 0, bool* out_clicked = nullptr, bool* out_hovered = nullptr, bool* held = nullptr);
+IMPLOT_API bool DragPoint(int id, double* x, double* y, const ImVec4& col, float size = 4, ImPlotDragToolFlags flags = 0, bool* out_clicked = nullptr, bool* out_hovered = nullptr, bool* out_held = nullptr);
 // Shows a draggable vertical guide line at an x-value. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragLineX(int id, double* x, const ImVec4& col, float thickness = 1, ImPlotDragToolFlags flags = 0, bool* out_clicked = nullptr, bool* out_hovered = nullptr, bool* held = nullptr);
+IMPLOT_API bool DragLineX(int id, double* x, const ImVec4& col, float thickness = 1, ImPlotDragToolFlags flags = 0, bool* out_clicked = nullptr, bool* out_hovered = nullptr, bool* out_held = nullptr);
 // Shows a draggable horizontal guide line at a y-value. #col defaults to ImGuiCol_Text.
-IMPLOT_API bool DragLineY(int id, double* y, const ImVec4& col, float thickness = 1, ImPlotDragToolFlags flags = 0, bool* out_clicked = nullptr, bool* out_hovered = nullptr, bool* held = nullptr);
+IMPLOT_API bool DragLineY(int id, double* y, const ImVec4& col, float thickness = 1, ImPlotDragToolFlags flags = 0, bool* out_clicked = nullptr, bool* out_hovered = nullptr, bool* out_held = nullptr);
 // Shows a draggable and resizeable rectangle.
-IMPLOT_API bool DragRect(int id, double* x1, double* y1, double* x2, double* y2, const ImVec4& col, ImPlotDragToolFlags flags = 0, bool* out_clicked = nullptr, bool* out_hovered = nullptr, bool* held = nullptr);
+IMPLOT_API bool DragRect(int id, double* x1, double* y1, double* x2, double* y2, const ImVec4& col, ImPlotDragToolFlags flags = 0, bool* out_clicked = nullptr, bool* out_hovered = nullptr, bool* out_held = nullptr);
 
 // Shows an annotation callout at a chosen point. Clamping keeps annotations in the plot area. Annotations are always rendered on top.
 IMPLOT_API void Annotation(double x, double y, const ImVec4& col, const ImVec2& pix_offset, bool clamp, bool round = false);
@@ -978,7 +982,7 @@ IMPLOT_API ImVec2 PlotToPixels(double x, double y, ImAxis x_axis = IMPLOT_AUTO, 
 
 // Get the current Plot position (top-left) in pixels.
 IMPLOT_API ImVec2 GetPlotPos();
-// Get the curent Plot size in pixels.
+// Get the current Plot size in pixels.
 IMPLOT_API ImVec2 GetPlotSize();
 
 // Returns the mouse position in x,y coordinates of the current plot. Passing IMPLOT_AUTO uses the current axes.
@@ -1084,7 +1088,7 @@ IMPLOT_API void EndDragDropSource();
 //        manually set these colors to whatever you like, and further can Push/Pop
 //        them around individual plots for plot-specific styling (e.g. coloring axes).
 
-// Provides access to plot style structure for permanant modifications to colors, sizes, etc.
+// Provides access to plot style structure for permanent modifications to colors, sizes, etc.
 IMPLOT_API ImPlotStyle& GetStyle();
 
 // Style plot colors for current ImGui style (default).
@@ -1191,11 +1195,11 @@ IMPLOT_API ImVec4 SampleColormap(float t, ImPlotColormap cmap = IMPLOT_AUTO);
 IMPLOT_API void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0), const char* format = "%g", ImPlotColormapScaleFlags flags = 0, ImPlotColormap cmap = IMPLOT_AUTO);
 // Shows a horizontal slider with a colormap gradient background. Optionally returns the color sampled at t in [0 1].
 IMPLOT_API bool ColormapSlider(const char* label, float* t, ImVec4* out = nullptr, const char* format = "", ImPlotColormap cmap = IMPLOT_AUTO);
-// Shows a button with a colormap gradient brackground.
+// Shows a button with a colormap gradient background.
 IMPLOT_API bool ColormapButton(const char* label, const ImVec2& size = ImVec2(0,0), ImPlotColormap cmap = IMPLOT_AUTO);
 
 // When items in a plot sample their color from a colormap, the color is cached and does not change
-// unless explicitly overriden. Therefore, if you change the colormap after the item has already been plotted,
+// unless explicitly overridden. Therefore, if you change the colormap after the item has already been plotted,
 // item colors will NOT update. If you need item colors to resample the new colormap, then use this
 // function to bust the cached colors. If #plot_title_id is nullptr, then every item in EVERY existing plot
 // will be cache busted. Otherwise only the plot specified by #plot_title_id will be busted. For the
@@ -1207,7 +1211,7 @@ IMPLOT_API void BustColorCache(const char* plot_title_id = nullptr);
 // [SECTION] Input Mapping
 //-----------------------------------------------------------------------------
 
-// Provides access to input mapping structure for permanant modifications to controls for pan, select, etc.
+// Provides access to input mapping structure for permanent modifications to controls for pan, select, etc.
 IMPLOT_API ImPlotInputMap& GetInputMap();
 
 // Default input mapping: pan = LMB drag, box select = RMB drag, fit = LMB double click, context menu = RMB click, zoom = scroll.
