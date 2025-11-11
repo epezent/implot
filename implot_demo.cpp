@@ -533,7 +533,7 @@ void Demo_BarStacks() {
     static const char* labels_div[] = {"Pants on Fire","False","Mostly False","Mostly False","False","Pants on Fire","Half True","Mostly True","True"};
 
     ImPlot::PushColormap(Liars);
-    if (ImPlot::BeginPlot("PolitiFact: Who Lies More?",ImVec2(-1,400),ImPlotFlags_NoMouseText)) {
+    if (ImPlot::BeginPlot("PolitiFact: Who Lies More?",ImVec2(-1,ImGui::GetTextLineHeight()*25),ImPlotFlags_NoMouseText)) {
         ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Outside|ImPlotLegendFlags_Horizontal);
         ImPlot::SetupAxes(nullptr,nullptr,ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_AutoFit|ImPlotAxisFlags_Invert);
         ImPlot::SetupAxisTicks(ImAxis_Y1,0,19,20,politicians,false);
@@ -619,7 +619,7 @@ void Demo_PieCharts() {
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_IgnoreHidden);
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Exploding);
 
-    if (ImPlot::BeginPlot("##Pie1", ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
+    if (ImPlot::BeginPlot("##Pie1", ImVec2(ImGui::GetTextLineHeight()*16,ImGui::GetTextLineHeight()*16), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(0, 1, 0, 1);
         ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, "%.2f", 90, flags);
@@ -632,7 +632,7 @@ void Demo_PieCharts() {
     static int data2[]             = {1,1,2,3,5};
 
     ImPlot::PushColormap(ImPlotColormap_Pastel);
-    if (ImPlot::BeginPlot("##Pie2", ImVec2(250,250), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
+    if (ImPlot::BeginPlot("##Pie2", ImVec2(ImGui::GetTextLineHeight()*16,ImGui::GetTextLineHeight()*16), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(0, 1, 0, 1);
         ImPlot::PlotPieChart(labels2, data2, 5, 0.5, 0.5, 0.4, "%.0f", 180, flags);
@@ -679,7 +679,7 @@ void Demo_Heatmaps() {
 
     ImPlot::PushColormap(map);
 
-    if (ImPlot::BeginPlot("##Heatmap1",ImVec2(225,225),ImPlotFlags_NoLegend|ImPlotFlags_NoMouseText)) {
+    if (ImPlot::BeginPlot("##Heatmap1",ImVec2(ImGui::GetTextLineHeight()*14,ImGui::GetTextLineHeight()*14),ImPlotFlags_NoLegend|ImPlotFlags_NoMouseText)) {
         ImPlot::SetupAxes(nullptr, nullptr, axes_flags, axes_flags);
         ImPlot::SetupAxisTicks(ImAxis_X1,0 + 1.0/14.0, 1 - 1.0/14.0, 7, xlabels);
         ImPlot::SetupAxisTicks(ImAxis_Y1,1 - 1.0/14.0, 0 + 1.0/14.0, 7, ylabels);
@@ -697,7 +697,7 @@ void Demo_Heatmaps() {
     for (int i = 0; i < size*size; ++i)
         values2[i] = RandomRange(0.0,1.0);
 
-    if (ImPlot::BeginPlot("##Heatmap2",ImVec2(225,225))) {
+    if (ImPlot::BeginPlot("##Heatmap2",ImVec2(ImGui::GetTextLineHeight()*14,ImGui::GetTextLineHeight()*14))) {
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(-1,1,-1,1);
         ImPlot::PlotHeatmap("heat1",values2,size,size,0,1,nullptr);
@@ -914,7 +914,7 @@ void Demo_RealtimePlots() {
 
     static ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels;
 
-    if (ImPlot::BeginPlot("##Scrolling", ImVec2(-1,150))) {
+    if (ImPlot::BeginPlot("##Scrolling", ImVec2(-1,ImGui::GetTextLineHeight()*10))) {
         ImPlot::SetupAxes(nullptr, nullptr, flags, flags);
         ImPlot::SetupAxisLimits(ImAxis_X1,t - history, t, ImGuiCond_Always);
         ImPlot::SetupAxisLimits(ImAxis_Y1,0,1);
@@ -923,7 +923,7 @@ void Demo_RealtimePlots() {
         ImPlot::PlotLine("Mouse Y", &sdata2.Data[0].x, &sdata2.Data[0].y, sdata2.Data.size(), 0, sdata2.Offset, 2*sizeof(float));
         ImPlot::EndPlot();
     }
-    if (ImPlot::BeginPlot("##Rolling", ImVec2(-1,150))) {
+    if (ImPlot::BeginPlot("##Rolling", ImVec2(-1,ImGui::GetTextLineHeight()*10))) {
         ImPlot::SetupAxes(nullptr, nullptr, flags, flags);
         ImPlot::SetupAxisLimits(ImAxis_X1,0,history, ImGuiCond_Always);
         ImPlot::SetupAxisLimits(ImAxis_Y1,0,1);
@@ -1536,7 +1536,7 @@ void Demo_DragRects() {
     ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
     ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
 
-    if (ImPlot::BeginPlot("##Main",ImVec2(-1,150))) {
+    if (ImPlot::BeginPlot("##Main",ImVec2(-1,ImGui::GetTextLineHeight()*10))) {
         ImPlot::SetupAxes(nullptr,nullptr,ImPlotAxisFlags_NoTickLabels,ImPlotAxisFlags_NoTickLabels);
         ImPlot::SetupAxesLimits(0,0.01,-1,1);
         ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
@@ -1547,7 +1547,7 @@ void Demo_DragRects() {
     }
     ImVec4 bg_col = held ? ImVec4(0.5f,0,0.5f,1) : (hovered ? ImVec4(0.25f,0,0.25f,1) : ImPlot::GetStyle().Colors[ImPlotCol_PlotBg]);
     ImPlot::PushStyleColor(ImPlotCol_PlotBg, bg_col);
-    if (ImPlot::BeginPlot("##rect",ImVec2(-1,150), ImPlotFlags_CanvasOnly)) {
+    if (ImPlot::BeginPlot("##rect",ImVec2(-1,ImGui::GetTextLineHeight()*10), ImPlotFlags_CanvasOnly)) {
         ImPlot::SetupAxes(nullptr,nullptr,ImPlotAxisFlags_NoDecorations,ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(rect.X.Min, rect.X.Max, rect.Y.Min, rect.Y.Max, ImGuiCond_Always);
         ImPlot::PlotLine("Signal 1", x_data, y_data1, 512);
@@ -1761,7 +1761,7 @@ void Demo_DragAndDrop() {
     ImGui::BeginChild("DND_RIGHT",ImVec2(-1,400));
     // plot 1 (time series)
     ImPlotAxisFlags flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoHighlight;
-    if (ImPlot::BeginPlot("##DND1", ImVec2(-1,195))) {
+    if (ImPlot::BeginPlot("##DND1", ImVec2(-1,ImGui::GetTextLineHeight()*13))) {
         ImPlot::SetupAxis(ImAxis_X1, nullptr, flags|ImPlotAxisFlags_Lock);
         ImPlot::SetupAxis(ImAxis_Y1, "[drop here]", flags);
         ImPlot::SetupAxis(ImAxis_Y2, "[drop here]", flags|ImPlotAxisFlags_Opposite);
@@ -1807,7 +1807,7 @@ void Demo_DragAndDrop() {
         ImPlot::EndPlot();
     }
     // plot 2 (Lissajous)
-    if (ImPlot::BeginPlot("##DND2", ImVec2(-1,195))) {
+    if (ImPlot::BeginPlot("##DND2", ImVec2(-1,ImGui::GetTextLineHeight()*13))) {
         ImPlot::PushStyleColor(ImPlotCol_AxisBg, dndx != nullptr ? dndx->Color : ImPlot::GetStyle().Colors[ImPlotCol_AxisBg]);
         ImPlot::SetupAxis(ImAxis_X1, dndx == nullptr ? "[drop here]" : dndx->Label, flags);
         ImPlot::PushStyleColor(ImPlotCol_AxisBg, dndy != nullptr ? dndy->Color : ImPlot::GetStyle().Colors[ImPlotCol_AxisBg]);
