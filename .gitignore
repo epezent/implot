@@ -25,3 +25,7 @@ cmake-build-*
 
 ## VS code artifacts
 .vscode
+
+## LLM instruction files
+CLAUDE.md
+GEMINI.md
