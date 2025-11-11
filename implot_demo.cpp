@@ -822,19 +822,22 @@ void Demo_DigitalPlots() {
     ImGui::Checkbox("analog_0",  &showAnalog[0]);  ImGui::SameLine();
     ImGui::Checkbox("analog_1",  &showAnalog[1]);
 
-    static float t = 0;
+    static float t = 0, last_t = 0;
     if (!paused) {
         t += ImGui::GetIO().DeltaTime;
-        //digital signal values
-        if (showDigital[0])
-            dataDigital[0].AddPoint(t, sinf(2*t) > 0.45);
-        if (showDigital[1])
-            dataDigital[1].AddPoint(t, sinf(2*t) < 0.45);
-        //Analog signal values
-        if (showAnalog[0])
-            dataAnalog[0].AddPoint(t, sinf(2*t));
-        if (showAnalog[1])
-            dataAnalog[1].AddPoint(t, cosf(2*t));
+        if (t - last_t >= 0.01f) {
+            last_t = t;
+            // Digital signal values
+            if (showDigital[0])
+                dataDigital[0].AddPoint(t, sinf(2*t) > 0.45);
+            if (showDigital[1])
+                dataDigital[1].AddPoint(t, sinf(2*t) < 0.45);
+            // Analog signal values
+            if (showAnalog[0])
+                dataAnalog[0].AddPoint(t, sinf(2*t));
+            if (showAnalog[1])
+                dataAnalog[1].AddPoint(t, cosf(2*t));
+        }
     }
     if (ImPlot::BeginPlot("##Digital")) {
         ImPlot::SetupAxisLimits(ImAxis_X1, t - 10.0, t, paused ? ImGuiCond_Once : ImGuiCond_Always);
