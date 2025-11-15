@@ -1399,6 +1399,7 @@ void Demo_LegendOptions() {
     CHECKBOX_FLAG(flags, ImPlotLegendFlags_Horizontal);
     CHECKBOX_FLAG(flags, ImPlotLegendFlags_Outside);
     CHECKBOX_FLAG(flags, ImPlotLegendFlags_Sort);
+    CHECKBOX_FLAG(flags, ImPlotLegendFlags_Reverse);
 
     ImGui::SliderFloat2("LegendPadding", (float*)&GetStyle().LegendPadding, 0.0f, 20.0f, "%.0f");
     ImGui::SliderFloat2("LegendInnerPadding", (float*)&GetStyle().LegendInnerPadding, 0.0f, 10.0f, "%.0f");
