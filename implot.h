@@ -112,6 +112,7 @@ typedef int ImPlotCol;                // -> enum ImPlotCol_
 typedef int ImPlotStyleVar;           // -> enum ImPlotStyleVar_
 typedef int ImPlotScale;              // -> enum ImPlotScale_
 typedef int ImPlotMarker;             // -> enum ImPlotMarker_
+typedef int ImPlotMarkerMode;         // -> enum ImPlotMarkerMode_
 typedef int ImPlotColormap;           // -> enum ImPlotColormap_
 typedef int ImPlotLocation;           // -> enum ImPlotLocation_
 typedef int ImPlotBin;                // -> enum ImPlotBin_
@@ -426,6 +427,11 @@ enum ImPlotMarker_ {
     ImPlotMarker_Plus,      // a plus marker (not fillable)
     ImPlotMarker_Asterisk,  // a asterisk marker (not fillable)
     ImPlotMarker_COUNT
+};
+
+enum ImPlotMarkerMode_ {
+    ImPlotMarkerMode_All = -1, // default: markers on all data points
+    ImPlotMarkerMode_Head      // marker only on the leading data point
 };
 
 // Built-in colormaps
@@ -1129,7 +1135,7 @@ IMPLOT_API void SetNextLineStyle(const ImVec4& col = IMPLOT_AUTO_COL, float weig
 // Set the fill color for the next item only.
 IMPLOT_API void SetNextFillStyle(const ImVec4& col = IMPLOT_AUTO_COL, float alpha_mod = IMPLOT_AUTO);
 // Set the marker style for the next item only.
-IMPLOT_API void SetNextMarkerStyle(ImPlotMarker marker = IMPLOT_AUTO, float size = IMPLOT_AUTO, const ImVec4& fill = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO, const ImVec4& outline = IMPLOT_AUTO_COL);
+IMPLOT_API void SetNextMarkerStyle(ImPlotMarker marker = IMPLOT_AUTO, float size = IMPLOT_AUTO, const ImVec4& fill = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO, const ImVec4& outline = IMPLOT_AUTO_COL, ImPlotMarkerMode mode = IMPLOT_AUTO);
 // Set the error bar style for the next item only.
 IMPLOT_API void SetNextErrorBarStyle(const ImVec4& col = IMPLOT_AUTO_COL, float size = IMPLOT_AUTO, float weight = IMPLOT_AUTO);
 

@@ -335,13 +335,14 @@ void SetNextFillStyle(const ImVec4& col, float alpha) {
     gp.NextItemData.FillAlpha              = alpha;
 }
 
-void SetNextMarkerStyle(ImPlotMarker marker, float size, const ImVec4& fill, float weight, const ImVec4& outline) {
+void SetNextMarkerStyle(ImPlotMarker marker, float size, const ImVec4& fill, float weight, const ImVec4& outline, ImPlotMarkerMode mode) {
     ImPlotContext& gp = *GImPlot;
     gp.NextItemData.Marker                          = marker;
     gp.NextItemData.Colors[ImPlotCol_MarkerFill]    = fill;
     gp.NextItemData.MarkerSize                      = size;
     gp.NextItemData.Colors[ImPlotCol_MarkerOutline] = outline;
     gp.NextItemData.MarkerWeight                    = weight;
+    gp.NextItemData.MarkerMode                      = mode;
 }
 
 void SetNextErrorBarStyle(const ImVec4& col, float size, float weight) {
@@ -646,6 +647,16 @@ struct GetterError {
     const int Count;
     const int Offset;
     const int Stride;
+};
+
+template <typename _Getter>
+struct GetterLast {
+    GetterLast(_Getter getter) : Getter(getter), Count(1) { }
+    template <typename I> IMPLOT_INLINE ImPlotPoint operator()(I idx) const {
+        return Getter(Getter.Count - 1);
+    }
+    const _Getter Getter;
+    const int Count;
 };
 
 //-----------------------------------------------------------------------------
@@ -1611,7 +1622,14 @@ void PlotLineEx(const char* label_id, const _Getter& getter, ImPlotLineFlags fla
             }
             const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
             const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            RenderMarkers<_Getter>(getter, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+            if (s.MarkerMode == ImPlotMarkerMode_Head) {
+                GetterLast<_Getter> gf(getter);
+                RenderMarkers<GetterLast<_Getter>>(gf, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+            }
+            else {
+                RenderMarkers<_Getter>(getter, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+
+            }
         }
         EndItem();
     }
