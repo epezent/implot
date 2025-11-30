@@ -2280,7 +2280,7 @@ void PlotPieChartEx(const char* const label_ids[], IndexerIdx<T> indexer, ImPlot
             a1 = a0 + 2 * IM_PI * percent;
 
         if (BeginItemEx(label_ids[i], FitterRect(Pmin, Pmax), spec)) {
-            const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
+            const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(spec.Flags, ImPlotPieChartFlags_Exploding);
             if (sum > 0.0) {
                 ImU32 col = GetCurrentItem()->Color;
                 if (percent < 0.5) {
@@ -2342,7 +2342,7 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
                     fmt((double)indexer[i], buffer, 32, fmt_data);
                     ImVec2 size = ImGui::CalcTextSize(buffer);
                     double angle = a0 + (a1 - a0) * 0.5;
-                    const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
+                    const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(spec.Flags, ImPlotPieChartFlags_Exploding);
                     const double offset = (hovered ? 0.6 : 0.5) * radius;
                     ImVec2 pos = PlotToPixels(center.x + offset * cos(angle), center.y + offset * sin(angle), IMPLOT_AUTO, IMPLOT_AUTO);
                     ImU32 col = CalcTextColor(ImGui::ColorConvertU32ToFloat4(item->Color));
@@ -2724,7 +2724,7 @@ void PlotDigitalEx(const char* label_id, Getter getter, const ImPlotSpec& spec) 
                 int pixY_0 = (int)(s.Spec.LineWeight);
                 itemData1.y = ImMax(0.0, itemData1.y);
                 const float pixY_1 = s.Spec.Size * (float)itemData1.y;
-                const int pixY_chPosOffset = (int)(ImMax(s.Spec.Size, pixY_1) + s.Style.DigitalSpacing);
+                const int pixY_chPosOffset = (int)(ImMax(s.Spec.Size, pixY_1) + gp.Style.DigitalSpacing);
                 pixYMax = ImMax(pixYMax, pixY_chPosOffset);
                 ImVec2 pMin = PlotToPixels(itemData1,IMPLOT_AUTO,IMPLOT_AUTO);
                 ImVec2 pMax = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO);
