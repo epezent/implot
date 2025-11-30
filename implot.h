@@ -62,7 +62,7 @@
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "0.17 WIP"
+#define IMPLOT_VERSION "0.17"
 // ImPlot version integer encoded as XYYZZ (X=major, YY=minor, ZZ=patch).
 #define IMPLOT_VERSION_NUM 1700
 // Indicates variable should deduced automatically.
