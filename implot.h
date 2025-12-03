@@ -43,6 +43,7 @@
 // [SECTION] Input Mapping
 // [SECTION] Miscellaneous
 // [SECTION] Demo
+// [SECTION] Context Menu 	// OdehM 2025-02-20
 // [SECTION] Obsolete API
 
 #pragma once
@@ -142,6 +143,7 @@ enum ImPlotFlags_ {
     ImPlotFlags_NoFrame       = 1 << 6,  // the ImGui frame will not be rendered
     ImPlotFlags_Equal         = 1 << 7,  // x and y axes pairs will be constrained to have the same units/pixel
     ImPlotFlags_Crosshairs    = 1 << 8,  // the default mouse cursor will be replaced with a crosshair when hovered
+	ImPlotFlags_NoCentralMenu = 1 << 9,  // disable the central menu, but allow other menus (such as legends and axis) 	// OdehM 2025_02_20
     ImPlotFlags_CanvasOnly    = ImPlotFlags_NoTitle | ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText
 };
 
@@ -1254,6 +1256,15 @@ IMPLOT_API void ShowMetricsWindow(bool* p_popen = nullptr);
 
 // Shows the ImPlot demo window (add implot_demo.cpp to your sources!)
 IMPLOT_API void ShowDemoWindow(bool* p_open = nullptr);
+
+//-----------------------------------------------------------------------------
+// [SECTION] Context Menu 	// OdehM 2025-02-20
+//-----------------------------------------------------------------------------
+
+// Begin a custom central plot context menu
+IMPLOT_API bool BeginCustomContext();
+// End a custom central plot context menu
+IMPLOT_API void EndCustomContext(bool include_default = false); // if include_default is true, the normal context menu will be appended
 
 }  // namespace ImPlot
 
