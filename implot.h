@@ -927,6 +927,9 @@ IMPLOT_API void PlotImage(const char* label_id, ImTextureID tex_ref, const ImPlo
 // Plots a centered text label at point x,y with an optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
 IMPLOT_API void PlotText(const char* text, double x, double y, const ImVec2& pix_offset=ImVec2(0,0), ImPlotTextFlags flags=0);
 
+// Plots a 2D filled contour without lines, given a regular/irregular grid of data.
+IMPLOT_TMP void PlotContourFill(const char* label_id, const T* xs, const T* ys, const T* zs, int x_count, int y_count, double scale_min, double scale_max, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max);
+
 // Plots a dummy item (i.e. adds a legend entry colored by ImPlotCol_Line)
 IMPLOT_API void PlotDummy(const char* label_id, ImPlotDummyFlags flags=0);
 
