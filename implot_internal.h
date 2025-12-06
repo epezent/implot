@@ -648,6 +648,7 @@ struct ImPlotAxis
     ImPlotAxisFlags      Flags;
     ImPlotAxisFlags      PreviousFlags;
     ImPlotRange          Range;
+    ImPlotRange          PreviousRange;
     ImPlotCond           RangeCond;
     ImPlotScale          Scale;
     ImPlotRange          FitExtents;
