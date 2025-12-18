@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v0.17
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -344,6 +344,13 @@ void SetNextMarkerStyle(ImPlotMarker marker, float size, const ImVec4& fill, flo
     gp.NextItemData.MarkerWeight                    = weight;
 }
 
+void SetNextQuiverStyle(float size, const ImVec4& col) {
+    ImPlotContext& gp = *GImPlot;
+    gp.NextItemData.QuiverSize = size;
+    gp.NextItemData.Colors[ImPlotCol_Fill] = col;
+
+}
+
 void SetNextErrorBarStyle(const ImVec4& col, float size, float weight) {
     ImPlotContext& gp = *GImPlot;
     gp.NextItemData.Colors[ImPlotCol_ErrorBar] = col;
@@ -570,6 +577,26 @@ struct GetterXY {
     const int Count;
 };
 
+// Functor for returning a 2D vector in 2D space (For Quiver plots)
+template <typename _IndexerX, typename _IndexerY, typename _IndexerU, typename _IndexerV>
+struct GetterXYUV {
+    GetterXYUV(_IndexerX x, _IndexerY y, _IndexerU u, _IndexerV v, int count) 
+        : IndxerX(x), IndxerY(y), IndxerU(u), IndxerV(v), Count(count) { }
+    
+    template <typename I> IMPLOT_INLINE ImPlotQuiver operator()(I idx) const {
+        double u_val = IndxerU(idx);
+        double v_val = IndxerV(idx);
+        double mag = sqrt(u_val*u_val + v_val*v_val);
+        return ImPlotQuiver(IndxerX(idx), IndxerY(idx), u_val, v_val, mag);
+    }
+    
+    const _IndexerX IndxerX;
+    const _IndexerY IndxerY;
+    const _IndexerU IndxerU;
+    const _IndexerV IndxerV;
+    const int Count;
+};
+
 /// Interprets a user's function pointer as ImPlotPoints
 struct GetterFuncPtr {
     GetterFuncPtr(ImPlotGetter getter, void* data, int count) :
@@ -706,6 +733,20 @@ struct Fitter2 {
     }
     const _Getter1& Getter1;
     const _Getter2& Getter2;
+};
+
+
+template <typename _Getter1>
+struct FitterVector {
+    FitterVector(const _Getter1& getter) : Getter(getter) { }
+    void Fit(ImPlotAxis& x_axis, ImPlotAxis& y_axis) const {
+        for (int i = 0; i < Getter.Count; ++i) {
+            ImPlotQuiver p = Getter(i);
+            x_axis.ExtendFitWith(y_axis, p.x, p.y);
+            y_axis.ExtendFitWith(x_axis, p.y, p.x);
+        }
+    }
+    const _Getter1& Getter;
 };
 
 template <typename _Getter1, typename _Getter2>
@@ -1504,7 +1545,6 @@ static const ImVec2 MARKER_FILL_UP[3]       = {ImVec2(SQRT_3_2,0.5f),ImVec2(0,-1
 static const ImVec2 MARKER_FILL_DOWN[3]     = {ImVec2(SQRT_3_2,-0.5f),ImVec2(0,1),ImVec2(-SQRT_3_2,-0.5f)};
 static const ImVec2 MARKER_FILL_LEFT[3]     = {ImVec2(-1,0), ImVec2(0.5, SQRT_3_2), ImVec2(0.5, -SQRT_3_2)};
 static const ImVec2 MARKER_FILL_RIGHT[3]    = {ImVec2(1,0), ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, -SQRT_3_2)};
-
 static const ImVec2 MARKER_LINE_CIRCLE[20]  = {
     ImVec2(1.0f, 0.0f),
     ImVec2(0.809017f, 0.58778524f),
@@ -1564,6 +1604,309 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool 
             case ImPlotMarker_Cross     : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_CROSS,   4,size,weight,col_line); break;
         }
     }
+}
+
+
+//-----------------------------------------------------------------------------
+// [SECTION] Vectors
+//-----------------------------------------------------------------------------
+
+template <class _Getter>
+struct RendererVectorFillColorCodedNormalized : RendererBase {
+    RendererVectorFillColorCodedNormalized(const _Getter& getter, const ImVec2* marker, int count, float size, ImU32 col, double min_mag, double max_mag) :
+        RendererBase(getter.Count, (count-2)*3, count),
+        Getter(getter),
+        Marker(marker),
+        Count(count),
+        Size(size),
+        Col(col),
+        MinMag(min_mag),
+        MaxMag(max_mag)
+    { }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+
+        ImPlotQuiver vec = Getter(prim);  
+
+        ImVec2 p;
+        p.x = this->Transformer.Tx(vec.x);
+        p.y = this->Transformer.Ty(vec.y);
+
+        float theta = ImAtan2(-vec.v, vec.u); //in radians, correction for the draw axis on the v
+        float cos_theta = ImCos(theta);
+        float sin_theta = ImSin(theta);
+        double mag = (double)ImSqrt(vec.mag2);
+
+        double t = ImClamp(ImRemap01(mag, MinMag, MaxMag), 0.0, 1.0);
+  
+        ImVec4 color = SampleColormap((float)t);
+
+        if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y && mag > 1e-6) {
+            for (int i = 0; i < Count; i++) {
+                //get the rotation of this primitive and apply it to the marker points
+                float rotated_x = Marker[i].x * cos_theta - Marker[i].y * sin_theta;
+                float rotated_y = Marker[i].x * sin_theta + Marker[i].y * cos_theta;
+                draw_list._VtxWritePtr[0].pos.x = p.x + rotated_x * Size;
+                draw_list._VtxWritePtr[0].pos.y = p.y + rotated_y * Size;
+                draw_list._VtxWritePtr[0].uv = UV;
+                draw_list._VtxWritePtr[0].col = ImColor(color);
+                draw_list._VtxWritePtr++;
+            }
+            for (int i = 2; i < Count; i++) {
+                draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+                draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i - 1);
+                draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i);
+                draw_list._IdxWritePtr += 3;
+            }
+            draw_list._VtxCurrentIdx += (ImDrawIdx)Count;
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    const ImVec2* Marker;
+    const int Count;
+    const float Size;
+    const ImU32 Col;
+    mutable ImVec2 UV;
+    double MinMag;
+    double MaxMag;
+};
+
+
+template <class _Getter>
+struct RendererVectorFillColorCodedScaled : RendererBase {
+    RendererVectorFillColorCodedScaled(const _Getter& getter, const ImVec2* marker, int count, float size, ImU32 col, double min_mag, double max_mag) :
+        RendererBase(getter.Count, (count-2)*3, count),
+        Getter(getter),
+        Marker(marker),
+        Count(count),
+        Size(size),
+        Col(col),
+        MinMag(min_mag),
+        MaxMag(max_mag)
+    { }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+
+        ImPlotQuiver vec = Getter(prim);  
+
+        ImVec2 p;
+        p.x = this->Transformer.Tx(vec.x);
+        p.y = this->Transformer.Ty(vec.y);
+
+        float theta = ImAtan2(-vec.v, vec.u); //in radians, correction for the draw axis on the v
+        float cos_theta = ImCos(theta);
+        float sin_theta = ImSin(theta);
+        double mag = (double)ImSqrt(vec.mag2);
+        double size_mag = ImClamp(ImRemap01(mag, MinMag, MaxMag),0.0,1.0); 
+        double t = ImClamp(ImRemap01(mag, MinMag, MaxMag),0.0,1.0); 
+        ImVec4 color = SampleColormap((float)t);
+
+        if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y) {
+            for (int i = 0; i < Count; i++) {
+                //get the rotation of this primitive and apply it to the marker points
+                float rotated_x = Marker[i].x * cos_theta - Marker[i].y * sin_theta;
+                float rotated_y = Marker[i].x * sin_theta + Marker[i].y * cos_theta;
+                draw_list._VtxWritePtr[0].pos.x = p.x + rotated_x * Size * size_mag;
+                draw_list._VtxWritePtr[0].pos.y = p.y + rotated_y * Size * size_mag;
+                draw_list._VtxWritePtr[0].uv = UV;
+                draw_list._VtxWritePtr[0].col = ImColor(color);
+                draw_list._VtxWritePtr++;
+            }
+            for (int i = 2; i < Count; i++) {
+                draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+                draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i - 1);
+                draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i);
+                draw_list._IdxWritePtr += 3;
+            }
+            draw_list._VtxCurrentIdx += (ImDrawIdx)Count;
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    const ImVec2* Marker;
+    const int Count;
+    const float Size;
+    const ImU32 Col;
+    mutable ImVec2 UV;
+    double MinMag = 0.0;
+    double MaxMag = 1.0;
+};
+
+
+template <class _Getter>
+struct RendererVectorFillNormalized : RendererBase {
+    RendererVectorFillNormalized(const _Getter& getter, const ImVec2* marker, int count, float size, ImU32 col, double min_mag, double max_mag) :
+        RendererBase(getter.Count, (count-2)*3, count),
+        Getter(getter),
+        Marker(marker),
+        Count(count),
+        Size(size),
+        Col(col),
+        MinMag(min_mag),
+        MaxMag(max_mag)
+    { }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+
+        ImPlotQuiver vec = Getter(prim);  
+
+        ImVec2 p;
+        p.x = this->Transformer.Tx(vec.x);
+        p.y = this->Transformer.Ty(vec.y);
+
+        float theta = ImAtan2(-vec.v, vec.u); //in radians, correction for the draw axis on the v
+        float cos_theta = ImCos(theta);
+        float sin_theta = ImSin(theta);
+        double mag = (double)ImSqrt(vec.mag2);
+
+
+
+
+        if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y && mag > 1e-6) {
+            for (int i = 0; i < Count; i++) {
+                //get the rotation of this primitive and apply it to the marker points
+                float rotated_x = Marker[i].x * cos_theta - Marker[i].y * sin_theta;
+                float rotated_y = Marker[i].x * sin_theta + Marker[i].y * cos_theta;
+                draw_list._VtxWritePtr[0].pos.x = p.x + rotated_x * Size;
+                draw_list._VtxWritePtr[0].pos.y = p.y + rotated_y * Size;
+                draw_list._VtxWritePtr[0].uv = UV;
+                draw_list._VtxWritePtr[0].col = ImColor(Col);
+                draw_list._VtxWritePtr++;
+            }
+            for (int i = 2; i < Count; i++) {
+                draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+                draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i - 1);
+                draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i);
+                draw_list._IdxWritePtr += 3;
+            }
+            draw_list._VtxCurrentIdx += (ImDrawIdx)Count;
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    const ImVec2* Marker;
+    const int Count;
+    const float Size;
+    const ImU32 Col;
+    mutable ImVec2 UV;
+    double MinMag;
+    double MaxMag;
+};
+
+
+template <class _Getter>
+struct RendererVectorFill : RendererBase {
+    RendererVectorFill(const _Getter& getter, const ImVec2* marker, int count, float size, ImU32 col, double min_mag, double max_mag) :
+        RendererBase(getter.Count, (count-2)*3, count),
+        Getter(getter),
+        Marker(marker),
+        Count(count),
+        Size(size),
+        Col(col),
+        MinMag(min_mag),
+        MaxMag(max_mag)
+    { }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+
+        ImPlotQuiver vec = Getter(prim);  
+
+        ImVec2 p;
+        p.x = this->Transformer.Tx(vec.x);
+        p.y = this->Transformer.Ty(vec.y);
+
+        float theta = ImAtan2(-vec.v, vec.u); //in radians, correction for the draw axis on the v
+        float cos_theta = ImCos(theta);
+        float sin_theta = ImSin(theta);
+        double mag = (double)ImSqrt(vec.mag2);
+                double size_mag = ImClamp(ImRemap01(mag, MinMag, MaxMag),0.0,1.0); 
+
+
+
+
+        if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y && mag > 1e-6) {
+            for (int i = 0; i < Count; i++) {
+                //get the rotation of this primitive and apply it to the marker points
+                float rotated_x = Marker[i].x * cos_theta - Marker[i].y * sin_theta;
+                float rotated_y = Marker[i].x * sin_theta + Marker[i].y * cos_theta;
+                draw_list._VtxWritePtr[0].pos.x = p.x + rotated_x * Size * size_mag;
+                draw_list._VtxWritePtr[0].pos.y = p.y + rotated_y * Size* size_mag;
+                draw_list._VtxWritePtr[0].uv = UV;
+                draw_list._VtxWritePtr[0].col = ImColor(Col);
+                draw_list._VtxWritePtr++;
+            }
+            for (int i = 2; i < Count; i++) {
+                draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+                draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i - 1);
+                draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i);
+                draw_list._IdxWritePtr += 3;
+            }
+            draw_list._VtxCurrentIdx += (ImDrawIdx)Count;
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    const ImVec2* Marker;
+    const int Count;
+    const float Size;
+    const ImU32 Col;
+    mutable ImVec2 UV;
+    double MinMag;
+    double MaxMag;
+};
+
+
+
+static const ImVec2 MARKER_FILL_ARROW[7] = {
+    ImVec2(0.5, 0),      // tip of arrowhead
+    ImVec2(0.0, -0.3), // left side of arrowhead
+    ImVec2(0.0, -0.1), // left inner point where arrowhead meets shaft
+    ImVec2(-0.5, -0.1),    // top left of shaft
+    ImVec2(-0.5, 0.1),     // top right of shaft
+    ImVec2(0.0, 0.1),  // right inner point where arrowhead meets shaft
+    ImVec2(0.0, 0.3)   // right side of arrowhead
+};
+
+
+
+template <typename _Getter>
+void RenderVectors(const _Getter& getter, float size, double scaleMin, double scaleMax, bool color_coded, bool normalized, ImU32 color = 0) {
+
+    //to do
+    //Size of vector related to mag if flag set
+    //Color of fill of vector related to mag if flag set
+    //Tidy the code and see if it is worth modifying the transform2 to set the rotation
+    //Make the line draw too
+    if (color_coded && normalized) {
+
+        RenderPrimitives1<RendererVectorFillColorCodedNormalized>(getter,MARKER_FILL_ARROW, 7,size,color,scaleMin,scaleMax);
+    }
+    else if (color_coded && !normalized) {
+
+        RenderPrimitives1<RendererVectorFillColorCodedScaled>(getter,MARKER_FILL_ARROW, 7,size,color,scaleMin,scaleMax);
+    }
+    else if (!color_coded && normalized) {
+
+        RenderPrimitives1<RendererVectorFillNormalized>(getter,MARKER_FILL_ARROW, 7,size,color,scaleMin,scaleMax);
+    }
+    else {
+        
+        RenderPrimitives1<RendererVectorFill>(getter,MARKER_FILL_ARROW,7,size,color,scaleMin,scaleMax);
+    }
+
 }
 
 //-----------------------------------------------------------------------------
@@ -1690,6 +2033,48 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
     GetterFuncPtr getter(getter_func,data, count);
     return PlotScatterEx(label_id, getter, flags);
 }
+
+
+//-----------------------------------------------------------------------------
+// [SECTION] PlotQuiver (Vector Field)
+//-----------------------------------------------------------------------------
+template <typename Getter>
+void PlotQuiverEx(const char* label_id, const Getter& getter, const double scaleMin, const double scaleMax, ImPlotQuiverFlags flags){
+     if (BeginItemEx(label_id, FitterVector<Getter>(getter), flags,ImPlotCol_Fill)) { 
+        if (getter.Count <= 0) {
+            EndItem();
+            return;
+        }
+        const ImPlotNextItemData& s = GetItemData();
+
+
+        const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+
+        RenderVectors<Getter>(getter, s.QuiverSize, scaleMin, scaleMax, ImHasFlag(flags, ImPlotQuiverFlags_Colored),ImHasFlag(flags, ImPlotQuiverFlags_Normalize) , col_fill);
+        EndItem();
+    }
+
+}
+
+template <typename T>
+void PlotQuiver(const char* label_id, const T* xs, const T* ys,const T* us, const T* vs, int count, const T scaleMin, const T scaleMax, ImPlotQuiverFlags flags, int offset, int stride) {
+    GetterXYUV<IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>> getter(
+        IndexerIdx<T>(xs,count,offset,stride),
+        IndexerIdx<T>(ys,count,offset,stride),
+        IndexerIdx<T>(us,count,offset,stride),
+        IndexerIdx<T>(vs,count,offset,stride),
+        count);
+    return PlotQuiverEx(label_id, getter, scaleMin, scaleMax, flags);
+}
+
+#define INSTANTIATE_MACRO(T) \
+    template IMPLOT_API void PlotQuiver<T>(const char* label_id, const T* xs, const T* ys, const T* us, const T* vs, int count, const T scaleMin, const T scaleMax, ImPlotQuiverFlags flags, int offset, int stride);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
+
+
+
+
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotStairs

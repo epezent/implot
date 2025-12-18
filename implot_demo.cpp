@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v0.17
 
 // We define this so that the demo does not accidentally use deprecated API
 #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
@@ -415,6 +415,84 @@ void Demo_ScatterPlots() {
         ImPlot::EndPlot();
     }
 }
+//-----------------------------------------------------------------------------
+
+void Demo_QuiverPlots(){
+    static float xs[100], ys[100], us[100], vs[100];
+    static bool animate = false;
+    static float animation_speed = 1.0f;
+    
+    float time = animate ? ImGui::GetTime() * animation_speed : 0.0f;
+    
+    for (int i = 0; i < 10; ++i) {
+        for(int j = 0; j < 10; ++j){
+            int idx = i*10 + j;
+            xs[idx] = ((float)j * 0.1f) - 0.5;
+            ys[idx] = ((float)i * 0.1f) - 0.5;
+            
+            if (animate) {
+                float k = 2.0f * 3.14159f;  
+                float decay = expf(-0.1f * time);  
+                us[idx] = decay * (sinf(k * xs[idx]) * cosf(k * ys[idx]) * cosf(time) 
+                                 - cosf(k * xs[idx]) * sinf(k * ys[idx]) * sinf(time));
+                vs[idx] = decay * (-cosf(k * xs[idx]) * sinf(k * ys[idx]) * cosf(time) 
+                                  - sinf(k * xs[idx]) * cosf(k * ys[idx]) * sinf(time));
+            } else {
+                // Taylor-Green vortex
+                float k = 2.0f * 3.14159f;
+                us[idx] = sinf(k * xs[idx]) * cosf(k * ys[idx]);
+                vs[idx] = -cosf(k * xs[idx]) * sinf(k * ys[idx]);
+            }
+        }
+    }
+    
+    static float scale_min = 0.00f;
+    static float scale_max = 1.0f;
+    static float baseSize = 12.0f;
+    static ImPlotColormap map = ImPlotColormap_Viridis;
+    
+    if (ImPlot::ColormapButton(ImPlot::GetColormapName(map),ImVec2(225,0),map)) {
+        map = (map + 1) % ImPlot::GetColormapCount();
+        BustColorCache("##Heatmap1");
+        BustColorCache("##Heatmap2");
+    }
+    ImGui::SameLine();
+    ImGui::LabelText("##Colormap Index", "%s", "Change Colormap");
+    
+    ImGui::SetNextItemWidth(225);
+    ImGui::DragFloatRange2("Min / Max",&scale_min, &scale_max, 0.01f, -20, 20,nullptr,nullptr,ImGuiSliderFlags_AlwaysClamp);
+    if (scale_max <= scale_min + 0.01f) {
+        scale_max = scale_min + 0.01f;
+    }
+    
+    ImGui::SetNextItemWidth(225);
+    ImGui::DragFloat("Base Size",&baseSize,0.1f,0,100);
+    
+    // Animation controls
+    ImGui::Checkbox("Time Dependant Function", &animate);
+    if (animate) {
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(150);
+        ImGui::DragFloat("Speed", &animation_speed, 0.1f, 0.1f, 10.0f);
+    }
+    
+    static ImPlotQuiverFlags qv_flags = ImPlotQuiverFlags_Colored;
+    ImGui::CheckboxFlags("Normalized", (unsigned int*)&qv_flags, ImPlotQuiverFlags_Normalize);
+    ImGui::CheckboxFlags("Color Coded", (unsigned int*)&qv_flags, ImPlotQuiverFlags_Colored);
+    
+    ImPlot::PushColormap(map);
+    if (ImPlot::BeginPlot("Quiver Plot", ImVec2(ImGui::GetTextLineHeight()*28, ImGui::GetTextLineHeight()*28))) {
+        ImPlot::SetupAxisTicks(ImAxis_X1,-0.5, 0.5, 11);
+        ImPlot::SetupAxisTicks(ImAxis_Y1,-0.5, 0.5, 11);
+        ImPlot::SetNextQuiverStyle(baseSize,ImPlot::GetColormapColor(1)); 
+        ImPlot::SetupAxes("x","y");
+        ImPlot::PlotQuiver("Magnitude", xs, ys,us,vs,100,scale_min,scale_max, qv_flags);
+        ImPlot::EndPlot();
+    }
+    ImGui::SameLine();
+    ImPlot::ColormapScale("##Magnitude Scale", scale_min, scale_max);
+    ImPlot::PopColormap();
+}
 
 //-----------------------------------------------------------------------------
 
@@ -670,7 +748,7 @@ void Demo_Heatmaps() {
     ImGui::LabelText("##Colormap Index", "%s", "Change Colormap");
     ImGui::SetNextItemWidth(225);
     ImGui::DragFloatRange2("Min / Max",&scale_min, &scale_max, 0.01f, -20, 20);
-
+    
     static ImPlotHeatmapFlags hm_flags = 0;
 
     ImGui::CheckboxFlags("Column Major", (unsigned int*)&hm_flags, ImPlotHeatmapFlags_ColMajor);
@@ -2248,6 +2326,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Filled Line Plots", Demo_FilledLinePlots);
             DemoHeader("Shaded Plots##", Demo_ShadedPlots);
             DemoHeader("Scatter Plots", Demo_ScatterPlots);
+            DemoHeader("Quiver Plots", Demo_QuiverPlots);
             DemoHeader("Realtime Plots", Demo_RealtimePlots);
             DemoHeader("Stairstep Plots", Demo_StairstepPlots);
             DemoHeader("Bar Plots", Demo_BarPlots);

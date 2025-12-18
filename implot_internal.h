@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v0.17
 
 // You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
@@ -1199,6 +1199,7 @@ struct ImPlotNextItemData {
     ImPlotMarker    Marker;
     float           MarkerSize;
     float           MarkerWeight;
+    float           QuiverSize;
     float           FillAlpha;
     float           ErrorBarSize;
     float           ErrorBarWeight;
@@ -1218,6 +1219,7 @@ struct ImPlotNextItemData {
         LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker        = IMPLOT_AUTO;
         HasHidden     = Hidden = false;
+
     }
 };
 

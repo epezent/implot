@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v0.17
 
 // Table of Contents:
 //
@@ -62,9 +62,9 @@
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "0.18 WIP"
+#define IMPLOT_VERSION "0.17"
 // ImPlot version integer encoded as XYYZZ (X=major, YY=minor, ZZ=patch).
-#define IMPLOT_VERSION_NUM 1800
+#define IMPLOT_VERSION_NUM 1700
 // Indicates variable should deduced automatically.
 #define IMPLOT_AUTO -1
 // Special color used to indicate that a color should be deduced automatically.
@@ -92,6 +92,7 @@ typedef int ImPlotColormapScaleFlags; // -> ImPlotColormapScaleFlags_
 typedef int ImPlotItemFlags;          // -> ImPlotItemFlags_
 typedef int ImPlotLineFlags;          // -> ImPlotLineFlags_
 typedef int ImPlotScatterFlags;       // -> ImPlotScatterFlags
+typedef int ImPlotQuiverFlags;        // -> ImPlotQuiverFlags_
 typedef int ImPlotStairsFlags;        // -> ImPlotStairsFlags_
 typedef int ImPlotShadedFlags;        // -> ImPlotShadedFlags_
 typedef int ImPlotBarsFlags;          // -> ImPlotBarsFlags_
@@ -246,6 +247,14 @@ enum ImPlotScatterFlags_ {
     ImPlotScatterFlags_NoClip = 1 << 10, // markers on the edge of a plot will not be clipped
 };
 
+// Flgs for PlotQuiver
+enum ImPlotQuiverFlags_ {
+    ImPlotQuiverFlags_None       = 0,         // default
+    ImPlotQuiverFlags_NoClip     = 1 << 10,   // arrows on the edge of a plot will not be clipped
+    ImPlotQuiverFlags_Normalize  = 1 << 11,   // all arrows will be normalized to the same length
+    ImPlotQuiverFlags_Colored    = 1 << 12    // arrow colors will be mapped to their magnitudes
+};
+
 // Flags for PlotStairs
 enum ImPlotStairsFlags_ {
     ImPlotStairsFlags_None     = 0,       // default
@@ -350,6 +359,7 @@ enum ImPlotCol_ {
     ImPlotCol_MarkerOutline, // marker outline color (defaults to the current line color)
     ImPlotCol_MarkerFill,    // marker fill color (defaults to the current line color)
     ImPlotCol_ErrorBar,      // error bar color (defaults to ImGuiCol_Text)
+    ImPlotCol_QuiverFill,
     // plot styling colors
     ImPlotCol_FrameBg,       // plot frame background color (defaults to ImGuiCol_FrameBg)
     ImPlotCol_PlotBg,        // plot area background color (defaults to ImGuiCol_WindowBg)
@@ -481,6 +491,26 @@ struct ImPlotPoint {
 #ifdef IMPLOT_POINT_CLASS_EXTRA
     IMPLOT_POINT_CLASS_EXTRA     // Define additional constructors and implicit cast operators in imconfig.h
                                  // to convert back and forth between your math types and ImPlotPoint.
+#endif
+};
+IM_MSVC_RUNTIME_CHECKS_RESTORE
+
+IM_MSVC_RUNTIME_CHECKS_OFF
+// Implementation of a 2D plot vector with double precision.
+struct ImPlotQuiver {
+    double x, y;
+    double u, v;
+    double mag2;
+    IMPLOT_API constexpr ImPlotQuiver()                     : x(0.0), y(0.0), u(0.0), v(0.0), mag2(0.0) { }
+    IMPLOT_API constexpr ImPlotQuiver(double _x, double _y, double _u, double _v) : x(_x), y(_y), u(_u), v(_v), mag2((_u*_u + _v*_v)) { }
+    IMPLOT_API constexpr ImPlotQuiver(double _x, double _y, double _u, double _v, double _mag2) : x(_x), y(_y), u(_u), v(_v), mag2(_mag2) { }  // ADD THIS
+    IMPLOT_API constexpr ImPlotQuiver(const ImVec2& p, const ImVec2& q)      : x((double)p.x), y((double)p.y), u((double)q.x), v((double)q.y), mag2((q.x*q.x + q.y*q.y)) { }
+    IMPLOT_API constexpr ImPlotQuiver(const ImVec4& r)      : x((double)r.x), y((double)r.y), u((double)r.z), v((double)r.w), mag2((r.z*r.z + r.w*r.w)) { }
+    IMPLOT_API double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1 || idx == 2 || idx == 3 || idx == 4); return ((double*)(void*)(char*)this)[idx]; }
+    IMPLOT_API double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2 || idx == 3 || idx == 4); return ((const double*)(const void*)(const char*)this)[idx]; }
+#ifdef IMPLOT_POINT_CLASS_EXTRA
+    IMPLOT_POINT_CLASS_EXTRA     
+                                 
 #endif
 };
 IM_MSVC_RUNTIME_CHECKS_RESTORE
@@ -868,6 +898,9 @@ IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, do
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotScatterFlags flags=0);
 
+// Plots a standard 2D Vector Field arrow plot. It has a direction and magnitude.
+IMPLOT_TMP void PlotQuiver(const char* label_id, const T* xs, const T* ys,const T* us, const T* vs, int count,const T scaleMin, const T scaleMax, ImPlotQuiverFlags flags = 0, int offset= 0, int stride=sizeof(T));
+
 // Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotStairsFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, ImPlotStairsFlags flags=0, int offset=0, int stride=sizeof(T));
@@ -1130,6 +1163,8 @@ IMPLOT_API void SetNextLineStyle(const ImVec4& col = IMPLOT_AUTO_COL, float weig
 IMPLOT_API void SetNextFillStyle(const ImVec4& col = IMPLOT_AUTO_COL, float alpha_mod = IMPLOT_AUTO);
 // Set the marker style for the next item only.
 IMPLOT_API void SetNextMarkerStyle(ImPlotMarker marker = IMPLOT_AUTO, float size = IMPLOT_AUTO, const ImVec4& fill = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO, const ImVec4& outline = IMPLOT_AUTO_COL);
+// Set the quiver style for the next item only.
+IMPLOT_API void SetNextQuiverStyle(float size, const ImVec4& col = IMPLOT_AUTO_COL);
 // Set the error bar style for the next item only.
 IMPLOT_API void SetNextErrorBarStyle(const ImVec4& col = IMPLOT_AUTO_COL, float size = IMPLOT_AUTO, float weight = IMPLOT_AUTO);
 
