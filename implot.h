@@ -238,12 +238,14 @@ enum ImPlotLineFlags_ {
     ImPlotLineFlags_SkipNaN     = 1 << 12, // NaNs values will be skipped instead of rendered as missing data
     ImPlotLineFlags_NoClip      = 1 << 13, // markers (if displayed) on the edge of a plot will not be clipped
     ImPlotLineFlags_Shaded      = 1 << 14, // a filled region between the line and horizontal origin will be rendered; use PlotShaded for more advanced cases
+    ImPlotLineFlags_PerPointCustomColor  = 1 << 15, // each point is assigned with a specific color according to its value
 };
 
 // Flags for PlotScatter
 enum ImPlotScatterFlags_ {
-    ImPlotScatterFlags_None   = 0,       // default
-    ImPlotScatterFlags_NoClip = 1 << 10, // markers on the edge of a plot will not be clipped
+    ImPlotScatterFlags_None        = 0,       // default
+    ImPlotScatterFlags_NoClip      = 1 << 10, // markers on the edge of a plot will not be clipped
+    ImPlotScatterFlags_PerPointCustomColor  = 1 << 11, // markers with multiple colors
 };
 
 // Flags for PlotStairs
@@ -473,9 +475,11 @@ enum ImPlotBin_ {
 IM_MSVC_RUNTIME_CHECKS_OFF
 struct ImPlotPoint {
     double x, y;
-    IMPLOT_API constexpr ImPlotPoint()                     : x(0.0), y(0.0) { }
-    IMPLOT_API constexpr ImPlotPoint(double _x, double _y) : x(_x), y(_y) { }
-    IMPLOT_API constexpr ImPlotPoint(const ImVec2& p)      : x((double)p.x), y((double)p.y) { }
+    ImU32 c;
+    IMPLOT_API constexpr ImPlotPoint()                                          : x(0.0), y(0.0), c(ImU32()) { }
+    IMPLOT_API constexpr ImPlotPoint(double _x, double _y)                      : x(_x), y(_y), c(ImU32()) { }
+    IMPLOT_API constexpr ImPlotPoint(const ImVec2& p)                           : x((double)p.x), y((double)p.y), c(ImU32()) { }
+    IMPLOT_API constexpr ImPlotPoint(double _x, double _y, ImU32 _c)            : x(_x), y(_y), c(_c) { }
     IMPLOT_API double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1); return ((double*)(void*)(char*)this)[idx]; }
     IMPLOT_API double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1); return ((const double*)(const void*)(const char*)this)[idx]; }
 #ifdef IMPLOT_POINT_CLASS_EXTRA
@@ -861,11 +865,13 @@ IMPLOT_API void SetNextAxesToFit();
 // Plots a standard 2D line plot.
 IMPLOT_TMP void PlotLine(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotLine(const char* label_id, const T* xs, const T* ys, const ImU32* cs, int count, ImPlotLineFlags flags = 0, int offset = 0, int stride = sizeof(T));
 IMPLOT_API void PlotLineG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotLineFlags flags=0);
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, const ImU32* cs, int count, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotScatterFlags flags=0);
 
 // Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]
@@ -929,6 +935,10 @@ IMPLOT_API void PlotText(const char* text, double x, double y, const ImVec2& pix
 
 // Plots a dummy item (i.e. adds a legend entry colored by ImPlotCol_Line)
 IMPLOT_API void PlotDummy(const char* label_id, ImPlotDummyFlags flags=0);
+
+// Plots a 2D filled contour without lines, given a regular/irregular grid of data.
+IMPLOT_TMP void PlotContourFill(const char* label_id, const T* xs, const T* ys, const ImU32* cs, int x_count, int y_count, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max);
+
 
 //-----------------------------------------------------------------------------
 // [SECTION] Plot Tools
@@ -1190,6 +1200,9 @@ IMPLOT_API int GetColormapSize(ImPlotColormap cmap = IMPLOT_AUTO);
 IMPLOT_API ImVec4 GetColormapColor(int idx, ImPlotColormap cmap = IMPLOT_AUTO);
 // Sample a color from the current colormap given t between 0 and 1.
 IMPLOT_API ImVec4 SampleColormap(float t, ImPlotColormap cmap = IMPLOT_AUTO);
+
+// Convert values to colors using a specific colormap.
+IMPLOT_TMP void ConvertValueToColor(T* value, ImU32* cs, int count, float v_min, float v_max, ImPlotColormap colormap);
 
 // Shows a vertical color scale with linear spaced ticks using the specified color map. Use double hashes to hide label (e.g. "##NoLabel"). If scale_min > scale_max, the scale to color mapping will be reversed.
 IMPLOT_API void ColormapScale(const char* label, double scale_min, double scale_max, const ImVec2& size = ImVec2(0,0), const char* format = "%g", ImPlotColormapScaleFlags flags = 0, ImPlotColormap cmap = IMPLOT_AUTO);
