@@ -299,11 +299,50 @@ void Demo_LinePlots() {
         xs2[i] = i * 1/19.0f;
         ys2[i] = xs2[i] * xs2[i];
     }
+
     if (ImPlot::BeginPlot("Line Plots")) {
         ImPlot::SetupAxes("x","y");
         ImPlot::PlotLine("f(x)", xs1, ys1, 1001);
         ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
-        ImPlot::PlotLine("g(x)", xs2, ys2, 20,ImPlotLineFlags_Segments);
+        ImPlot::PlotLine("g(x)", xs2, ys2, 20, ImPlotLineFlags_Segments);
+        ImPlot::EndPlot();
+    }
+
+    static ImU32 colors3[150], colors4[200];
+    static float scale_min = FLT_MAX;
+    static float scale_max = -FLT_MAX;
+
+    static float xs3[150], ys3[150], zs3[150];
+    for (int i = 0; i < 150; i++)
+    {
+        xs3[i] = i;
+        ys3[i] = 1.2 * i * i;
+        zs3[i] = cosf(i * 0.1f);
+        scale_min = (scale_min > zs3[i]) ? zs3[i] : scale_min;
+        scale_max = (scale_max < zs3[i]) ? zs3[i] : scale_max;
+    }
+
+    static float xs4[200], ys4[200], zs4[200];
+    for (int i = 0; i < 200; i++)
+    {
+        xs4[i] = i;
+        ys4[i] = 0.6f * i * i * (1.f + sinf(50.f * (xs4[i] + ImGui::GetTime() / 10)));
+        zs4[i] = sinf(i * 0.1f);
+    }
+
+    const char* colormaps[] = { "Viridis", "Plasma", "Hot", "Cool", "Pink", "Jet", "Twilight", "RdBu", "BrBG", "PiYG", "Spectral", "Greys" };
+    static int sel_colormap = 5; // Jet by default
+    ImGui::Combo("Choose colormap", &sel_colormap, colormaps, IM_ARRAYSIZE(colormaps));
+    ImGui::DragFloatRange2("Scale Min / Max", &scale_min, &scale_max, 0.1);
+    ImPlotColormap cmap = GetColormapIndex(colormaps[sel_colormap]);
+    ImPlot::ConvertValueToColor(zs3, colors3, 150, scale_min, scale_max, cmap);
+    ImPlot::ConvertValueToColor(zs4, colors4, 200, scale_min, scale_max, cmap);
+    ImPlot::ColormapScale("##Z-Scale", floorf(scale_min), ceilf(scale_max), ImVec2(60, 300), "%.2f", 0, cmap);
+    ImGui::SameLine();
+    if (ImPlot::BeginPlot("Line Plots with  Per Point Custom Colors")) {
+        ImPlot::SetupAxes("x", "y");
+        ImPlot::PlotLine("h(x)", xs3, ys3, colors3, 150, ImPlotLineFlags_Segments|ImPlotLineFlags_PerPointCustomColor);
+        ImPlot::PlotLine("i(x)", xs4, ys4, colors4, 200, ImPlotLineFlags_PerPointCustomColor);
         ImPlot::EndPlot();
     }
 }
@@ -394,25 +433,57 @@ void Demo_ShadedPlots() {
 //-----------------------------------------------------------------------------
 
 void Demo_ScatterPlots() {
+    static ImU32 colors1[100], colors2[50];
+    static float scale_min = FLT_MAX;
+    static float scale_max = -FLT_MAX;
+    const char* colormaps[] = { "Viridis", "Plasma", "Hot", "Cool", "Pink", "Jet", "Twilight", "RdBu", "BrBG", "PiYG", "Spectral", "Greys" };
+    static int sel_colormap = 5; // Jet by default
+
     srand(0);
-    static float xs1[100], ys1[100];
+    static float xs1[100], ys1[100], vs1[100];
     for (int i = 0; i < 100; ++i) {
         xs1[i] = i * 0.01f;
         ys1[i] = xs1[i] + 0.1f * ((float)rand() / (float)RAND_MAX);
+        vs1[i] = sin(i * 0.1f);
+        scale_min = (scale_min > vs1[i]) ? vs1[i] : scale_min;
+        scale_max = (scale_max < vs1[i]) ? vs1[i] : scale_max;
     }
-    static float xs2[50], ys2[50];
+    static float xs2[50], ys2[50], vs2[50];
     for (int i = 0; i < 50; i++) {
         xs2[i] = 0.25f + 0.2f * ((float)rand() / (float)RAND_MAX);
         ys2[i] = 0.75f + 0.2f * ((float)rand() / (float)RAND_MAX);
+        vs2[i] = cos(i * 0.1f);
     }
 
-    if (ImPlot::BeginPlot("Scatter Plot")) {
-        ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
-        ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-        ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 6, ImPlot::GetColormapColor(1), IMPLOT_AUTO, ImPlot::GetColormapColor(1));
-        ImPlot::PlotScatter("Data 2", xs2, ys2, 50);
-        ImPlot::PopStyleVar();
-        ImPlot::EndPlot();
+    static bool ppc_color = false;
+    ImGui::Checkbox("Per Point Custom Color", &ppc_color);
+    if (!ppc_color) {
+        if (ImPlot::BeginPlot("Scatter Plot")) {
+            ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 6, ImPlot::GetColormapColor(1), IMPLOT_AUTO, ImPlot::GetColormapColor(1));
+            ImPlot::PlotScatter("Data 2", xs2, ys2, 50);
+            ImPlot::PopStyleVar();
+            ImPlot::EndPlot();
+        }
+    }
+    else {
+        ImGui::Combo("##ScatterColormap", &sel_colormap, colormaps, IM_ARRAYSIZE(colormaps));
+        ImGui::SameLine();
+        ImGui::Text("Choose colormap");
+        ImGui::DragFloatRange2("Min / Max", &scale_min, &scale_max, 0.1);
+        ImPlotColormap cmap = GetColormapIndex(colormaps[sel_colormap]);
+        ImPlot::ConvertValueToColor(vs1, colors1, 100, scale_min, scale_max, cmap);
+        ImPlot::ConvertValueToColor(vs2, colors2, 50, scale_min, scale_max, cmap);
+        ImPlot::ColormapScale("##Z-Scale", scale_min, scale_max, ImVec2(60, 300), "%.2f", 0, cmap);
+        ImGui::SameLine();
+        if (ImPlot::BeginPlot("Scatter Plot with Per Point Custom Colors")) {
+            ImPlot::PlotScatter("Data 1", xs1, ys1, colors1, 100, ImPlotScatterFlags_PerPointCustomColor);
+            ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
+            ImPlot::SetNextMarkerStyle(ImPlotMarker_Square, 6);
+            ImPlot::PlotScatter("Data 2", xs2, ys2, colors2, 50, ImPlotScatterFlags_PerPointCustomColor);
+            ImPlot::EndPlot();
+        }
     }
 }
 
@@ -1001,6 +1072,49 @@ void Demo_NaNValues() {
         ImPlot::PlotBars("bars", data1, 5);
         ImPlot::EndPlot();
     }
+}
+
+//-----------------------------------------------------------------------------
+void Demo_ContourMap() {
+    constexpr int M = 240;
+    constexpr int N = 160;
+    static float delta = 0.025f;
+    static float xs[M * N];
+    static float ys[M * N];
+    static float zs[M * N];
+    static ImU32 colors[M * N];
+
+    static float scale_min = FLT_MAX;
+    static float scale_max = -FLT_MAX;
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            int idx = j * M + i;
+            xs[idx] = -3.f + i * delta;
+            ys[idx] = -2.f + j * delta;
+            zs[idx] = (1.f - 0.5f * xs[idx] + powf(xs[idx], 5) + powf(ys[idx], 3)) * expf(-xs[idx] * xs[idx] - ys[idx] * ys[idx]);
+            scale_min = (scale_min < zs[idx]) ? scale_min : zs[idx];
+            scale_max = (scale_max > zs[idx]) ? scale_max : zs[idx];
+        }
+    }
+
+    // Choose colormap
+    const char* colormaps[] = { "Viridis", "Plasma", "Hot", "Cool", "Pink", "Jet", "Twilight", "RdBu", "BrBG", "PiYG", "Spectral", "Greys" };
+    static int sel_colormap = 7; // RdBu by default
+    ImGui::SetNextItemWidth(360);
+    ImGui::Combo("##ContourColormap", &sel_colormap, colormaps, IM_ARRAYSIZE(colormaps));
+    ImGui::SameLine();
+    ImGui::Text("Choose colormap");
+    ImGui::SetNextItemWidth(360);
+    ImGui::DragFloatRange2("Min / Max", &scale_min, &scale_max, 0.01f, -3.f, 3.f);
+
+    ImPlotColormap cmap = ImPlot::GetColormapIndex(colormaps[sel_colormap]);
+    ImPlot::ConvertValueToColor(zs, colors, M * N, scale_min, scale_max, cmap);
+    if (ImPlot::BeginPlot("##Contour", ImVec2(M * 2, N * 2))) {
+        ImPlot::PlotContourFill("Contour Map", xs, ys, colors, M, N, ImPlotPoint(-3.f, -2.f), ImPlotPoint(-3.f + M * delta, -2.f + N * delta));
+        ImPlot::EndPlot();
+    }
+    ImGui::SameLine();
+    ImPlot::ColormapScale("##Z-Scale", scale_min, scale_max, ImVec2(60, N * 2), "%.2f", 0, cmap);
 }
 
 //-----------------------------------------------------------------------------
@@ -2264,6 +2378,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Images", Demo_Images);
             DemoHeader("Markers and Text", Demo_MarkersAndText);
             DemoHeader("NaN Values", Demo_NaNValues);
+            DemoHeader("Contour Map", Demo_ContourMap);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Subplots")) {
