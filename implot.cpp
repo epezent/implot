@@ -2820,7 +2820,6 @@ void EndPlot() {
             continue;
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
-        const bool ins = ax.HasTickLabelsInside();
         const bool aux = ((opp && count_T > 0)||(!opp && count_B > 0));
         if (ax.HasTickMarks()) {
             const float direction = opp ? 1.0f : -1.0f;
@@ -2848,7 +2847,6 @@ void EndPlot() {
             continue;
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
-        const bool ins = ax.HasTickLabelsInside();
         const bool aux = ((opp && count_R > 0)||(!opp && count_L > 0));
         if (ax.HasTickMarks()) {
             const float direction = opp ? -1.0f : 1.0f;
