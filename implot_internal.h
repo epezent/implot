@@ -889,24 +889,25 @@ struct ImPlotAxis
         UpdateTransformCache();
     }
 
-    inline bool HasLabel()          const { return LabelOffset != -1 && !ImHasFlag(Flags, ImPlotAxisFlags_NoLabel);                          }
-    inline bool HasGridLines()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoGridLines);                                           }
-    inline bool HasTickLabels()     const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                                          }
-    inline bool HasTickMarks()      const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                                           }
-    inline bool WillRender()        const { return Enabled && (HasGridLines() || HasTickLabels() || HasTickMarks());                         }
-    inline bool IsOpposite()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                                               }
-    inline bool IsInverted()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                                 }
-    inline bool IsForeground()      const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }
-    inline bool IsAutoFitting()     const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                                }
-    inline bool CanInitFit()        const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
-    inline bool IsRangeLocked()     const { return HasRange && RangeCond == ImPlotCond_Always;                                               }
-    inline bool IsLockedMin()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin);                 }
-    inline bool IsLockedMax()       const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax);                 }
-    inline bool IsLocked()          const { return IsLockedMin() && IsLockedMax();                                                           }
-    inline bool IsInputLockedMin()  const { return IsLockedMin() || IsAutoFitting();                                                         }
-    inline bool IsInputLockedMax()  const { return IsLockedMax() || IsAutoFitting();                                                         }
-    inline bool IsInputLocked()     const { return IsLocked()    || IsAutoFitting();                                                         }
-    inline bool HasMenus()          const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoMenus);                                               }
+    inline bool HasLabel()            const { return LabelOffset != -1 && !ImHasFlag(Flags, ImPlotAxisFlags_NoLabel);                          }
+    inline bool HasGridLines()        const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoGridLines);                                           }
+    inline bool HasTickLabels()       const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickLabels);                                          }
+    inline bool HasTickLabelsInside() const { return ImHasFlag(Flags, ImPlotAxisFlags_TickLabelsInside);                                       }
+    inline bool HasTickMarks()        const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoTickMarks);                                           }
+    inline bool WillRender()          const { return Enabled && (HasGridLines() || HasTickLabels() || HasTickMarks());                         }
+    inline bool IsOpposite()          const { return ImHasFlag(Flags, ImPlotAxisFlags_Opposite);                                               }
+    inline bool IsInverted()          const { return ImHasFlag(Flags, ImPlotAxisFlags_Invert);                                                 }
+    inline bool IsForeground()        const { return ImHasFlag(Flags, ImPlotAxisFlags_Foreground);                                             }
+    inline bool IsAutoFitting()       const { return ImHasFlag(Flags, ImPlotAxisFlags_AutoFit);                                                }
+    inline bool CanInitFit()          const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoInitialFit) && !HasRange && !LinkedMin && !LinkedMax; }
+    inline bool IsRangeLocked()       const { return HasRange && RangeCond == ImPlotCond_Always;                                               }
+    inline bool IsLockedMin()         const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMin);                 }
+    inline bool IsLockedMax()         const { return !Enabled || IsRangeLocked() || ImHasFlag(Flags, ImPlotAxisFlags_LockMax);                 }
+    inline bool IsLocked()            const { return IsLockedMin() && IsLockedMax();                                                           }
+    inline bool IsInputLockedMin()    const { return IsLockedMin() || IsAutoFitting();                                                         }
+    inline bool IsInputLockedMax()    const { return IsLockedMax() || IsAutoFitting();                                                         }
+    inline bool IsInputLocked()       const { return IsLocked()    || IsAutoFitting();                                                         }
+    inline bool HasMenus()            const { return !ImHasFlag(Flags, ImPlotAxisFlags_NoMenus);                                               }
 
     inline bool IsPanLocked(bool increasing) {
         if (ImHasFlag(Flags, ImPlotAxisFlags_PanStretch)) {
