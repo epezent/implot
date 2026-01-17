@@ -1629,7 +1629,42 @@ void UpdateAxisColors(ImPlotAxis& axis) {
     // axis.ColorHiLi     = IM_COL32_BLACK_TRANS;
 }
 
-void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignmentData* align) {
+static void FindInnermostAxesX(ImPlotPlot& plot, int& innermost_T, int& innermost_B) {
+    innermost_T = innermost_B = -1;
+    for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
+        ImPlotAxis& axis = plot.XAxis(i);
+        if (!axis.Enabled)
+            continue;
+        const bool opp = axis.IsOpposite();
+        if (opp && innermost_T == -1)
+            innermost_T = i;
+        if (!opp && innermost_B == -1)
+            innermost_B = i;
+    }
+}
+
+static void FindInnermostAxesY(ImPlotPlot& plot, int& innermost_L, int& innermost_R) {
+    innermost_L = innermost_R = -1;
+    for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
+        ImPlotAxis& axis = plot.YAxis(i);
+        if (!axis.Enabled)
+            continue;
+        const bool opp = axis.IsOpposite();
+        if (opp && innermost_R == -1)
+            innermost_R = i;
+        if (!opp && innermost_L == -1)
+            innermost_L = i;
+    }
+}
+
+static bool IsInnermostAxis(int i, bool opp, int innermost, int innermost_opp) {
+    if (opp)
+        return i == innermost_opp;
+    else
+        return i == innermost;
+}
+
+void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, int innermost_T, int innermost_B, ImPlotAlignmentData* align) {
 
     ImPlotContext& gp = *GImPlot;
 
@@ -1642,19 +1677,6 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
     float last_T  = plot.AxesRect.Min.y;
     float last_B  = plot.AxesRect.Max.y;
 
-    int first_axis_index = -1;
-    int first_opp_axis_index = -1;
-    for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
-        ImPlotAxis& axis = plot.XAxis(i);
-        if (!axis.Enabled)
-            continue;
-        const bool opp = axis.IsOpposite();
-        if (opp && first_opp_axis_index == -1)
-            first_opp_axis_index = i;
-        if (!opp && first_axis_index == -1)
-            first_axis_index = i;
-    }
-
     for (int i = IMPLOT_NUM_X_AXES; i-- > 0;) { // FYI: can iterate forward
         ImPlotAxis& axis = plot.XAxis(i);
         if (!axis.Enabled)
@@ -1662,7 +1684,7 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
         const bool label = axis.HasLabel();
         const bool ticks = axis.HasTickLabels();
         const bool opp   = axis.IsOpposite();
-        const bool ins   = axis.HasTickLabelsInside() && (i == (opp ? first_opp_axis_index : first_axis_index));
+        const bool ins   = axis.HasTickLabelsInside() && IsInnermostAxis(i, opp, innermost_B, innermost_T);
         const bool time  = axis.Scale == ImPlotScale_Time;
         if (opp) {
             if (count_T++ > 0)
@@ -1708,7 +1730,7 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
     }
 }
 
-void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, ImPlotAlignmentData* align) {
+void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, int innermost_L, int innermost_R, ImPlotAlignmentData* align) {
 
     //   [   pad_L   ]                 [   pad_R   ]
     //   .................CanvasRect................
@@ -1736,19 +1758,6 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, ImPlotAlignm
     float last_L  = plot.AxesRect.Min.x;
     float last_R  = plot.AxesRect.Max.x;
 
-    int first_axis_index = -1;
-    int first_opp_axis_index = -1;
-    for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
-        ImPlotAxis& axis = plot.YAxis(i);
-        if (!axis.Enabled)
-            continue;
-        const bool opp = axis.IsOpposite();
-        if (opp && first_opp_axis_index == -1)
-            first_opp_axis_index = i;
-        if (!opp && first_axis_index == -1)
-            first_axis_index = i;
-    }
-
     for (int i = IMPLOT_NUM_Y_AXES; i-- > 0;) { // FYI: can iterate forward
         ImPlotAxis& axis = plot.YAxis(i);
         if (!axis.Enabled)
@@ -1756,7 +1765,7 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, ImPlotAlignm
         const bool label = axis.HasLabel();
         const bool ticks = axis.HasTickLabels();
         const bool opp   = axis.IsOpposite();
-        const bool ins   = axis.HasTickLabelsInside() && (i == (opp ? first_opp_axis_index : first_axis_index));
+        const bool ins   = axis.HasTickLabelsInside() && IsInnermostAxis(i, opp, innermost_L, innermost_R);
         if (opp) {
             if (count_R++ > 0)
                 pad_R += K + P;
@@ -2583,6 +2592,7 @@ void SetupFinish() {
 
     // plot bb
     float pad_top = 0, pad_bot = 0, pad_left = 0, pad_right = 0;
+    int innermost_top = -1, innermost_bot = -1, innermost_left = -1, innermost_right = -1;
 
     // (0) calc top padding form title
     ImVec2 title_size(0.0f, 0.0f);
@@ -2594,7 +2604,8 @@ void SetupFinish() {
     }
 
     // (1) calc addition top padding and bot padding
-    PadAndDatumAxesX(plot,pad_top,pad_bot,gp.CurrentAlignmentH);
+    FindInnermostAxesX(plot, innermost_top, innermost_bot);
+    PadAndDatumAxesX(plot,pad_top,pad_bot,innermost_top,innermost_bot,gp.CurrentAlignmentH);
 
     const float plot_height = plot.CanvasRect.GetHeight() - pad_top - pad_bot;
 
@@ -2607,7 +2618,8 @@ void SetupFinish() {
     }
 
     // (3) calc left/right pad
-    PadAndDatumAxesY(plot,pad_left,pad_right,gp.CurrentAlignmentV);
+    FindInnermostAxesY(plot, innermost_left, innermost_right);
+    PadAndDatumAxesY(plot,pad_left,pad_right,innermost_left,innermost_right,gp.CurrentAlignmentV);
 
     const float plot_width = plot.CanvasRect.GetWidth() - pad_left - pad_right;
 
@@ -2708,8 +2720,6 @@ void SetupFinish() {
     }
 
     // render x axis button, label, tick labels
-    bool is_first_x_axis = true;
-    bool is_first_opp_x_axis = true;
     for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
         ImPlotAxis& ax = plot.XAxis(i);
         if (!ax.Enabled)
@@ -2725,7 +2735,7 @@ void SetupFinish() {
         }
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
-        const bool ins = ax.HasTickLabelsInside() && (opp ? is_first_opp_x_axis : is_first_x_axis);
+        const bool ins = ax.HasTickLabelsInside() && IsInnermostAxis(i, opp, innermost_bot, innermost_top);
         if (ax.HasLabel()) {
             const char* label        = plot.GetAxisLabel(ax);
             const ImVec2 label_size  = ImGui::CalcTextSize(label);
@@ -2748,12 +2758,9 @@ void SetupFinish() {
                 }
             }
         }
-        (opp ? is_first_opp_x_axis : is_first_x_axis) = false;
     }
 
     // render y axis button, label, tick labels
-    bool is_first_y_axis = true;
-    bool is_first_opp_y_axis = true;
     for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
         ImPlotAxis& ax = plot.YAxis(i);
         if (!ax.Enabled)
@@ -2769,7 +2776,7 @@ void SetupFinish() {
         }
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
-        const bool ins = ax.HasTickLabelsInside() && (opp ? is_first_opp_y_axis : is_first_y_axis);
+        const bool ins = ax.HasTickLabelsInside() && IsInnermostAxis(i, opp, innermost_left, innermost_right);
         if (ax.HasLabel()) {
             const char* label        = plot.GetAxisLabel(ax);
             const ImVec2 label_size  = CalcTextSizeVertical(label);
@@ -2790,7 +2797,6 @@ void SetupFinish() {
                 }
             }
         }
-        (opp ? is_first_opp_y_axis : is_first_y_axis) = false;
     }
 
 
