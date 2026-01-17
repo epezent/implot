@@ -1642,14 +1642,27 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
     float last_T  = plot.AxesRect.Min.y;
     float last_B  = plot.AxesRect.Max.y;
 
+    int first_axis_index = -1;
+    int first_opp_axis_index = -1;
+    for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
+        ImPlotAxis& axis = plot.XAxis(i);
+        if (!axis.Enabled)
+            continue;
+        const bool opp = axis.IsOpposite();
+        if (opp && first_opp_axis_index == -1)
+            first_opp_axis_index = i;
+        if (!opp && first_axis_index == -1)
+            first_axis_index = i;
+    }
+
     for (int i = IMPLOT_NUM_X_AXES; i-- > 0;) { // FYI: can iterate forward
         ImPlotAxis& axis = plot.XAxis(i);
         if (!axis.Enabled)
             continue;
         const bool label = axis.HasLabel();
         const bool ticks = axis.HasTickLabels();
-        const bool ins   = axis.HasTickLabelsInside();
         const bool opp   = axis.IsOpposite();
+        const bool ins   = axis.HasTickLabelsInside() && (i == (opp ? first_opp_axis_index : first_axis_index));
         const bool time  = axis.Scale == ImPlotScale_Time;
         if (opp) {
             if (count_T++ > 0)
@@ -1723,14 +1736,27 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, ImPlotAlignm
     float last_L  = plot.AxesRect.Min.x;
     float last_R  = plot.AxesRect.Max.x;
 
+    int first_axis_index = -1;
+    int first_opp_axis_index = -1;
+    for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
+        ImPlotAxis& axis = plot.YAxis(i);
+        if (!axis.Enabled)
+            continue;
+        const bool opp = axis.IsOpposite();
+        if (opp && first_opp_axis_index == -1)
+            first_opp_axis_index = i;
+        if (!opp && first_axis_index == -1)
+            first_axis_index = i;
+    }
+
     for (int i = IMPLOT_NUM_Y_AXES; i-- > 0;) { // FYI: can iterate forward
         ImPlotAxis& axis = plot.YAxis(i);
         if (!axis.Enabled)
             continue;
         const bool label = axis.HasLabel();
         const bool ticks = axis.HasTickLabels();
-        const bool ins   = axis.HasTickLabelsInside();
         const bool opp   = axis.IsOpposite();
+        const bool ins   = axis.HasTickLabelsInside() && (i == (opp ? first_opp_axis_index : first_axis_index));
         if (opp) {
             if (count_R++ > 0)
                 pad_R += K + P;
@@ -2682,6 +2708,8 @@ void SetupFinish() {
     }
 
     // render x axis button, label, tick labels
+    bool is_first_x_axis = true;
+    bool is_first_opp_x_axis = true;
     for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
         ImPlotAxis& ax = plot.XAxis(i);
         if (!ax.Enabled)
@@ -2697,7 +2725,7 @@ void SetupFinish() {
         }
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
-        const bool ins = ax.HasTickLabelsInside();
+        const bool ins = ax.HasTickLabelsInside() && (opp ? is_first_opp_x_axis : is_first_x_axis);
         if (ax.HasLabel()) {
             const char* label        = plot.GetAxisLabel(ax);
             const ImVec2 label_size  = ImGui::CalcTextSize(label);
@@ -2720,9 +2748,12 @@ void SetupFinish() {
                 }
             }
         }
+        (opp ? is_first_opp_x_axis : is_first_x_axis) = false;
     }
 
     // render y axis button, label, tick labels
+    bool is_first_y_axis = true;
+    bool is_first_opp_y_axis = true;
     for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
         ImPlotAxis& ax = plot.YAxis(i);
         if (!ax.Enabled)
@@ -2738,7 +2769,7 @@ void SetupFinish() {
         }
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
-        const bool ins = ax.HasTickLabelsInside();
+        const bool ins = ax.HasTickLabelsInside() && (opp ? is_first_opp_y_axis : is_first_y_axis);
         if (ax.HasLabel()) {
             const char* label        = plot.GetAxisLabel(ax);
             const ImVec2 label_size  = CalcTextSizeVertical(label);
@@ -2759,6 +2790,7 @@ void SetupFinish() {
                 }
             }
         }
+        (opp ? is_first_opp_y_axis : is_first_y_axis) = false;
     }
 
 
