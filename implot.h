@@ -141,9 +141,10 @@ enum ImPlotProp_ {
     ImPlotProp_FillColor,       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
     ImPlotProp_FillAlpha,       // alpha multiplier (applies to FillColor and MarkerFillColor)
     ImPlotProp_Marker,          // marker type; specify ImPlotMarker_Auto to use the next unused marker
+    ImPlotProp_MarkerSize,      // size of markers (radius) *in pixels*
     ImPlotProp_MarkerLineColor, // marker edge color; IMPLOT_AUTO_COL will use LineColor
     ImPlotProp_MarkerFillColor, // marker face color; IMPLOT_AUTO_COL will use LineColor
-    ImPlotProp_Size,            // size of markers (radius), error bar whiskers (width or height), and digital bars (height) *in pixels*
+    ImPlotProp_Size,            // size of error bar whiskers (width or height), and digital bars (height) *in pixels*
     ImPlotProp_Offset,          // data index offset
     ImPlotProp_Stride,          // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
     ImPlotProp_Flags            // optional item flags; can be composed from common ImPlotItemFlags and/or specialized ImPlotXFlags
@@ -508,9 +509,10 @@ struct ImPlotSpec {
     ImVec4          FillColor       = IMPLOT_AUTO_COL;       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
     float           FillAlpha       = 1.0f;                  // alpha multiplier (applies to FillColor and MarkerFillColor)
     ImPlotMarker    Marker          = ImPlotMarker_None;     // marker type; specify ImPlotMarker_Auto to use the next unused marker
+    float           MarkerSize      = 4;                     // size of markers (radius) *in pixels*
     ImVec4          MarkerLineColor = IMPLOT_AUTO_COL;       // marker edge color; IMPLOT_AUTO_COL will use LineColor
     ImVec4          MarkerFillColor = IMPLOT_AUTO_COL;       // marker face color; IMPLOT_AUTO_COL will use LineColor
-    float           Size            = 4;                     // size of markers (radius), error bar whiskers (width or height), and digital bars (height) *in pixels*
+    float           Size            = 4;                     // size of error bar whiskers (width or height), and digital bars (height) *in pixels*
     int             Offset          = 0;                     // data index offset
     int             Stride          = IMPLOT_AUTO;           // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
     ImPlotItemFlags Flags           = ImPlotItemFlags_None;  // optional item flags; can be composed from common ImPlotItemFlags and/or specialized ImPlotXFlags
@@ -533,6 +535,7 @@ struct ImPlotSpec {
         case ImPlotProp_FillColor       : FillColor       = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
         case ImPlotProp_FillAlpha       : FillAlpha       = (float)v;                                 return;
         case ImPlotProp_Marker          : Marker          = (ImPlotMarker)v;                          return;
+        case ImPlotProp_MarkerSize      : MarkerSize      = (float)v;                                 return;
         case ImPlotProp_MarkerLineColor : MarkerLineColor = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
         case ImPlotProp_MarkerFillColor : MarkerFillColor = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
         case ImPlotProp_Size            : Size            = (float)v;                                 return;
@@ -563,6 +566,7 @@ struct ImPlotSpec {
         if (strcmp(name, "FillColor") == 0)       return ImPlotProp_FillColor;
         if (strcmp(name, "FillAlpha") == 0)       return ImPlotProp_FillAlpha;
         if (strcmp(name, "Marker") == 0)          return ImPlotProp_Marker;
+        if (strcmp(name, "MarkerSize") == 0)      return ImPlotProp_MarkerSize;
         if (strcmp(name, "MarkerLineColor") == 0) return ImPlotProp_MarkerLineColor;
         if (strcmp(name, "MarkerFillColor") == 0) return ImPlotProp_MarkerFillColor;
         if (strcmp(name, "Size") == 0)            return ImPlotProp_Size;

@@ -411,7 +411,7 @@ void Demo_ScatterPlots() {
         ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
         ImPlot::PlotScatter("Data 2", xs2, ys2, 50, {
             "Marker", ImPlotMarker_Square,
-            "Size", 6,
+            "MarkerSize", 6,
             "LineColor", GetColormapColor(1),
             "FillColor", GetColormapColor(1),
             "FillAlpha", 0.25f
@@ -580,7 +580,7 @@ void Demo_ErrorBars() {
         spec.LineWeight = 1.5f;
         ImPlot::PlotErrorBars("Scatter", xs, lin2, err2, 5, spec);
         spec.Flags = ImPlotErrorBarsFlags_Horizontal;
-        ImPlot::PlotErrorBars("Scatter", xs, lin2,  err3, err4, 5, spec);
+        ImPlot::PlotErrorBars("Scatter", xs, lin2, err3, err4, 5, spec);
         ImPlot::PlotScatter("Scatter", xs, lin2, 5);
 
         ImPlot::EndPlot();
@@ -969,7 +969,7 @@ void Demo_RealtimePlots() {
 
 void Demo_MarkersAndText() {
     static ImPlotSpec spec(ImPlotProp_Marker, ImPlotMarker_Auto);
-    ImGui::DragFloat("Marker Size",&spec.Size,0.1f,2.0f,10.0f,"%.2f px");
+    ImGui::DragFloat("Marker Size",&spec.MarkerSize,0.1f,2.0f,10.0f,"%.2f px");
     ImGui::DragFloat("Marker Weight", &spec.LineWeight,0.05f,0.5f,3.0f,"%.2f px");
 
     if (ImPlot::BeginPlot("##MarkerStyles", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
@@ -1661,7 +1661,7 @@ void Demo_Querying() {
         spec.Stride = 2 * sizeof(double);
         ImPlotSpec cent_spec;
         cent_spec.Marker = ImPlotMarker_Square;
-        cent_spec.Size = 6;
+        cent_spec.MarkerSize = 6;
         ImPlot::PlotScatter("Points", &data[0].x, &data[0].y, data.size(), spec);
         if (ImPlot::IsPlotSelected()) {
             select = ImPlot::GetPlotSelection();
@@ -1982,11 +1982,11 @@ void Demo_ItemStylingAndSpec() {
         spec.FillColor = ImVec4(1,0.5f,0,1);
         spec.FillAlpha = 0.5f;
         spec.Marker = ImPlotMarker_Square;
-        spec.Size = 6;
+        spec.MarkerSize = 6;
         spec.Stride = sizeof(ImVec2);
         spec.Flags = ImPlotItemFlags_NoLegend | ImPlotLineFlags_Shaded;
         ImPlot::PlotLine("Line 1", &data1[0].x, &data1[0].y, 20, spec);
-        
+
         // 2. Inline using ImPlotProp,value pairs (order does NOT matter):
         ImPlot::PlotLine("Line 2", &data2[0].x, &data2[0].y, 20, {
             ImPlotProp_LineColor, ImVec4(0,1,1,1),
@@ -1998,11 +1998,11 @@ void Demo_ItemStylingAndSpec() {
             ImPlotProp_Stride, sizeof(ImVec2),
             ImPlotProp_Flags, ImPlotItemFlags_NoLegend | ImPlotLineFlags_Shaded
         });
-        
+
         ImPlot::EndPlot();
-    }    
+    }
 }
-    
+
 //-----------------------------------------------------------------------------
 
 void Demo_OffsetAndStride() {

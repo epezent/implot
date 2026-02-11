@@ -458,6 +458,7 @@ bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& item_
         if (item->LegendHovered) {
             if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightItem)) {
                 s.Spec.LineWeight *= ITEM_HIGHLIGHT_LINE_SCALE;
+                s.Spec.MarkerSize *= ITEM_HIGHLIGHT_MARK_SCALE;
                 s.Spec.Size *= ITEM_HIGHLIGHT_MARK_SCALE;
                 // TODO: how to highlight fills?
             }
@@ -1621,11 +1622,11 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
         if (s.RenderMarkers) {
             if (ImHasFlag(spec.Flags, ImPlotLineFlags_NoClip)) {
                 PopPlotClipRect();
-                PushPlotClipRect(s.Spec.Size);
+                PushPlotClipRect(s.Spec.MarkerSize);
             }
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
+            RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
@@ -1672,11 +1673,11 @@ void PlotScatterEx(const char* label_id, const Getter& getter, const ImPlotSpec&
         if (s.RenderMarkers) {
             if (ImHasFlag(spec.Flags,ImPlotScatterFlags_NoClip)) {
                 PopPlotClipRect();
-                PushPlotClipRect(s.Spec.Size);
+                PushPlotClipRect(s.Spec.MarkerSize);
             }
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
+            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
@@ -1737,10 +1738,10 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
         // render markers
         if (s.RenderMarkers) {
             PopPlotClipRect();
-            PushPlotClipRect(s.Spec.Size);
+            PushPlotClipRect(s.Spec.MarkerSize);
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
+            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
@@ -2130,10 +2131,10 @@ void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _Gette
         // render markers
         if (s.RenderMarkers) {
             PopPlotClipRect();
-            PushPlotClipRect(s.Spec.Size);
+            PushPlotClipRect(s.Spec.MarkerSize);
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.Size, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
+            RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
