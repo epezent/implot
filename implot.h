@@ -493,6 +493,15 @@ enum ImPlotBin_ {
 //      ImPlotProp_Marker, ImPlotMarker_Circle,
 //      ImPlotProp_Flags, ImPlotItemFlags_NoLegend | ImPlotLineFlags_Segments
 //    });
+//
+// 3. Inline using (String,value) pairs (order does NOT matter):
+//
+//    ImPlot::PlotLine("MyLine", xs, ys, 100, {
+//      "LineColor", ImVec4(1,0,0,1),
+//      "LineWeight", 2.0f,
+//      "Marker", ImPlotMarker_Circle,
+//      "Flags", ImPlotItemFlags_NoLegend | ImPlotLineFlags_Segments
+//    });
 struct ImPlotSpec {
     ImVec4          LineColor       = IMPLOT_AUTO_COL;       // line color (applies to lines, bar edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
     float           LineWeight      = 1.0f;                  // line weight in pixels (applies to lines, bar edges, marker edges)
@@ -511,16 +520,8 @@ struct ImPlotSpec {
     // Construct a plot item specification from (ImPlotProp,value) pairs in any order, e.g. ImPlotSpec(ImPlotProp_LineColor, my_color, ImPlotProp_Marker, 4.0f)
     template <typename ...Args>
     ImPlotSpec(Args... args) {
-        static_assert((sizeof ...(Args)) % 2 == 0, "Odd number of arguments! You must provide (ImPlotProp,value) pairs!");
-        SetProp(args...);
-    }
-
-    // Set properties from (ImPlotProp,value) pairs in any order, e.g. SetProp(ImPlotProp_LineColor, my_color, ImPlotProp_Marker, 4.0f)
-    template <typename Arg, typename ...Args>
-    void SetProp(ImPlotProp prop, Arg arg, Args... args) {
-        static_assert((sizeof ...(Args)) % 2 == 0, "Odd number of arguments! You must provide (ImPlotProp,value) pairs!");
-        SetProp(prop, arg);
-        SetProp(args...);
+        static_assert((sizeof ...(Args)) % 2 == 0, "Odd number of arguments! You must provide (property, value) pairs!");
+        Apply(args...);
     }
 
     // Set a property from a scalar value.
@@ -553,6 +554,51 @@ struct ImPlotSpec {
         default: break;
         }
         IM_ASSERT(0 && "User provided an ImPlotProp which cannot be set from ImVec4 value!");
+    }
+
+    // Helper to convert string to enum
+    static inline ImPlotProp StringToProp(const char* name) {
+        if (strcmp(name, "LineColor") == 0)       return ImPlotProp_LineColor;
+        if (strcmp(name, "LineWeight") == 0)      return ImPlotProp_LineWeight;
+        if (strcmp(name, "FillColor") == 0)       return ImPlotProp_FillColor;
+        if (strcmp(name, "FillAlpha") == 0)       return ImPlotProp_FillAlpha;
+        if (strcmp(name, "Marker") == 0)          return ImPlotProp_Marker;
+        if (strcmp(name, "MarkerLineColor") == 0) return ImPlotProp_MarkerLineColor;
+        if (strcmp(name, "MarkerFillColor") == 0) return ImPlotProp_MarkerFillColor;
+        if (strcmp(name, "Size") == 0)            return ImPlotProp_Size;
+        if (strcmp(name, "Offset") == 0)          return ImPlotProp_Offset;
+        if (strcmp(name, "Stride") == 0)          return ImPlotProp_Stride;
+        if (strcmp(name, "Flags") == 0)           return ImPlotProp_Flags;
+        return (ImPlotProp)-1;
+    }
+
+    // Set property from string and scalar
+    template <typename T>
+    void SetProp(const char* prop_name, T v) {
+        ImPlotProp prop = StringToProp(prop_name);
+        if (prop != -1)
+            SetProp(prop, v);
+        else
+            IM_ASSERT(0 && "Invalid ImPlotProp string name!");
+    }
+
+    // Set property from string and ImVec4
+    void SetProp(const char* prop_name, const ImVec4& v) {
+        ImPlotProp prop = StringToProp(prop_name);
+        if (prop != -1)
+            SetProp(prop, v);
+        else
+            IM_ASSERT(0 && "Invalid ImPlotProp string name!");
+    }
+
+    // Base case
+    void Apply() { }
+
+    // Set properties from (ImPlotProp,value) pairs in any order, e.g. SetProp(ImPlotProp_LineColor, my_color, ImPlotProp_Marker, 4.0f)
+    template <typename Key, typename Value, typename ...Args>
+    void Apply(Key key, Value val, Args... args) {
+        SetProp(key, val);
+        Apply(args...);
     }
 };
 

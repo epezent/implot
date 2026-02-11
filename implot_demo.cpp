@@ -410,11 +410,11 @@ void Demo_ScatterPlots() {
     if (ImPlot::BeginPlot("Scatter Plot")) {
         ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
         ImPlot::PlotScatter("Data 2", xs2, ys2, 50, {
-            ImPlotProp_Marker, ImPlotMarker_Square,
-            ImPlotProp_Size, 6,
-            ImPlotProp_LineColor, GetColormapColor(1),
-            ImPlotProp_FillColor, GetColormapColor(1),
-            ImPlotProp_FillAlpha, 0.25f
+            "Marker", ImPlotMarker_Square,
+            "Size", 6,
+            "LineColor", GetColormapColor(1),
+            "FillColor", GetColormapColor(1),
+            "FillAlpha", 0.25f
         });
         ImPlot::EndPlot();
     }
@@ -567,10 +567,10 @@ void Demo_ErrorBars() {
 
     if (ImPlot::BeginPlot("##ErrorBars")) {
         ImPlot::SetupAxesLimits(0, 6, 0, 10);
-        
+
         ImPlot::PlotBars("Bar", xs, bar, 5, 0.5f);
         ImPlot::PlotErrorBars("Bar", xs, bar, err1, 5);
-        
+
         ImPlot::PlotErrorBars("Line", xs, lin1, err1, err2, 5, {ImPlotProp_LineColor, GetColormapColor(1), ImPlotProp_Size, 0});
         ImPlot::PlotLine("Line", xs, lin1, 5, {ImPlotProp_Marker, ImPlotMarker_Square});
 
@@ -581,8 +581,8 @@ void Demo_ErrorBars() {
         ImPlot::PlotErrorBars("Scatter", xs, lin2, err2, 5, spec);
         spec.Flags = ImPlotErrorBarsFlags_Horizontal;
         ImPlot::PlotErrorBars("Scatter", xs, lin2,  err3, err4, 5, spec);
-        ImPlot::PlotScatter("Scatter", xs, lin2, 5);        
-        
+        ImPlot::PlotScatter("Scatter", xs, lin2, 5);
+
         ImPlot::EndPlot();
     }
 }
@@ -600,7 +600,7 @@ void Demo_StemPlots() {
         ImPlot::SetupAxisLimits(ImAxis_X1,0,1.0);
         ImPlot::SetupAxisLimits(ImAxis_Y1,0,1.6);
         ImPlot::PlotStems("Stems 1",xs,ys1,51);
-        ImPlot::PlotStems("Stems 2", xs, ys2,51, 0, {ImPlotProp_Marker, ImPlotMarker_Circle});
+        ImPlot::PlotStems("Stems 2", xs, ys2,51, 0, {"Marker", ImPlotMarker_Circle});
         ImPlot::EndPlot();
     }
 }
