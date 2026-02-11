@@ -125,6 +125,38 @@ int Stride(const ImPlotSpec& spec) {
     return spec.Stride == IMPLOT_AUTO ? sizeof(T) : spec.Stride;
 }
 
+// Finds the min and max value in an unsorted array
+template <typename Indexer, typename T>
+static inline void ImMinMaxIndexer(const Indexer& values, int count, T* min_out, T* max_out) {
+    T Min = values[0]; T Max = values[0];
+    for (int i = 1; i < count; ++i) {
+        if (values[i] < Min) { Min = values[i]; }
+        if (values[i] > Max) { Max = values[i]; }
+    }
+    *min_out = Min; *max_out = Max;
+}
+
+// Finds the mean of a container
+template <typename TContainer>
+static inline double ImMean(const TContainer& values, int count) {
+    double den = 1.0 / count;
+    double mu  = 0;
+    for (int i = 0; i < count; ++i)
+        mu += (double)values[i] * den;
+    return mu;
+}
+
+// Finds the sample standard deviation of a container
+template <typename TContainer>
+static inline double ImStdDev(const TContainer& values, int count) {
+    double den = 1.0 / (count - 1.0);
+    double mu  = ImMean(values, count);
+    double x   = 0;
+    for (int i = 0; i < count; ++i)
+        x += ((double)values[i] - mu) * ((double)values[i] - mu) * den;
+    return sqrt(x);
+}
+
 IMPLOT_INLINE void GetLineRenderProps(const ImDrawList& draw_list, float& half_weight, ImVec2& tex_uv0, ImVec2& tex_uv1) {
     const bool aa = ImHasFlag(draw_list.Flags, ImDrawListFlags_AntiAliasedLines) &&
                     ImHasFlag(draw_list.Flags, ImDrawListFlags_AntiAliasedLinesUseTex);
@@ -2445,7 +2477,7 @@ void RenderHeatmap(ImDrawList& draw_list, IndexerIdx<T> indexer, int rows, int c
     ImPlotContext& gp = *GImPlot;
     Transformer2 transformer;
     if (scale_min == 0 && scale_max == 0) {
-        ImMinMaxArray(indexer,rows*cols,&scale_min,&scale_max);
+        ImMinMaxIndexer(indexer,rows*cols,&scale_min,&scale_max);
     }
     if (scale_min == scale_max) {
         ImVec2 a = transformer(bounds_min);
@@ -2544,7 +2576,7 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
         return 0;
 
     if (range.Min == 0 && range.Max == 0) {
-        ImMinMaxArray(indexer, count, &range.Min, &range.Max);
+        ImMinMaxIndexer(indexer, count, &range.Min, &range.Max);
     }
 
     double width;
@@ -2636,10 +2668,10 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
         return 0;
 
     if (range.X.Min == 0 && range.X.Max == 0) {
-        ImMinMaxArray(indexer_x, count, &range.X.Min, &range.X.Min);
+        ImMinMaxIndexer(indexer_x, count, &range.X.Min, &range.X.Min);
     }
     if (range.Y.Min == 0 && range.Y.Max == 0) {
-        ImMinMaxArray(indexer_y, count, &range.Y.Min, &range.Y.Max);
+        ImMinMaxIndexer(indexer_y, count, &range.Y.Min, &range.Y.Max);
     }
 
     double width, height;
