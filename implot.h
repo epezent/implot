@@ -136,15 +136,17 @@ enum ImAxis_ {
 
 // Plotting properties. These provide syntactic sugar for creating ImPlotSpecs from (ImPlotProp,value) pairs. See ImPlotSpec documentation.
 enum ImPlotProp_ {
-    ImPlotProp_LineColor,  // line color (applies to lines, bar edges, marker edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
-    ImPlotProp_LineWeight, // line weight in pixels (applies to lines, bar edges, marker edges)
-    ImPlotProp_FillColor,  // fill color (applies to shaded regions, bar faces, marker faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
-    ImPlotProp_FillAlpha,  // alpha multiplier (applies to FillColor)
-    ImPlotProp_Marker,     // marker type; specify ImPlotMarker_Auto to use the next unused marker
-    ImPlotProp_Size,       // size of markers (radius), error bar whiskers (width or height), and digital bars (height) *in pixels*
-    ImPlotProp_Offset,     // data index offset
-    ImPlotProp_Stride,     // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
-    ImPlotProp_Flags       // optional item flags; can be composed from common ImPlotItemFlags and/or specialized ImPlotXFlags
+    ImPlotProp_LineColor,       // line color (applies to lines, bar edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    ImPlotProp_LineWeight,      // line weight in pixels (applies to lines, bar edges, marker edges)
+    ImPlotProp_FillColor,       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    ImPlotProp_FillAlpha,       // alpha multiplier (applies to FillColor and MarkerFillColor)
+    ImPlotProp_Marker,          // marker type; specify ImPlotMarker_Auto to use the next unused marker
+    ImPlotProp_MarkerLineColor, // marker edge color; IMPLOT_AUTO_COL will use LineColor
+    ImPlotProp_MarkerFillColor, // marker face color; IMPLOT_AUTO_COL will use LineColor
+    ImPlotProp_Size,            // size of markers (radius), error bar whiskers (width or height), and digital bars (height) *in pixels*
+    ImPlotProp_Offset,          // data index offset
+    ImPlotProp_Stride,          // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
+    ImPlotProp_Flags            // optional item flags; can be composed from common ImPlotItemFlags and/or specialized ImPlotXFlags
 };
 
 // Options for plots (see BeginPlot).
@@ -492,15 +494,17 @@ enum ImPlotBin_ {
 //      ImPlotProp_Flags, ImPlotItemFlags_NoLegend | ImPlotLineFlags_Segments
 //    });
 struct ImPlotSpec {
-    ImVec4          LineColor  = IMPLOT_AUTO_COL;       // line color (applies to lines, bar edges, marker edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
-    float           LineWeight = 1.0f;                  // line weight in pixels (applies to lines, bar edges, marker edges)
-    ImVec4          FillColor  = IMPLOT_AUTO_COL;       // fill color (applies to shaded regions, bar faces, marker faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
-    float           FillAlpha  = 1.0f;                  // alpha multiplier (applies to FillColor)
-    ImPlotMarker    Marker     = ImPlotMarker_None;     // marker type; specify ImPlotMarker_Auto to use the next unused marker
-    float           Size       = 4;                     // size of markers (radius), error bar whiskers (width or height), and digital bars (height) *in pixels*
-    int             Offset     = 0;                     // data index offset
-    int             Stride     = IMPLOT_AUTO;           // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
-    ImPlotItemFlags Flags      = ImPlotItemFlags_None;  // optional item flags; can be composed from common ImPlotItemFlags and/or specialized ImPlotXFlags
+    ImVec4          LineColor       = IMPLOT_AUTO_COL;       // line color (applies to lines, bar edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    float           LineWeight      = 1.0f;                  // line weight in pixels (applies to lines, bar edges, marker edges)
+    ImVec4          FillColor       = IMPLOT_AUTO_COL;       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    float           FillAlpha       = 1.0f;                  // alpha multiplier (applies to FillColor and MarkerFillColor)
+    ImPlotMarker    Marker          = ImPlotMarker_None;     // marker type; specify ImPlotMarker_Auto to use the next unused marker
+    ImVec4          MarkerLineColor = IMPLOT_AUTO_COL;       // marker edge color; IMPLOT_AUTO_COL will use LineColor
+    ImVec4          MarkerFillColor = IMPLOT_AUTO_COL;       // marker face color; IMPLOT_AUTO_COL will use LineColor
+    float           Size            = 4;                     // size of markers (radius), error bar whiskers (width or height), and digital bars (height) *in pixels*
+    int             Offset          = 0;                     // data index offset
+    int             Stride          = IMPLOT_AUTO;           // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
+    ImPlotItemFlags Flags           = ImPlotItemFlags_None;  // optional item flags; can be composed from common ImPlotItemFlags and/or specialized ImPlotXFlags
 
     ImPlotSpec() { }
 
@@ -523,15 +527,17 @@ struct ImPlotSpec {
     template <typename T>
     void SetProp(ImPlotProp prop, T v) {
         switch (prop) {
-        case ImPlotProp_LineColor  : LineColor  = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
-        case ImPlotProp_LineWeight : LineWeight = (float)v;                                 return;
-        case ImPlotProp_FillColor  : FillColor  = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
-        case ImPlotProp_FillAlpha  : FillAlpha  = (float)v;                                 return;
-        case ImPlotProp_Marker     : Marker     = (ImPlotMarker)v;                          return;
-        case ImPlotProp_Size       : Size       = (float)v;                                 return;
-        case ImPlotProp_Offset     : Offset     = (int)v;                                   return;
-        case ImPlotProp_Stride     : Stride     = (int)v;                                   return;
-        case ImPlotProp_Flags      : Flags      = (ImPlotItemFlags)v;                       return;
+        case ImPlotProp_LineColor       : LineColor       = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
+        case ImPlotProp_LineWeight      : LineWeight      = (float)v;                                 return;
+        case ImPlotProp_FillColor       : FillColor       = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
+        case ImPlotProp_FillAlpha       : FillAlpha       = (float)v;                                 return;
+        case ImPlotProp_Marker          : Marker          = (ImPlotMarker)v;                          return;
+        case ImPlotProp_MarkerLineColor : MarkerLineColor = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
+        case ImPlotProp_MarkerFillColor : MarkerFillColor = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
+        case ImPlotProp_Size            : Size            = (float)v;                                 return;
+        case ImPlotProp_Offset          : Offset          = (int)v;                                   return;
+        case ImPlotProp_Stride          : Stride          = (int)v;                                   return;
+        case ImPlotProp_Flags           : Flags           = (ImPlotItemFlags)v;                       return;
         default: break;
         }
         IM_ASSERT(0 && "User provided an ImPlotProp which cannot be set from scalar value!");
@@ -540,8 +546,10 @@ struct ImPlotSpec {
     // Set a property from an ImVec4 value.
     void SetProp(ImPlotProp prop, const ImVec4& v) {
         switch (prop) {
-        case ImPlotProp_LineColor : LineColor = v; return;
-        case ImPlotProp_FillColor : FillColor = v; return;
+        case ImPlotProp_LineColor       : LineColor       = v; return;
+        case ImPlotProp_FillColor       : FillColor       = v; return;
+        case ImPlotProp_MarkerLineColor : MarkerLineColor = v; return;
+        case ImPlotProp_MarkerFillColor : MarkerFillColor = v; return;
         default: break;
         }
         IM_ASSERT(0 && "User provided an ImPlotProp which cannot be set from ImVec4 value!");

@@ -119,12 +119,12 @@ template <typename T>
 struct MaxIdx { static const unsigned int Value; };
 template <> const unsigned int MaxIdx<unsigned short>::Value = 65535;
 template <> const unsigned int MaxIdx<unsigned int>::Value   = 4294967295;
-    
+
 template <typename T>
 int Stride(const ImPlotSpec& spec) {
-    return spec.Stride == IMPLOT_AUTO ? sizeof(T) : spec.Stride;    
+    return spec.Stride == IMPLOT_AUTO ? sizeof(T) : spec.Stride;
 }
-    
+
 IMPLOT_INLINE void GetLineRenderProps(const ImDrawList& draw_list, float& half_weight, ImVec2& tex_uv0, ImVec2& tex_uv1) {
     const bool aa = ImHasFlag(draw_list.Flags, ImDrawListFlags_AntiAliasedLines) &&
                     ImHasFlag(draw_list.Flags, ImDrawListFlags_AntiAliasedLinesUseTex);
@@ -419,12 +419,15 @@ bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& item_
         s.Spec.FillColor = IsColorAuto(s.Spec.FillColor) ? s.Spec.LineColor : s.Spec.FillColor;
         s.Spec.FillColor.w *= s.Spec.FillAlpha;
         s.Spec.Marker = item->Marker;
+        s.Spec.MarkerLineColor = IsColorAuto(s.Spec.MarkerLineColor) ? s.Spec.LineColor : s.Spec.MarkerLineColor;
+        s.Spec.MarkerFillColor = IsColorAuto(s.Spec.MarkerFillColor) ? s.Spec.LineColor : s.Spec.MarkerFillColor;
+        s.Spec.MarkerFillColor.w *= s.Spec.FillAlpha;
         // apply highlight mods
         if (item->LegendHovered) {
             if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightItem)) {
                 s.Spec.LineWeight *= ITEM_HIGHLIGHT_LINE_SCALE;
                 s.Spec.Size *= ITEM_HIGHLIGHT_MARK_SCALE;
-                // TODO: how to highlight fills? 
+                // TODO: how to highlight fills?
             }
             if (!ImHasFlag(gp.CurrentItems->Legend.Flags, ImPlotLegendFlags_NoHighlightAxis)) {
                 if (gp.CurrentPlot->EnabledAxesX() > 1)
@@ -436,7 +439,9 @@ bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& item_
         // set render flags
         s.RenderLine = s.Spec.LineColor.w > 0 && s.Spec.LineWeight > 0;
         s.RenderFill = s.Spec.FillColor.w > 0;
-        s.RenderMarkers = s.Spec.Marker >= 0 && (s.RenderFill || s.RenderLine);
+        s.RenderMarkerLine = s.Spec.MarkerLineColor.w > 0 && s.Spec.LineWeight > 0;
+        s.RenderMarkerFill = s.Spec.MarkerFillColor.w > 0;
+        s.RenderMarkers = s.Spec.Marker >= 0 && (s.RenderMarkerFill || s.RenderMarkerLine);
         // push rendering clip rect
         PushPlotClipRect();
         return true;
@@ -1481,7 +1486,7 @@ constexpr ImVec2 MARKER_FILL_UP[3]       = {ImVec2(SQRT_3_2,0.5f),ImVec2(0,-1),I
 constexpr ImVec2 MARKER_FILL_DOWN[3]     = {ImVec2(SQRT_3_2,-0.5f),ImVec2(0,1),ImVec2(-SQRT_3_2,-0.5f)};
 constexpr ImVec2 MARKER_FILL_LEFT[3]     = {ImVec2(-1,0), ImVec2(0.5, SQRT_3_2), ImVec2(0.5, -SQRT_3_2)};
 constexpr ImVec2 MARKER_FILL_RIGHT[3]    = {ImVec2(1,0), ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, -SQRT_3_2)};
-    
+
 constexpr ImVec2 MARKER_LINE_CIRCLE[20]  = {
     ImVec2(1.0f, 0.0f),
     ImVec2(0.809017f, 0.58778524f),
@@ -1586,9 +1591,9 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                 PopPlotClipRect();
                 PushPlotClipRect(s.Spec.Size);
             }
-            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-            RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
+            RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
@@ -1637,9 +1642,9 @@ void PlotScatterEx(const char* label_id, const Getter& getter, const ImPlotSpec&
                 PopPlotClipRect();
                 PushPlotClipRect(s.Spec.Size);
             }
-            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
+            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
@@ -1701,9 +1706,9 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
         if (s.RenderMarkers) {
             PopPlotClipRect();
             PushPlotClipRect(s.Spec.Size);
-            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
+            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.Size, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }
@@ -1902,7 +1907,7 @@ void PlotBarsG(const char* label_id, ImPlotGetter getter_func, void* data, int c
 
 template <typename T>
 void PlotBarGroups(const char* const label_ids[], const T* values, int item_count, int group_count, double group_size, double shift, const ImPlotSpec& spec) {
-    IndexerIdx<T> indexer(values,item_count*group_count,spec.Offset,Stride<T>(spec));    
+    IndexerIdx<T> indexer(values,item_count*group_count,spec.Offset,Stride<T>(spec));
     const bool horz = ImHasFlag(spec.Flags, ImPlotBarGroupsFlags_Horizontal);
     const bool stack = ImHasFlag(spec.Flags, ImPlotBarGroupsFlags_Stacked);
     ImPlotSpec spec_bars = spec;
@@ -2094,9 +2099,9 @@ void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _Gette
         if (s.RenderMarkers) {
             PopPlotClipRect();
             PushPlotClipRect(s.Spec.Size);
-            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-            RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.Size, s.RenderFill, col_fill, s.RenderLine, col_line, s.Spec.LineWeight);
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
+            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
+            RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.Size, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
         }
         EndItem();
     }

@@ -1216,6 +1216,8 @@ struct ImPlotNextItemData {
     ImPlotSpec      Spec;
     bool            RenderLine;
     bool            RenderFill;
+    bool            RenderMarkerLine;
+    bool            RenderMarkerFill;
     bool            RenderMarkers;
     bool            HasHidden;
     bool            Hidden;

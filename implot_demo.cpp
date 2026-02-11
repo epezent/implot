@@ -439,9 +439,9 @@ void Demo_StairstepPlots() {
         ImPlotSpec spec;
         spec.Flags = flags;
         spec.FillAlpha = 0.25f;
-        spec.Marker = ImPlotMarker_Auto;        
+        spec.Marker = ImPlotMarker_Auto;
         ImPlot::PlotStairs("Post Step (default)", ys1, 21, 0.05f, 0, spec);
-        
+
         spec.Flags = flags|ImPlotStairsFlags_PreStep;
         spec.FillAlpha = 0.25f;
         spec.Marker = ImPlotMarker_Auto;
