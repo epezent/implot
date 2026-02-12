@@ -1536,6 +1536,73 @@ struct RendererMarkersLine : RendererBase {
     mutable ImVec2 UV1;
 };
 
+static const ImVec2 HIGH_RES_CIRCLE[64] = {
+    ImVec2(1.00000000f, 0.00000000f),
+    ImVec2(0.99518473f, 0.09801714f),
+    ImVec2(0.98078528f, 0.19509032f),
+    ImVec2(0.95694034f, 0.29028468f),
+    ImVec2(0.92387953f, 0.38268343f),
+    ImVec2(0.88192126f, 0.47139674f),
+    ImVec2(0.83146961f, 0.55557023f),
+    ImVec2(0.77301045f, 0.63439328f),
+    ImVec2(0.70710678f, 0.70710678f),
+    ImVec2(0.63439328f, 0.77301045f),
+    ImVec2(0.55557023f, 0.83146961f),
+    ImVec2(0.47139674f, 0.88192126f),
+    ImVec2(0.38268343f, 0.92387953f),
+    ImVec2(0.29028468f, 0.95694034f),
+    ImVec2(0.19509032f, 0.98078528f),
+    ImVec2(0.09801714f, 0.99518473f),
+    ImVec2(0.00000000f, 1.00000000f),
+    ImVec2(-0.09801714f, 0.99518473f),
+    ImVec2(-0.19509032f, 0.98078528f),
+    ImVec2(-0.29028468f, 0.95694034f),
+    ImVec2(-0.38268343f, 0.92387953f),
+    ImVec2(-0.47139674f, 0.88192126f),
+    ImVec2(-0.55557023f, 0.83146961f),
+    ImVec2(-0.63439328f, 0.77301045f),
+    ImVec2(-0.70710678f, 0.70710678f),
+    ImVec2(-0.77301045f, 0.63439328f),
+    ImVec2(-0.83146961f, 0.55557023f),
+    ImVec2(-0.88192126f, 0.47139674f),
+    ImVec2(-0.92387953f, 0.38268343f),
+    ImVec2(-0.95694034f, 0.29028468f),
+    ImVec2(-0.98078528f, 0.19509032f),
+    ImVec2(-0.99518473f, 0.09801714f),
+    ImVec2(-1.00000000f, 0.00000000f),
+    ImVec2(-0.99518473f, -0.09801714f),
+    ImVec2(-0.98078528f, -0.19509032f),
+    ImVec2(-0.95694034f, -0.29028468f),
+    ImVec2(-0.92387953f, -0.38268343f),
+    ImVec2(-0.88192126f, -0.47139674f),
+    ImVec2(-0.83146961f, -0.55557023f),
+    ImVec2(-0.77301045f, -0.63439328f),
+    ImVec2(-0.70710678f, -0.70710678f),
+    ImVec2(-0.63439328f, -0.77301045f),
+    ImVec2(-0.55557023f, -0.83146961f),
+    ImVec2(-0.47139674f, -0.88192126f),
+    ImVec2(-0.38268343f, -0.92387953f),
+    ImVec2(-0.29028468f, -0.95694034f),
+    ImVec2(-0.19509032f, -0.98078528f),
+    ImVec2(-0.09801714f, -0.99518473f),
+    ImVec2(-0.00000000f, -1.00000000f),
+    ImVec2(0.09801714f, -0.99518473f),
+    ImVec2(0.19509032f, -0.98078528f),
+    ImVec2(0.29028468f, -0.95694034f),
+    ImVec2(0.38268343f, -0.92387953f),
+    ImVec2(0.47139674f, -0.88192126f),
+    ImVec2(0.55557023f, -0.83146961f),
+    ImVec2(0.63439328f, -0.77301045f),
+    ImVec2(0.70710678f, -0.70710678f),
+    ImVec2(0.77301045f, -0.63439328f),
+    ImVec2(0.83146961f, -0.55557023f),
+    ImVec2(0.88192126f, -0.47139674f),
+    ImVec2(0.92387953f, -0.38268343f),
+    ImVec2(0.95694034f, -0.29028468f),
+    ImVec2(0.98078528f, -0.19509032f),
+    ImVec2(0.99518473f, -0.09801714f)
+};
+
 template <class _Getter>
 struct RendererCircleFill : RendererBase {
     RendererCircleFill(const _Getter& getter, ImU32 col) :
@@ -1549,24 +1616,21 @@ struct RendererCircleFill : RendererBase {
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
         ImPlotPoint3D p3D = Getter(prim);
         float size_in_plot_coords = p3D.z;
-        float radius_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M) * 0.5f;
+        float radius_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M);
         ImVec2 center = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
 
         if (center.x >= cull_rect.Min.x && center.y >= cull_rect.Min.y &&
             center.x <= cull_rect.Max.x && center.y <= cull_rect.Max.y) {
-            int num_segments = ImClamp((int)(radius_in_pixels * 0.5f), 6, 64);
-            const float a_max = IM_PI * 2.0f;
-            const float a_step = a_max / num_segments;
+            int num_segments = ImClamp((int)(radius_in_pixels), 10, 64);
 
             ImDrawIdx vtx_base = draw_list._VtxCurrentIdx;
 
             for (int i = 0; i < num_segments; i++) {
-                float angle = a_step * i;
-                float cos_a = ImCos(angle);
-                float sin_a = ImSin(angle);
+                int idx = (i * 64) / num_segments;
+                const ImVec2& unit = HIGH_RES_CIRCLE[idx];
 
-                draw_list._VtxWritePtr[0].pos.x = center.x + cos_a * radius_in_pixels;
-                draw_list._VtxWritePtr[0].pos.y = center.y + sin_a * radius_in_pixels;
+                draw_list._VtxWritePtr[0].pos.x = center.x + unit.x * radius_in_pixels;
+                draw_list._VtxWritePtr[0].pos.y = center.y + unit.y * radius_in_pixels;
                 draw_list._VtxWritePtr[0].uv = UV;
                 draw_list._VtxWritePtr[0].col = Col;
                 draw_list._VtxWritePtr++;
@@ -1610,24 +1674,24 @@ struct RendererCircleLine : RendererBase {
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
         ImPlotPoint3D p3D = Getter(prim);
         float size_in_plot_coords = p3D.z;
-        float radius_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M) * 0.5f;
+        float radius_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M);
         ImVec2 center = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
 
         if (center.x >= cull_rect.Min.x && center.y >= cull_rect.Min.y &&
             center.x <= cull_rect.Max.x && center.y <= cull_rect.Max.y) {
 
-            int num_segments = ImClamp((int)(radius_in_pixels * 0.5f), 6, 64);
-            const float a_max = IM_PI * 2.0f;
-            const float a_step = a_max / num_segments;
+            int num_segments = ImClamp((int)(radius_in_pixels), 10, 64);
 
             for (int i = 0; i < num_segments; i++) {
-                float angle1 = a_step * i;
-                float angle2 = a_step * ((i + 1) % num_segments);
+                int idx1 = (i * 64) / num_segments;
+                int idx2 = ((i + 1) * 64) / num_segments;
+                const ImVec2& unit1 = HIGH_RES_CIRCLE[idx1];
+                const ImVec2& unit2 = HIGH_RES_CIRCLE[idx2];
 
-                ImVec2 p1(center.x + ImCos(angle1) * radius_in_pixels,
-                          center.y + ImSin(angle1) * radius_in_pixels);
-                ImVec2 p2(center.x + ImCos(angle2) * radius_in_pixels,
-                          center.y + ImSin(angle2) * radius_in_pixels);
+                ImVec2 p1(center.x + unit1.x * radius_in_pixels,
+                          center.y + unit1.y * radius_in_pixels);
+                ImVec2 p2(center.x + unit2.x * radius_in_pixels,
+                          center.y + unit2.y * radius_in_pixels);
 
                 PrimLine(draw_list, p1, p2, HalfWeight, Col, UV0, UV1);
             }
@@ -1649,109 +1713,8 @@ struct RendererCircleLine : RendererBase {
     mutable ImVec2 UV1;
 };
 
-template <class _Getter>
-struct RendererVariableSizedMarkersFill : RendererBase {
-  RendererVariableSizedMarkersFill(const _Getter& getter, const ImVec2* marker, int count, ImU32 col) :
-      RendererBase(getter.Count, (count-2)*3, count),
-      Getter(getter),
-      Marker(marker),
-      Count(count),
-      Col(col)
-  { }
-  void Init(ImDrawList& draw_list) const {
-    UV = draw_list._Data->TexUvWhitePixel;
-  }
-  IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
-    ImPlotPoint3D p3D = Getter(prim);
-    float size_in_plot_coords = p3D.z;
-    float size_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M);
-    ImVec2 p = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
-    if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y) {
-      for (int i = 0; i < Count; i++) {
-        draw_list._VtxWritePtr[0].pos.x = p.x + Marker[i].x * size_in_pixels;
-        draw_list._VtxWritePtr[0].pos.y = p.y + Marker[i].y * size_in_pixels;
-        draw_list._VtxWritePtr[0].uv = UV;
-        draw_list._VtxWritePtr[0].col = Col;
-        draw_list._VtxWritePtr++;
-      }
-      for (int i = 2; i < Count; i++) {
-        draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
-        draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i - 1);
-        draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i);
-        draw_list._IdxWritePtr += 3;
-      }
-      draw_list._VtxCurrentIdx += (ImDrawIdx)Count;
-      return true;
-    }
-    return false;
-  }
-  const _Getter& Getter;
-  const ImVec2* Marker;
-  const int Count;
-  const ImU32 Col;
-  mutable ImVec2 UV;
-};
-
-template <class _Getter>
-struct RendererVariableSizedMarkersLine : RendererBase {
-  RendererVariableSizedMarkersLine(const _Getter& getter, const ImVec2* marker, int count, float weight, ImU32 col) :
-      RendererBase(getter.Count, count/2*6, count/2*4),
-      Getter(getter),
-      Marker(marker),
-      Count(count),
-      HalfWeight(ImMax(1.0f,weight)*0.5f),
-      Col(col)
-  { }
-  void Init(ImDrawList& draw_list) const {
-    GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
-  }
-  IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
-    ImPlotPoint3D p3D = Getter(prim);
-    float size_in_plot_coords = p3D.z;
-    float size_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M);
-    ImVec2 p = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
-    if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y) {
-      for (int i = 0; i < Count; i = i + 2) {
-        ImVec2 p1(p.x + Marker[i].x * size_in_pixels, p.y + Marker[i].y * size_in_pixels);
-        ImVec2 p2(p.x + Marker[i+1].x * size_in_pixels, p.y + Marker[i+1].y * size_in_pixels);
-        PrimLine(draw_list, p1, p2, HalfWeight, Col, UV0, UV1);
-      }
-      return true;
-    }
-    return false;
-  }
-  const _Getter& Getter;
-  const ImVec2* Marker;
-  const int Count;
-  mutable float HalfWeight;
-  const ImU32 Col;
-  mutable ImVec2 UV0;
-  mutable ImVec2 UV1;
-};
 
 static const ImVec2 MARKER_FILL_CIRCLE[10]  = {ImVec2(1.0f, 0.0f), ImVec2(0.809017f, 0.58778524f),ImVec2(0.30901697f, 0.95105654f),ImVec2(-0.30901703f, 0.9510565f),ImVec2(-0.80901706f, 0.5877852f),ImVec2(-1.0f, 0.0f),ImVec2(-0.80901694f, -0.58778536f),ImVec2(-0.3090171f, -0.9510565f),ImVec2(0.30901712f, -0.9510565f),ImVec2(0.80901694f, -0.5877853f)};
-static const ImVec2 MARKER_HIGH_RES_FILL_CIRCLE[20] = {
-    ImVec2(1.0f, 0.0f),
-    ImVec2(0.9510565f, 0.30901697f),
-    ImVec2(0.809017f, 0.58778524f),
-    ImVec2(0.58778524f, 0.809017f),
-    ImVec2(0.30901697f, 0.9510565f),
-    ImVec2(0.0f, 1.0f),
-    ImVec2(-0.30901697f, 0.9510565f),
-    ImVec2(-0.58778524f, 0.809017f),
-    ImVec2(-0.809017f, 0.58778524f),
-    ImVec2(-0.9510565f, 0.30901697f),
-    ImVec2(-1.0f, 0.0f),
-    ImVec2(-0.9510565f, -0.30901697f),
-    ImVec2(-0.809017f, -0.58778524f),
-    ImVec2(-0.58778524f, -0.809017f),
-    ImVec2(-0.30901697f, -0.9510565f),
-    ImVec2(0.0f, -1.0f),
-    ImVec2(0.30901697f, -0.9510565f),
-    ImVec2(0.58778524f, -0.809017f),
-    ImVec2(0.809017f, -0.58778524f),
-    ImVec2(0.9510565f, -0.30901697f)
-};
 static const ImVec2 MARKER_FILL_SQUARE[4]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2)};
 static const ImVec2 MARKER_FILL_DIAMOND[4]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(0, 1)};
 static const ImVec2 MARKER_FILL_UP[3]       = {ImVec2(SQRT_3_2,0.5f),ImVec2(0,-1),ImVec2(-SQRT_3_2,0.5f)};
@@ -1780,48 +1743,6 @@ static const ImVec2 MARKER_LINE_CIRCLE[20]  = {
     ImVec2(0.80901694f, -0.5877853f),
     ImVec2(0.80901694f, -0.5877853f),
     ImVec2(1.0f, 0.0f)
-};
-static const ImVec2 MARKER_HIGH_RES_LINE_CIRCLE[40] = {
-    ImVec2(1.00000000f, 0.00000000f),
-    ImVec2(0.95105652f, 0.30901699f),
-    ImVec2(0.95105652f, 0.30901699f),
-    ImVec2(0.80901699f, 0.58778525f),
-    ImVec2(0.80901699f, 0.58778525f),
-    ImVec2(0.58778525f, 0.80901699f),
-    ImVec2(0.58778525f, 0.80901699f),
-    ImVec2(0.30901699f, 0.95105652f),
-    ImVec2(0.30901699f, 0.95105652f),
-    ImVec2(0.00000000f, 1.00000000f),
-    ImVec2(0.00000000f, 1.00000000f),
-    ImVec2(-0.30901699f, 0.95105652f),
-    ImVec2(-0.30901699f, 0.95105652f),
-    ImVec2(-0.58778525f, 0.80901699f),
-    ImVec2(-0.58778525f, 0.80901699f),
-    ImVec2(-0.80901699f, 0.58778525f),
-    ImVec2(-0.80901699f, 0.58778525f),
-    ImVec2(-0.95105652f, 0.30901699f),
-    ImVec2(-0.95105652f, 0.30901699f),
-    ImVec2(-1.00000000f, 0.00000000f),
-    ImVec2(-1.00000000f, 0.00000000f),
-    ImVec2(-0.95105652f, -0.30901699f),
-    ImVec2(-0.95105652f, -0.30901699f),
-    ImVec2(-0.80901699f, -0.58778525f),
-    ImVec2(-0.80901699f, -0.58778525f),
-    ImVec2(-0.58778525f, -0.80901699f),
-    ImVec2(-0.58778525f, -0.80901699f),
-    ImVec2(-0.30901699f, -0.95105652f),
-    ImVec2(-0.30901699f, -0.95105652f),
-    ImVec2(0.00000000f, -1.00000000f),
-    ImVec2(0.00000000f, -1.00000000f),
-    ImVec2(0.30901699f, -0.95105652f),
-    ImVec2(0.30901699f, -0.95105652f),
-    ImVec2(0.58778525f, -0.80901699f),
-    ImVec2(0.58778525f, -0.80901699f),
-    ImVec2(0.80901699f, -0.58778525f),
-    ImVec2(0.80901699f, -0.58778525f),
-    ImVec2(0.95105652f, -0.30901699f),
-    ImVec2(0.95105652f, -0.30901699f),
-    ImVec2(1.00000000f, 0.00000000f)
 };
 
 static const ImVec2 MARKER_LINE_SQUARE[8]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,SQRT_1_2)};
@@ -1861,35 +1782,6 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool 
             case ImPlotMarker_Cross     : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_CROSS,   4,size,weight,col_line); break;
         }
     }
-}
-
-template <typename _Getter>
-void RenderVariableSizedMarkers(const _Getter& getter, ImPlotMarker marker, bool rend_fill, ImU32 col_fill, bool rend_line, ImU32 col_line, float weight) {
-  if (rend_fill) {
-    switch (marker) {
-      case ImPlotMarker_Circle  : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_HIGH_RES_FILL_CIRCLE,20,col_fill); break;
-      case ImPlotMarker_Square  : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_SQUARE, 4,col_fill); break;
-      case ImPlotMarker_Diamond : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_DIAMOND,4,col_fill); break;
-      case ImPlotMarker_Up      : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_UP,     3,col_fill); break;
-      case ImPlotMarker_Down    : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_DOWN,   3,col_fill); break;
-      case ImPlotMarker_Left    : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_LEFT,   3,col_fill); break;
-      case ImPlotMarker_Right   : RenderPrimitives1<RendererVariableSizedMarkersFill>(getter,MARKER_FILL_RIGHT,  3,col_fill); break;
-    }
-  }
-  if (rend_line) {
-    switch (marker) {
-      case ImPlotMarker_Circle    : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_HIGH_RES_LINE_CIRCLE, 40,weight,col_line); break;
-      case ImPlotMarker_Square    : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_SQUARE,  8,weight,col_line); break;
-      case ImPlotMarker_Diamond   : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_DIAMOND, 8,weight,col_line); break;
-      case ImPlotMarker_Up        : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_UP,      6,weight,col_line); break;
-      case ImPlotMarker_Down      : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_DOWN,    6,weight,col_line); break;
-      case ImPlotMarker_Left      : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_LEFT,    6,weight,col_line); break;
-      case ImPlotMarker_Right     : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_RIGHT,   6,weight,col_line); break;
-      case ImPlotMarker_Asterisk  : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_ASTERISK,6,weight,col_line); break;
-      case ImPlotMarker_Plus      : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_PLUS,    4,weight,col_line); break;
-      case ImPlotMarker_Cross     : RenderPrimitives1<RendererVariableSizedMarkersLine>(getter,MARKER_LINE_CROSS,   4,weight,col_line); break;
-    }
-  }
 }
 
 //-----------------------------------------------------------------------------
@@ -2034,10 +1926,10 @@ void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlag
             const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
             RenderPrimitives1<RendererCircleFill>(getter, col_fill);
         }
-        //if (s.RenderLine) {
-        //    const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-        //    RenderPrimitives1<RendererCircleLine>(getter, s.LineWeight, col_line);
-        //}
+        if (s.RenderLine) {
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+            RenderPrimitives1<RendererCircleLine>(getter, s.LineWeight, col_line);
+        }
 
         EndItem();
     }
