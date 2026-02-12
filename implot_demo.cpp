@@ -422,12 +422,12 @@ void Demo_BubblePlots() {
     srand(0);
     static float xs[20], ys1[20], ys2[20], szs1[20], szs2[20];
     for (int i = 0; i < 20; ++i) {
-        xs[i] = i * 0.01f;
+        xs[i] = i * 0.05f;
         ys1[i] = (float)rand() / (float)RAND_MAX;
-        ys2[i] = 0.5f + 0.3f * (2.0f * ((float)rand() / (float)RAND_MAX) - 1.0f);
+        ys2[i] = (float)rand() / (float)RAND_MAX;
 
-        szs1[i] = 10.0f + 1000.0f * ((float)rand() / (float)RAND_MAX);
-        szs2[i] = 5.0f + 200.0f * ((float)rand() / (float)RAND_MAX);
+        szs1[i] = 0.01f + 0.09f * ((float)rand() / (float)RAND_MAX);
+        szs2[i] = 0.01f + 0.09f * ((float)rand() / (float)RAND_MAX);
     }
 
 
