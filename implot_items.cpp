@@ -1560,10 +1560,19 @@ struct RendererCircleFill : RendererBase {
         float approx_radius_pixels = ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
         int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
 
-        ImVec2 center = this->Transformer(ImPlotPoint(p3D.x, p3D.y));
+        // Compute bounding box of the bubble in plot coordinates
+        ImPlotPoint plot_min(p3D.x - radius_in_plot_coords, p3D.y - radius_in_plot_coords);
+        ImPlotPoint plot_max(p3D.x + radius_in_plot_coords, p3D.y + radius_in_plot_coords);
 
-        if (center.x >= cull_rect.Min.x && center.y >= cull_rect.Min.y &&
-            center.x <= cull_rect.Max.x && center.y <= cull_rect.Max.y) {
+        // Transform bounding box to pixel coordinates
+        ImVec2 pixel_min = this->Transformer(plot_min);
+        ImVec2 pixel_max = this->Transformer(plot_max);
+
+        // Create bounding rectangle (handle axis inversion)
+        ImRect bbox(ImMin(pixel_min, pixel_max), ImMax(pixel_min, pixel_max));
+
+        // Check if bounding box overlaps with cull rectangle
+        if (cull_rect.Overlaps(bbox)) {
 
             const float a_max = IM_PI * 2.0f;
             const float a_step = a_max / num_segments;
@@ -1631,10 +1640,19 @@ struct RendererCircleLine : RendererBase {
         float approx_radius_pixels = ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
         int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
 
-        ImVec2 center = this->Transformer(ImPlotPoint(p3D.x, p3D.y));
+        // Compute bounding box of the bubble in plot coordinates
+        ImPlotPoint plot_min(p3D.x - radius_in_plot_coords, p3D.y - radius_in_plot_coords);
+        ImPlotPoint plot_max(p3D.x + radius_in_plot_coords, p3D.y + radius_in_plot_coords);
 
-        if (center.x >= cull_rect.Min.x && center.y >= cull_rect.Min.y &&
-            center.x <= cull_rect.Max.x && center.y <= cull_rect.Max.y) {
+        // Transform bounding box to pixel coordinates
+        ImVec2 pixel_min = this->Transformer(plot_min);
+        ImVec2 pixel_max = this->Transformer(plot_max);
+
+        // Create bounding rectangle (handle axis inversion)
+        ImRect bbox(ImMin(pixel_min, pixel_max), ImMax(pixel_min, pixel_max));
+
+        // Check if bounding box overlaps with cull rectangle
+        if (cull_rect.Overlaps(bbox)) {
 
             const float a_max = IM_PI * 2.0f;
             const float a_step = a_max / num_segments;
