@@ -570,6 +570,15 @@ struct GetterXY {
     const int Count;
 };
 
+// Double precision point with three coordinates used by ImPlot.
+struct ImPlotPoint3D {
+  double x, y, z;
+  constexpr ImPlotPoint3D()                     : x(0.0), y(0.0), z(0.0) { }
+  constexpr ImPlotPoint3D(double _x, double _y, double _z) : x(_x), y(_y), z(_z) { }
+  double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((double*)(void*)(char*)this)[idx]; }
+  double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((const double*)(const void*)(const char*)this)[idx]; }
+};
+
 template <typename _IndexerX, typename _IndexerY, typename _IndexerZ>
 struct GetterXYZ {
   GetterXYZ(_IndexerX x, _IndexerY y, _IndexerZ z, int count) : IndxerX(x), IndxerY(y), IndxerZ(z), Count(count) { }
@@ -595,20 +604,6 @@ struct GetterFuncPtr {
     ImPlotGetter Getter;
     void* const Data;
     const int Count;
-};
-
-struct GetterFuncPtr3D {
-  GetterFuncPtr3D(ImPlotGetter3D getter, void* data, int count) :
-      Getter(getter),
-      Data(data),
-      Count(count)
-  { }
-  template <typename I> IMPLOT_INLINE ImPlotPoint3D operator()(I idx) const {
-    return Getter(idx, Data);
-  }
-  ImPlotGetter3D Getter;
-  void* const Data;
-  const int Count;
 };
 
 template <typename _Getter>
@@ -1930,12 +1925,6 @@ void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, i
     template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
-
-// custom
-void PlotBubblesG(const char* label_id, ImPlotGetter3D getter_func, void* data, int count, ImPlotBubblesFlags flags) {
-  GetterFuncPtr3D getter(getter_func, data, count);
-  return PlotBubblesEx(label_id, getter, flags);
-}
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotStairs

@@ -491,18 +491,6 @@ struct ImPlotPoint {
 };
 IM_MSVC_RUNTIME_CHECKS_RESTORE
 
-// Double precision point with three coordinates used by ImPlot.
-IM_MSVC_RUNTIME_CHECKS_OFF
-struct ImPlotPoint3D {
-  double x, y, z;
-  constexpr ImPlotPoint3D()                     : x(0.0), y(0.0), z(0.0) { }
-  constexpr ImPlotPoint3D(double _x, double _y, double _z) : x(_x), y(_y), z(_z) { }
-  double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((double*)(void*)(char*)this)[idx]; }
-  double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((const double*)(const void*)(const char*)this)[idx]; }
-
-};
-IM_MSVC_RUNTIME_CHECKS_RESTORE
-
 // Range defined by a min/max value.
 struct ImPlotRange {
     double Min, Max;
@@ -610,7 +598,6 @@ typedef int (*ImPlotFormatter)(double value, char* buff, int size, void* user_da
 
 // Callback signature for data getter.
 typedef ImPlotPoint (*ImPlotGetter)(int idx, void* user_data);
-typedef ImPlotPoint3D (*ImPlotGetter3D)(int idx, void* user_data);
 
 // Callback signature for axis transform.
 typedef double (*ImPlotTransform)(double value, void* user_data);
@@ -890,7 +877,6 @@ IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* da
 // Plots a bubble graph. #szs are the radius of each bubble in plot units.
 IMPLOT_TMP void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, ImPlotBubblesFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags=0, int offset=0, int stride=sizeof(T));
-IMPLOT_API void PlotBubblesG(const char* label_id, ImPlotGetter3D getter, void* data, int count, ImPlotBubblesFlags flags=0);
 
 // Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotStairsFlags flags=0, int offset=0, int stride=sizeof(T));
