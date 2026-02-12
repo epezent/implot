@@ -1572,7 +1572,7 @@ struct RendererCircleFill : RendererBase {
             const float a_max = IM_PI * 2.0f;
             const float a_step = a_max / num_segments;
 
-            ImDrawIdx vtx_base = draw_list._VtxCurrentIdx;
+            ImDrawIdx vtx_base = (ImDrawIdx)draw_list._VtxCurrentIdx;
 
             for (int i = 0; i < num_segments; i++) {
                 float angle = a_step * i;
@@ -1593,8 +1593,8 @@ struct RendererCircleFill : RendererBase {
 
             for (int i = 2; i < num_segments; i++) {
                 draw_list._IdxWritePtr[0] = vtx_base;
-                draw_list._IdxWritePtr[1] = vtx_base + i - 1;
-                draw_list._IdxWritePtr[2] = vtx_base + i;
+                draw_list._IdxWritePtr[1] = (ImDrawIdx)(vtx_base + i - 1);
+                draw_list._IdxWritePtr[2] = (ImDrawIdx)(vtx_base + i);
                 draw_list._IdxWritePtr += 3;
             }
 
