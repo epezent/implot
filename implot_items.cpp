@@ -1548,11 +1548,11 @@ struct RendererCircleFill : RendererBase {
     }
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
         ImPlotPoint3D p3D = Getter(prim);
-        float size_in_plot_coords = p3D.z;
+        float size_in_plot_coords = (float)p3D.z;
         float radius_in_plot_coords = size_in_plot_coords;
 
         // Compute approximate radius in pixels for LOD
-        float approx_radius_pixels = ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
+        float approx_radius_pixels = (float)ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
         int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
 
         // Compute bounding box of the bubble in plot coordinates
@@ -1628,11 +1628,11 @@ struct RendererCircleLine : RendererBase {
     }
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
         ImPlotPoint3D p3D = Getter(prim);
-        float size_in_plot_coords = p3D.z;
+        float size_in_plot_coords = (float)p3D.z;
         float radius_in_plot_coords = size_in_plot_coords;
 
         // Compute approximate radius in pixels for LOD
-        float approx_radius_pixels = ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
+        float approx_radius_pixels = (float)ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
         int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
 
         // Compute bounding box of the bubble in plot coordinates
