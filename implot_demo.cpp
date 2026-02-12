@@ -410,11 +410,11 @@ void Demo_ScatterPlots() {
     if (ImPlot::BeginPlot("Scatter Plot")) {
         ImPlot::PlotScatter("Data 1", xs1, ys1, 100);
         ImPlot::PlotScatter("Data 2", xs2, ys2, 50, {
-            "Marker", ImPlotMarker_Square,
-            "MarkerSize", 6,
-            "LineColor", GetColormapColor(1),
-            "FillColor", GetColormapColor(1),
-            "FillAlpha", 0.25f
+            ImPlotProp_Marker, ImPlotMarker_Square,
+            ImPlotProp_MarkerSize, 6,
+            ImPlotProp_LineColor, GetColormapColor(1),
+            ImPlotProp_FillColor, GetColormapColor(1),
+            ImPlotProp_FillAlpha, 0.25f
         });
         ImPlot::EndPlot();
     }
@@ -600,7 +600,7 @@ void Demo_StemPlots() {
         ImPlot::SetupAxisLimits(ImAxis_X1,0,1.0);
         ImPlot::SetupAxisLimits(ImAxis_Y1,0,1.6);
         ImPlot::PlotStems("Stems 1",xs,ys1,51);
-        ImPlot::PlotStems("Stems 2", xs, ys2,51, 0, {"Marker", ImPlotMarker_Circle});
+        ImPlot::PlotStems("Stems 2", xs, ys2,51, 0, {ImPlotProp_Marker, ImPlotMarker_Circle});
         ImPlot::EndPlot();
     }
 }
