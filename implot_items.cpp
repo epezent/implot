@@ -1537,6 +1537,119 @@ struct RendererMarkersLine : RendererBase {
 };
 
 template <class _Getter>
+struct RendererCircleFill : RendererBase {
+    RendererCircleFill(const _Getter& getter, ImU32 col) :
+        RendererBase(getter.Count, 62*3, 64),
+        Getter(getter),
+        Col(col)
+    { }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint3D p3D = Getter(prim);
+        float size_in_plot_coords = p3D.z;
+        float radius_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M) * 0.5f;
+        ImVec2 center = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
+
+        if (center.x >= cull_rect.Min.x && center.y >= cull_rect.Min.y &&
+            center.x <= cull_rect.Max.x && center.y <= cull_rect.Max.y) {
+            int num_segments = ImClamp((int)(radius_in_pixels * 0.5f), 6, 64);
+            const float a_max = IM_PI * 2.0f;
+            const float a_step = a_max / num_segments;
+
+            ImDrawIdx vtx_base = draw_list._VtxCurrentIdx;
+
+            for (int i = 0; i < num_segments; i++) {
+                float angle = a_step * i;
+                float cos_a = ImCos(angle);
+                float sin_a = ImSin(angle);
+
+                draw_list._VtxWritePtr[0].pos.x = center.x + cos_a * radius_in_pixels;
+                draw_list._VtxWritePtr[0].pos.y = center.y + sin_a * radius_in_pixels;
+                draw_list._VtxWritePtr[0].uv = UV;
+                draw_list._VtxWritePtr[0].col = Col;
+                draw_list._VtxWritePtr++;
+            }
+
+            for (int i = 2; i < num_segments; i++) {
+                draw_list._IdxWritePtr[0] = vtx_base;
+                draw_list._IdxWritePtr[1] = vtx_base + i - 1;
+                draw_list._IdxWritePtr[2] = vtx_base + i;
+                draw_list._IdxWritePtr += 3;
+            }
+
+            draw_list._VtxCurrentIdx += num_segments;
+
+            int unused_vtx = 64 - num_segments;
+            int unused_idx = (62 - (num_segments - 2)) * 3;
+            if (unused_vtx > 0 || unused_idx > 0) {
+                draw_list.PrimUnreserve(unused_idx, unused_vtx);
+            }
+
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    const ImU32 Col;
+    mutable ImVec2 UV;
+};
+
+template <class _Getter>
+struct RendererCircleLine : RendererBase {
+  RendererCircleLine(const _Getter& getter, float weight, ImU32 col) :
+      RendererBase(getter.Count, 64*6, 64*4),
+      Getter(getter),
+      HalfWeight(ImMax(1.0f,weight)*0.5f),
+      Col(col)
+    { }
+    void Init(ImDrawList& draw_list) const {
+      GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint3D p3D = Getter(prim);
+        float size_in_plot_coords = p3D.z;
+        float radius_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M) * 0.5f;
+        ImVec2 center = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
+
+        if (center.x >= cull_rect.Min.x && center.y >= cull_rect.Min.y &&
+            center.x <= cull_rect.Max.x && center.y <= cull_rect.Max.y) {
+
+            int num_segments = ImClamp((int)(radius_in_pixels * 0.5f), 6, 64);
+            const float a_max = IM_PI * 2.0f;
+            const float a_step = a_max / num_segments;
+
+            for (int i = 0; i < num_segments; i++) {
+                float angle1 = a_step * i;
+                float angle2 = a_step * ((i + 1) % num_segments);
+
+                ImVec2 p1(center.x + ImCos(angle1) * radius_in_pixels,
+                          center.y + ImSin(angle1) * radius_in_pixels);
+                ImVec2 p2(center.x + ImCos(angle2) * radius_in_pixels,
+                          center.y + ImSin(angle2) * radius_in_pixels);
+
+                PrimLine(draw_list, p1, p2, HalfWeight, Col, UV0, UV1);
+            }
+
+            int unused_vtx = (64 - num_segments) * 4;
+            int unused_idx = (64 - num_segments) * 6;
+            if (unused_vtx > 0 || unused_idx > 0) {
+                draw_list.PrimUnreserve(unused_idx, unused_vtx);
+            }
+
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    mutable float HalfWeight;
+    const ImU32 Col;
+    mutable ImVec2 UV0;
+    mutable ImVec2 UV1;
+};
+
+template <class _Getter>
 struct RendererVariableSizedMarkersFill : RendererBase {
   RendererVariableSizedMarkersFill(const _Getter& getter, const ImVec2* marker, int count, ImU32 col) :
       RendererBase(getter.Count, (count-2)*3, count),
@@ -1910,28 +2023,24 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 
 template <typename Getter>
 void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlags flags) {
-  const ImPlotNextItemData& s0 = GetItemData();
-  bool is_marker_col_auto_fill = s0.Colors[ImPlotCol_MarkerFill].w < 0;
-  bool is_maker_line_auto_fill = s0.Colors[ImPlotCol_MarkerOutline].w < 0 && s0.MarkerWeight < 0;
+    if (BeginItemEx(label_id, FitterBubbles1<Getter>(getter), flags, ImPlotCol_MarkerOutline)) {
+        if (getter.Count <= 0) {
+            EndItem();
+            return;
+        }
+        const ImPlotNextItemData& s = GetItemData();
 
-  if (BeginItemEx(label_id, FitterBubbles1<Getter>(getter), flags, ImPlotCol_MarkerOutline)) {
-    if (getter.Count <= 0) {
-      EndItem();
-      return;
+        if (s.RenderFill) {
+            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+            RenderPrimitives1<RendererCircleFill>(getter, col_fill);
+        }
+        //if (s.RenderLine) {
+        //    const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+        //    RenderPrimitives1<RendererCircleLine>(getter, s.LineWeight, col_line);
+        //}
+
+        EndItem();
     }
-    const ImPlotNextItemData& s = GetItemData();
-    ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle: s.Marker;
-    if (marker != ImPlotMarker_None) {
-      ImVec4 vec_col_fill = s.Colors[ImPlotCol_MarkerFill];
-      if (is_marker_col_auto_fill) {
-          vec_col_fill.w *= 0.5f;
-      }
-      const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
-      const ImU32 col_fill = ImGui::GetColorU32(vec_col_fill);
-      RenderVariableSizedMarkers<Getter>(getter, marker, s.RenderMarkerFill, col_fill, !is_maker_line_auto_fill, col_line, s.MarkerWeight);
-    }
-    EndItem();
-  }
 }
 
 template <typename T>
