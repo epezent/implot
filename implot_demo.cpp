@@ -434,7 +434,7 @@ void Demo_BubblePlots() {
     if (ImPlot::BeginPlot("Bubble Plot")) {
         ImPlot::PlotBubbles("Data 1", xs, ys1, szs1, 20);
         ImPlot::SetNextMarkerStyle(IMPLOT_AUTO, IMPLOT_AUTO, IMPLOT_AUTO_COL, 1, IMPLOT_AUTO_COL);
-        ImPlot::PlotBubbles("Data 2", xs, ys2, szs2, 20, ImPlotBubblesFlags_None, 5, 20);
+        ImPlot::PlotBubbles("Data 2", xs, ys2, szs2, 20, ImPlotBubblesFlags_None);
         ImPlot::EndPlot();
     }
 }
