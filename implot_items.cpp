@@ -697,8 +697,13 @@ struct FitterBubbles1 {
   void Fit(ImPlotAxis& x_axis, ImPlotAxis& y_axis) const {
     for (int i = 0; i < Getter.Count; ++i) {
       ImPlotPoint3D p = Getter(i);
-      x_axis.ExtendFitWith(y_axis, p.x, p.y);
-      y_axis.ExtendFitWith(x_axis, p.y, p.x);
+      double half_size = p.z;
+      // Fit left and right edges
+      x_axis.ExtendFitWith(y_axis, p.x - half_size, p.y);
+      x_axis.ExtendFitWith(y_axis, p.x + half_size, p.y);
+      // Fit top and bottom edges
+      y_axis.ExtendFitWith(x_axis, p.y - half_size, p.x);
+      y_axis.ExtendFitWith(x_axis, p.y + half_size, p.x);
     }
   }
   const _Getter1& Getter;
@@ -1536,73 +1541,6 @@ struct RendererMarkersLine : RendererBase {
     mutable ImVec2 UV1;
 };
 
-static const ImVec2 HIGH_RES_CIRCLE[64] = {
-    ImVec2(1.00000000f, 0.00000000f),
-    ImVec2(0.99518473f, 0.09801714f),
-    ImVec2(0.98078528f, 0.19509032f),
-    ImVec2(0.95694034f, 0.29028468f),
-    ImVec2(0.92387953f, 0.38268343f),
-    ImVec2(0.88192126f, 0.47139674f),
-    ImVec2(0.83146961f, 0.55557023f),
-    ImVec2(0.77301045f, 0.63439328f),
-    ImVec2(0.70710678f, 0.70710678f),
-    ImVec2(0.63439328f, 0.77301045f),
-    ImVec2(0.55557023f, 0.83146961f),
-    ImVec2(0.47139674f, 0.88192126f),
-    ImVec2(0.38268343f, 0.92387953f),
-    ImVec2(0.29028468f, 0.95694034f),
-    ImVec2(0.19509032f, 0.98078528f),
-    ImVec2(0.09801714f, 0.99518473f),
-    ImVec2(0.00000000f, 1.00000000f),
-    ImVec2(-0.09801714f, 0.99518473f),
-    ImVec2(-0.19509032f, 0.98078528f),
-    ImVec2(-0.29028468f, 0.95694034f),
-    ImVec2(-0.38268343f, 0.92387953f),
-    ImVec2(-0.47139674f, 0.88192126f),
-    ImVec2(-0.55557023f, 0.83146961f),
-    ImVec2(-0.63439328f, 0.77301045f),
-    ImVec2(-0.70710678f, 0.70710678f),
-    ImVec2(-0.77301045f, 0.63439328f),
-    ImVec2(-0.83146961f, 0.55557023f),
-    ImVec2(-0.88192126f, 0.47139674f),
-    ImVec2(-0.92387953f, 0.38268343f),
-    ImVec2(-0.95694034f, 0.29028468f),
-    ImVec2(-0.98078528f, 0.19509032f),
-    ImVec2(-0.99518473f, 0.09801714f),
-    ImVec2(-1.00000000f, 0.00000000f),
-    ImVec2(-0.99518473f, -0.09801714f),
-    ImVec2(-0.98078528f, -0.19509032f),
-    ImVec2(-0.95694034f, -0.29028468f),
-    ImVec2(-0.92387953f, -0.38268343f),
-    ImVec2(-0.88192126f, -0.47139674f),
-    ImVec2(-0.83146961f, -0.55557023f),
-    ImVec2(-0.77301045f, -0.63439328f),
-    ImVec2(-0.70710678f, -0.70710678f),
-    ImVec2(-0.63439328f, -0.77301045f),
-    ImVec2(-0.55557023f, -0.83146961f),
-    ImVec2(-0.47139674f, -0.88192126f),
-    ImVec2(-0.38268343f, -0.92387953f),
-    ImVec2(-0.29028468f, -0.95694034f),
-    ImVec2(-0.19509032f, -0.98078528f),
-    ImVec2(-0.09801714f, -0.99518473f),
-    ImVec2(-0.00000000f, -1.00000000f),
-    ImVec2(0.09801714f, -0.99518473f),
-    ImVec2(0.19509032f, -0.98078528f),
-    ImVec2(0.29028468f, -0.95694034f),
-    ImVec2(0.38268343f, -0.92387953f),
-    ImVec2(0.47139674f, -0.88192126f),
-    ImVec2(0.55557023f, -0.83146961f),
-    ImVec2(0.63439328f, -0.77301045f),
-    ImVec2(0.70710678f, -0.70710678f),
-    ImVec2(0.77301045f, -0.63439328f),
-    ImVec2(0.83146961f, -0.55557023f),
-    ImVec2(0.88192126f, -0.47139674f),
-    ImVec2(0.92387953f, -0.38268343f),
-    ImVec2(0.95694034f, -0.29028468f),
-    ImVec2(0.98078528f, -0.19509032f),
-    ImVec2(0.99518473f, -0.09801714f)
-};
-
 template <class _Getter>
 struct RendererCircleFill : RendererBase {
     RendererCircleFill(const _Getter& getter, ImU32 col) :
@@ -1616,21 +1554,34 @@ struct RendererCircleFill : RendererBase {
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
         ImPlotPoint3D p3D = Getter(prim);
         float size_in_plot_coords = p3D.z;
-        float radius_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M);
-        ImVec2 center = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
+        float radius_in_plot_coords = size_in_plot_coords;
+
+        // Compute approximate radius in pixels for LOD
+        float approx_radius_pixels = ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
+        int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
+
+        ImVec2 center = this->Transformer(ImPlotPoint(p3D.x, p3D.y));
 
         if (center.x >= cull_rect.Min.x && center.y >= cull_rect.Min.y &&
             center.x <= cull_rect.Max.x && center.y <= cull_rect.Max.y) {
-            int num_segments = ImClamp((int)(radius_in_pixels), 10, 64);
+
+            const float a_max = IM_PI * 2.0f;
+            const float a_step = a_max / num_segments;
 
             ImDrawIdx vtx_base = draw_list._VtxCurrentIdx;
 
             for (int i = 0; i < num_segments; i++) {
-                int idx = (i * 64) / num_segments;
-                const ImVec2& unit = HIGH_RES_CIRCLE[idx];
+                float angle = a_step * i;
+                float cos_a = ImCos(angle);
+                float sin_a = ImSin(angle);
 
-                draw_list._VtxWritePtr[0].pos.x = center.x + unit.x * radius_in_pixels;
-                draw_list._VtxWritePtr[0].pos.y = center.y + unit.y * radius_in_pixels;
+                // Compute point in plot coordinates
+                ImPlotPoint plot_point(p3D.x + cos_a * radius_in_plot_coords,
+                                      p3D.y + sin_a * radius_in_plot_coords);
+                // Transform to pixel coordinates
+                ImVec2 pixel_pos = this->Transformer(plot_point);
+
+                draw_list._VtxWritePtr[0].pos = pixel_pos;
                 draw_list._VtxWritePtr[0].uv = UV;
                 draw_list._VtxWritePtr[0].col = Col;
                 draw_list._VtxWritePtr++;
@@ -1674,24 +1625,33 @@ struct RendererCircleLine : RendererBase {
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
         ImPlotPoint3D p3D = Getter(prim);
         float size_in_plot_coords = p3D.z;
-        float radius_in_pixels = ImAbs(size_in_plot_coords * this->Transformer.Tx.M);
-        ImVec2 center = this->Transformer(ImPlotPoint(p3D.x,p3D.y));
+        float radius_in_plot_coords = size_in_plot_coords;
+
+        // Compute approximate radius in pixels for LOD
+        float approx_radius_pixels = ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
+        int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
+
+        ImVec2 center = this->Transformer(ImPlotPoint(p3D.x, p3D.y));
 
         if (center.x >= cull_rect.Min.x && center.y >= cull_rect.Min.y &&
             center.x <= cull_rect.Max.x && center.y <= cull_rect.Max.y) {
 
-            int num_segments = ImClamp((int)(radius_in_pixels), 10, 64);
+            const float a_max = IM_PI * 2.0f;
+            const float a_step = a_max / num_segments;
 
             for (int i = 0; i < num_segments; i++) {
-                int idx1 = (i * 64) / num_segments;
-                int idx2 = ((i + 1) * 64) / num_segments;
-                const ImVec2& unit1 = HIGH_RES_CIRCLE[idx1];
-                const ImVec2& unit2 = HIGH_RES_CIRCLE[idx2];
+                float angle1 = a_step * i;
+                float angle2 = a_step * ((i + 1) % num_segments);
 
-                ImVec2 p1(center.x + unit1.x * radius_in_pixels,
-                          center.y + unit1.y * radius_in_pixels);
-                ImVec2 p2(center.x + unit2.x * radius_in_pixels,
-                          center.y + unit2.y * radius_in_pixels);
+                // Compute points in plot coordinates
+                ImPlotPoint plot_point1(p3D.x + ImCos(angle1) * radius_in_plot_coords,
+                                       p3D.y + ImSin(angle1) * radius_in_plot_coords);
+                ImPlotPoint plot_point2(p3D.x + ImCos(angle2) * radius_in_plot_coords,
+                                       p3D.y + ImSin(angle2) * radius_in_plot_coords);
+
+                // Transform to pixel coordinates
+                ImVec2 p1 = this->Transformer(plot_point1);
+                ImVec2 p2 = this->Transformer(plot_point2);
 
                 PrimLine(draw_list, p1, p2, HalfWeight, Col, UV0, UV1);
             }
@@ -1915,7 +1875,7 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 
 template <typename Getter>
 void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlags flags) {
-    if (BeginItemEx(label_id, FitterBubbles1<Getter>(getter), flags, ImPlotCol_MarkerOutline)) {
+    if (BeginItemEx(label_id, FitterBubbles1<Getter>(getter), flags, ImPlotCol_Fill)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
