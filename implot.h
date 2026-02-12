@@ -92,7 +92,7 @@ typedef int ImPlotColormapScaleFlags; // -> ImPlotColormapScaleFlags_
 typedef int ImPlotItemFlags;          // -> ImPlotItemFlags_
 typedef int ImPlotLineFlags;          // -> ImPlotLineFlags_
 typedef int ImPlotScatterFlags;       // -> ImPlotScatterFlags
-typedef int ImPlotBubblesFlags;        // -> ImPlotBubblesFlags
+typedef int ImPlotBubblesFlags;       // -> ImPlotBubblesFlags
 typedef int ImPlotStairsFlags;        // -> ImPlotStairsFlags_
 typedef int ImPlotShadedFlags;        // -> ImPlotShadedFlags_
 typedef int ImPlotBarsFlags;          // -> ImPlotBarsFlags_
