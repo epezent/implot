@@ -249,8 +249,7 @@ enum ImPlotScatterFlags_ {
 
 // Flags for PlotBubbles
 enum ImPlotBubblesFlags_ {
-  ImPlotBubblesFlags_None   = 0,       // default
-  ImPlotBubblesFlags_NoClip = 1 << 10, // markers on the edge of a plot will not be clipped
+  ImPlotBubblesFlags_None = 0, // default
 };
 
 // Flags for PlotStairs
