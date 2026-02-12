@@ -32,8 +32,62 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
+- 2026/02/12 (0.18) - ImPlotSpec replaces the SetNextXXX style functions. The guide below shows show to migrate from SetNextXXX to ImPlotSpec.
+                        - `SetNextLineStyle` has been removed, styling should be set via ImPlotSpec.
+                          ```
+                          // Before
+                          ImPlot::SetNextLineStyle(line_color, line_weight);
+                          ImPlot::PlotLine("Line", xs, ys, count);
+
+                          // After
+                          ImPlotSpec spec;
+                          spec.LineColor = line_color;
+                          spec.LineWeight = line_weight;
+                          ImPlot::PlotLine("Line", xs, ys, count, spec);
+                          ```
+                        - `SetNextFillStyle` has been removed, styling should be set via ImPlotSpec.
+                          ```
+                          // Before
+                          ImPlot::SetNextFillStyle(fill_color, fill_alpha);
+                          ImPlot::PlotLine("Shaded", xs, ys, count, ImPlotLineFlags_Shaded);
+
+                          // After
+                          ImPlotSpec spec;
+                          spec.FillColor = fill_color;
+                          spec.FillAlpha = fill_alpha;
+                          spec.Flags = ImPlotLineFlags_Shaded;
+                          ImPlot::PlotTLine("Shaded", xs, ys, count, spec);
+                          ```
+                        - SetNextMarkerStyle has been removed, styling should be set via ImPlotSpec.
+                           ```
+                           // Before
+                           ImPlot::SetNextMarkerStyle(marker, marker_size, fill_color, line_weight, marker_outline_color);
+                           ImPlot::PlotScatter("Scatter", xs, ys, count);
+
+                           // After
+                           ImPlotSpec spec;
+                           spec.LineWeight = line_weight;
+                           spec.Marker = marker;
+                           spec.MarkerSize = marker_size;
+                           spec.MarkerLineColor = marker_outline_color;
+                           spec.MarkerFillColor = fill_color;
+                           ImPlot::PlotScatter("Scatter", xs, ys, count, spec);
+                           ```
+                        - SetNextErrorBarStyle has been removed, styling should be set via ImPlotSpec.
+                           ```
+                           // Before
+                           ImPlot::SetNextErrorBarStyle(color, size, weight);
+                           ImPlot::PlotErrorBars("ErrorBar", xs, ys, err, count);
+
+                           // After
+                           ImPlotSpec spec;
+                           spec.LineColor = color;
+                           spec.Size = size;
+                           spec.LineWeight = weight;
+                           ImPlot::PlotErrorBars("ErrorBar", xs, ys, err, count, spec);
+                           ```
+                        - Flags, Offset and Stride should also be set via ImPlotSpec now.
 - 2023/10/02 (0.18) - ImPlotSpec was made the default and _only_ way of styling plot items. Therefore the following features were removed:
-                      - SetNextLineStyle, SetNextFillStyle, SetNextMarkerStyle, and SetNextErrorBarStyle have been removed; pass styling variables directly to PlotX functions now with ImPlotSpec
                       - ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar have been removed and thus are no longer supported by PushStyleColor.
                         You can use a common ImPlotSpec instance across multiple PlotX calls to emulate PushStyleColor behavior.
                       - ImPlotStyleVar_LineWeight, ImPlotStyleVar_Marker, ImPlotStyleVar_MarkerSize, ImPlotStyleVar_MarkerWeight, ImPlotStyleVar_FillAlpha, ImPlotStyleVar_ErrorBarSize, and ImPlotStyleVar_ErrorBarWeight
