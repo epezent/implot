@@ -32,7 +32,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2023/10/02 (0.17) - ImPlotSpec was made the default and _only_ way of styling plot items. Therefore the following features were removed:
+- 2023/10/02 (0.18) - ImPlotSpec was made the default and _only_ way of styling plot items. Therefore the following features were removed:
                       - SetNextLineStyle, SetNextFillStyle, SetNextMarkerStyle, and SetNextErrorBarStyle have been removed; pass styling variables directly to PlotX functions now with ImPlotSpec
                       - ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar have been removed and thus are no longer supported by PushStyleColor.
                         You can use a common ImPlotSpec instance across multiple PlotX calls to emulate PushStyleColor behavior.
