@@ -1601,12 +1601,12 @@ struct RendererMarkersLine : RendererBase {
     mutable ImVec2 UV1;
 };
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererCircleFill : RendererBase {
-    RendererCircleFill(const _Getter& getter, ImU32 col) :
+    RendererCircleFill(const _Getter& getter, const _GetterColor& getter_color) :
         RendererBase(getter.Count, 62*3, 64),
         Getter(getter),
-        Col(col)
+        GetterColor(getter_color)
     { }
     void Init(ImDrawList& draw_list) const {
         UV = draw_list._Data->TexUvWhitePixel;
@@ -1633,6 +1633,7 @@ struct RendererCircleFill : RendererBase {
 
         // Check if bounding box overlaps with cull rectangle
         if (cull_rect.Overlaps(bbox)) {
+            ImU32 col = GetterColor[prim];
 
             const float a_max = IM_PI * 2.0f;
             const float a_step = a_max / num_segments;
@@ -1652,7 +1653,7 @@ struct RendererCircleFill : RendererBase {
 
                 draw_list._VtxWritePtr[0].pos = pixel_pos;
                 draw_list._VtxWritePtr[0].uv = UV;
-                draw_list._VtxWritePtr[0].col = Col;
+                draw_list._VtxWritePtr[0].col = col;
                 draw_list._VtxWritePtr++;
             }
 
@@ -1676,17 +1677,17 @@ struct RendererCircleFill : RendererBase {
         return false;
     }
     const _Getter& Getter;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     mutable ImVec2 UV;
 };
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererCircleLine : RendererBase {
-  RendererCircleLine(const _Getter& getter, float weight, ImU32 col) :
+  RendererCircleLine(const _Getter& getter, const _GetterColor& getter_color, float weight) :
       RendererBase(getter.Count, 64*6, 64*4),
       Getter(getter),
       HalfWeight(ImMax(1.0f,weight)*0.5f),
-      Col(col)
+      GetterColor(getter_color)
     { }
     void Init(ImDrawList& draw_list) const {
       GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
@@ -1713,6 +1714,7 @@ struct RendererCircleLine : RendererBase {
 
         // Check if bounding box overlaps with cull rectangle
         if (cull_rect.Overlaps(bbox)) {
+            ImU32 col = GetterColor[prim];
 
             const float a_max = IM_PI * 2.0f;
             const float a_step = a_max / num_segments;
@@ -1731,7 +1733,7 @@ struct RendererCircleLine : RendererBase {
                 ImVec2 p1 = this->Transformer(plot_point1);
                 ImVec2 p2 = this->Transformer(plot_point2);
 
-                PrimLine(draw_list, p1, p2, HalfWeight, Col, UV0, UV1);
+                PrimLine(draw_list, p1, p2, HalfWeight, col, UV0, UV1);
             }
 
             int unused_vtx = (64 - num_segments) * 4;
@@ -1746,7 +1748,7 @@ struct RendererCircleLine : RendererBase {
     }
     const _Getter& Getter;
     mutable float HalfWeight;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     mutable ImVec2 UV0;
     mutable ImVec2 UV1;
 };
@@ -1994,11 +1996,27 @@ void PlotBubbleEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
 
         if (s.RenderFill) {
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-            RenderPrimitives1<RendererCircleFill>(getter, col_fill);
+            if (s.Spec.FillColors != nullptr) {
+                IndexerIdxColor fill_indexer(s.Spec.FillColors, getter.Count);
+                GetterColor<IndexerIdxColor> fill_getter(fill_indexer, getter.Count, s.Spec.FillAlpha);
+                RenderPrimitives2<RendererCircleFill>(getter, fill_getter);
+            } else {
+                IndexerConstColor fill_indexer(col_fill);
+                GetterColor<IndexerConstColor> fill_getter(fill_indexer, getter.Count);
+                RenderPrimitives2<RendererCircleFill>(getter, fill_getter);
+            }
         }
         if (s.RenderLine) {
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-            RenderPrimitives1<RendererCircleLine>(getter, s.Spec.LineWeight, col_line);
+            if (s.Spec.LineColors != nullptr) {
+                IndexerIdxColor line_indexer(s.Spec.LineColors, getter.Count);
+                GetterColor<IndexerIdxColor> line_getter(line_indexer, getter.Count);
+                RenderPrimitives2<RendererCircleLine>(getter, line_getter, s.Spec.LineWeight);
+            } else {
+                IndexerConstColor line_indexer(col_line);
+                GetterColor<IndexerConstColor> line_getter(line_indexer, getter.Count);
+                RenderPrimitives2<RendererCircleLine>(getter, line_getter, s.Spec.LineWeight);
+            }
         }
 
         EndItem();
