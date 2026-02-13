@@ -137,8 +137,10 @@ enum ImAxis_ {
 // Plotting properties. These provide syntactic sugar for creating ImPlotSpecs from (ImPlotProp,value) pairs. See ImPlotSpec documentation.
 enum ImPlotProp_ {
     ImPlotProp_LineColor,       // line color (applies to lines, bar edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    ImPlotProp_LineColors,      // array of colors for each line; if nullptr, use LineColor for all lines
     ImPlotProp_LineWeight,      // line weight in pixels (applies to lines, bar edges, marker edges)
     ImPlotProp_FillColor,       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    ImPlotProp_FillColors,      // array of colors for each fill; if nullptr, use FillColor for all fills
     ImPlotProp_FillAlpha,       // alpha multiplier (applies to FillColor and MarkerFillColor)
     ImPlotProp_Marker,          // marker type; specify ImPlotMarker_Auto to use the next unused marker
     ImPlotProp_MarkerSize,      // size of markers (radius) *in pixels*
@@ -501,8 +503,10 @@ enum ImPlotBin_ {
 //    });
 struct ImPlotSpec {
     ImVec4          LineColor       = IMPLOT_AUTO_COL;       // line color (applies to lines, bar edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    ImU32*          LineColors      = nullptr;               // array of colors for each line; if nullptr, use LineColor for all lines
     float           LineWeight      = 1.0f;                  // line weight in pixels (applies to lines, bar edges, marker edges)
     ImVec4          FillColor       = IMPLOT_AUTO_COL;       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
+    ImU32*          FillColors      = nullptr;               // array of colors for each fill; if nullptr, use FillColor for all fills
     float           FillAlpha       = 1.0f;                  // alpha multiplier (applies to FillColor and MarkerFillColor)
     ImPlotMarker    Marker          = ImPlotMarker_None;     // marker type; specify ImPlotMarker_Auto to use the next unused marker
     float           MarkerSize      = 4;                     // size of markers (radius) *in pixels*
@@ -549,6 +553,16 @@ struct ImPlotSpec {
         default: break;
         }
         IM_ASSERT(0 && "User provided an ImPlotProp which cannot be set from scalar value!");
+    }
+
+    // Set a property from a pointer value.
+    void SetProp(ImPlotProp prop, ImU32* v) {
+        switch (prop) {
+        case ImPlotProp_LineColors      : LineColors      = v;  return;
+        case ImPlotProp_FillColors      : FillColors      = v;  return;
+        default: break;
+        }
+        IM_ASSERT(0 && "User provided an ImPlotProp which cannot be set from pointer value!");
     }
 
     // Set a property from an ImVec4 value.
