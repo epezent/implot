@@ -442,9 +442,9 @@ void Demo_QuiverPlots(){
         }
     }
 
-    static float scale_min = 0.00f;
-    static float scale_max = 1.0f;
-    static float baseSize = 12.0f;
+    static float mag_min = 0.00f;
+    static float mag_max = 1.0f;
+    static float base_size = 12.0f;
     static ImPlotColormap map = ImPlotColormap_Viridis;
 
     if (ImPlot::ColormapButton(ImPlot::GetColormapName(map), ImVec2(225,0), map)) {
@@ -454,13 +454,17 @@ void Demo_QuiverPlots(){
     ImGui::LabelText("##Colormap Index", "%s", "Change Colormap");
 
     ImGui::SetNextItemWidth(225);
-    ImGui::DragFloatRange2("Min / Max",&scale_min, &scale_max, 0.01f, -20, 20,nullptr,nullptr,ImGuiSliderFlags_AlwaysClamp);
-    if (scale_max <= scale_min + 0.01f) {
-        scale_max = scale_min + 0.01f;
+    ImGui::DragFloatRange2("Min / Max Magnitude", &mag_min, &mag_max, 0.01f, -20, 20,nullptr,nullptr,ImGuiSliderFlags_AlwaysClamp);
+    if (mag_max < mag_min) {
+        mag_max = mag_min;
     }
+    ImGui::SameLine();
+    HelpMarker("Minumum and maximum magnitudes for color mapping");
 
     ImGui::SetNextItemWidth(225);
-    ImGui::DragFloat("Base Size", &baseSize, 0.1f, 0, 100);
+    ImGui::DragFloat("Base Size", &base_size, 0.1f, 0, 100);
+    ImGui::SameLine();
+    HelpMarker("Maximum arrow size in pixels. The actual size will depend on the arrow's magnitude");
 
     static ImPlotQuiverFlags qv_flags = ImPlotQuiverFlags_Colored;
     CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_Normalize);
@@ -475,13 +479,13 @@ void Demo_QuiverPlots(){
     if (ImPlot::BeginPlot("Quiver Plot", ImVec2(ImGui::GetTextLineHeight()*28, ImGui::GetTextLineHeight()*28))) {
         ImPlot::SetupAxisTicks(ImAxis_X1, -0.5, 0.5, 11);
         ImPlot::SetupAxisTicks(ImAxis_Y1, -0.5, 0.5, 11);
-        ImPlot::SetNextQuiverStyle(baseSize, ImPlot::GetColormapColor(1));
+        ImPlot::SetNextQuiverStyle(base_size, ImPlot::GetColormapColor(1));
         ImPlot::SetupAxes("x", "y");
-        ImPlot::PlotQuiver("Magnitude", xs, ys, us, vs, 100, scale_min, scale_max, qv_flags);
+        ImPlot::PlotQuiver("Magnitude", xs, ys, us, vs, 100, mag_min, mag_max, qv_flags);
         ImPlot::EndPlot();
     }
     ImGui::SameLine();
-    ImPlot::ColormapScale("##QuiverScale", scale_min, scale_max);
+    ImPlot::ColormapScale("##QuiverScale", mag_min, mag_max);
     ImPlot::PopColormap();
 }
 

@@ -1835,7 +1835,7 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
-void PlotQuiverEx(const char* label_id, const Getter& getter, const double scaleMin, const double scaleMax, ImPlotQuiverFlags flags){
+void PlotQuiverEx(const char* label_id, const Getter& getter, const double mag_min, const double mag_max, ImPlotQuiverFlags flags){
      if (BeginItemEx(label_id, FitterVector<Getter>(getter), flags,ImPlotCol_Fill)) {
         if (getter.Count <= 0) {
             EndItem();
@@ -1846,25 +1846,43 @@ void PlotQuiverEx(const char* label_id, const Getter& getter, const double scale
         const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
         const bool color_coded = ImHasFlag(flags, ImPlotQuiverFlags_Colored);
         const bool normalized = ImHasFlag(flags, ImPlotQuiverFlags_Normalize);
-        RenderPrimitives1<RendererVectorFill>(getter, MARKER_FILL_ARROW, 7, s.QuiverSize, col_fill, scaleMin, scaleMax, color_coded, normalized);
+
+        double final_mag_min = mag_min;
+        double final_mag_max = mag_max;
+
+        if (color_coded && mag_min == mag_max) {
+            final_mag_min = INFINITY;
+            final_mag_max = -INFINITY;
+            for (int i = 0; i < getter.Count; ++i) {
+                ImPlotPoint4D p = getter(i);
+                double mag = ImSqrt(p.z*p.z + p.w*p.w);
+                if (mag < final_mag_min) final_mag_min = mag;
+                if (mag > final_mag_max) final_mag_max = mag;
+            }
+            if (final_mag_min == final_mag_max) {
+                final_mag_max = final_mag_min + 1.0;
+            }
+        }
+
+        RenderPrimitives1<RendererVectorFill>(getter, MARKER_FILL_ARROW, 7, s.QuiverSize, col_fill, final_mag_min, final_mag_max, color_coded, normalized);
 
         EndItem();
     }
 }
 
 template <typename T>
-void PlotQuiver(const char* label_id, const T* xs, const T* ys,const T* us, const T* vs, int count, const T scaleMin, const T scaleMax, ImPlotQuiverFlags flags, int offset, int stride) {
+void PlotQuiver(const char* label_id, const T* xs, const T* ys,const T* us, const T* vs, int count, double mag_min, double mag_max, ImPlotQuiverFlags flags, int offset, int stride) {
     GetterXYUV<IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>> getter(
         IndexerIdx<T>(xs,count,offset,stride),
         IndexerIdx<T>(ys,count,offset,stride),
         IndexerIdx<T>(us,count,offset,stride),
         IndexerIdx<T>(vs,count,offset,stride),
         count);
-    return PlotQuiverEx(label_id, getter, scaleMin, scaleMax, flags);
+    return PlotQuiverEx(label_id, getter, mag_min, mag_max, flags);
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotQuiver<T>(const char* label_id, const T* xs, const T* ys, const T* us, const T* vs, int count, const T scaleMin, const T scaleMax, ImPlotQuiverFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotQuiver<T>(const char* label_id, const T* xs, const T* ys, const T* us, const T* vs, int count, double mag_min, double mag_max, ImPlotQuiverFlags flags, int offset, int stride);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
