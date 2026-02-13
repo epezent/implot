@@ -1107,6 +1107,35 @@ void Demo_PerIndexColors() {
 
         ImPlot::EndPlot();
     }
+
+    if (ImPlot::BeginPlot("Colorful Shaded", ImVec2(-1,0))) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::SetupAxesLimits(0, 1, -0.5, 1.0);
+
+        // Constant color with FillAlpha
+        static double y_ref = 0.0;
+        ImPlot::PlotShaded("Const Color", xs1, ys3, 101, y_ref, {
+            ImPlotProp_FillColor, ImVec4(0.3f, 0.7f, 1.0f, 1.0f),
+            ImPlotProp_FillAlpha, 0.4f
+        });
+
+        // Per-vertex colors with FillAlpha (rainbow)
+        ImPlot::PlotShaded("Rainbow Shaded", xs1, ys1, 101, y_ref, {
+            ImPlotProp_FillColors, colors_rainbow,
+            ImPlotProp_FillAlpha, 0.5f
+        });
+
+        // Per-vertex colors with PlotLine (colormap)
+        ImPlot::PlotLine("Colormap Line+Fill", xs1, ys2, 101, {
+            ImPlotProp_LineColors, colors_colormap,
+            ImPlotProp_FillColors, colors_colormap,
+            ImPlotProp_LineWeight, 2.0f,
+            ImPlotProp_FillAlpha, 0.3f,
+            ImPlotProp_Flags, ImPlotLineFlags_Shaded
+        });
+
+        ImPlot::EndPlot();
+    }
 }
 
 //-----------------------------------------------------------------------------

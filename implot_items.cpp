@@ -708,12 +708,19 @@ struct GetterError {
 
 template <typename _IndexerColor>
 struct GetterColor {
-  GetterColor(_IndexerColor color, int count) : Indexer(color), Count(count) { }
-  template <typename I> IMPLOT_INLINE ImU32 operator()(I idx) const {
-    return ImU32(Indexer[idx]);
-  }
-  const _IndexerColor Indexer;
-  const int Count;
+    GetterColor(_IndexerColor color, int count, float alpha = 1.0f) : Indexer(color), Count(count), Alpha(alpha) { }
+    template <typename I> IMPLOT_INLINE ImU32 operator[](I idx) const {
+        ImU32 col = Indexer[idx];
+        if (Alpha < 1.0f) {
+            ImVec4 col_vec = ImGui::ColorConvertU32ToFloat4(col);
+            col_vec.w *= Alpha;
+            col = ImGui::GetColorU32(col_vec);
+        }
+        return col;
+    }
+    const _IndexerColor Indexer;
+    const int Count;
+    const float Alpha;
 };
 
 //-----------------------------------------------------------------------------
@@ -1356,13 +1363,13 @@ struct RendererStairsPostShaded : RendererBase {
 
 
 
-template <class _Getter1, class _Getter2>
+template <class _Getter1, class _Getter2, class _GetterColor>
 struct RendererShaded : RendererBase {
-    RendererShaded(const _Getter1& getter1, const _Getter2& getter2, ImU32 col) :
+    RendererShaded(const _Getter1& getter1, const _Getter2& getter2, const _GetterColor& getter_color) :
         RendererBase(ImMin(getter1.Count, getter2.Count) - 1, 6, 5),
         Getter1(getter1),
         Getter2(getter2),
-        Col(col)
+        GetterColor(getter_color)
     {
         P11 = this->Transformer(Getter1[0]);
         P12 = this->Transformer(Getter2[0]);
@@ -1379,23 +1386,24 @@ struct RendererShaded : RendererBase {
             P12 = P22;
             return false;
         }
+        ImU32 col = GetterColor[prim];
         const int intersect = (P11.y > P12.y && P22.y > P21.y) || (P12.y > P11.y && P21.y > P22.y);
         const ImVec2 intersection = intersect == 0 ? ImVec2(0,0) : Intersection(P11,P21,P12,P22);
         draw_list._VtxWritePtr[0].pos = P11;
         draw_list._VtxWritePtr[0].uv  = UV;
-        draw_list._VtxWritePtr[0].col = Col;
+        draw_list._VtxWritePtr[0].col = col;
         draw_list._VtxWritePtr[1].pos = P21;
         draw_list._VtxWritePtr[1].uv  = UV;
-        draw_list._VtxWritePtr[1].col = Col;
+        draw_list._VtxWritePtr[1].col = col;
         draw_list._VtxWritePtr[2].pos = intersection;
         draw_list._VtxWritePtr[2].uv  = UV;
-        draw_list._VtxWritePtr[2].col = Col;
+        draw_list._VtxWritePtr[2].col = col;
         draw_list._VtxWritePtr[3].pos = P12;
         draw_list._VtxWritePtr[3].uv  = UV;
-        draw_list._VtxWritePtr[3].col = Col;
+        draw_list._VtxWritePtr[3].col = col;
         draw_list._VtxWritePtr[4].pos = P22;
         draw_list._VtxWritePtr[4].uv  = UV;
-        draw_list._VtxWritePtr[4].col = Col;
+        draw_list._VtxWritePtr[4].col = col;
         draw_list._VtxWritePtr += 5;
         draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
         draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 1 + intersect);
@@ -1411,7 +1419,7 @@ struct RendererShaded : RendererBase {
     }
     const _Getter1& Getter1;
     const _Getter2& Getter2;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     mutable ImVec2 P11;
     mutable ImVec2 P12;
     mutable ImVec2 UV;
@@ -1501,6 +1509,13 @@ void RenderPrimitives2(const _Getter1& getter1, const _Getter2& getter2, Args...
     ImDrawList& draw_list = *GetPlotDrawList();
     const ImRect& cull_rect = GetCurrentPlot()->PlotRect;
     RenderPrimitivesEx(_Renderer<_Getter1,_Getter2>(getter1,getter2,args...), draw_list, cull_rect);
+}
+
+template <template <class,class,class> class _Renderer, class _Getter1, class _Getter2, class _Getter3, typename ...Args>
+void RenderPrimitives3(const _Getter1& getter1, const _Getter2& getter2, const _Getter3& getter3, Args... args) {
+    ImDrawList& draw_list = *GetPlotDrawList();
+    const ImRect& cull_rect = GetCurrentPlot()->PlotRect;
+    RenderPrimitivesEx(_Renderer<_Getter1,_Getter2,_Getter3>(getter1,getter2,getter3,args...), draw_list, cull_rect);
 }
 
 //-----------------------------------------------------------------------------
@@ -1820,14 +1835,22 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1) {
             if (ImHasFlag(spec.Flags, ImPlotLineFlags_Shaded) && s.RenderFill) {
-                const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
                 GetterOverrideY<_Getter> getter2(getter, 0);
-                RenderPrimitives2<RendererShaded>(getter,getter2,col_fill);
+                if (s.Spec.FillColors != nullptr) {
+                    IndexerIdxColor color_indexer(s.Spec.FillColors, getter.Count);
+                    GetterColor<IndexerIdxColor> color_getter(color_indexer, getter.Count, s.Spec.FillAlpha);
+                    RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
+                } else {
+                    const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+                    IndexerConstColor color_indexer(col_fill);
+                    GetterColor<IndexerConstColor> color_getter(color_indexer, getter.Count);
+                    RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
+                }
             }
             if (s.RenderLine) {
                 const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
                 if (ImHasFlag(spec.Flags,ImPlotLineFlags_Segments)) {
-                    if (s.Spec.LineColors != NULL) {
+                    if (s.Spec.LineColors != nullptr) {
                         IndexerIdxColor color_indexer(s.Spec.LineColors, getter.Count);
                         RenderPrimitives2<RendererLineSegments1>(getter,color_indexer,s.Spec.LineWeight);
                     } else {
@@ -1836,7 +1859,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                     }
                 }
                 else if (ImHasFlag(spec.Flags, ImPlotLineFlags_Loop)) {
-                    if (s.Spec.LineColors != NULL) {
+                    if (s.Spec.LineColors != nullptr) {
                         IndexerIdxColor color_indexer(s.Spec.LineColors, getter.Count);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
                             RenderPrimitives2<RendererLineStripSkip>(GetterLoop<_Getter>(getter),color_indexer,s.Spec.LineWeight);
@@ -1851,7 +1874,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                     }
                 }
                 else {
-                    if (s.Spec.LineColors != NULL) {
+                    if (s.Spec.LineColors != nullptr) {
                         IndexerIdxColor color_indexer(s.Spec.LineColors, getter.Count);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
                             RenderPrimitives2<RendererLineStripSkip>(getter,color_indexer,s.Spec.LineWeight);
@@ -2077,8 +2100,16 @@ void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& g
         }
         const ImPlotNextItemData& s = GetItemData();
         if (s.RenderFill) {
-            const ImU32 col = ImGui::GetColorU32(s.Spec.FillColor);
-            RenderPrimitives2<RendererShaded>(getter1,getter2,col);
+            if (s.Spec.FillColors != nullptr) {
+                IndexerIdxColor color_indexer(s.Spec.FillColors, getter1.Count);
+                GetterColor<IndexerIdxColor> color_getter(color_indexer, getter1.Count, s.Spec.FillAlpha);
+                RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
+            } else {
+                const ImU32 col = ImGui::GetColorU32(s.Spec.FillColor);
+                IndexerConstColor color_indexer(col);
+                GetterColor<IndexerConstColor> color_getter(color_indexer, getter1.Count);
+                RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
+            }
         }
         EndItem();
     }
