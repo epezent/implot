@@ -1269,94 +1269,65 @@ void Demo_PerIndexColors() {
         ImPlot::EndPlot();
     }
 
-    // Colorful Bars
-    if (ImPlot::BeginPlot("Colorful Bars", ImVec2(-1,0))) {
-        ImPlot::SetupAxes("Category","Value");
-        ImPlot::SetupAxesLimits(-0.5, 9.5, 0, 12);
+    // Colorful Bar Plots
+    static ImS8 data_bars[10] = {1,2,3,4,5,6,7,8,9,10};
+    static ImU32 colors_bars_v[10], colors_bars_h[10];
+    for (int i = 0; i < 10; ++i) {
+        // Rainbow colors for Vertical
+        float hue = i / 9.0f;
+        colors_bars_v[i] = ImColor::HSV(hue, 0.8f, 0.9f);
 
-        // 1. Vertical bars with per-bar rainbow colors
-        static double data_v[10];
-        static ImU32 colors_v[10];
-        for (int i = 0; i < 10; ++i) {
-            data_v[i] = 3.0 + sinf(i * 0.8f * (float)PI) * 2.0;
-            float t = i / 9.0f;
-            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Jet);
-            colors_v[i] = ImGui::GetColorU32(color);
-        }
-        ImPlot::PlotBars("Vertical Rainbow", data_v, 10, 0.35, 0, {
-            ImPlotProp_FillColors, colors_v,
-            ImPlotProp_LineColors, colors_v,
-            ImPlotProp_FillAlpha, 0.5f
+        // Colormap colors for Horizontal
+        float t = i / 9.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors_bars_h[i] = ImGui::GetColorU32(color);
+    }
+
+    if (ImPlot::BeginPlot("Colorful Bar Plot")) {
+        ImPlot::PlotBars("Vertical", data_bars, 10, 0.7, 1, {
+            ImPlotProp_FillColors, colors_bars_v,
+            ImPlotProp_LineColors, colors_bars_v
         });
-
-        // 2. Vertical bars with colormap colors
-        static double data_v2[10];
-        static ImU32 colors_v2[10];
-        for (int i = 0; i < 10; ++i) {
-            data_v2[i] = 5.0 + cosf(i * 0.6f * (float)PI) * 2.5;
-            float t = i / 9.0f;
-            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
-            colors_v2[i] = ImGui::GetColorU32(color);
-        }
-        ImPlot::PlotBars("Vertical Colormap", data_v2, 10, 0.35, 0.35, {
-            ImPlotProp_FillColors, colors_v2,
-            ImPlotProp_LineColors, colors_v2,
-            ImPlotProp_FillAlpha, 0.7f,
-            ImPlotProp_LineWeight, 2.0f
+        ImPlot::PlotBars("Horizontal", data_bars, 10, 0.4, 1, {
+            ImPlotProp_Flags, ImPlotBarsFlags_Horizontal,
+            ImPlotProp_FillColors, colors_bars_h,
+            ImPlotProp_LineColors, colors_bars_h
         });
-
         ImPlot::EndPlot();
     }
 
-    // Colorful Stems
-    if (ImPlot::BeginPlot("Colorful Stems", ImVec2(-1,0))) {
-        ImPlot::SetupAxes("x","y");
-        ImPlot::SetupAxesLimits(-0.5, 19.5, -1.2, 1.2);
+    // Colorful Stem Plots
+    static double xs_stems[51], ys1_stems[51], ys2_stems[51];
+    static ImU32 colors1_stems[51], colors2_stems[51];
+    for (int i = 0; i < 51; ++i) {
+        xs_stems[i] = i * 0.02;
+        ys1_stems[i] = 1.0 + 0.5 * sin(25*xs_stems[i])*cos(2*xs_stems[i]);
+        ys2_stems[i] = 0.5 + 0.25  * sin(10*xs_stems[i]) * sin(xs_stems[i]);
 
-        // 1. Constant color stems
-        static double xs_stem1[20], ys_stem1[20];
-        for (int i = 0; i < 20; ++i) {
-            xs_stem1[i] = i;
-            ys_stem1[i] = sinf(i * 0.4f * (float)PI);
-        }
-        ImPlot::PlotStems("Const Color", xs_stem1, ys_stem1, 20, 0.0, {
-            ImPlotProp_LineColor, ImVec4(1.0f, 0.3f, 0.3f, 1.0f),
+        // Rainbow colors for Stems 1
+        float hue = i / 50.0f;
+        colors1_stems[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Colormap colors for Stems 2
+        float t = i / 50.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors2_stems[i] = ImGui::GetColorU32(color);
+    }
+
+    if (ImPlot::BeginPlot("Colorful Stem Plots")) {
+        ImPlot::SetupAxisLimits(ImAxis_X1,0,1.0);
+        ImPlot::SetupAxisLimits(ImAxis_Y1,0,1.6);
+        ImPlot::PlotStems("Stems 1", xs_stems, ys1_stems, 51, 0, {
+            ImPlotProp_LineColors, colors1_stems,
+            ImPlotProp_MarkerFillColors, colors1_stems,
+            ImPlotProp_MarkerLineColors, colors1_stems
+        });
+        ImPlot::PlotStems("Stems 2", xs_stems, ys2_stems, 51, 0, {
             ImPlotProp_Marker, ImPlotMarker_Circle,
-            ImPlotProp_MarkerSize, 2.0f
+            ImPlotProp_LineColors, colors2_stems,
+            ImPlotProp_MarkerFillColors, colors2_stems,
+            ImPlotProp_MarkerLineColors, colors2_stems
         });
-
-        // 2. Per-stem rainbow colors
-        static double xs_stem2[20], ys_stem2[20];
-        static ImU32 colors_stem_rainbow[20];
-        for (int i = 0; i < 20; ++i) {
-            xs_stem2[i] = i;
-            ys_stem2[i] = cosf(i * 0.5f * (float)PI) * 0.8f;
-            float t = i / 19.0f;
-            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Jet);
-            colors_stem_rainbow[i] = ImGui::GetColorU32(color);
-        }
-        ImPlot::PlotStems("Rainbow Stems", xs_stem2, ys_stem2, 20, 0.0, {
-            ImPlotProp_LineColors, colors_stem_rainbow,
-            ImPlotProp_Marker, ImPlotMarker_Square,
-            ImPlotProp_MarkerSize, 2.0f
-        });
-
-        // 3. Per-stem colormap colors (Viridis)
-        static double xs_stem3[20], ys_stem3[20];
-        static ImU32 colors_stem_viridis[20];
-        for (int i = 0; i < 20; ++i) {
-            xs_stem3[i] = i;
-            ys_stem3[i] = -0.5f + sinf(i * 0.3f * (float)PI) * 0.5f;
-            float t = i / 19.0f;
-            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
-            colors_stem_viridis[i] = ImGui::GetColorU32(color);
-        }
-        ImPlot::PlotStems("Colormap Stems", xs_stem3, ys_stem3, 20, 0.0, {
-            ImPlotProp_LineColors, colors_stem_viridis,
-            ImPlotProp_Marker, ImPlotMarker_Diamond,
-            ImPlotProp_MarkerSize, 2.0f
-        });
-
         ImPlot::EndPlot();
     }
 
