@@ -93,7 +93,6 @@ typedef int ImPlotItemFlags;          // -> ImPlotItemFlags_
 typedef int ImPlotLineFlags;          // -> ImPlotLineFlags_
 typedef int ImPlotScatterFlags;       // -> ImPlotScatterFlags
 typedef int ImPlotBubblesFlags;       // -> ImPlotBubblesFlags
-typedef int ImPlotQuiverFlags;        // -> ImPlotQuiverFlags_
 typedef int ImPlotStairsFlags;        // -> ImPlotStairsFlags_
 typedef int ImPlotShadedFlags;        // -> ImPlotShadedFlags_
 typedef int ImPlotBarsFlags;          // -> ImPlotBarsFlags_
@@ -103,6 +102,7 @@ typedef int ImPlotStemsFlags;         // -> ImPlotStemsFlags_
 typedef int ImPlotInfLinesFlags;      // -> ImPlotInfLinesFlags_
 typedef int ImPlotPieChartFlags;      // -> ImPlotPieChartFlags_
 typedef int ImPlotHeatmapFlags;       // -> ImPlotHeatmapFlags_
+typedef int ImPlotQuiverFlags;        // -> ImPlotQuiverFlags_
 typedef int ImPlotHistogramFlags;     // -> ImPlotHistogramFlags_
 typedef int ImPlotDigitalFlags;       // -> ImPlotDigitalFlags_
 typedef int ImPlotImageFlags;         // -> ImPlotImageFlags_
@@ -253,13 +253,6 @@ enum ImPlotBubblesFlags_ {
   ImPlotBubblesFlags_None = 0, // default
 };
 
-// Flags for PlotQuiver
-enum ImPlotQuiverFlags_ {
-    ImPlotQuiverFlags_None              = 0,         // default
-    ImPlotQuiverFlags_NoClip            = 1 << 10,   // arrows on the edge of a plot will not be clipped
-    ImPlotQuiverFlags_FixedSize         = 1 << 11,   // all arrows will have the same size
-    ImPlotQuiverFlags_ColorByMagnitude  = 1 << 12    // arrow colors will be mapped to their magnitudes
-
 // Flags for PlotStairs
 enum ImPlotStairsFlags_ {
     ImPlotStairsFlags_None     = 0,       // default
@@ -315,6 +308,14 @@ enum ImPlotPieChartFlags_ {
 enum ImPlotHeatmapFlags_ {
     ImPlotHeatmapFlags_None     = 0,       // default
     ImPlotHeatmapFlags_ColMajor = 1 << 10, // data will be read in column major order
+};
+
+// Flags for PlotQuiver
+enum ImPlotQuiverFlags_ {
+    ImPlotQuiverFlags_None              = 0,         // default
+    ImPlotQuiverFlags_NoClip            = 1 << 10,   // arrows on the edge of a plot will not be clipped
+    ImPlotQuiverFlags_FixedSize         = 1 << 11,   // all arrows will have the same size
+    ImPlotQuiverFlags_ColorByMagnitude  = 1 << 12    // arrow colors will be mapped to their magnitudes
 };
 
 // Flags for PlotHistogram and PlotHistogram2D
@@ -886,9 +887,6 @@ IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* da
 IMPLOT_TMP void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, ImPlotBubblesFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags=0, int offset=0, int stride=sizeof(T));
 
-// Plots a standard 2D quiver plot. The direction and magnitude of the arrows are determined by #us and #vs. Set #mag_min and #mag_max to specify a range of magnitudes to map to the arrow colors. Set mag_min = mag_max = 0 to use the full colormap range.
-IMPLOT_TMP void PlotQuiver(const char* label_id, const T* xs, const T* ys,const T* us, const T* vs, int count, double mag_min=0, double mag_max=0, ImPlotQuiverFlags flags=0, int offset=0, int stride=sizeof(T));
-
 // Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotStairsFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, ImPlotStairsFlags flags=0, int offset=0, int stride=sizeof(T));
@@ -925,6 +923,9 @@ IMPLOT_TMP void PlotPieChart(const char* const label_ids[], const T* values, int
 
 // Plots a 2D heatmap chart. Values are expected to be in row-major order by default. Leave #scale_min and scale_max both at 0 for automatic color scaling, or set them to a predefined range. #label_fmt can be set to nullptr for no labels.
 IMPLOT_TMP void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min=0, double scale_max=0, const char* label_fmt="%.1f", const ImPlotPoint& bounds_min=ImPlotPoint(0,0), const ImPlotPoint& bounds_max=ImPlotPoint(1,1), ImPlotHeatmapFlags flags=0);
+
+// Plots a standard 2D quiver plot. The direction and magnitude of the arrows are determined by #us and #vs. Set #mag_min and #mag_max to specify a range of magnitudes to map to the arrow colors. Set mag_min = mag_max = 0 to use the full colormap range.
+IMPLOT_TMP void PlotQuiver(const char* label_id, const T* xs, const T* ys,const T* us, const T* vs, int count, double mag_min=0, double mag_max=0, ImPlotQuiverFlags flags=0, int offset=0, int stride=sizeof(T));
 
 // Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBin_ method. If #range is left unspecified, the min/max of #values will be used as the range.
 // Otherwise, outlier values outside of the range are not binned. The largest bin count or density is returned.
@@ -1151,10 +1152,10 @@ IMPLOT_API void SetNextLineStyle(const ImVec4& col = IMPLOT_AUTO_COL, float weig
 IMPLOT_API void SetNextFillStyle(const ImVec4& col = IMPLOT_AUTO_COL, float alpha_mod = IMPLOT_AUTO);
 // Set the marker style for the next item only.
 IMPLOT_API void SetNextMarkerStyle(ImPlotMarker marker = IMPLOT_AUTO, float size = IMPLOT_AUTO, const ImVec4& fill = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO, const ImVec4& outline = IMPLOT_AUTO_COL);
-// Set the quiver style for the next item only.
-IMPLOT_API void SetNextQuiverStyle(float size, const ImVec4& col = IMPLOT_AUTO_COL);
 // Set the error bar style for the next item only.
 IMPLOT_API void SetNextErrorBarStyle(const ImVec4& col = IMPLOT_AUTO_COL, float size = IMPLOT_AUTO, float weight = IMPLOT_AUTO);
+// Set the quiver style for the next item only.
+IMPLOT_API void SetNextQuiverStyle(float size, const ImVec4& col = IMPLOT_AUTO_COL);
 
 // Gets the last item primary color (i.e. its legend icon color)
 IMPLOT_API ImVec4 GetLastItemColor();
