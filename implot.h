@@ -249,10 +249,10 @@ enum ImPlotScatterFlags_ {
 
 // Flgs for PlotQuiver
 enum ImPlotQuiverFlags_ {
-    ImPlotQuiverFlags_None       = 0,         // default
-    ImPlotQuiverFlags_NoClip     = 1 << 10,   // arrows on the edge of a plot will not be clipped
-    ImPlotQuiverFlags_FixedSize  = 1 << 11,   // all arrows will have the same size
-    ImPlotQuiverFlags_Colored    = 1 << 12    // arrow colors will be mapped to their magnitudes
+    ImPlotQuiverFlags_None              = 0,         // default
+    ImPlotQuiverFlags_NoClip            = 1 << 10,   // arrows on the edge of a plot will not be clipped
+    ImPlotQuiverFlags_FixedSize         = 1 << 11,   // all arrows will have the same size
+    ImPlotQuiverFlags_ColorByMagnitude  = 1 << 12    // arrow colors will be mapped to their magnitudes
 };
 
 // Flags for PlotStairs

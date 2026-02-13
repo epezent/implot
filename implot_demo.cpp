@@ -466,7 +466,7 @@ void Demo_QuiverPlots(){
     ImGui::SameLine();
     HelpMarker("Maximum arrow size in pixels. The actual size will depend on the arrow's magnitude");
 
-    static ImPlotQuiverFlags qv_flags = ImPlotQuiverFlags_Colored;
+    static ImPlotQuiverFlags qv_flags = ImPlotQuiverFlags_ColorByMagnitude;
 
     CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_NoClip);
     ImGui::SameLine();
@@ -476,9 +476,9 @@ void Demo_QuiverPlots(){
     ImGui::SameLine();
     HelpMarker("All arrows will have the length set to base size");
 
-    CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_Colored);
+    CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_ColorByMagnitude);
     ImGui::SameLine();
-    HelpMarker("Arrow colors will be mapped to their magnitudes");
+    HelpMarker("Arrow will be colored by on their magnitudes");
 
     ImPlot::PushColormap(map);
     if (ImPlot::BeginPlot("Quiver Plot", ImVec2(ImGui::GetTextLineHeight()*28, ImGui::GetTextLineHeight()*28))) {
