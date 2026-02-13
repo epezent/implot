@@ -1,7 +1,7 @@
 // MIT License
 
 // Copyright (c) 2020-2024 Evan Pezent
-// Copyright (c) 2025 Breno Cunha Queiroz
+// Copyright (c) 2025-2026 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -92,6 +92,7 @@ typedef int ImPlotColormapScaleFlags; // -> ImPlotColormapScaleFlags_
 typedef int ImPlotItemFlags;          // -> ImPlotItemFlags_
 typedef int ImPlotLineFlags;          // -> ImPlotLineFlags_
 typedef int ImPlotScatterFlags;       // -> ImPlotScatterFlags
+typedef int ImPlotBubblesFlags;       // -> ImPlotBubblesFlags
 typedef int ImPlotQuiverFlags;        // -> ImPlotQuiverFlags_
 typedef int ImPlotStairsFlags;        // -> ImPlotStairsFlags_
 typedef int ImPlotShadedFlags;        // -> ImPlotShadedFlags_
@@ -247,13 +248,17 @@ enum ImPlotScatterFlags_ {
     ImPlotScatterFlags_NoClip = 1 << 10, // markers on the edge of a plot will not be clipped
 };
 
-// Flgs for PlotQuiver
+// Flags for PlotBubbles
+enum ImPlotBubblesFlags_ {
+  ImPlotBubblesFlags_None = 0, // default
+};
+
+// Flags for PlotQuiver
 enum ImPlotQuiverFlags_ {
     ImPlotQuiverFlags_None              = 0,         // default
     ImPlotQuiverFlags_NoClip            = 1 << 10,   // arrows on the edge of a plot will not be clipped
     ImPlotQuiverFlags_FixedSize         = 1 << 11,   // all arrows will have the same size
     ImPlotQuiverFlags_ColorByMagnitude  = 1 << 12    // arrow colors will be mapped to their magnitudes
-};
 
 // Flags for PlotStairs
 enum ImPlotStairsFlags_ {
@@ -876,6 +881,10 @@ IMPLOT_API void PlotLineG(const char* label_id, ImPlotGetter getter, void* data,
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotScatterFlags flags=0);
+
+// Plots a bubble graph. #szs are the radius of each bubble in plot units.
+IMPLOT_TMP void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, ImPlotBubblesFlags flags=0, int offset=0, int stride=sizeof(T));
+IMPLOT_TMP void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags=0, int offset=0, int stride=sizeof(T));
 
 // Plots a standard 2D quiver plot. The direction and magnitude of the arrows are determined by #us and #vs. Set #mag_min and #mag_max to specify a range of magnitudes to map to the arrow colors. Set mag_min = mag_max = 0 to use the full colormap range.
 IMPLOT_TMP void PlotQuiver(const char* label_id, const T* xs, const T* ys,const T* us, const T* vs, int count, double mag_min=0, double mag_max=0, ImPlotQuiverFlags flags=0, int offset=0, int stride=sizeof(T));

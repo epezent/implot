@@ -1,7 +1,7 @@
 // MIT License
 
 // Copyright (c) 2020-2024 Evan Pezent
-// Copyright (c) 2025 Breno Cunha Queiroz
+// Copyright (c) 2025-2026 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -576,6 +576,27 @@ struct GetterXY {
     const _IndexerY IndxerY;
     const int Count;
 };
+  
+// Double precision point with three coordinates used by ImPlot.
+struct ImPlotPoint3D {
+  double x, y, z;
+  constexpr ImPlotPoint3D()                     : x(0.0), y(0.0), z(0.0) { }
+  constexpr ImPlotPoint3D(double _x, double _y, double _z) : x(_x), y(_y), z(_z) { }
+  double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((double*)(void*)(char*)this)[idx]; }
+  double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((const double*)(const void*)(const char*)this)[idx]; }
+};
+
+template <typename _IndexerX, typename _IndexerY, typename _IndexerZ>
+struct GetterXYZ {
+  GetterXYZ(_IndexerX x, _IndexerY y, _IndexerZ z, int count) : IndxerX(x), IndxerY(y), IndxerZ(z), Count(count) { }
+  template <typename I> IMPLOT_INLINE ImPlotPoint3D operator()(I idx) const {
+    return ImPlotPoint3D(IndxerX(idx),IndxerY(idx),IndxerZ(idx));
+  }
+  const _IndexerX IndxerX;
+  const _IndexerY IndxerY;
+  const _IndexerZ IndxerZ;
+  const int Count;
+};
 
 // Implementation of a 4D point with double precision.
 struct ImPlotPoint4D {
@@ -605,7 +626,7 @@ struct GetterXYUV {
     const _IndexerU IndxerU;
     const _IndexerV IndxerV;
     const int Count;
-};
+}
 
 /// Interprets a user's function pointer as ImPlotPoints
 struct GetterFuncPtr {
@@ -700,6 +721,24 @@ struct Fitter1 {
         }
     }
     const _Getter1& Getter;
+};
+
+template <typename _Getter1>
+struct FitterBubbles1 {
+  FitterBubbles1(const _Getter1& getter) : Getter(getter) { }
+  void Fit(ImPlotAxis& x_axis, ImPlotAxis& y_axis) const {
+    for (int i = 0; i < Getter.Count; ++i) {
+      ImPlotPoint3D p = Getter(i);
+      double half_size = p.z;
+      // Fit left and right edges
+      x_axis.ExtendFitWith(y_axis, p.x - half_size, p.y);
+      x_axis.ExtendFitWith(y_axis, p.x + half_size, p.y);
+      // Fit top and bottom edges
+      y_axis.ExtendFitWith(x_axis, p.y - half_size, p.x);
+      y_axis.ExtendFitWith(x_axis, p.y + half_size, p.x);
+    }
+  }
+  const _Getter1& Getter;
 };
 
 template <typename _Getter1>
@@ -1548,6 +1587,157 @@ struct RendererMarkersLine : RendererBase {
     mutable ImVec2 UV1;
 };
 
+template <class _Getter>
+struct RendererCircleFill : RendererBase {
+    RendererCircleFill(const _Getter& getter, ImU32 col) :
+        RendererBase(getter.Count, 62*3, 64),
+        Getter(getter),
+        Col(col)
+    { }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint3D p3D = Getter(prim);
+        float size_in_plot_coords = (float)p3D.z;
+        float radius_in_plot_coords = size_in_plot_coords;
+
+        // Compute approximate radius in pixels for LOD
+        float approx_radius_pixels = (float)ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
+        int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
+
+        // Compute bounding box of the bubble in plot coordinates
+        ImPlotPoint plot_min(p3D.x - radius_in_plot_coords, p3D.y - radius_in_plot_coords);
+        ImPlotPoint plot_max(p3D.x + radius_in_plot_coords, p3D.y + radius_in_plot_coords);
+
+        // Transform bounding box to pixel coordinates
+        ImVec2 pixel_min = this->Transformer(plot_min);
+        ImVec2 pixel_max = this->Transformer(plot_max);
+
+        // Create bounding rectangle (handle axis inversion)
+        ImRect bbox(ImMin(pixel_min, pixel_max), ImMax(pixel_min, pixel_max));
+
+        // Check if bounding box overlaps with cull rectangle
+        if (cull_rect.Overlaps(bbox)) {
+
+            const float a_max = IM_PI * 2.0f;
+            const float a_step = a_max / num_segments;
+
+            ImDrawIdx vtx_base = (ImDrawIdx)draw_list._VtxCurrentIdx;
+
+            for (int i = 0; i < num_segments; i++) {
+                float angle = a_step * i;
+                float cos_a = ImCos(angle);
+                float sin_a = ImSin(angle);
+
+                // Compute point in plot coordinates
+                ImPlotPoint plot_point(p3D.x + cos_a * radius_in_plot_coords,
+                                      p3D.y + sin_a * radius_in_plot_coords);
+                // Transform to pixel coordinates
+                ImVec2 pixel_pos = this->Transformer(plot_point);
+
+                draw_list._VtxWritePtr[0].pos = pixel_pos;
+                draw_list._VtxWritePtr[0].uv = UV;
+                draw_list._VtxWritePtr[0].col = Col;
+                draw_list._VtxWritePtr++;
+            }
+
+            for (int i = 2; i < num_segments; i++) {
+                draw_list._IdxWritePtr[0] = vtx_base;
+                draw_list._IdxWritePtr[1] = (ImDrawIdx)(vtx_base + i - 1);
+                draw_list._IdxWritePtr[2] = (ImDrawIdx)(vtx_base + i);
+                draw_list._IdxWritePtr += 3;
+            }
+
+            draw_list._VtxCurrentIdx += num_segments;
+
+            int unused_vtx = 64 - num_segments;
+            int unused_idx = (62 - (num_segments - 2)) * 3;
+            if (unused_vtx > 0 || unused_idx > 0) {
+                draw_list.PrimUnreserve(unused_idx, unused_vtx);
+            }
+
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    const ImU32 Col;
+    mutable ImVec2 UV;
+};
+
+template <class _Getter>
+struct RendererCircleLine : RendererBase {
+  RendererCircleLine(const _Getter& getter, float weight, ImU32 col) :
+      RendererBase(getter.Count, 64*6, 64*4),
+      Getter(getter),
+      HalfWeight(ImMax(1.0f,weight)*0.5f),
+      Col(col)
+    { }
+    void Init(ImDrawList& draw_list) const {
+      GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint3D p3D = Getter(prim);
+        float size_in_plot_coords = (float)p3D.z;
+        float radius_in_plot_coords = size_in_plot_coords;
+
+        // Compute approximate radius in pixels for LOD
+        float approx_radius_pixels = (float)ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
+        int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
+
+        // Compute bounding box of the bubble in plot coordinates
+        ImPlotPoint plot_min(p3D.x - radius_in_plot_coords, p3D.y - radius_in_plot_coords);
+        ImPlotPoint plot_max(p3D.x + radius_in_plot_coords, p3D.y + radius_in_plot_coords);
+
+        // Transform bounding box to pixel coordinates
+        ImVec2 pixel_min = this->Transformer(plot_min);
+        ImVec2 pixel_max = this->Transformer(plot_max);
+
+        // Create bounding rectangle (handle axis inversion)
+        ImRect bbox(ImMin(pixel_min, pixel_max), ImMax(pixel_min, pixel_max));
+
+        // Check if bounding box overlaps with cull rectangle
+        if (cull_rect.Overlaps(bbox)) {
+
+            const float a_max = IM_PI * 2.0f;
+            const float a_step = a_max / num_segments;
+
+            for (int i = 0; i < num_segments; i++) {
+                float angle1 = a_step * i;
+                float angle2 = a_step * ((i + 1) % num_segments);
+
+                // Compute points in plot coordinates
+                ImPlotPoint plot_point1(p3D.x + ImCos(angle1) * radius_in_plot_coords,
+                                       p3D.y + ImSin(angle1) * radius_in_plot_coords);
+                ImPlotPoint plot_point2(p3D.x + ImCos(angle2) * radius_in_plot_coords,
+                                       p3D.y + ImSin(angle2) * radius_in_plot_coords);
+
+                // Transform to pixel coordinates
+                ImVec2 p1 = this->Transformer(plot_point1);
+                ImVec2 p2 = this->Transformer(plot_point2);
+
+                PrimLine(draw_list, p1, p2, HalfWeight, Col, UV0, UV1);
+            }
+
+            int unused_vtx = (64 - num_segments) * 4;
+            int unused_idx = (64 - num_segments) * 6;
+            if (unused_vtx > 0 || unused_idx > 0) {
+                draw_list.PrimUnreserve(unused_idx, unused_vtx);
+            }
+
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    mutable float HalfWeight;
+    const ImU32 Col;
+    mutable ImVec2 UV0;
+    mutable ImVec2 UV1;
+};
+
+
 static const ImVec2 MARKER_FILL_CIRCLE[10]  = {ImVec2(1.0f, 0.0f), ImVec2(0.809017f, 0.58778524f),ImVec2(0.30901697f, 0.95105654f),ImVec2(-0.30901703f, 0.9510565f),ImVec2(-0.80901706f, 0.5877852f),ImVec2(-1.0f, 0.0f),ImVec2(-0.80901694f, -0.58778536f),ImVec2(-0.3090171f, -0.9510565f),ImVec2(0.30901712f, -0.9510565f),ImVec2(0.80901694f, -0.5877853f)};
 static const ImVec2 MARKER_FILL_SQUARE[4]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2)};
 static const ImVec2 MARKER_FILL_DIAMOND[4]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(0, 1)};
@@ -1893,6 +2083,50 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 
 
 
+
+//-----------------------------------------------------------------------------
+// [SECTION] PlotBubbles
+//-----------------------------------------------------------------------------
+
+template <typename Getter>
+void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlags flags) {
+    if (BeginItemEx(label_id, FitterBubbles1<Getter>(getter), flags, ImPlotCol_Fill)) {
+        if (getter.Count <= 0) {
+            EndItem();
+            return;
+        }
+        const ImPlotNextItemData& s = GetItemData();
+
+        if (s.RenderFill) {
+            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+            RenderPrimitives1<RendererCircleFill>(getter, col_fill);
+        }
+        if (s.RenderLine) {
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+            RenderPrimitives1<RendererCircleLine>(getter, s.LineWeight, col_line);
+        }
+
+        EndItem();
+    }
+}
+
+template <typename T>
+void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride) {
+  GetterXYZ<IndexerLin,IndexerIdx<T>,IndexerIdx<T>> getter(IndexerLin(xscale,x0), IndexerIdx<T>(values,count,offset,stride), IndexerIdx<T>(szs,count,offset,stride),count);
+  PlotBubblesEx(label_id, getter, flags);
+}
+
+template <typename T>
+void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride) {
+  GetterXYZ<IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride), IndexerIdx<T>(szs,count,offset,stride),count);
+  return PlotBubblesEx(label_id, getter, flags);
+}
+
+#define INSTANTIATE_MACRO(T) \
+    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotStairs
