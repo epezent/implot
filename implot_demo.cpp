@@ -1097,6 +1097,51 @@ void Demo_PerIndexColors() {
         ImPlot::EndPlot();
     }
 
+    // Colorful Shaded Plots
+    static float xs_shaded[1001], ys_shaded[1001], ys1_shaded[1001], ys2_shaded[1001], ys3_shaded[1001], ys4_shaded[1001];
+    static ImU32 colors_shaded1[1001], colors_shaded2[1001];
+    srand(0);
+    for (int i = 0; i < 1001; ++i) {
+        xs_shaded[i]  = i * 0.001f;
+        ys_shaded[i]  = 0.25f + 0.25f * sinf(25 * xs_shaded[i]) * sinf(5 * xs_shaded[i]) + RandomRange(-0.01f, 0.01f);
+        ys1_shaded[i] = ys_shaded[i] + RandomRange(0.1f, 0.12f);
+        ys2_shaded[i] = ys_shaded[i] - RandomRange(0.1f, 0.12f);
+        ys3_shaded[i] = 0.75f + 0.2f * sinf(25 * xs_shaded[i]);
+        ys4_shaded[i] = 0.75f + 0.1f * cosf(25 * xs_shaded[i]);
+
+        // Rainbow colors for Uncertain Data
+        float hue = i / 1000.0f;
+        colors_shaded1[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Colormap colors for Overlapping
+        float t = i / 1000.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors_shaded2[i] = ImGui::GetColorU32(color);
+    }
+    static ImPlotSpec spec_shaded(ImPlotProp_FillAlpha, 0.25f);
+
+    if (ImPlot::BeginPlot("Colorful Shaded Plots")) {
+        ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Reverse);
+        ImPlot::PlotShaded("Uncertain Data", xs_shaded, ys1_shaded, ys2_shaded, 1001, {
+            ImPlotProp_FillColors, colors_shaded1,
+            ImPlotProp_FillAlpha, spec_shaded.FillAlpha
+        });
+        ImPlot::PlotLine("Uncertain Data", xs_shaded, ys_shaded, 1001, {
+            ImPlotProp_LineColors, colors_shaded1
+        });
+        ImPlot::PlotShaded("Overlapping", xs_shaded, ys3_shaded, ys4_shaded, 1001, {
+            ImPlotProp_FillColors, colors_shaded2,
+            ImPlotProp_FillAlpha, spec_shaded.FillAlpha
+        });
+        ImPlot::PlotLine("Overlapping", xs_shaded, ys3_shaded, 1001, {
+            ImPlotProp_LineColors, colors_shaded2
+        });
+        ImPlot::PlotLine("Overlapping", xs_shaded, ys4_shaded, 1001, {
+            ImPlotProp_LineColors, colors_shaded2
+        });
+        ImPlot::EndPlot();
+    }
+
     // Colorful Scatter
     srand(0);
     static float xs_scatter1[100], ys_scatter1[100];
@@ -1134,6 +1179,7 @@ void Demo_PerIndexColors() {
         });
         ImPlot::EndPlot();
     }
+
 
     // Colorful Bubbles
     srand(0);
