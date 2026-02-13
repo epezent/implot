@@ -351,6 +351,13 @@ void SetNextErrorBarStyle(const ImVec4& col, float size, float weight) {
     gp.NextItemData.ErrorBarWeight             = weight;
 }
 
+void SetNextQuiverStyle(float size, const ImVec4& col) {
+    ImPlotContext& gp = *GImPlot;
+    gp.NextItemData.QuiverSize = size;
+    gp.NextItemData.Colors[ImPlotCol_Fill] = col;
+
+}
+
 ImVec4 GetLastItemColor() {
     ImPlotContext& gp = *GImPlot;
     if (gp.PreviousItem)
@@ -559,6 +566,27 @@ struct IndexerConst {
 // [SECTION] Getters
 //-----------------------------------------------------------------------------
 
+// Implementation of a 3D point with double precision.
+struct ImPlotPoint3D {
+  double x, y, z;
+  constexpr ImPlotPoint3D()                     : x(0.0), y(0.0), z(0.0) { }
+  constexpr ImPlotPoint3D(double _x, double _y, double _z) : x(_x), y(_y), z(_z) { }
+  double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((double*)(void*)(char*)this)[idx]; }
+  double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((const double*)(const void*)(const char*)this)[idx]; }
+};
+
+// Implementation of a 4D point with double precision.
+struct ImPlotPoint4D {
+    double x, y, z, w;
+    IMPLOT_API constexpr ImPlotPoint4D() : x(0.0), y(0.0), z(0.0), w(0.0) { }
+    IMPLOT_API constexpr ImPlotPoint4D(double _x, double _y, double _z, double _w) : x(_x), y(_y), z(_z), w(_w) { }
+    IMPLOT_API constexpr ImPlotPoint4D(const ImVec2& p, const ImVec2& q) : x((double)p.x), y((double)p.y), z((double)q.x), w((double)q.y) { }
+    IMPLOT_API constexpr ImPlotPoint4D(const ImVec4& r) : x((double)r.x), y((double)r.y), z((double)r.z), w((double)r.w) { }
+    IMPLOT_API double& operator[] (size_t idx)       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2 || idx == 3); return ((double*)(void*)(char*)this)[idx]; }
+    IMPLOT_API double  operator[] (size_t idx) const { IM_ASSERT(idx == 0 || idx == 1 || idx == 2 || idx == 3); return ((const double*)(const void*)(const char*)this)[idx]; }
+};
+
+
 template <typename _IndexerX, typename _IndexerY>
 struct GetterXY {
     GetterXY(_IndexerX x, _IndexerY y, int count) : IndxerX(x), IndxerY(y), Count(count) { }
@@ -568,15 +596,6 @@ struct GetterXY {
     const _IndexerX IndxerX;
     const _IndexerY IndxerY;
     const int Count;
-};
-
-// Double precision point with three coordinates used by ImPlot.
-struct ImPlotPoint3D {
-  double x, y, z;
-  constexpr ImPlotPoint3D()                     : x(0.0), y(0.0), z(0.0) { }
-  constexpr ImPlotPoint3D(double _x, double _y, double _z) : x(_x), y(_y), z(_z) { }
-  double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((double*)(void*)(char*)this)[idx]; }
-  double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((const double*)(const void*)(const char*)this)[idx]; }
 };
 
 template <typename _IndexerX, typename _IndexerY, typename _IndexerZ>
@@ -589,6 +608,22 @@ struct GetterXYZ {
   const _IndexerY IndxerY;
   const _IndexerZ IndxerZ;
   const int Count;
+};
+
+template <typename _IndexerX, typename _IndexerY, typename _IndexerZ, typename _IndexerW>
+struct GetterXYZW {
+    GetterXYZW(_IndexerX x, _IndexerY y, _IndexerZ z, _IndexerW w, int count)
+        : IndxerX(x), IndxerY(y), IndxerZ(z), IndxerW(w), Count(count) { }
+
+    template <typename I> IMPLOT_INLINE ImPlotPoint4D operator()(I idx) const {
+        return ImPlotPoint4D(IndxerX(idx), IndxerY(idx), IndxerZ(idx), IndxerW(idx));
+    }
+
+    const _IndexerX IndxerX;
+    const _IndexerY IndxerY;
+    const _IndexerZ IndxerZ;
+    const _IndexerW IndxerW;
+    const int Count;
 };
 
 /// Interprets a user's function pointer as ImPlotPoints
@@ -745,6 +780,20 @@ struct Fitter2 {
     }
     const _Getter1& Getter1;
     const _Getter2& Getter2;
+};
+
+
+template <typename _Getter1>
+struct FitterVector {
+    FitterVector(const _Getter1& getter) : Getter(getter) { }
+    void Fit(ImPlotAxis& x_axis, ImPlotAxis& y_axis) const {
+        for (int i = 0; i < Getter.Count; ++i) {
+            ImPlotPoint4D p = Getter(i);
+            x_axis.ExtendFitWith(y_axis, p.x, p.y);
+            y_axis.ExtendFitWith(x_axis, p.y, p.x);
+        }
+    }
+    const _Getter1& Getter;
 };
 
 template <typename _Getter1, typename _Getter2>
@@ -1686,6 +1735,78 @@ struct RendererCircleLine : RendererBase {
     mutable ImVec2 UV1;
 };
 
+template <class _Getter>
+struct RendererVectorFill : RendererBase {
+    RendererVectorFill(const _Getter& getter, const ImVec2* marker, int count, float size, ImU32 col, double min_mag, double max_mag, bool color_coded, bool normalized) :
+        RendererBase(getter.Count, (count-2)*3, count),
+        Getter(getter),
+        Marker(marker),
+        Count(count),
+        Size(size),
+        Col(col),
+        MinMag(min_mag),
+        MaxMag(max_mag),
+        ColorCoded(color_coded),
+        Normalized(normalized)
+    { }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint4D vec = Getter(prim);
+
+        ImVec2 p;
+        p.x = this->Transformer.Tx(vec.x);
+        p.y = this->Transformer.Ty(vec.y);
+
+        float theta = ImAtan2(-vec.w, vec.z);
+        float cos_theta = ImCos(theta);
+        float sin_theta = ImSin(theta);
+        double mag = (double)ImSqrt(vec.z*vec.z + vec.w*vec.w);
+
+        double size_scale = Normalized ? 1.0 : ImClamp(ImRemap01(mag, MinMag, MaxMag), 0.0, 1.0);
+        ImU32 color_final = Col;
+        if (ColorCoded) {
+            double t = ImClamp(ImRemap01(mag, MinMag, MaxMag), 0.0, 1.0);
+            color_final = ImColor(SampleColormap((float)t));
+        }
+
+        bool should_render = (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y &&
+                              p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y);
+        if (Normalized) should_render = should_render && (mag > 1e-6);
+
+        if (should_render) {
+            for (int i = 0; i < Count; i++) {
+                float rotated_x = Marker[i].x * cos_theta - Marker[i].y * sin_theta;
+                float rotated_y = Marker[i].x * sin_theta + Marker[i].y * cos_theta;
+                draw_list._VtxWritePtr[0].pos.x = p.x + rotated_x * Size * size_scale;
+                draw_list._VtxWritePtr[0].pos.y = p.y + rotated_y * Size * size_scale;
+                draw_list._VtxWritePtr[0].uv = UV;
+                draw_list._VtxWritePtr[0].col = color_final;
+                draw_list._VtxWritePtr++;
+            }
+            for (int i = 2; i < Count; i++) {
+                draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+                draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i - 1);
+                draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i);
+                draw_list._IdxWritePtr += 3;
+            }
+            draw_list._VtxCurrentIdx += (ImDrawIdx)Count;
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    const ImVec2* Marker;
+    const int Count;
+    const float Size;
+    const ImU32 Col;
+    mutable ImVec2 UV;
+    double MinMag;
+    double MaxMag;
+    bool ColorCoded;
+    bool Normalized;
+};
 
 static const ImVec2 MARKER_FILL_CIRCLE[10]  = {ImVec2(1.0f, 0.0f), ImVec2(0.809017f, 0.58778524f),ImVec2(0.30901697f, 0.95105654f),ImVec2(-0.30901703f, 0.9510565f),ImVec2(-0.80901706f, 0.5877852f),ImVec2(-1.0f, 0.0f),ImVec2(-0.80901694f, -0.58778536f),ImVec2(-0.3090171f, -0.9510565f),ImVec2(0.30901712f, -0.9510565f),ImVec2(0.80901694f, -0.5877853f)};
 static const ImVec2 MARKER_FILL_SQUARE[4]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2)};
@@ -1694,6 +1815,16 @@ static const ImVec2 MARKER_FILL_UP[3]       = {ImVec2(SQRT_3_2,0.5f),ImVec2(0,-1
 static const ImVec2 MARKER_FILL_DOWN[3]     = {ImVec2(SQRT_3_2,-0.5f),ImVec2(0,1),ImVec2(-SQRT_3_2,-0.5f)};
 static const ImVec2 MARKER_FILL_LEFT[3]     = {ImVec2(-1,0), ImVec2(0.5, SQRT_3_2), ImVec2(0.5, -SQRT_3_2)};
 static const ImVec2 MARKER_FILL_RIGHT[3]    = {ImVec2(1,0), ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, -SQRT_3_2)};
+static const ImVec2 MARKER_FILL_ARROW[7] = {
+    ImVec2(0.5, 0),
+    ImVec2(0.0, -0.3),
+    ImVec2(0.0, -0.1),
+    ImVec2(-0.5, -0.1),
+    ImVec2(-0.5, 0.1),
+    ImVec2(0.0, 0.1),
+    ImVec2(0.0, 0.3)
+};
+
 static const ImVec2 MARKER_LINE_CIRCLE[20]  = {
     ImVec2(1.0f, 0.0f),
     ImVec2(0.809017f, 0.58778524f),
@@ -2768,6 +2899,67 @@ void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, doub
 #define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotHeatmap<T>(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
+
+//-----------------------------------------------------------------------------
+// [SECTION] PlotQuiver
+//-----------------------------------------------------------------------------
+
+template <typename Getter>
+void PlotQuiverEx(const char* label_id, const Getter& getter, const double mag_min, const double mag_max, ImPlotQuiverFlags flags){
+     if (BeginItemEx(label_id, FitterVector<Getter>(getter), flags,ImPlotCol_Fill)) {
+        if (getter.Count <= 0) {
+            EndItem();
+            return;
+        }
+        const ImPlotNextItemData& s = GetItemData();
+
+        const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+        const bool color_coded = ImHasFlag(flags, ImPlotQuiverFlags_ColorByMagnitude);
+        const bool normalized = ImHasFlag(flags, ImPlotQuiverFlags_FixedSize);
+
+        double final_mag_min = mag_min;
+        double final_mag_max = mag_max;
+
+        if (color_coded && mag_min == mag_max) {
+            final_mag_min = INFINITY;
+            final_mag_max = -INFINITY;
+            for (int i = 0; i < getter.Count; ++i) {
+                ImPlotPoint4D p = getter(i);
+                double mag = ImSqrt(p.z*p.z + p.w*p.w);
+                if (mag < final_mag_min) final_mag_min = mag;
+                if (mag > final_mag_max) final_mag_max = mag;
+            }
+            if (final_mag_min == final_mag_max) {
+                final_mag_max = final_mag_min + 1.0;
+            }
+        }
+
+        if (ImHasFlag(flags, ImPlotQuiverFlags_NoClip)) {
+            PopPlotClipRect();
+            PushPlotClipRect(s.QuiverSize);
+        }
+        RenderPrimitives1<RendererVectorFill>(getter, MARKER_FILL_ARROW, 7, s.QuiverSize, col_fill, final_mag_min, final_mag_max, color_coded, normalized);
+
+        EndItem();
+    }
+}
+
+template <typename T>
+void PlotQuiver(const char* label_id, const T* xs, const T* ys,const T* us, const T* vs, int count, double mag_min, double mag_max, ImPlotQuiverFlags flags, int offset, int stride) {
+    GetterXYZW<IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>> getter(
+        IndexerIdx<T>(xs,count,offset,stride),
+        IndexerIdx<T>(ys,count,offset,stride),
+        IndexerIdx<T>(us,count,offset,stride),
+        IndexerIdx<T>(vs,count,offset,stride),
+        count);
+    return PlotQuiverEx(label_id, getter, mag_min, mag_max, flags);
+}
+
+#define INSTANTIATE_MACRO(T) \
+    template IMPLOT_API void PlotQuiver<T>(const char* label_id, const T* xs, const T* ys, const T* us, const T* vs, int count, double mag_min, double mag_max, ImPlotQuiverFlags flags, int offset, int stride);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
+
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotHistogram

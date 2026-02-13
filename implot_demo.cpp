@@ -78,6 +78,16 @@ void StyleSeaborn();
 
 namespace ImPlot {
 
+static void HelpMarker(const char* desc) {
+    ImGui::TextDisabled("(?)");
+    if (ImGui::BeginItemTooltip()) {
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
+
 template <typename T>
 inline T RandomRange(T min, T max) {
     T scale = rand() / (T) RAND_MAX;
@@ -733,6 +743,75 @@ void Demo_Heatmaps() {
     }
     ImPlot::PopColormap();
 
+}
+
+//-----------------------------------------------------------------------------
+
+void Demo_QuiverPlots(){
+    static float xs[100], ys[100], us[100], vs[100];
+    for (int i = 0; i < 10; ++i) {
+        for(int j = 0; j < 10; ++j){
+            int idx = i*10 + j;
+            xs[idx] = ((float)j * 0.1f) - 0.5;
+            ys[idx] = ((float)i * 0.1f) - 0.5;
+
+            // Taylor-Green vortex
+            float k = 2.0f * 3.14159f;
+            us[idx] = sinf(k * xs[idx]) * cosf(k * ys[idx]);
+            vs[idx] = -cosf(k * xs[idx]) * sinf(k * ys[idx]);
+        }
+    }
+
+    static float mag_min = 0.00f;
+    static float mag_max = 1.0f;
+    static float base_size = 12.0f;
+    static ImPlotColormap map = ImPlotColormap_Viridis;
+
+    if (ImPlot::ColormapButton(ImPlot::GetColormapName(map), ImVec2(225,0), map)) {
+        map = (map + 1) % ImPlot::GetColormapCount();
+    }
+    ImGui::SameLine();
+    ImGui::LabelText("##Colormap Index", "%s", "Change Colormap");
+
+    ImGui::SetNextItemWidth(225);
+    ImGui::DragFloatRange2("Min / Max Magnitude", &mag_min, &mag_max, 0.01f, -20, 20,nullptr,nullptr,ImGuiSliderFlags_AlwaysClamp);
+    if (mag_max < mag_min) {
+        mag_max = mag_min;
+    }
+    ImGui::SameLine();
+    HelpMarker("Minumum and maximum magnitudes for color mapping");
+
+    ImGui::SetNextItemWidth(225);
+    ImGui::DragFloat("Base Size", &base_size, 0.1f, 0, 100);
+    ImGui::SameLine();
+    HelpMarker("Maximum arrow size in pixels. The actual size will depend on the arrow's magnitude");
+
+    static ImPlotQuiverFlags qv_flags = ImPlotQuiverFlags_ColorByMagnitude;
+
+    CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_NoClip);
+    ImGui::SameLine();
+    HelpMarker("Arrows on the edge of the plot will not be clipped");
+
+    CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_FixedSize);
+    ImGui::SameLine();
+    HelpMarker("All arrows will have the length set to base size");
+
+    CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_ColorByMagnitude);
+    ImGui::SameLine();
+    HelpMarker("Arrow will be colored by on their magnitudes");
+
+    ImPlot::PushColormap(map);
+    if (ImPlot::BeginPlot("Quiver Plot", ImVec2(ImGui::GetTextLineHeight()*28, ImGui::GetTextLineHeight()*28))) {
+        ImPlot::SetupAxisTicks(ImAxis_X1, -0.5, 0.5, 11);
+        ImPlot::SetupAxisTicks(ImAxis_Y1, -0.5, 0.5, 11);
+        ImPlot::SetNextQuiverStyle(base_size, ImPlot::GetColormapColor(1));
+        ImPlot::SetupAxes("x", "y");
+        ImPlot::PlotQuiver("Magnitude", xs, ys, us, vs, 100, mag_min, mag_max, qv_flags);
+        ImPlot::EndPlot();
+    }
+    ImGui::SameLine();
+    ImPlot::ColormapScale("##QuiverScale", mag_min, mag_max);
+    ImPlot::PopColormap();
 }
 
 //-----------------------------------------------------------------------------
@@ -2286,6 +2365,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Infinite Lines", Demo_InfiniteLines);
             DemoHeader("Pie Charts", Demo_PieCharts);
             DemoHeader("Heatmaps", Demo_Heatmaps);
+            DemoHeader("Quiver Plots", Demo_QuiverPlots);
             DemoHeader("Histogram", Demo_Histogram);
             DemoHeader("Histogram 2D", Demo_Histogram2D);
             DemoHeader("Digital Plots", Demo_DigitalPlots);

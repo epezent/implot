@@ -1199,6 +1199,7 @@ struct ImPlotNextItemData {
     ImPlotMarker    Marker;
     float           MarkerSize;
     float           MarkerWeight;
+    float           QuiverSize;
     float           FillAlpha;
     float           ErrorBarSize;
     float           ErrorBarWeight;
@@ -1218,6 +1219,7 @@ struct ImPlotNextItemData {
         LineWeight    = MarkerSize = MarkerWeight = FillAlpha = ErrorBarSize = ErrorBarWeight = DigitalBitHeight = DigitalBitGap = IMPLOT_AUTO;
         Marker        = IMPLOT_AUTO;
         HasHidden     = Hidden = false;
+
     }
 };
 
