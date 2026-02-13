@@ -1,6 +1,7 @@
 // MIT License
 
-// Copyright (c) 2023 Evan Pezent
+// Copyright (c) 2020-2024 Evan Pezent
+// Copyright (c) 2025-2026 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,10 +21,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.17
+// ImPlot v0.18 WIP
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "implot.h"
+#ifndef IMGUI_DISABLE
 #include "implot_internal.h"
 
 //-----------------------------------------------------------------------------
@@ -94,7 +98,7 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
     #define IMPLOT_NUMERIC_TYPES (ImS8)(ImU8)(ImS16)(ImU16)(ImS32)(ImU32)(ImS64)(ImU64)(float)(double)
 #endif
 
-// CALL_INSTANTIATE_FOR_NUMERIC_TYPES will duplicate the template instantion code `INSTANTIATE_MACRO(T)` on supported types.
+// CALL_INSTANTIATE_FOR_NUMERIC_TYPES will duplicate the template instantiation code `INSTANTIATE_MACRO(T)` on supported types.
 #define _CAT(x, y) _CAT_(x, y)
 #define _CAT_(x,y) x ## y
 #define _INSTANTIATE_FOR_NUMERIC_TYPES(chain) _CAT(_INSTANTIATE_FOR_NUMERIC_TYPES_1 chain, _END)
@@ -566,6 +570,27 @@ struct GetterXY {
     const int Count;
 };
 
+// Double precision point with three coordinates used by ImPlot.
+struct ImPlotPoint3D {
+  double x, y, z;
+  constexpr ImPlotPoint3D()                     : x(0.0), y(0.0), z(0.0) { }
+  constexpr ImPlotPoint3D(double _x, double _y, double _z) : x(_x), y(_y), z(_z) { }
+  double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((double*)(void*)(char*)this)[idx]; }
+  double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2); return ((const double*)(const void*)(const char*)this)[idx]; }
+};
+
+template <typename _IndexerX, typename _IndexerY, typename _IndexerZ>
+struct GetterXYZ {
+  GetterXYZ(_IndexerX x, _IndexerY y, _IndexerZ z, int count) : IndxerX(x), IndxerY(y), IndxerZ(z), Count(count) { }
+  template <typename I> IMPLOT_INLINE ImPlotPoint3D operator()(I idx) const {
+    return ImPlotPoint3D(IndxerX(idx),IndxerY(idx),IndxerZ(idx));
+  }
+  const _IndexerX IndxerX;
+  const _IndexerY IndxerY;
+  const _IndexerZ IndxerZ;
+  const int Count;
+};
+
 /// Interprets a user's function pointer as ImPlotPoints
 struct GetterFuncPtr {
     GetterFuncPtr(ImPlotGetter getter, void* data, int count) :
@@ -659,6 +684,24 @@ struct Fitter1 {
         }
     }
     const _Getter1& Getter;
+};
+
+template <typename _Getter1>
+struct FitterBubbles1 {
+  FitterBubbles1(const _Getter1& getter) : Getter(getter) { }
+  void Fit(ImPlotAxis& x_axis, ImPlotAxis& y_axis) const {
+    for (int i = 0; i < Getter.Count; ++i) {
+      ImPlotPoint3D p = Getter(i);
+      double half_size = p.z;
+      // Fit left and right edges
+      x_axis.ExtendFitWith(y_axis, p.x - half_size, p.y);
+      x_axis.ExtendFitWith(y_axis, p.x + half_size, p.y);
+      // Fit top and bottom edges
+      y_axis.ExtendFitWith(x_axis, p.y - half_size, p.x);
+      y_axis.ExtendFitWith(x_axis, p.y + half_size, p.x);
+    }
+  }
+  const _Getter1& Getter;
 };
 
 template <typename _Getter1>
@@ -1493,6 +1536,157 @@ struct RendererMarkersLine : RendererBase {
     mutable ImVec2 UV1;
 };
 
+template <class _Getter>
+struct RendererCircleFill : RendererBase {
+    RendererCircleFill(const _Getter& getter, ImU32 col) :
+        RendererBase(getter.Count, 62*3, 64),
+        Getter(getter),
+        Col(col)
+    { }
+    void Init(ImDrawList& draw_list) const {
+        UV = draw_list._Data->TexUvWhitePixel;
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint3D p3D = Getter(prim);
+        float size_in_plot_coords = (float)p3D.z;
+        float radius_in_plot_coords = size_in_plot_coords;
+
+        // Compute approximate radius in pixels for LOD
+        float approx_radius_pixels = (float)ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
+        int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
+
+        // Compute bounding box of the bubble in plot coordinates
+        ImPlotPoint plot_min(p3D.x - radius_in_plot_coords, p3D.y - radius_in_plot_coords);
+        ImPlotPoint plot_max(p3D.x + radius_in_plot_coords, p3D.y + radius_in_plot_coords);
+
+        // Transform bounding box to pixel coordinates
+        ImVec2 pixel_min = this->Transformer(plot_min);
+        ImVec2 pixel_max = this->Transformer(plot_max);
+
+        // Create bounding rectangle (handle axis inversion)
+        ImRect bbox(ImMin(pixel_min, pixel_max), ImMax(pixel_min, pixel_max));
+
+        // Check if bounding box overlaps with cull rectangle
+        if (cull_rect.Overlaps(bbox)) {
+
+            const float a_max = IM_PI * 2.0f;
+            const float a_step = a_max / num_segments;
+
+            ImDrawIdx vtx_base = (ImDrawIdx)draw_list._VtxCurrentIdx;
+
+            for (int i = 0; i < num_segments; i++) {
+                float angle = a_step * i;
+                float cos_a = ImCos(angle);
+                float sin_a = ImSin(angle);
+
+                // Compute point in plot coordinates
+                ImPlotPoint plot_point(p3D.x + cos_a * radius_in_plot_coords,
+                                      p3D.y + sin_a * radius_in_plot_coords);
+                // Transform to pixel coordinates
+                ImVec2 pixel_pos = this->Transformer(plot_point);
+
+                draw_list._VtxWritePtr[0].pos = pixel_pos;
+                draw_list._VtxWritePtr[0].uv = UV;
+                draw_list._VtxWritePtr[0].col = Col;
+                draw_list._VtxWritePtr++;
+            }
+
+            for (int i = 2; i < num_segments; i++) {
+                draw_list._IdxWritePtr[0] = vtx_base;
+                draw_list._IdxWritePtr[1] = (ImDrawIdx)(vtx_base + i - 1);
+                draw_list._IdxWritePtr[2] = (ImDrawIdx)(vtx_base + i);
+                draw_list._IdxWritePtr += 3;
+            }
+
+            draw_list._VtxCurrentIdx += num_segments;
+
+            int unused_vtx = 64 - num_segments;
+            int unused_idx = (62 - (num_segments - 2)) * 3;
+            if (unused_vtx > 0 || unused_idx > 0) {
+                draw_list.PrimUnreserve(unused_idx, unused_vtx);
+            }
+
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    const ImU32 Col;
+    mutable ImVec2 UV;
+};
+
+template <class _Getter>
+struct RendererCircleLine : RendererBase {
+  RendererCircleLine(const _Getter& getter, float weight, ImU32 col) :
+      RendererBase(getter.Count, 64*6, 64*4),
+      Getter(getter),
+      HalfWeight(ImMax(1.0f,weight)*0.5f),
+      Col(col)
+    { }
+    void Init(ImDrawList& draw_list) const {
+      GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint3D p3D = Getter(prim);
+        float size_in_plot_coords = (float)p3D.z;
+        float radius_in_plot_coords = size_in_plot_coords;
+
+        // Compute approximate radius in pixels for LOD
+        float approx_radius_pixels = (float)ImAbs(radius_in_plot_coords * this->Transformer.Tx.M);
+        int num_segments = ImClamp((int)(approx_radius_pixels), 10, 64);
+
+        // Compute bounding box of the bubble in plot coordinates
+        ImPlotPoint plot_min(p3D.x - radius_in_plot_coords, p3D.y - radius_in_plot_coords);
+        ImPlotPoint plot_max(p3D.x + radius_in_plot_coords, p3D.y + radius_in_plot_coords);
+
+        // Transform bounding box to pixel coordinates
+        ImVec2 pixel_min = this->Transformer(plot_min);
+        ImVec2 pixel_max = this->Transformer(plot_max);
+
+        // Create bounding rectangle (handle axis inversion)
+        ImRect bbox(ImMin(pixel_min, pixel_max), ImMax(pixel_min, pixel_max));
+
+        // Check if bounding box overlaps with cull rectangle
+        if (cull_rect.Overlaps(bbox)) {
+
+            const float a_max = IM_PI * 2.0f;
+            const float a_step = a_max / num_segments;
+
+            for (int i = 0; i < num_segments; i++) {
+                float angle1 = a_step * i;
+                float angle2 = a_step * ((i + 1) % num_segments);
+
+                // Compute points in plot coordinates
+                ImPlotPoint plot_point1(p3D.x + ImCos(angle1) * radius_in_plot_coords,
+                                       p3D.y + ImSin(angle1) * radius_in_plot_coords);
+                ImPlotPoint plot_point2(p3D.x + ImCos(angle2) * radius_in_plot_coords,
+                                       p3D.y + ImSin(angle2) * radius_in_plot_coords);
+
+                // Transform to pixel coordinates
+                ImVec2 p1 = this->Transformer(plot_point1);
+                ImVec2 p2 = this->Transformer(plot_point2);
+
+                PrimLine(draw_list, p1, p2, HalfWeight, Col, UV0, UV1);
+            }
+
+            int unused_vtx = (64 - num_segments) * 4;
+            int unused_idx = (64 - num_segments) * 6;
+            if (unused_vtx > 0 || unused_idx > 0) {
+                draw_list.PrimUnreserve(unused_idx, unused_vtx);
+            }
+
+            return true;
+        }
+        return false;
+    }
+    const _Getter& Getter;
+    mutable float HalfWeight;
+    const ImU32 Col;
+    mutable ImVec2 UV0;
+    mutable ImVec2 UV1;
+};
+
+
 static const ImVec2 MARKER_FILL_CIRCLE[10]  = {ImVec2(1.0f, 0.0f), ImVec2(0.809017f, 0.58778524f),ImVec2(0.30901697f, 0.95105654f),ImVec2(-0.30901703f, 0.9510565f),ImVec2(-0.80901706f, 0.5877852f),ImVec2(-1.0f, 0.0f),ImVec2(-0.80901694f, -0.58778536f),ImVec2(-0.3090171f, -0.9510565f),ImVec2(0.30901712f, -0.9510565f),ImVec2(0.80901694f, -0.5877853f)};
 static const ImVec2 MARKER_FILL_SQUARE[4]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2)};
 static const ImVec2 MARKER_FILL_DIAMOND[4]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(0, 1)};
@@ -1500,7 +1694,6 @@ static const ImVec2 MARKER_FILL_UP[3]       = {ImVec2(SQRT_3_2,0.5f),ImVec2(0,-1
 static const ImVec2 MARKER_FILL_DOWN[3]     = {ImVec2(SQRT_3_2,-0.5f),ImVec2(0,1),ImVec2(-SQRT_3_2,-0.5f)};
 static const ImVec2 MARKER_FILL_LEFT[3]     = {ImVec2(-1,0), ImVec2(0.5, SQRT_3_2), ImVec2(0.5, -SQRT_3_2)};
 static const ImVec2 MARKER_FILL_RIGHT[3]    = {ImVec2(1,0), ImVec2(-0.5, SQRT_3_2), ImVec2(-0.5, -SQRT_3_2)};
-
 static const ImVec2 MARKER_LINE_CIRCLE[20]  = {
     ImVec2(1.0f, 0.0f),
     ImVec2(0.809017f, 0.58778524f),
@@ -1686,6 +1879,50 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
     GetterFuncPtr getter(getter_func,data, count);
     return PlotScatterEx(label_id, getter, flags);
 }
+
+//-----------------------------------------------------------------------------
+// [SECTION] PlotBubbles
+//-----------------------------------------------------------------------------
+
+template <typename Getter>
+void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlags flags) {
+    if (BeginItemEx(label_id, FitterBubbles1<Getter>(getter), flags, ImPlotCol_Fill)) {
+        if (getter.Count <= 0) {
+            EndItem();
+            return;
+        }
+        const ImPlotNextItemData& s = GetItemData();
+
+        if (s.RenderFill) {
+            const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+            RenderPrimitives1<RendererCircleFill>(getter, col_fill);
+        }
+        if (s.RenderLine) {
+            const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
+            RenderPrimitives1<RendererCircleLine>(getter, s.LineWeight, col_line);
+        }
+
+        EndItem();
+    }
+}
+
+template <typename T>
+void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride) {
+  GetterXYZ<IndexerLin,IndexerIdx<T>,IndexerIdx<T>> getter(IndexerLin(xscale,x0), IndexerIdx<T>(values,count,offset,stride), IndexerIdx<T>(szs,count,offset,stride),count);
+  PlotBubblesEx(label_id, getter, flags);
+}
+
+template <typename T>
+void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride) {
+  GetterXYZ<IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride), IndexerIdx<T>(szs,count,offset,stride),count);
+  return PlotBubblesEx(label_id, getter, flags);
+}
+
+#define INSTANTIATE_MACRO(T) \
+    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
 
 //-----------------------------------------------------------------------------
 // [SECTION] PlotStairs
@@ -2197,20 +2434,53 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 // [SECTION] PlotPieChart
 //-----------------------------------------------------------------------------
 
-IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col) {
+IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col, bool detached = false) {
     const float resolution = 50 / (2 * IM_PI);
     ImVec2 buffer[52];
-    buffer[0] = PlotToPixels(center,IMPLOT_AUTO,IMPLOT_AUTO);
+
     int n = ImMax(3, (int)((a1 - a0) * resolution));
     double da = (a1 - a0) / (n - 1);
     int i = 0;
-    for (; i < n; ++i) {
-        double a = a0 + i * da;
-        buffer[i + 1] = PlotToPixels(center.x + radius * cos(a), center.y + radius * sin(a),IMPLOT_AUTO,IMPLOT_AUTO);
+
+    if (detached) {
+        const double offset = 0.08; // Offset of the detached slice
+        const double width_scale = 0.95; // Scale factor for the width of the detached slice
+
+        double a_mid = (a0 + a1) / 2;
+        double new_a0 = a_mid - (a1 - a0) * width_scale / 2;
+        double new_a1 = a_mid + (a1 - a0) * width_scale / 2;
+        double new_da = (new_a1 - new_a0) / (n - 1);
+
+        ImPlotPoint offsetCenter(center.x + offset * cos(a_mid), center.y + offset * sin(a_mid));
+
+        // Start point (center of the offset)
+        buffer[0] = PlotToPixels(offsetCenter, IMPLOT_AUTO, IMPLOT_AUTO);
+
+        for (; i < n; ++i) {
+            double a = new_a0 + i * new_da;
+            buffer[i + 1] = PlotToPixels(
+                offsetCenter.x + (radius + offset/2) * cos(a),
+                offsetCenter.y + (radius + offset/2) * sin(a),
+                IMPLOT_AUTO, IMPLOT_AUTO
+            );
+        }
+
+    } else {
+        buffer[0] = PlotToPixels(center, IMPLOT_AUTO, IMPLOT_AUTO);
+        for (; i < n; ++i) {
+            double a = a0 + i * da;
+            buffer[i + 1] = PlotToPixels(
+                center.x + radius * cos(a),
+                center.y + radius * sin(a),
+                IMPLOT_AUTO, IMPLOT_AUTO);
+        }
     }
-    buffer[i+1] = buffer[0];
+    // Close the shape
+    buffer[i + 1] = buffer[0];
+
     // fill
-    draw_list.AddConvexPolyFilled(buffer, n + 1, col);
+    draw_list.AddConvexPolyFilled(buffer, n + 2, col);
+
     // border (for AA)
     draw_list.AddPolyline(buffer, n + 2, col, 0, 2.0f);
 }
@@ -2254,21 +2524,21 @@ void PlotPieChartEx(const char* const label_ids[], const T* values, int count, I
     ImPlotPoint Pmax = ImPlotPoint(center.x + radius, center.y + radius);
     for (int i = 0; i < count; ++i) {
         ImPlotItem* item = GetItem(label_ids[i]);
-
         const double percent = normalize ? (double)values[i] / sum : (double)values[i];
         const bool skip      = sum <= 0.0 || (ignore_hidden && item != nullptr && !item->Show);
         if (!skip)
             a1 = a0 + 2 * IM_PI * percent;
 
         if (BeginItemEx(label_ids[i], FitterRect(Pmin, Pmax))) {
+            const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
             if (sum > 0.0) {
                 ImU32 col = GetCurrentItem()->Color;
                 if (percent < 0.5) {
-                    RenderPieSlice(draw_list, center, radius, a0, a1, col);
+                    RenderPieSlice(draw_list, center, radius, a0, a1, col, hovered);
                 }
                 else {
-                    RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col);
-                    RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col);
+                    RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col, hovered);
+                    RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col, hovered);
                 }
             }
             EndItem();
@@ -2281,7 +2551,7 @@ void PlotPieChartEx(const char* const label_ids[], const T* values, int count, I
 int PieChartFormatter(double value, char* buff, int size, void* data) {
     const char* fmt = (const char*)data;
     return snprintf(buff, size, fmt, value);
-};
+}
 
 template <typename T>
 void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags) {
@@ -2320,7 +2590,9 @@ void PlotPieChart(const char* const label_ids[], const T* values, int count, dou
                     fmt((double)values[i], buffer, 32, fmt_data);
                     ImVec2 size = ImGui::CalcTextSize(buffer);
                     double angle = a0 + (a1 - a0) * 0.5;
-                    ImVec2 pos = PlotToPixels(center.x + 0.5 * radius * cos(angle), center.y + 0.5 * radius * sin(angle), IMPLOT_AUTO, IMPLOT_AUTO);
+                    const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
+                    const double offset = (hovered ? 0.6 : 0.5) * radius;
+                    ImVec2 pos = PlotToPixels(center.x + offset * cos(angle), center.y + offset * sin(angle), IMPLOT_AUTO, IMPLOT_AUTO);
                     ImU32 col = CalcTextColor(ImGui::ColorConvertU32ToFloat4(item->Color));
                     draw_list.AddText(pos - size * 0.5f, col, buffer);
                 }
@@ -2693,15 +2965,15 @@ void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags
                 if (ImNanOrInf(itemData2.y)) itemData2.y = ImConstrainNan(ImConstrainInf(itemData2.y));
                 int pixY_0 = (int)(s.LineWeight);
                 itemData1.y = ImMax(0.0, itemData1.y);
-                float pixY_1_float = s.DigitalBitHeight * (float)itemData1.y;
-                int pixY_1 = (int)(pixY_1_float); //allow only positive values
-                int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1_float) + s.DigitalBitGap);
+                const float pixY_1 = s.DigitalBitHeight * (float)itemData1.y;
+                const int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1) + s.DigitalBitGap);
                 pixYMax = ImMax(pixYMax, pixY_chPosOffset);
                 ImVec2 pMin = PlotToPixels(itemData1,IMPLOT_AUTO,IMPLOT_AUTO);
                 ImVec2 pMax = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO);
-                int pixY_Offset = 0; //20 pixel from bottom due to mouse cursor label
-                pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
-                pMax.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
+                const int pixY_Offset = 0; //20 pixel from bottom due to mouse cursor label
+                const float y_ref = y_axis.IsInverted() ? y_axis.PixelMax : y_axis.PixelMin;
+                pMin.y = y_ref - (gp.DigitalPlotOffset + pixY_Offset);
+                pMax.y = y_ref - (gp.DigitalPlotOffset + pixY_0 + (int)pixY_1 + pixY_Offset);
                 //plot only one rectangle for same digital state
                 while (((i+2) < getter.Count) && (itemData1.y == itemData2.y)) {
                     const int in = (i + 1);
@@ -2710,13 +2982,12 @@ void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags
                     pMax.x = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO).x;
                     i++;
                 }
-                //do not extend plot outside plot range
-                if (pMin.x < x_axis.PixelMin) pMin.x = x_axis.PixelMin;
-                if (pMax.x < x_axis.PixelMin) pMax.x = x_axis.PixelMin;
-                if (pMin.x > x_axis.PixelMax) pMin.x = x_axis.PixelMax - 1; //fix issue related to https://github.com/ocornut/imgui/issues/3976
-                if (pMax.x > x_axis.PixelMax) pMax.x = x_axis.PixelMax - 1; //fix issue related to https://github.com/ocornut/imgui/issues/3976
+                // do not extend plot outside plot range
+                pMin.x = ImClamp(pMin.x, !x_axis.IsInverted() ? x_axis.PixelMin : x_axis.PixelMax, !x_axis.IsInverted() ? x_axis.PixelMax - 1 : x_axis.PixelMin - 1);
+                pMax.x = ImClamp(pMax.x, !x_axis.IsInverted() ? x_axis.PixelMin : x_axis.PixelMax, !x_axis.IsInverted() ? x_axis.PixelMax - 1 : x_axis.PixelMin - 1);
+
                 //plot a rectangle that extends up to x2 with y1 height
-                if ((pMax.x > pMin.x) && (gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
+                if ((gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                     // ImVec4 colAlpha = item->Color;
                     // colAlpha.w = item->Highlight ? 1.0f : 0.9f;
                     draw_list.AddRectFilled(pMin, pMax, ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]));
@@ -2750,7 +3021,11 @@ void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, in
 // [SECTION] PlotImage
 //-----------------------------------------------------------------------------
 
-void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, ImPlotImageFlags) {
+#ifdef IMGUI_HAS_TEXTURES
+void PlotImage(const char* label_id, ImTextureRef tex_ref, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, ImPlotImageFlags) {
+#else
+void PlotImage(const char* label_id, ImTextureID tex_ref, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, ImPlotImageFlags) {
+#endif
     if (BeginItemEx(label_id, FitterRect(bmin,bmax))) {
         ImU32 tint_col32 = ImGui::ColorConvertFloat4ToU32(tint_col);
         GetCurrentItem()->Color = tint_col32;
@@ -2758,7 +3033,7 @@ void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPo
         ImVec2 p1 = PlotToPixels(bmin.x, bmax.y,IMPLOT_AUTO,IMPLOT_AUTO);
         ImVec2 p2 = PlotToPixels(bmax.x, bmin.y,IMPLOT_AUTO,IMPLOT_AUTO);
         PushPlotClipRect();
-        draw_list.AddImage(user_texture_id, p1, p2, uv0, uv1, tint_col32);
+        draw_list.AddImage(tex_ref, p1, p2, uv0, uv1, tint_col32);
         PopPlotClipRect();
         EndItem();
     }
@@ -2806,3 +3081,5 @@ void PlotDummy(const char* label_id, ImPlotDummyFlags flags) {
 }
 
 } // namespace ImPlot
+
+#endif // #ifndef IMGUI_DISABLE
