@@ -692,7 +692,7 @@ struct GetterConstColor {
     GetterConstColor(ImU32 color, float alpha = 1.0f) {
         ImU32 col = color;
         if (alpha < 1.0f) {
-            ImVec4 col_vec = ImGui::ColorConvertU32ToFloat4(Color);
+            ImVec4 col_vec = ImGui::ColorConvertU32ToFloat4(col);
             col_vec.w *= alpha;
             col = ImGui::GetColorU32(col_vec);
         }
