@@ -1180,7 +1180,6 @@ void Demo_PerIndexColors() {
         ImPlot::EndPlot();
     }
 
-
     // Colorful Bubbles
     srand(0);
     static float xs_bubble[20], ys1_bubble[20], ys2_bubble[20], szs1_bubble[20], szs2_bubble[20];
@@ -1218,50 +1217,53 @@ void Demo_PerIndexColors() {
         ImPlot::EndPlot();
     }
 
-    // Colorful Stairs
-    if (ImPlot::BeginPlot("Colorful Stairs", ImVec2(-1,0))) {
-        ImPlot::SetupAxes("x","y");
-        ImPlot::SetupAxesLimits(0, 1, -1.5, 1.5);
+    // Colorful Stairstep
+    static float ys1_stairs[21], ys2_stairs[21];
+    static ImU32 colors1_stairs[21], colors2_stairs[21];
+    for (int i = 0; i < 21; ++i) {
+        ys1_stairs[i] = 0.75f + 0.2f * sinf(10 * i * 0.05f);
+        ys2_stairs[i] = 0.25f + 0.2f * sinf(10 * i * 0.05f);
 
-        // 1. Constant color stairs
-        static double xs_stairs1[20], ys_stairs1[20];
-        for (int i = 0; i < 20; ++i) {
-            xs_stairs1[i] = i / 19.0;
-            ys_stairs1[i] = sin(xs_stairs1[i] * 6.0 * PI) * 0.5;
-        }
-        ImPlot::PlotStairs("Const Color", xs_stairs1, ys_stairs1, 20, {
-            ImPlotProp_LineColor, ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
+        // Rainbow colors for Post Step
+        float hue = i / 20.0f;
+        colors1_stairs[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Colormap colors for Pre Step
+        float t = i / 20.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors2_stairs[i] = ImGui::GetColorU32(color);
+    }
+    static ImPlotStairsFlags flags_stairs = 0;
+    CHECKBOX_FLAG(flags_stairs, ImPlotStairsFlags_Shaded);
+
+    if (ImPlot::BeginPlot("Colorful Stairstep Plot")) {
+        ImPlot::SetupAxes("x","f(x)");
+        ImPlot::SetupAxesLimits(0,1,0,1);
+        ImPlot::PlotLine("##1", ys1_stairs, 21, 0.05f, 0, {
+            ImPlotProp_LineColor, ImVec4(0.5f,0.5f,0.5f,1.0f)
+        });
+        ImPlot::PlotLine("##2", ys2_stairs, 21, 0.05f, 0, {
+            ImPlotProp_LineColor, ImVec4(0.5f,0.5f,0.5f,1.0f)
         });
 
-        // 2. Per-vertex rainbow colors
-        static double xs_stairs2[20], ys_stairs2[20];
-        static ImU32 colors_stairs_rainbow[20];
-        for (int i = 0; i < 20; ++i) {
-            xs_stairs2[i] = i / 19.0;
-            ys_stairs2[i] = cos(xs_stairs2[i] * 4.0 * PI) * 0.8;
-            float t = i / 19.0f;
-            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Jet);
-            colors_stairs_rainbow[i] = ImGui::GetColorU32(color);
-        }
-        ImPlot::PlotStairs("Rainbow Stairs", xs_stairs2, ys_stairs2, 20, {
-            ImPlotProp_LineColors, colors_stairs_rainbow,
+        ImPlot::PlotStairs("Post Step (default)", ys1_stairs, 21, 0.05f, 0, {
+            ImPlotProp_Flags, flags_stairs,
+            ImPlotProp_FillAlpha, 0.25f,
+            ImPlotProp_Marker, ImPlotMarker_Auto,
+            ImPlotProp_LineColors, colors1_stairs,
+            ImPlotProp_FillColors, colors1_stairs,
+            ImPlotProp_MarkerFillColors, colors1_stairs,
+            ImPlotProp_MarkerLineColors, colors1_stairs
         });
 
-        // 3. Per-vertex colormap with shaded
-        static double xs_stairs3[20], ys_stairs3[20];
-        static ImU32 colors_stairs_map[20];
-        for (int i = 0; i < 20; ++i) {
-            xs_stairs3[i] = i / 19.0;
-            ys_stairs3[i] = -0.5 + sin(xs_stairs3[i] * 8.0 * PI) * 0.3;
-            float t = i / 19.0f;
-            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
-            colors_stairs_map[i] = ImGui::GetColorU32(color);
-        }
-        ImPlot::PlotStairs("Colormap Stairs+Fill", xs_stairs3, ys_stairs3, 20, {
-            ImPlotProp_LineColors, colors_stairs_map,
-            ImPlotProp_FillColors, colors_stairs_map,
-            ImPlotProp_FillAlpha, 0.4f,
-            ImPlotProp_Flags, ImPlotStairsFlags_Shaded | ImPlotStairsFlags_PreStep
+        ImPlot::PlotStairs("Pre Step", ys2_stairs, 21, 0.05f, 0, {
+            ImPlotProp_Flags, flags_stairs | ImPlotStairsFlags_PreStep,
+            ImPlotProp_FillAlpha, 0.25f,
+            ImPlotProp_Marker, ImPlotMarker_Auto,
+            ImPlotProp_LineColors, colors2_stairs,
+            ImPlotProp_FillColors, colors2_stairs,
+            ImPlotProp_MarkerFillColors, colors2_stairs,
+            ImPlotProp_MarkerLineColors, colors2_stairs
         });
 
         ImPlot::EndPlot();
