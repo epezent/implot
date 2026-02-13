@@ -1073,13 +1073,13 @@ struct RendererLineSegments2 : RendererBase {
     mutable ImVec2 UV1;
 };
 
-template <class _Getter1, class _Getter2>
+template <class _Getter1, class _Getter2, class _GetterColor>
 struct RendererBarsFillV : RendererBase {
-    RendererBarsFillV(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, double width) :
+    RendererBarsFillV(const _Getter1& getter1, const _Getter2& getter2, const _GetterColor& getter_color, double width) :
         RendererBase(ImMin(getter1.Count, getter1.Count), 6, 4),
         Getter1(getter1),
         Getter2(getter2),
-        Col(col),
+        GetterColor(getter_color),
         HalfWidth(width/2)
     {}
     void Init(ImDrawList& draw_list) const {
@@ -1101,23 +1101,24 @@ struct RendererBarsFillV : RendererBase {
         ImVec2 PMax = ImMax(P1, P2);
         if (!cull_rect.Overlaps(ImRect(PMin, PMax)))
             return false;
-        PrimRectFill(draw_list,PMin,PMax,Col,UV);
+        ImU32 col = GetterColor[prim];
+        PrimRectFill(draw_list,PMin,PMax,col,UV);
         return true;
     }
     const _Getter1& Getter1;
     const _Getter2& Getter2;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     const double HalfWidth;
     mutable ImVec2 UV;
 };
 
-template <class _Getter1, class _Getter2>
+template <class _Getter1, class _Getter2, class _GetterColor>
 struct RendererBarsFillH : RendererBase {
-    RendererBarsFillH(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, double height) :
+    RendererBarsFillH(const _Getter1& getter1, const _Getter2& getter2, const _GetterColor& getter_color, double height) :
         RendererBase(ImMin(getter1.Count, getter1.Count), 6, 4),
         Getter1(getter1),
         Getter2(getter2),
-        Col(col),
+        GetterColor(getter_color),
         HalfHeight(height/2)
     {}
     void Init(ImDrawList& draw_list) const {
@@ -1139,23 +1140,24 @@ struct RendererBarsFillH : RendererBase {
         ImVec2 PMax = ImMax(P1, P2);
         if (!cull_rect.Overlaps(ImRect(PMin, PMax)))
             return false;
-        PrimRectFill(draw_list,PMin,PMax,Col,UV);
+        ImU32 col = GetterColor[prim];
+        PrimRectFill(draw_list,PMin,PMax,col,UV);
         return true;
     }
     const _Getter1& Getter1;
     const _Getter2& Getter2;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     const double HalfHeight;
     mutable ImVec2 UV;
 };
 
-template <class _Getter1, class _Getter2>
+template <class _Getter1, class _Getter2, class _GetterColor>
 struct RendererBarsLineV : RendererBase {
-    RendererBarsLineV(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, double width, float weight) :
+    RendererBarsLineV(const _Getter1& getter1, const _Getter2& getter2, const _GetterColor& getter_color, double width, float weight) :
         RendererBase(ImMin(getter1.Count, getter1.Count), 24, 8),
         Getter1(getter1),
         Getter2(getter2),
-        Col(col),
+        GetterColor(getter_color),
         HalfWidth(width/2),
         Weight(weight)
     {}
@@ -1178,24 +1180,25 @@ struct RendererBarsLineV : RendererBase {
         ImVec2 PMax = ImMax(P1, P2);
         if (!cull_rect.Overlaps(ImRect(PMin, PMax)))
             return false;
-        PrimRectLine(draw_list,PMin,PMax,Weight,Col,UV);
+        ImU32 col = GetterColor[prim];
+        PrimRectLine(draw_list,PMin,PMax,Weight,col,UV);
         return true;
     }
     const _Getter1& Getter1;
     const _Getter2& Getter2;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     const double HalfWidth;
     const float Weight;
     mutable ImVec2 UV;
 };
 
-template <class _Getter1, class _Getter2>
+template <class _Getter1, class _Getter2, class _GetterColor>
 struct RendererBarsLineH : RendererBase {
-    RendererBarsLineH(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, double height, float weight) :
+    RendererBarsLineH(const _Getter1& getter1, const _Getter2& getter2, const _GetterColor& getter_color, double height, float weight) :
         RendererBase(ImMin(getter1.Count, getter1.Count), 24, 8),
         Getter1(getter1),
         Getter2(getter2),
-        Col(col),
+        GetterColor(getter_color),
         HalfHeight(height/2),
         Weight(weight)
     {}
@@ -1218,12 +1221,13 @@ struct RendererBarsLineH : RendererBase {
         ImVec2 PMax = ImMax(P1, P2);
         if (!cull_rect.Overlaps(ImRect(PMin, PMax)))
             return false;
-        PrimRectLine(draw_list,PMin,PMax,Weight,Col,UV);
+        ImU32 col = GetterColor[prim];
+        PrimRectLine(draw_list,PMin,PMax,Weight,col,UV);
         return true;
     }
     const _Getter1& Getter1;
     const _Getter2& Getter2;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     const double HalfHeight;
     const float Weight;
     mutable ImVec2 UV;
@@ -2211,12 +2215,24 @@ void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 get
         bool rend_fill = s.RenderFill;
         bool rend_line = s.RenderLine;
         if (rend_fill) {
-            RenderPrimitives2<RendererBarsFillV>(getter1,getter2,col_fill,width);
+            if (s.Spec.FillColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
+                RenderPrimitives3<RendererBarsFillV>(getter1, getter2, fill_getter, width);
+            } else {
+                GetterConstColor fill_getter(col_fill, s.Spec.FillAlpha);
+                RenderPrimitives3<RendererBarsFillV>(getter1, getter2, fill_getter, width);
+            }
             if (rend_line && col_fill == col_line)
                 rend_line = false;
         }
         if (rend_line) {
-            RenderPrimitives2<RendererBarsLineV>(getter1,getter2,col_line,width,s.Spec.LineWeight);
+            if (s.Spec.LineColors != nullptr) {
+                GetterIdxColor line_getter(s.Spec.LineColors, getter1.Count);
+                RenderPrimitives3<RendererBarsLineV>(getter1, getter2, line_getter, width, s.Spec.LineWeight);
+            } else {
+                GetterConstColor line_getter(col_line);
+                RenderPrimitives3<RendererBarsLineV>(getter1, getter2, line_getter, width, s.Spec.LineWeight);
+            }
         }
         EndItem();
     }
@@ -2235,12 +2251,24 @@ void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& ge
         bool rend_fill = s.RenderFill;
         bool rend_line = s.RenderLine;
         if (rend_fill) {
-            RenderPrimitives2<RendererBarsFillH>(getter1,getter2,col_fill,height);
+            if (s.Spec.FillColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
+                RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
+            } else {
+                GetterConstColor fill_getter(col_fill);
+                RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
+            }
             if (rend_line && col_fill == col_line)
                 rend_line = false;
         }
         if (rend_line) {
-            RenderPrimitives2<RendererBarsLineH>(getter1,getter2,col_line,height,s.Spec.LineWeight);
+            if (s.Spec.LineColors != nullptr) {
+                GetterIdxColor line_getter(s.Spec.LineColors, getter1.Count);
+                RenderPrimitives3<RendererBarsLineH>(getter1, getter2, line_getter, height, s.Spec.LineWeight);
+            } else {
+                GetterConstColor line_getter(col_line);
+                RenderPrimitives3<RendererBarsLineH>(getter1, getter2, line_getter, height, s.Spec.LineWeight);
+            }
         }
         EndItem();
     }

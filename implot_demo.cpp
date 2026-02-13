@@ -1241,6 +1241,42 @@ void Demo_PerIndexColors() {
 
         ImPlot::EndPlot();
     }
+
+    if (ImPlot::BeginPlot("Colorful Bars", ImVec2(-1,0))) {
+        ImPlot::SetupAxes("Category","Value");
+        ImPlot::SetupAxesLimits(-0.5, 9.5, 0, 12);
+
+        // 1. Vertical bars with per-bar rainbow colors
+        static double data_v[10];
+        static ImU32 colors_v[10];
+        for (int i = 0; i < 10; ++i) {
+            data_v[i] = 3.0 + sinf(i * 0.8f * (float)M_PI) * 2.0;
+            float t = i / 9.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Jet);
+            colors_v[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotBars("Vertical Rainbow", data_v, 10, 0.35, 0, {
+            ImPlotProp_FillColors, colors_v,
+            ImPlotProp_LineColors, colors_v,
+            ImPlotProp_FillAlpha, 0.5f
+        });
+
+        // 2. Vertical bars with colormap colors
+        static double data_v2[10];
+        static ImU32 colors_v2[10];
+        for (int i = 0; i < 10; ++i) {
+            data_v2[i] = 5.0 + cosf(i * 0.6f * (float)M_PI) * 2.5;
+            float t = i / 9.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+            colors_v2[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotBars("Vertical Colormap", data_v2, 10, 0.35, 0.35, {
+            ImPlotProp_FillColors, colors_v2,
+            ImPlotProp_LineColors, colors_v2,
+        });
+
+        ImPlot::EndPlot();
+    }
 }
 
 //-----------------------------------------------------------------------------
