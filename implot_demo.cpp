@@ -1,7 +1,7 @@
 // MIT License
 
 // Copyright (c) 2020-2024 Evan Pezent
-// Copyright (c) 2025 Breno Cunha Queiroz
+// Copyright (c) 2025-2026 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -416,6 +416,29 @@ void Demo_ScatterPlots() {
             ImPlotProp_FillColor, GetColormapColor(1),
             ImPlotProp_FillAlpha, 0.25f
         });
+        ImPlot::EndPlot();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void Demo_BubblePlots() {
+    srand(0);
+    static float xs[20], ys1[20], ys2[20], szs1[20], szs2[20];
+    for (int i = 0; i < 20; ++i) {
+        xs[i] = i * 0.1f;
+        ys1[i] = (float)rand() / (float)RAND_MAX;
+        ys2[i] = (float)rand() / (float)RAND_MAX;
+
+        szs1[i] = 0.02f + 0.08f * ((float)rand() / (float)RAND_MAX);
+        szs2[i] = 0.02f + 0.08f * ((float)rand() / (float)RAND_MAX);
+    }
+
+
+    if (ImPlot::BeginPlot("Bubble Plot", ImVec2(-1,0), ImPlotFlags_Equal)) {
+        ImPlot::PlotBubbles("Data 1", xs, ys1, szs1, 20, {ImPlotProp_FillAlpha, 0.5f});
+        ImPlot::PlotBubbles("Data 2", xs, ys2, szs2, 20, {ImPlotProp_FillAlpha, 0.5f, ImPlotProp_LineColor, ImVec4(0,0,0,0.0)});
+
         ImPlot::EndPlot();
     }
 }
@@ -2356,6 +2379,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Filled Line Plots", Demo_FilledLinePlots);
             DemoHeader("Shaded Plots##", Demo_ShadedPlots);
             DemoHeader("Scatter Plots", Demo_ScatterPlots);
+            DemoHeader("Bubble Plots", Demo_BubblePlots);
             DemoHeader("Realtime Plots", Demo_RealtimePlots);
             DemoHeader("Stairstep Plots", Demo_StairstepPlots);
             DemoHeader("Bar Plots", Demo_BarPlots);
