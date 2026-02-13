@@ -565,28 +565,6 @@ struct IndexerConst {
 };
 
 //-----------------------------------------------------------------------------
-// [SECTION] Color Indexers
-//-----------------------------------------------------------------------------
-
-struct IndexerIdxColor {
-    IndexerIdxColor(const ImU32* data, int count) :
-        Data(data),
-        Count(count)
-    { }
-    template <typename I> IMPLOT_INLINE ImU32 operator[](I idx) const {
-        return Data[idx];
-    }
-    const ImU32* Data;
-    int Count;
-};
-
-struct IndexerConstColor {
-    IndexerConstColor(ImU32 color) : Color(color) { }
-    template <typename I> IMPLOT_INLINE ImU32 operator[](I) const { return Color; }
-    const ImU32 Color;
-};
-
-//-----------------------------------------------------------------------------
 // [SECTION] Getters
 //-----------------------------------------------------------------------------
 
@@ -706,11 +684,28 @@ struct GetterError {
     typedef ImPlotPointError value_type;
 };
 
-template <typename _IndexerColor>
-struct GetterColor {
-    GetterColor(_IndexerColor color, int count, float alpha = 1.0f) : Indexer(color), Count(count), Alpha(alpha) { }
+//-----------------------------------------------------------------------------
+// [SECTION] Color Getters
+//-----------------------------------------------------------------------------
+
+struct GetterConstColor {
+    GetterConstColor(ImU32 color, float alpha = 1.0f) {
+        ImU32 col = color;
+        if (alpha < 1.0f) {
+            ImVec4 col_vec = ImGui::ColorConvertU32ToFloat4(Color);
+            col_vec.w *= alpha;
+            col = ImGui::GetColorU32(col_vec);
+        }
+        Color = col;
+    }
+    template <typename I> IMPLOT_INLINE ImU32 operator[](I) const { return Color; }
+    ImU32 Color;
+};
+
+struct GetterIdxColor {
+    GetterIdxColor(const ImU32* data, int count, float alpha = 1.0f) : Data(data), Count(count), Alpha(alpha) { }
     template <typename I> IMPLOT_INLINE ImU32 operator[](I idx) const {
-        ImU32 col = Indexer[idx];
+        ImU32 col = Data[idx];
         if (Alpha < 1.0f) {
             ImVec4 col_vec = ImGui::ColorConvertU32ToFloat4(col);
             col_vec.w *= Alpha;
@@ -718,7 +713,7 @@ struct GetterColor {
         }
         return col;
     }
-    const _IndexerColor Indexer;
+    const ImU32* Data;
     const int Count;
     const float Alpha;
 };
@@ -1839,13 +1834,11 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
             if (ImHasFlag(spec.Flags, ImPlotLineFlags_Shaded) && s.RenderFill) {
                 GetterOverrideY<_Getter> getter2(getter, 0);
                 if (s.Spec.FillColors != nullptr) {
-                    IndexerIdxColor color_indexer(s.Spec.FillColors, getter.Count);
-                    GetterColor<IndexerIdxColor> color_getter(color_indexer, getter.Count, s.Spec.FillAlpha);
+                    GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 } else {
                     const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-                    IndexerConstColor color_indexer(col_fill);
-                    GetterColor<IndexerConstColor> color_getter(color_indexer, getter.Count);
+                    GetterConstColor color_getter(col_fill);
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 }
             }
@@ -1853,41 +1846,41 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                 const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
                 if (ImHasFlag(spec.Flags,ImPlotLineFlags_Segments)) {
                     if (s.Spec.LineColors != nullptr) {
-                        IndexerIdxColor color_indexer(s.Spec.LineColors, getter.Count);
-                        RenderPrimitives2<RendererLineSegments1>(getter,color_indexer,s.Spec.LineWeight);
+                        GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
+                        RenderPrimitives2<RendererLineSegments1>(getter,color_getter,s.Spec.LineWeight);
                     } else {
-                        IndexerConstColor color_indexer(col_line);
-                        RenderPrimitives2<RendererLineSegments1>(getter,color_indexer,s.Spec.LineWeight);
+                        GetterConstColor color_getter(col_line);
+                        RenderPrimitives2<RendererLineSegments1>(getter,color_getter,s.Spec.LineWeight);
                     }
                 }
                 else if (ImHasFlag(spec.Flags, ImPlotLineFlags_Loop)) {
                     if (s.Spec.LineColors != nullptr) {
-                        IndexerIdxColor color_indexer(s.Spec.LineColors, getter.Count);
+                        GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
-                            RenderPrimitives2<RendererLineStripSkip>(GetterLoop<_Getter>(getter),color_indexer,s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStripSkip>(GetterLoop<_Getter>(getter),color_getter,s.Spec.LineWeight);
                         else
-                            RenderPrimitives2<RendererLineStrip>(GetterLoop<_Getter>(getter),color_indexer,s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStrip>(GetterLoop<_Getter>(getter),color_getter,s.Spec.LineWeight);
                     } else {
-                        IndexerConstColor color_indexer(col_line);
+                        GetterConstColor color_getter(col_line);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
-                            RenderPrimitives2<RendererLineStripSkip>(GetterLoop<_Getter>(getter),color_indexer,s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStripSkip>(GetterLoop<_Getter>(getter),color_getter,s.Spec.LineWeight);
                         else
-                            RenderPrimitives2<RendererLineStrip>(GetterLoop<_Getter>(getter),color_indexer,s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStrip>(GetterLoop<_Getter>(getter),color_getter,s.Spec.LineWeight);
                     }
                 }
                 else {
                     if (s.Spec.LineColors != nullptr) {
-                        IndexerIdxColor color_indexer(s.Spec.LineColors, getter.Count);
+                        GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
-                            RenderPrimitives2<RendererLineStripSkip>(getter,color_indexer,s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStripSkip>(getter,color_getter,s.Spec.LineWeight);
                         else
-                            RenderPrimitives2<RendererLineStrip>(getter,color_indexer,s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStrip>(getter,color_getter,s.Spec.LineWeight);
                     } else {
-                        IndexerConstColor color_indexer(col_line);
+                        GetterConstColor color_getter(col_line);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
-                            RenderPrimitives2<RendererLineStripSkip>(getter,color_indexer,s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStripSkip>(getter,color_getter,s.Spec.LineWeight);
                         else
-                            RenderPrimitives2<RendererLineStrip>(getter,color_indexer,s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStrip>(getter,color_getter,s.Spec.LineWeight);
                     }
                 }
             }
@@ -1997,24 +1990,20 @@ void PlotBubbleEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
         if (s.RenderFill) {
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
             if (s.Spec.FillColors != nullptr) {
-                IndexerIdxColor fill_indexer(s.Spec.FillColors, getter.Count);
-                GetterColor<IndexerIdxColor> fill_getter(fill_indexer, getter.Count, s.Spec.FillAlpha);
+                GetterIdxColor fill_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
                 RenderPrimitives2<RendererCircleFill>(getter, fill_getter);
             } else {
-                IndexerConstColor fill_indexer(col_fill);
-                GetterColor<IndexerConstColor> fill_getter(fill_indexer, getter.Count);
+                GetterConstColor fill_getter(col_fill);
                 RenderPrimitives2<RendererCircleFill>(getter, fill_getter);
             }
         }
         if (s.RenderLine) {
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
             if (s.Spec.LineColors != nullptr) {
-                IndexerIdxColor line_indexer(s.Spec.LineColors, getter.Count);
-                GetterColor<IndexerIdxColor> line_getter(line_indexer, getter.Count);
+                GetterIdxColor line_getter(s.Spec.LineColors, getter.Count);
                 RenderPrimitives2<RendererCircleLine>(getter, line_getter, s.Spec.LineWeight);
             } else {
-                IndexerConstColor line_indexer(col_line);
-                GetterColor<IndexerConstColor> line_getter(line_indexer, getter.Count);
+                GetterConstColor line_getter(col_line);
                 RenderPrimitives2<RendererCircleLine>(getter, line_getter, s.Spec.LineWeight);
             }
         }
@@ -2119,13 +2108,11 @@ void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& g
         const ImPlotNextItemData& s = GetItemData();
         if (s.RenderFill) {
             if (s.Spec.FillColors != nullptr) {
-                IndexerIdxColor color_indexer(s.Spec.FillColors, getter1.Count);
-                GetterColor<IndexerIdxColor> color_getter(color_indexer, getter1.Count, s.Spec.FillAlpha);
+                GetterIdxColor color_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             } else {
                 const ImU32 col = ImGui::GetColorU32(s.Spec.FillColor);
-                IndexerConstColor color_indexer(col);
-                GetterColor<IndexerConstColor> color_getter(color_indexer, getter1.Count);
+                GetterConstColor color_getter(col);
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             }
         }
