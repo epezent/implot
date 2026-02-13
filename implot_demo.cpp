@@ -64,6 +64,7 @@ struct WaveData {
 ImPlotPoint SineWave(int idx, void* wave_data);
 ImPlotPoint SawWave(int idx, void* wave_data);
 ImPlotPoint Spiral(int idx, void* wave_data);
+ImPlotPoint CustomData(int idx, void* data);
 
 // Example for Tables section.
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size);
@@ -2001,6 +2002,39 @@ void Demo_CustomDataAndGetters() {
 
         ImPlot::EndPlot();
     }
+    int dataCount = 100000;
+    ImGui::BulletText("For simple dynamic downsampling of huge datasets you can use the idx_offset and idx_stride parameters of Plot(type)G plotters.");
+    
+    static bool downsample = true;
+    ImGui::Checkbox("Enable downsampling", &downsample);
+    // downsample and clamp limits for performance!
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, dataCount);
+    if (ImPlot::BeginPlot("##Custom Data Downsampling")) {
+        if (downsample)
+        {
+            int start_idx = (int)ImPlot::GetPlotLimits().X.Min;
+            
+            // clamp start_idx
+            start_idx = start_idx < 0 ? 0 : start_idx;
+            start_idx = start_idx >= dataCount ? (dataCount - 1) : start_idx;
+            
+            // add + 2 to fully draw the last line of the plot
+            int end_idx = (int)ImPlot::GetPlotLimits().X.Max + 2;
+            // clamp end_idx
+            end_idx = end_idx < 0 ? 0 : end_idx;
+            end_idx = end_idx >= dataCount ? (dataCount - 1) : end_idx;
+            
+            int idx_stride = (int)(ImPlot::GetPlotLimits().X.Size() / ImPlot::GetPlotSize().x) + 1;
+            int count = (end_idx - start_idx) / idx_stride;
+            
+            ImPlot::PlotLineG("Custom Data Downsampling", MyImPlot::CustomData, &dataCount, count, 0, start_idx, idx_stride);
+        }
+        else
+        {
+            ImPlot::PlotLineG("Custom Data Downsampling", MyImPlot::CustomData, &dataCount, dataCount);
+        }
+        ImPlot::EndPlot();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -2373,6 +2407,15 @@ ImPlotPoint Spiral(int idx, void*) {
     float Th = float(th * idx / (1000 - 1));
     return ImPlotPoint(0.5f+(a + b*Th / (2.0f * (float) 3.14))*cos(Th),
                        0.5f + (a + b*Th / (2.0f * (float)3.14))*sin(Th));
+}
+
+ImPlotPoint CustomData(int idx, void* data) {
+    int dataCount = *(int*)data;
+    srand(idx);
+    float x = (float)idx / (float)dataCount;
+    float y = (0.25f + 0.25f * sinf(25 * x) * sinf(5 * x) + ImPlot::RandomRange(-0.01f, 0.01f));
+    unsigned char* ys = (unsigned char*)data;
+    return ImPlotPoint((float)idx, y);
 }
 
 void Sparkline(const char* id, const float* values, int count, float min_v, float max_v, int offset, const ImVec4& col, const ImVec2& size) {
