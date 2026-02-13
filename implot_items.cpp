@@ -1881,11 +1881,11 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 }
 
 //-----------------------------------------------------------------------------
-// [SECTION] PlotBubbles
+// [SECTION] PlotBubble
 //-----------------------------------------------------------------------------
 
 template <typename Getter>
-void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlags flags) {
+void PlotBubbleEx(const char* label_id, const Getter& getter, ImPlotBubbleFlags flags) {
     if (BeginItemEx(label_id, FitterBubbles1<Getter>(getter), flags, ImPlotCol_Fill)) {
         if (getter.Count <= 0) {
             EndItem();
@@ -1907,20 +1907,20 @@ void PlotBubblesEx(const char* label_id, const Getter& getter, ImPlotBubblesFlag
 }
 
 template <typename T>
-void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride) {
+void PlotBubble(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubbleFlags flags, int offset, int stride) {
   GetterXYZ<IndexerLin,IndexerIdx<T>,IndexerIdx<T>> getter(IndexerLin(xscale,x0), IndexerIdx<T>(values,count,offset,stride), IndexerIdx<T>(szs,count,offset,stride),count);
-  PlotBubblesEx(label_id, getter, flags);
+  PlotBubbleEx(label_id, getter, flags);
 }
 
 template <typename T>
-void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride) {
+void PlotBubble(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubbleFlags flags, int offset, int stride) {
   GetterXYZ<IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride), IndexerIdx<T>(szs,count,offset,stride),count);
-  return PlotBubblesEx(label_id, getter, flags);
+  return PlotBubbleEx(label_id, getter, flags);
 }
 
 #define INSTANTIATE_MACRO(T) \
-    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubblesFlags flags, int offset, int stride); \
-    template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubblesFlags flags, int offset, int stride);
+    template IMPLOT_API void PlotBubble<T>(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, ImPlotBubbleFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotBubble<T>(const char* label_id, const T* xs, const T* ys, const T* szs, int count, ImPlotBubbleFlags flags, int offset, int stride);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 

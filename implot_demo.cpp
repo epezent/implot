@@ -433,11 +433,11 @@ void Demo_BubblePlots() {
 
     if (ImPlot::BeginPlot("Bubble Plot", ImVec2(-1,0), ImPlotFlags_Equal)) {
         ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.50f);
-        ImPlot::PlotBubbles("Data 1", xs, ys1, szs1, 20);
+        ImPlot::PlotBubble("Data 1", xs, ys1, szs1, 20);
 
         ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.50f);
         ImPlot::SetNextLineStyle(ImVec4(0,0,0,0));
-        ImPlot::PlotBubbles("Data 2", xs, ys2, szs2, 20);
+        ImPlot::PlotBubble("Data 2", xs, ys2, szs2, 20);
 
         ImPlot::EndPlot();
     }
