@@ -1061,6 +1061,26 @@ void Demo_NaNValues() {
 
 //-----------------------------------------------------------------------------
 
+void Demo_PerPointColors() {
+    static float xs1[1001], ys1[1001];
+    static ImU32 colors1[1001];
+    for (int i = 0; i < 1001; ++i) {
+        xs1[i] = i * 0.001f;
+        ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + (float)ImGui::GetTime() / 10));
+        colors1[i] = ImGui::GetColorU32(ImVec4(ys1[i], 0.5f, 1.0f - ys1[i], 1.0f));
+    }
+
+    if (ImPlot::BeginPlot("Colorful Line Plot", ImVec2(-1,0))) {
+        ImPlot::PlotLine("f(x)", xs1, ys1, 1001, {
+            ImPlotProp_LineColor, ImVec4(1,0,1,1),
+            ImPlotProp_LineColors, colors1,
+        });
+        ImPlot::EndPlot();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 void Demo_LogScale() {
     static double xs[1001], ys1[1001], ys2[1001], ys3[1001];
     for (int i = 0; i < 1001; ++i) {
@@ -2396,6 +2416,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Images", Demo_Images);
             DemoHeader("Markers and Text", Demo_MarkersAndText);
             DemoHeader("NaN Values", Demo_NaNValues);
+            DemoHeader("Per Point Colors", Demo_PerPointColors);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Subplots")) {

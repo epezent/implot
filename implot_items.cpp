@@ -950,12 +950,12 @@ struct RendererBase {
     const int VtxConsumed;
 };
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererLineStrip : RendererBase {
-    RendererLineStrip(const _Getter& getter, ImU32 col, float weight) :
+    RendererLineStrip(const _Getter& getter, const _GetterColor& getter_color, float weight) :
         RendererBase(getter.Count - 1, 6, 4),
         Getter(getter),
-        Col(col),
+        GetterColor(getter_color),
         HalfWeight(ImMax(1.0f,weight)*0.5f)
     {
         P1 = this->Transformer(Getter[0]);
@@ -969,24 +969,25 @@ struct RendererLineStrip : RendererBase {
             P1 = P2;
             return false;
         }
-        PrimLine(draw_list,P1,P2,HalfWeight,Col,UV0,UV1);
+        ImU32 col = GetterColor[prim];
+        PrimLine(draw_list,P1,P2,HalfWeight,col,UV0,UV1);
         P1 = P2;
         return true;
     }
     const _Getter& Getter;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     mutable float HalfWeight;
     mutable ImVec2 P1;
     mutable ImVec2 UV0;
     mutable ImVec2 UV1;
 };
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererLineStripSkip : RendererBase {
-    RendererLineStripSkip(const _Getter& getter, ImU32 col, float weight) :
+    RendererLineStripSkip(const _Getter& getter, const _GetterColor& getter_color, float weight) :
         RendererBase(getter.Count - 1, 6, 4),
         Getter(getter),
-        Col(col),
+        GetterColor(getter_color),
         HalfWeight(ImMax(1.0f,weight)*0.5f)
     {
         P1 = this->Transformer(Getter[0]);
@@ -1001,13 +1002,14 @@ struct RendererLineStripSkip : RendererBase {
                 P1 = P2;
             return false;
         }
-        PrimLine(draw_list,P1,P2,HalfWeight,Col,UV0,UV1);
+        ImU32 col = GetterColor[prim];
+        PrimLine(draw_list,P1,P2,HalfWeight,col,UV0,UV1);
         if (!ImNan(P2.x) && !ImNan(P2.y))
             P1 = P2;
         return true;
     }
     const _Getter& Getter;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     mutable float HalfWeight;
     mutable ImVec2 P1;
     mutable ImVec2 UV0;
@@ -1827,16 +1829,34 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                     RenderPrimitives1<RendererLineSegments1>(getter,col_line,s.Spec.LineWeight);
                 }
                 else if (ImHasFlag(spec.Flags, ImPlotLineFlags_Loop)) {
-                    if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
-                        RenderPrimitives1<RendererLineStripSkip>(GetterLoop<_Getter>(getter),col_line,s.Spec.LineWeight);
-                    else
-                        RenderPrimitives1<RendererLineStrip>(GetterLoop<_Getter>(getter),col_line,s.Spec.LineWeight);
+                    if (s.Spec.LineColors != NULL) {
+                        IndexerIdxColor color_indexer(s.Spec.LineColors, getter.Count);
+                        if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                            RenderPrimitives2<RendererLineStripSkip>(GetterLoop<_Getter>(getter),color_indexer,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2<RendererLineStrip>(GetterLoop<_Getter>(getter),color_indexer,s.Spec.LineWeight);
+                    } else {
+                        IndexerConstColor color_indexer(col_line);
+                        if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                            RenderPrimitives2<RendererLineStripSkip>(GetterLoop<_Getter>(getter),color_indexer,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2<RendererLineStrip>(GetterLoop<_Getter>(getter),color_indexer,s.Spec.LineWeight);
+                    }
                 }
                 else {
-                    if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
-                        RenderPrimitives1<RendererLineStripSkip>(getter,col_line,s.Spec.LineWeight);
-                    else
-                        RenderPrimitives1<RendererLineStrip>(getter,col_line,s.Spec.LineWeight);
+                    if (s.Spec.LineColors != NULL) {
+                        IndexerIdxColor color_indexer(s.Spec.LineColors, getter.Count);
+                        if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                            RenderPrimitives2<RendererLineStripSkip>(getter,color_indexer,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2<RendererLineStrip>(getter,color_indexer,s.Spec.LineWeight);
+                    } else {
+                        IndexerConstColor color_indexer(col_line);
+                        if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                            RenderPrimitives2<RendererLineStripSkip>(getter,color_indexer,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2<RendererLineStrip>(getter,color_indexer,s.Spec.LineWeight);
+                    }
                 }
             }
         }
