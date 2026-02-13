@@ -565,6 +565,28 @@ struct IndexerConst {
 };
 
 //-----------------------------------------------------------------------------
+// [SECTION] Color Indexers
+//-----------------------------------------------------------------------------
+
+struct IndexerIdxColor {
+    IndexerIdxColor(const ImU32* data, int count) :
+        Data(data),
+        Count(count)
+    { }
+    template <typename I> IMPLOT_INLINE ImU32 operator[](I idx) const {
+        return Data[idx];
+    }
+    const ImU32* Data;
+    int Count;
+};
+
+struct IndexerConstColor {
+    IndexerConstColor(ImU32 color) : Color(color) { }
+    template <typename I> IMPLOT_INLINE ImU32 operator[](I) const { return Color; }
+    const ImU32 Color;
+};
+
+//-----------------------------------------------------------------------------
 // [SECTION] Getters
 //-----------------------------------------------------------------------------
 
@@ -682,6 +704,16 @@ struct GetterError {
     const int Offset;
     const int Stride;
     typedef ImPlotPointError value_type;
+};
+
+template <typename _IndexerColor>
+struct GetterColor {
+  GetterColor(_IndexerColor color, int count) : Indexer(color), Count(count) { }
+  template <typename I> IMPLOT_INLINE ImU32 operator()(I idx) const {
+    return ImU32(Indexer[idx]);
+  }
+  const _IndexerColor Indexer;
+  const int Count;
 };
 
 //-----------------------------------------------------------------------------
