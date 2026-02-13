@@ -610,21 +610,19 @@ struct GetterXYZ {
   const int Count;
 };
 
-template <typename _IndexerX, typename _IndexerY, typename _IndexerU, typename _IndexerV>
-struct GetterXYUV {
-    GetterXYUV(_IndexerX x, _IndexerY y, _IndexerU u, _IndexerV v, int count)
-        : IndxerX(x), IndxerY(y), IndxerU(u), IndxerV(v), Count(count) { }
+template <typename _IndexerX, typename _IndexerY, typename _IndexerZ, typename _IndexerW>
+struct GetterXYZW {
+    GetterXYZW(_IndexerX x, _IndexerY y, _IndexerZ z, _IndexerW w, int count)
+        : IndxerX(x), IndxerY(y), IndxerZ(z), IndxerW(w), Count(count) { }
 
     template <typename I> IMPLOT_INLINE ImPlotPoint4D operator()(I idx) const {
-        double z_val = IndxerU(idx);
-        double w_val = IndxerV(idx);
-        return ImPlotPoint4D(IndxerX(idx), IndxerY(idx), z_val, w_val);
+        return ImPlotPoint4D(IndxerX(idx), IndxerY(idx), IndxerZ(idx), IndxerW(idx));
     }
 
     const _IndexerX IndxerX;
     const _IndexerY IndxerY;
-    const _IndexerU IndxerU;
-    const _IndexerV IndxerV;
+    const _IndexerZ IndxerZ;
+    const _IndexerW IndxerW;
     const int Count;
 };
 
@@ -2948,7 +2946,7 @@ void PlotQuiverEx(const char* label_id, const Getter& getter, const double mag_m
 
 template <typename T>
 void PlotQuiver(const char* label_id, const T* xs, const T* ys,const T* us, const T* vs, int count, double mag_min, double mag_max, ImPlotQuiverFlags flags, int offset, int stride) {
-    GetterXYUV<IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>> getter(
+    GetterXYZW<IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>,IndexerIdx<T>> getter(
         IndexerIdx<T>(xs,count,offset,stride),
         IndexerIdx<T>(ys,count,offset,stride),
         IndexerIdx<T>(us,count,offset,stride),
