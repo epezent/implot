@@ -436,8 +436,8 @@ void Demo_BubblePlots() {
 
 
     if (ImPlot::BeginPlot("Bubble Plot", ImVec2(-1,0), ImPlotFlags_Equal)) {
-        ImPlot::PlotBubbles("Data 1", xs, ys1, szs1, 20, {ImPlotProp_FillAlpha, 0.5f});
-        ImPlot::PlotBubbles("Data 2", xs, ys2, szs2, 20, {ImPlotProp_FillAlpha, 0.5f, ImPlotProp_LineColor, ImVec4(0,0,0,0.0)});
+        ImPlot::PlotBubble("Data 1", xs, ys1, szs1, 20, {ImPlotProp_FillAlpha, 0.5f});
+        ImPlot::PlotBubble("Data 2", xs, ys2, szs2, 20, {ImPlotProp_FillAlpha, 0.5f, ImPlotProp_LineColor, ImVec4(0,0,0,0.0)});
 
         ImPlot::EndPlot();
     }
