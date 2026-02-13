@@ -467,9 +467,9 @@ void Demo_QuiverPlots(){
     HelpMarker("Maximum arrow size in pixels. The actual size will depend on the arrow's magnitude");
 
     static ImPlotQuiverFlags qv_flags = ImPlotQuiverFlags_Colored;
-    CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_Normalize);
+    CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_FixedSize);
     ImGui::SameLine();
-    HelpMarker("All arrows will be normalized to the same length");
+    HelpMarker("All arrows will have the length set to base size");
 
     CHECKBOX_FLAG(qv_flags, ImPlotQuiverFlags_Colored);
     ImGui::SameLine();

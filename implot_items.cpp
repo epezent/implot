@@ -1845,7 +1845,7 @@ void PlotQuiverEx(const char* label_id, const Getter& getter, const double mag_m
 
         const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
         const bool color_coded = ImHasFlag(flags, ImPlotQuiverFlags_Colored);
-        const bool normalized = ImHasFlag(flags, ImPlotQuiverFlags_Normalize);
+        const bool normalized = ImHasFlag(flags, ImPlotQuiverFlags_FixedSize);
 
         double final_mag_min = mag_min;
         double final_mag_max = mag_max;
