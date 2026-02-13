@@ -1864,6 +1864,10 @@ void PlotQuiverEx(const char* label_id, const Getter& getter, const double mag_m
             }
         }
 
+        if (ImHasFlag(flags, ImPlotQuiverFlags_NoClip)) {
+            PopPlotClipRect();
+            PushPlotClipRect(s.QuiverSize);
+        }
         RenderPrimitives1<RendererVectorFill>(getter, MARKER_FILL_ARROW, 7, s.QuiverSize, col_fill, final_mag_min, final_mag_max, color_coded, normalized);
 
         EndItem();
