@@ -359,7 +359,6 @@ enum ImPlotCol_ {
     ImPlotCol_MarkerOutline, // marker outline color (defaults to the current line color)
     ImPlotCol_MarkerFill,    // marker fill color (defaults to the current line color)
     ImPlotCol_ErrorBar,      // error bar color (defaults to ImGuiCol_Text)
-    ImPlotCol_QuiverFill,
     // plot styling colors
     ImPlotCol_FrameBg,       // plot frame background color (defaults to ImGuiCol_FrameBg)
     ImPlotCol_PlotBg,        // plot area background color (defaults to ImGuiCol_WindowBg)
