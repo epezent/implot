@@ -1062,115 +1062,38 @@ void Demo_NaNValues() {
 //-----------------------------------------------------------------------------
 
 void Demo_PerIndexColors() {
-    static float xs1[101], ys1[101], ys2[101], ys3[101];
-    static ImU32 colors_rainbow[101];
-    static ImU32 colors_colormap[101];
-
-    ImPlot::PushColormap(ImPlotColormap_Hot);
-    for (int i = 0; i < 101; ++i) {
-        xs1[i] = i * 0.01f;
-        ys1[i] = 0.5f + 0.3f * sinf(20 * xs1[i]);
-        ys2[i] = 0.2f + 0.3f * sinf(15 * xs1[i] + 1.0f);
-        ys3[i] = -0.1f + 0.3f * sinf(10 * xs1[i] + 2.0f);
-
-        // Rainbow colors (HSV sweep)
-        float hue = (float)i / 100.0f;
-        colors_rainbow[i] = ImColor::HSV(hue, 0.8f, 0.9f);
-
-        // Sample from current colormap
-        float t = (float)i / 100.0f;
-        colors_colormap[i] = ImColor(ImPlot::SampleColormap(t));
+    // Colorful Lines
+    static float xs1[1001], ys1[1001];
+    static ImU32 colors1[1001];
+    for (int i = 0; i < 1001; ++i) {
+        xs1[i] = i * 0.001f;
+        ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + (float)ImGui::GetTime() / 10));
+        // Rainbow colors for f(x)
+        float hue = (float)i / 1000.0f;
+        colors1[i] = ImColor::HSV(hue, 0.8f, 0.9f);
     }
-    ImPlot::PopColormap();
-
-    if (ImPlot::BeginPlot("Colorful Lines", ImVec2(-1,0))) {
-        ImPlot::SetupAxes("x","y");
-        ImPlot::SetupAxesLimits(0, 1, -0.5, 1.0);
-
-        // 1. Constant color via LineColor (default behavior)
-        ImPlot::PlotLine("Const Color", xs1, ys1, 101, {
-            ImPlotProp_LineColor, ImVec4(1, 0.5f, 0, 1),
-            ImPlotProp_LineWeight, 1.0f
-        });
-
-        // 2. Per-vertex colors via LineColors (rainbow)
-        ImPlot::PlotLine("Rainbow Colors", xs1, ys2, 101, {
-            ImPlotProp_LineColors, colors_rainbow,
-            ImPlotProp_LineWeight, 2.0f
-        });
-
-        // 3. Per-vertex colors sampled from colormap
-        ImPlot::PlotLine("Colormap Colors", xs1, ys3, 101, {
-            ImPlotProp_LineColors, colors_colormap,
-            ImPlotProp_LineWeight, 3.0f
-        });
-
-        ImPlot::EndPlot();
-    }
-
-    if (ImPlot::BeginPlot("Colorful Shaded", ImVec2(-1,0))) {
-        ImPlot::SetupAxes("x","y");
-        ImPlot::SetupAxesLimits(0, 1, -0.5, 1.0);
-
-        // Constant color with FillAlpha
-        static double y_ref = 0.0;
-        ImPlot::PlotShaded("Const Color", xs1, ys3, 101, y_ref, {
-            ImPlotProp_FillColor, ImVec4(0.3f, 0.7f, 1.0f, 1.0f),
-            ImPlotProp_FillAlpha, 0.4f
-        });
-
-        // Per-vertex colors with FillAlpha (rainbow)
-        ImPlot::PlotShaded("Rainbow Shaded", xs1, ys1, 101, y_ref, {
-            ImPlotProp_FillColors, colors_rainbow,
-            ImPlotProp_FillAlpha, 0.5f
-        });
-
-        // Per-vertex colors with PlotLine (colormap)
-        ImPlot::PlotLine("Colormap Line+Fill", xs1, ys2, 101, {
-            ImPlotProp_LineColors, colors_colormap,
-            ImPlotProp_FillColors, colors_colormap,
-            ImPlotProp_LineWeight, 2.0f,
-            ImPlotProp_FillAlpha, 0.3f,
-            ImPlotProp_Flags, ImPlotLineFlags_Shaded
-        });
-
-        ImPlot::EndPlot();
-    }
-
-    // Colorful Bubbles
-    srand(0);
-    static float xs_bubble[20], ys1_bubble[20], ys2_bubble[20], szs1_bubble[20], szs2_bubble[20];
-    static ImU32 colors1_bubble[20], colors2_bubble[20];
+    static double xs2[20], ys2[20];
+    static ImU32 colors2[20];
     for (int i = 0; i < 20; ++i) {
-        xs_bubble[i] = i * 0.1f;
-        ys1_bubble[i] = (float)rand() / (float)RAND_MAX;
-        ys2_bubble[i] = (float)rand() / (float)RAND_MAX;
-
-        szs1_bubble[i] = 0.02f + 0.08f * ((float)rand() / (float)RAND_MAX);
-        szs2_bubble[i] = 0.02f + 0.08f * ((float)rand() / (float)RAND_MAX);
-
-        // Rainbow colors for Data 1
-        float hue = i / 19.0f;
-        colors1_bubble[i] = ImColor::HSV(hue, 0.8f, 0.9f);
-
-        // Colormap colors for Data 2
+        xs2[i] = i * 1/19.0f;
+        ys2[i] = xs2[i] * xs2[i];
+        // Colormap colors for g(x)
         float t = i / 19.0f;
         ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
-        colors2_bubble[i] = ImGui::GetColorU32(color);
+        colors2[i] = ImGui::GetColorU32(color);
     }
-
-    if (ImPlot::BeginPlot("Colorful Bubbles", ImVec2(-1,0), ImPlotFlags_Equal)) {
-        ImPlot::PlotBubble("Data 1", xs_bubble, ys1_bubble, szs1_bubble, 20, {
-            ImPlotProp_FillAlpha, 0.5f,
-            ImPlotProp_FillColors, colors1_bubble,
-            ImPlotProp_LineColors, colors1_bubble
+    if (ImPlot::BeginPlot("Colorful Lines")) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::PlotLine("f(x)", xs1, ys1, 1001, {
+            ImPlotProp_LineColors, colors1
         });
-        ImPlot::PlotBubble("Data 2", xs_bubble, ys2_bubble, szs2_bubble, 20, {
-            ImPlotProp_FillAlpha, 0.5f,
-            ImPlotProp_LineColor, ImVec4(0,0,0,0.0),
-            ImPlotProp_FillColors, colors2_bubble
+        ImPlot::PlotLine("g(x)", xs2, ys2, 20, {
+            ImPlotProp_Marker, ImPlotMarker_Circle,
+            ImPlotProp_Flags, ImPlotLineFlags_Segments,
+            ImPlotProp_LineColors, colors2,
+            ImPlotProp_MarkerFillColors, colors2,
+            ImPlotProp_MarkerLineColors, colors2
         });
-
         ImPlot::EndPlot();
     }
 
@@ -1212,6 +1135,44 @@ void Demo_PerIndexColors() {
         ImPlot::EndPlot();
     }
 
+    // Colorful Bubbles
+    srand(0);
+    static float xs_bubble[20], ys1_bubble[20], ys2_bubble[20], szs1_bubble[20], szs2_bubble[20];
+    static ImU32 colors1_bubble[20], colors2_bubble[20];
+    for (int i = 0; i < 20; ++i) {
+        xs_bubble[i] = i * 0.1f;
+        ys1_bubble[i] = (float)rand() / (float)RAND_MAX;
+        ys2_bubble[i] = (float)rand() / (float)RAND_MAX;
+
+        szs1_bubble[i] = 0.02f + 0.08f * ((float)rand() / (float)RAND_MAX);
+        szs2_bubble[i] = 0.02f + 0.08f * ((float)rand() / (float)RAND_MAX);
+
+        // Rainbow colors for Data 1
+        float hue = i / 19.0f;
+        colors1_bubble[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Colormap colors for Data 2
+        float t = i / 19.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors2_bubble[i] = ImGui::GetColorU32(color);
+    }
+
+    if (ImPlot::BeginPlot("Colorful Bubbles", ImVec2(-1,0), ImPlotFlags_Equal)) {
+        ImPlot::PlotBubble("Data 1", xs_bubble, ys1_bubble, szs1_bubble, 20, {
+            ImPlotProp_FillAlpha, 0.5f,
+            ImPlotProp_FillColors, colors1_bubble,
+            ImPlotProp_LineColors, colors1_bubble
+        });
+        ImPlot::PlotBubble("Data 2", xs_bubble, ys2_bubble, szs2_bubble, 20, {
+            ImPlotProp_FillAlpha, 0.5f,
+            ImPlotProp_LineColor, ImVec4(0,0,0,0.0),
+            ImPlotProp_FillColors, colors2_bubble
+        });
+
+        ImPlot::EndPlot();
+    }
+
+    // Colorful Stairs
     if (ImPlot::BeginPlot("Colorful Stairs", ImVec2(-1,0))) {
         ImPlot::SetupAxes("x","y");
         ImPlot::SetupAxesLimits(0, 1, -1.5, 1.5);
@@ -1260,6 +1221,7 @@ void Demo_PerIndexColors() {
         ImPlot::EndPlot();
     }
 
+    // Colorful Bars
     if (ImPlot::BeginPlot("Colorful Bars", ImVec2(-1,0))) {
         ImPlot::SetupAxes("Category","Value");
         ImPlot::SetupAxesLimits(-0.5, 9.5, 0, 12);
@@ -1298,6 +1260,7 @@ void Demo_PerIndexColors() {
         ImPlot::EndPlot();
     }
 
+    // Colorful Stems
     if (ImPlot::BeginPlot("Colorful Stems", ImVec2(-1,0))) {
         ImPlot::SetupAxes("x","y");
         ImPlot::SetupAxesLimits(-0.5, 19.5, -1.2, 1.2);
@@ -1349,6 +1312,7 @@ void Demo_PerIndexColors() {
         ImPlot::EndPlot();
     }
 
+    // Colorful Infinite Lines
     if (ImPlot::BeginPlot("Colorful Infinite Lines", ImVec2(-1,0))) {
         ImPlot::SetupAxes("x","y");
         ImPlot::SetupAxesLimits(0, 10, -1, 10);
