@@ -1194,6 +1194,44 @@ void Demo_PerIndexColors() {
         ImPlot::EndPlot();
     }
 
+    // Colorful Scatter (matches Demo_ScatterPlots structure with per-marker colors)
+    srand(0);
+    static float xs_scatter1[100], ys_scatter1[100];
+    static ImU32 colors_scatter1_fill[100], colors_scatter1_line[100];
+    for (int i = 0; i < 100; ++i) {
+        xs_scatter1[i] = i * 0.01f;
+        ys_scatter1[i] = xs_scatter1[i] + 0.1f * ((float)rand() / (float)RAND_MAX);
+        // Rainbow hue colors
+        float hue = i / 99.0f;
+        colors_scatter1_fill[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+        colors_scatter1_line[i] = ImColor::HSV(hue, 0.9f, 0.7f);
+    }
+    static float xs_scatter2[50], ys_scatter2[50];
+    static ImU32 colors_scatter2[50];
+    for (int i = 0; i < 50; i++) {
+        xs_scatter2[i] = 0.25f + 0.2f * ((float)rand() / (float)RAND_MAX);
+        ys_scatter2[i] = 0.75f + 0.2f * ((float)rand() / (float)RAND_MAX);
+        // Colormap colors (Viridis)
+        float t = i / 49.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors_scatter2[i] = ImGui::GetColorU32(color);
+    }
+
+    if (ImPlot::BeginPlot("Colorful Scatter", ImVec2(-1,0))) {
+        ImPlot::PlotScatter("Data 1", xs_scatter1, ys_scatter1, 100, {
+            ImPlotProp_MarkerFillColors, colors_scatter1_fill,
+            ImPlotProp_MarkerLineColors, colors_scatter1_line,
+        });
+        ImPlot::PlotScatter("Data 2", xs_scatter2, ys_scatter2, 50, {
+            ImPlotProp_Marker, ImPlotMarker_Square,
+            ImPlotProp_MarkerSize, 6,
+            ImPlotProp_MarkerFillColors, colors_scatter2,
+            ImPlotProp_MarkerLineColors, colors_scatter2,
+            ImPlotProp_FillAlpha, 0.5f,
+        });
+        ImPlot::EndPlot();
+    }
+
     if (ImPlot::BeginPlot("Colorful Stairs", ImVec2(-1,0))) {
         ImPlot::SetupAxes("x","y");
         ImPlot::SetupAxesLimits(0, 1, -1.5, 1.5);

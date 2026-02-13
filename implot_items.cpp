@@ -1526,15 +1526,15 @@ void RenderPrimitives3(const _Getter1& getter1, const _Getter2& getter2, const _
 // [SECTION] Markers
 //-----------------------------------------------------------------------------
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererMarkersFill : RendererBase {
-    RendererMarkersFill(const _Getter& getter, const ImVec2* marker, int count, float size, ImU32 col) :
+    RendererMarkersFill(const _Getter& getter, const _GetterColor& getter_color, const ImVec2* marker, int count, float size) :
         RendererBase(getter.Count, (count-2)*3, count),
         Getter(getter),
+        GetterColor(getter_color),
         Marker(marker),
         Count(count),
-        Size(size),
-        Col(col)
+        Size(size)
     { }
     void Init(ImDrawList& draw_list) const {
         UV = draw_list._Data->TexUvWhitePixel;
@@ -1542,11 +1542,12 @@ struct RendererMarkersFill : RendererBase {
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
         ImVec2 p = this->Transformer(Getter[prim]);
         if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y) {
+            ImU32 col = GetterColor[prim];
             for (int i = 0; i < Count; i++) {
                 draw_list._VtxWritePtr[0].pos.x = p.x + Marker[i].x * Size;
                 draw_list._VtxWritePtr[0].pos.y = p.y + Marker[i].y * Size;
                 draw_list._VtxWritePtr[0].uv = UV;
-                draw_list._VtxWritePtr[0].col = Col;
+                draw_list._VtxWritePtr[0].col = col;
                 draw_list._VtxWritePtr++;
             }
             for (int i = 2; i < Count; i++) {
@@ -1561,24 +1562,24 @@ struct RendererMarkersFill : RendererBase {
         return false;
     }
     const _Getter& Getter;
+    const _GetterColor& GetterColor;
     const ImVec2* Marker;
     const int Count;
     const float Size;
-    const ImU32 Col;
     mutable ImVec2 UV;
 };
 
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererMarkersLine : RendererBase {
-    RendererMarkersLine(const _Getter& getter, const ImVec2* marker, int count, float size, float weight, ImU32 col) :
+    RendererMarkersLine(const _Getter& getter, const _GetterColor& getter_color, const ImVec2* marker, int count, float size, float weight) :
         RendererBase(getter.Count, count/2*6, count/2*4),
         Getter(getter),
+        GetterColor(getter_color),
         Marker(marker),
         Count(count),
         HalfWeight(ImMax(1.0f,weight)*0.5f),
-        Size(size),
-        Col(col)
+        Size(size)
     { }
     void Init(ImDrawList& draw_list) const {
         GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
@@ -1586,21 +1587,22 @@ struct RendererMarkersLine : RendererBase {
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
         ImVec2 p = this->Transformer(Getter[prim]);
         if (p.x >= cull_rect.Min.x && p.y >= cull_rect.Min.y && p.x <= cull_rect.Max.x && p.y <= cull_rect.Max.y) {
+            ImU32 col = GetterColor[prim];
             for (int i = 0; i < Count; i = i + 2) {
                 ImVec2 p1(p.x + Marker[i].x * Size, p.y + Marker[i].y * Size);
                 ImVec2 p2(p.x + Marker[i+1].x * Size, p.y + Marker[i+1].y * Size);
-                PrimLine(draw_list, p1, p2, HalfWeight, Col, UV0, UV1);
+                PrimLine(draw_list, p1, p2, HalfWeight, col, UV0, UV1);
             }
             return true;
         }
         return false;
     }
     const _Getter& Getter;
+    const _GetterColor& GetterColor;
     const ImVec2* Marker;
     const int Count;
     mutable float HalfWeight;
     const float Size;
-    const ImU32 Col;
     mutable ImVec2 UV0;
     mutable ImVec2 UV1;
 };
@@ -1798,31 +1800,31 @@ constexpr ImVec2 MARKER_LINE_ASTERISK[6] = {ImVec2(-SQRT_3_2, -0.5f), ImVec2(SQR
 constexpr ImVec2 MARKER_LINE_PLUS[4]     = {ImVec2(-1, 0), ImVec2(1, 0), ImVec2(0, -1), ImVec2(0, 1)};
 constexpr ImVec2 MARKER_LINE_CROSS[4]    = {ImVec2(-SQRT_1_2,-SQRT_1_2),ImVec2(SQRT_1_2,SQRT_1_2),ImVec2(SQRT_1_2,-SQRT_1_2),ImVec2(-SQRT_1_2,SQRT_1_2)};
 
-template <typename _Getter>
-void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool rend_fill, ImU32 col_fill, bool rend_line, ImU32 col_line, float weight) {
+template <typename _Getter, typename _GetterFillColor, typename _GetterLineColor>
+void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool rend_fill, const _GetterFillColor& col_fill_getter, bool rend_line, const _GetterLineColor& col_line_getter, float weight) {
     if (rend_fill) {
         switch (marker) {
-            case ImPlotMarker_Circle  : RenderPrimitives1<RendererMarkersFill>(getter,MARKER_FILL_CIRCLE,10,size,col_fill); break;
-            case ImPlotMarker_Square  : RenderPrimitives1<RendererMarkersFill>(getter,MARKER_FILL_SQUARE, 4,size,col_fill); break;
-            case ImPlotMarker_Diamond : RenderPrimitives1<RendererMarkersFill>(getter,MARKER_FILL_DIAMOND,4,size,col_fill); break;
-            case ImPlotMarker_Up      : RenderPrimitives1<RendererMarkersFill>(getter,MARKER_FILL_UP,     3,size,col_fill); break;
-            case ImPlotMarker_Down    : RenderPrimitives1<RendererMarkersFill>(getter,MARKER_FILL_DOWN,   3,size,col_fill); break;
-            case ImPlotMarker_Left    : RenderPrimitives1<RendererMarkersFill>(getter,MARKER_FILL_LEFT,   3,size,col_fill); break;
-            case ImPlotMarker_Right   : RenderPrimitives1<RendererMarkersFill>(getter,MARKER_FILL_RIGHT,  3,size,col_fill); break;
+            case ImPlotMarker_Circle  : RenderPrimitives2<RendererMarkersFill>(getter,col_fill_getter,MARKER_FILL_CIRCLE,10,size); break;
+            case ImPlotMarker_Square  : RenderPrimitives2<RendererMarkersFill>(getter,col_fill_getter,MARKER_FILL_SQUARE, 4,size); break;
+            case ImPlotMarker_Diamond : RenderPrimitives2<RendererMarkersFill>(getter,col_fill_getter,MARKER_FILL_DIAMOND,4,size); break;
+            case ImPlotMarker_Up      : RenderPrimitives2<RendererMarkersFill>(getter,col_fill_getter,MARKER_FILL_UP,     3,size); break;
+            case ImPlotMarker_Down    : RenderPrimitives2<RendererMarkersFill>(getter,col_fill_getter,MARKER_FILL_DOWN,   3,size); break;
+            case ImPlotMarker_Left    : RenderPrimitives2<RendererMarkersFill>(getter,col_fill_getter,MARKER_FILL_LEFT,   3,size); break;
+            case ImPlotMarker_Right   : RenderPrimitives2<RendererMarkersFill>(getter,col_fill_getter,MARKER_FILL_RIGHT,  3,size); break;
         }
     }
     if (rend_line) {
         switch (marker) {
-            case ImPlotMarker_Circle    : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_CIRCLE, 20,size,weight,col_line); break;
-            case ImPlotMarker_Square    : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_SQUARE,  8,size,weight,col_line); break;
-            case ImPlotMarker_Diamond   : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_DIAMOND, 8,size,weight,col_line); break;
-            case ImPlotMarker_Up        : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_UP,      6,size,weight,col_line); break;
-            case ImPlotMarker_Down      : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_DOWN,    6,size,weight,col_line); break;
-            case ImPlotMarker_Left      : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_LEFT,    6,size,weight,col_line); break;
-            case ImPlotMarker_Right     : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_RIGHT,   6,size,weight,col_line); break;
-            case ImPlotMarker_Asterisk  : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_ASTERISK,6,size,weight,col_line); break;
-            case ImPlotMarker_Plus      : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_PLUS,    4,size,weight,col_line); break;
-            case ImPlotMarker_Cross     : RenderPrimitives1<RendererMarkersLine>(getter,MARKER_LINE_CROSS,   4,size,weight,col_line); break;
+            case ImPlotMarker_Circle    : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_CIRCLE, 20,size,weight); break;
+            case ImPlotMarker_Square    : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_SQUARE,  8,size,weight); break;
+            case ImPlotMarker_Diamond   : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_DIAMOND, 8,size,weight); break;
+            case ImPlotMarker_Up        : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_UP,      6,size,weight); break;
+            case ImPlotMarker_Down      : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_DOWN,    6,size,weight); break;
+            case ImPlotMarker_Left      : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_LEFT,    6,size,weight); break;
+            case ImPlotMarker_Right     : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_RIGHT,   6,size,weight); break;
+            case ImPlotMarker_Asterisk  : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_ASTERISK,6,size,weight); break;
+            case ImPlotMarker_Plus      : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_PLUS,    4,size,weight); break;
+            case ImPlotMarker_Cross     : RenderPrimitives2<RendererMarkersLine>(getter,col_line_getter,MARKER_LINE_CROSS,   4,size,weight); break;
         }
     }
 }
@@ -1902,7 +1904,23 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
             }
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
+            if (s.Spec.MarkerFillColors != nullptr && s.Spec.MarkerLineColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
+                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
+                RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else if (s.Spec.MarkerFillColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
+                GetterConstColor line_getter(col_line);
+                RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else if (s.Spec.MarkerLineColors != nullptr) {
+                GetterConstColor fill_getter(col_fill);
+                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
+                RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else {
+                GetterConstColor fill_getter(col_fill);
+                GetterConstColor line_getter(col_line);
+                RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            }
         }
         EndItem();
     }
@@ -1953,7 +1971,23 @@ void PlotScatterEx(const char* label_id, const Getter& getter, const ImPlotSpec&
             }
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
+            if (s.Spec.MarkerFillColors != nullptr && s.Spec.MarkerLineColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
+                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
+                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else if (s.Spec.MarkerFillColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
+                GetterConstColor line_getter(col_line);
+                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else if (s.Spec.MarkerLineColors != nullptr) {
+                GetterConstColor fill_getter(col_fill);
+                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
+                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else {
+                GetterConstColor fill_getter(col_fill);
+                GetterConstColor line_getter(col_line);
+                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            }
         }
         EndItem();
     }
@@ -2099,7 +2133,23 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
             PushPlotClipRect(s.Spec.MarkerSize);
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
+            if (s.Spec.MarkerFillColors != nullptr && s.Spec.MarkerLineColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
+                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
+                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else if (s.Spec.MarkerFillColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
+                GetterConstColor line_getter(col_line);
+                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else if (s.Spec.MarkerLineColors != nullptr) {
+                GetterConstColor fill_getter(col_fill);
+                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
+                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else {
+                GetterConstColor fill_getter(col_fill);
+                GetterConstColor line_getter(col_line);
+                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            }
         }
         EndItem();
     }
@@ -2528,7 +2578,23 @@ void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _Gette
             PushPlotClipRect(s.Spec.MarkerSize);
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
             const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.Spec.LineWeight);
+            if (s.Spec.MarkerFillColors != nullptr && s.Spec.MarkerLineColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter_mark.Count);
+                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter_mark.Count);
+                RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else if (s.Spec.MarkerFillColors != nullptr) {
+                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter_mark.Count);
+                GetterConstColor line_getter(col_line);
+                RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else if (s.Spec.MarkerLineColors != nullptr) {
+                GetterConstColor fill_getter(col_fill);
+                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter_mark.Count);
+                RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            } else {
+                GetterConstColor fill_getter(col_fill);
+                GetterConstColor line_getter(col_line);
+                RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+            }
         }
         EndItem();
     }

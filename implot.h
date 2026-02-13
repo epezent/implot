@@ -141,11 +141,13 @@ enum ImPlotProp_ {
     ImPlotProp_LineWeight,      // line weight in pixels (applies to lines, bar edges, marker edges)
     ImPlotProp_FillColor,       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
     ImPlotProp_FillColors,      // array of colors for each fill; if nullptr, use FillColor for all fills
-    ImPlotProp_FillAlpha,       // alpha multiplier (applies to FillColor and MarkerFillColor)
+    ImPlotProp_FillAlpha,       // alpha multiplier (applies to FillColor, FillColors, MarkerFillColor, and MarkerFillColors)
     ImPlotProp_Marker,          // marker type; specify ImPlotMarker_Auto to use the next unused marker
     ImPlotProp_MarkerSize,      // size of markers (radius) *in pixels*
     ImPlotProp_MarkerLineColor, // marker edge color; IMPLOT_AUTO_COL will use LineColor
+    ImPlotProp_MarkerLineColors, // array of colors for each marker edge; if nullptr, use MarkerLineColor for all markers
     ImPlotProp_MarkerFillColor, // marker face color; IMPLOT_AUTO_COL will use LineColor
+    ImPlotProp_MarkerFillColors, // array of colors for each marker face; if nullptr, use MarkerFillColor for all markers
     ImPlotProp_Size,            // size of error bar whiskers (width or height), and digital bars (height) *in pixels*
     ImPlotProp_Offset,          // data index offset
     ImPlotProp_Stride,          // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
@@ -507,11 +509,13 @@ struct ImPlotSpec {
     float           LineWeight      = 1.0f;                  // line weight in pixels (applies to lines, bar edges, marker edges)
     ImVec4          FillColor       = IMPLOT_AUTO_COL;       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
     ImU32*          FillColors      = nullptr;               // array of colors for each fill; if nullptr, use FillColor for all fills
-    float           FillAlpha       = 1.0f;                  // alpha multiplier (applies to FillColor and MarkerFillColor)
+    float           FillAlpha       = 1.0f;                  // alpha multiplier (applies to FillColor, FillColors, MarkerFillColor, and MarkerFillColors)
     ImPlotMarker    Marker          = ImPlotMarker_None;     // marker type; specify ImPlotMarker_Auto to use the next unused marker
     float           MarkerSize      = 4;                     // size of markers (radius) *in pixels*
     ImVec4          MarkerLineColor = IMPLOT_AUTO_COL;       // marker edge color; IMPLOT_AUTO_COL will use LineColor
+    ImU32*          MarkerLineColors = nullptr;              // array of colors for each marker edge; if nullptr, use MarkerLineColor for all markers
     ImVec4          MarkerFillColor = IMPLOT_AUTO_COL;       // marker face color; IMPLOT_AUTO_COL will use LineColor
+    ImU32*          MarkerFillColors = nullptr;              // array of colors for each marker face; if nullptr, use MarkerFillColor for all markers
     float           Size            = 4;                     // size of error bar whiskers (width or height), and digital bars (height) *in pixels*
     int             Offset          = 0;                     // data index offset
     int             Stride          = IMPLOT_AUTO;           // data stride in bytes; IMPLOT_AUTO will result in sizeof(T) where T is the type passed to PlotX
@@ -558,8 +562,10 @@ struct ImPlotSpec {
     // Set a property from a pointer value.
     void SetProp(ImPlotProp prop, ImU32* v) {
         switch (prop) {
-        case ImPlotProp_LineColors      : LineColors      = v;  return;
-        case ImPlotProp_FillColors      : FillColors      = v;  return;
+        case ImPlotProp_LineColors       : LineColors       = v;  return;
+        case ImPlotProp_FillColors       : FillColors       = v;  return;
+        case ImPlotProp_MarkerLineColors : MarkerLineColors = v;  return;
+        case ImPlotProp_MarkerFillColors : MarkerFillColors = v;  return;
         default: break;
         }
         IM_ASSERT(0 && "User provided an ImPlotProp which cannot be set from pointer value!");
