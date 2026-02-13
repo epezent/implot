@@ -1230,12 +1230,12 @@ struct RendererBarsLineH : RendererBase {
 };
 
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererStairsPre : RendererBase {
-    RendererStairsPre(const _Getter& getter, ImU32 col, float weight) :
+    RendererStairsPre(const _Getter& getter, const _GetterColor& getter_color, float weight) :
         RendererBase(getter.Count - 1, 12, 8),
         Getter(getter),
-        Col(col),
+        GetterColor(getter_color),
         HalfWeight(ImMax(1.0f,weight)*0.5f)
     {
         P1 = this->Transformer(Getter[0]);
@@ -1249,24 +1249,25 @@ struct RendererStairsPre : RendererBase {
             P1 = P2;
             return false;
         }
-        PrimRectFill(draw_list, ImVec2(P1.x - HalfWeight, P1.y), ImVec2(P1.x + HalfWeight, P2.y), Col, UV);
-        PrimRectFill(draw_list, ImVec2(P1.x, P2.y + HalfWeight), ImVec2(P2.x, P2.y - HalfWeight), Col, UV);
+        ImU32 col = GetterColor[prim];
+        PrimRectFill(draw_list, ImVec2(P1.x - HalfWeight, P1.y), ImVec2(P1.x + HalfWeight, P2.y), col, UV);
+        PrimRectFill(draw_list, ImVec2(P1.x, P2.y + HalfWeight), ImVec2(P2.x, P2.y - HalfWeight), col, UV);
         P1 = P2;
         return true;
     }
     const _Getter& Getter;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     mutable float HalfWeight;
     mutable ImVec2 P1;
     mutable ImVec2 UV;
 };
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererStairsPost : RendererBase {
-    RendererStairsPost(const _Getter& getter, ImU32 col, float weight) :
+    RendererStairsPost(const _Getter& getter, const _GetterColor& getter_color, float weight) :
         RendererBase(getter.Count - 1, 12, 8),
         Getter(getter),
-        Col(col),
+        GetterColor(getter_color),
         HalfWeight(ImMax(1.0f,weight) * 0.5f)
     {
         P1 = this->Transformer(Getter[0]);
@@ -1280,24 +1281,25 @@ struct RendererStairsPost : RendererBase {
             P1 = P2;
             return false;
         }
-        PrimRectFill(draw_list, ImVec2(P1.x, P1.y + HalfWeight), ImVec2(P2.x, P1.y - HalfWeight), Col, UV);
-        PrimRectFill(draw_list, ImVec2(P2.x - HalfWeight, P2.y), ImVec2(P2.x + HalfWeight, P1.y), Col, UV);
+        ImU32 col = GetterColor[prim];
+        PrimRectFill(draw_list, ImVec2(P1.x, P1.y + HalfWeight), ImVec2(P2.x, P1.y - HalfWeight), col, UV);
+        PrimRectFill(draw_list, ImVec2(P2.x - HalfWeight, P2.y), ImVec2(P2.x + HalfWeight, P1.y), col, UV);
         P1 = P2;
         return true;
     }
     const _Getter& Getter;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     mutable float HalfWeight;
     mutable ImVec2 P1;
     mutable ImVec2 UV;
 };
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererStairsPreShaded : RendererBase {
-    RendererStairsPreShaded(const _Getter& getter, ImU32 col) :
+    RendererStairsPreShaded(const _Getter& getter, const _GetterColor& getter_color) :
         RendererBase(getter.Count - 1, 6, 4),
         Getter(getter),
-        Col(col)
+        GetterColor(getter_color)
     {
         P1 = this->Transformer(Getter[0]);
         Y0 = this->Transformer(ImPlotPoint(0,0)).y;
@@ -1313,23 +1315,24 @@ struct RendererStairsPreShaded : RendererBase {
             P1 = P2;
             return false;
         }
-        PrimRectFill(draw_list, PMin, PMax, Col, UV);
+        ImU32 col = GetterColor[prim];
+        PrimRectFill(draw_list, PMin, PMax, col, UV);
         P1 = P2;
         return true;
     }
     const _Getter& Getter;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     float Y0;
     mutable ImVec2 P1;
     mutable ImVec2 UV;
 };
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererStairsPostShaded : RendererBase {
-    RendererStairsPostShaded(const _Getter& getter, ImU32 col) :
+    RendererStairsPostShaded(const _Getter& getter, const _GetterColor& getter_color) :
         RendererBase(getter.Count - 1, 6, 4),
         Getter(getter),
-        Col(col)
+        GetterColor(getter_color)
     {
         P1 = this->Transformer(Getter[0]);
         Y0 = this->Transformer(ImPlotPoint(0,0)).y;
@@ -1345,12 +1348,13 @@ struct RendererStairsPostShaded : RendererBase {
             P1 = P2;
             return false;
         }
-        PrimRectFill(draw_list, PMin, PMax, Col, UV);
+        ImU32 col = GetterColor[prim];
+        PrimRectFill(draw_list, PMin, PMax, col, UV);
         P1 = P2;
         return true;
     }
     const _Getter& Getter;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     float Y0;
     mutable ImVec2 P1;
     mutable ImVec2 UV;
@@ -2045,17 +2049,43 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
         if (getter.Count > 1) {
             if (s.RenderFill && ImHasFlag(spec.Flags,ImPlotStairsFlags_Shaded)) {
                 const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-                if (ImHasFlag(spec.Flags, ImPlotStairsFlags_PreStep))
-                    RenderPrimitives1<RendererStairsPreShaded>(getter,col_fill);
-                else
-                    RenderPrimitives1<RendererStairsPostShaded>(getter,col_fill);
+                if (ImHasFlag(spec.Flags, ImPlotStairsFlags_PreStep)) {
+                    if (s.Spec.FillColors != nullptr) {
+                        GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
+                        RenderPrimitives2<RendererStairsPreShaded>(getter, color_getter);
+                    } else {
+                        GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                        RenderPrimitives2<RendererStairsPreShaded>(getter, color_getter);
+                    }
+                } else {
+                    if (s.Spec.FillColors != nullptr) {
+                        GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
+                        RenderPrimitives2<RendererStairsPostShaded>(getter, color_getter);
+                    } else {
+                        GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                        RenderPrimitives2<RendererStairsPostShaded>(getter, color_getter);
+                    }
+                }
             }
             if (s.RenderLine) {
                 const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-                if (ImHasFlag(spec.Flags, ImPlotStairsFlags_PreStep))
-                    RenderPrimitives1<RendererStairsPre>(getter,col_line,s.Spec.LineWeight);
-                else
-                    RenderPrimitives1<RendererStairsPost>(getter,col_line,s.Spec.LineWeight);
+                if (ImHasFlag(spec.Flags, ImPlotStairsFlags_PreStep)) {
+                    if (s.Spec.LineColors != nullptr) {
+                        GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
+                        RenderPrimitives2<RendererStairsPre>(getter, color_getter, s.Spec.LineWeight);
+                    } else {
+                        GetterConstColor color_getter(col_line);
+                        RenderPrimitives2<RendererStairsPre>(getter, color_getter, s.Spec.LineWeight);
+                    }
+                } else {
+                    if (s.Spec.LineColors != nullptr) {
+                        GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
+                        RenderPrimitives2<RendererStairsPost>(getter, color_getter, s.Spec.LineWeight);
+                    } else {
+                        GetterConstColor color_getter(col_line);
+                        RenderPrimitives2<RendererStairsPost>(getter, color_getter, s.Spec.LineWeight);
+                    }
+                }
             }
         }
         // render markers

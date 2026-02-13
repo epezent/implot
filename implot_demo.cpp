@@ -1193,6 +1193,54 @@ void Demo_PerIndexColors() {
 
         ImPlot::EndPlot();
     }
+
+    if (ImPlot::BeginPlot("Colorful Stairs", ImVec2(-1,0))) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::SetupAxesLimits(0, 1, -1.5, 1.5);
+
+        // 1. Constant color stairs
+        static double xs_stairs1[20], ys_stairs1[20];
+        for (int i = 0; i < 20; ++i) {
+            xs_stairs1[i] = i / 19.0;
+            ys_stairs1[i] = sinf(xs_stairs1[i] * 6.0 * M_PI) * 0.5;
+        }
+        ImPlot::PlotStairs("Const Color", xs_stairs1, ys_stairs1, 20, {
+            ImPlotProp_LineColor, ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
+        });
+
+        // 2. Per-vertex rainbow colors
+        static double xs_stairs2[20], ys_stairs2[20];
+        static ImU32 colors_stairs_rainbow[20];
+        for (int i = 0; i < 20; ++i) {
+            xs_stairs2[i] = i / 19.0;
+            ys_stairs2[i] = cosf(xs_stairs2[i] * 4.0 * M_PI) * 0.8;
+            float t = i / 19.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Jet);
+            colors_stairs_rainbow[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotStairs("Rainbow Stairs", xs_stairs2, ys_stairs2, 20, {
+            ImPlotProp_LineColors, colors_stairs_rainbow,
+        });
+
+        // 3. Per-vertex colormap with shaded
+        static double xs_stairs3[20], ys_stairs3[20];
+        static ImU32 colors_stairs_map[20];
+        for (int i = 0; i < 20; ++i) {
+            xs_stairs3[i] = i / 19.0;
+            ys_stairs3[i] = -0.5 + sinf(xs_stairs3[i] * 8.0 * M_PI) * 0.3;
+            float t = i / 19.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+            colors_stairs_map[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotStairs("Colormap Stairs+Fill", xs_stairs3, ys_stairs3, 20, {
+            ImPlotProp_LineColors, colors_stairs_map,
+            ImPlotProp_FillColors, colors_stairs_map,
+            ImPlotProp_FillAlpha, 0.4f,
+            ImPlotProp_Flags, ImPlotStairsFlags_Shaded | ImPlotStairsFlags_PreStep
+        });
+
+        ImPlot::EndPlot();
+    }
 }
 
 //-----------------------------------------------------------------------------
