@@ -1273,6 +1273,99 @@ void Demo_PerIndexColors() {
         ImPlot::PlotBars("Vertical Colormap", data_v2, 10, 0.35, 0.35, {
             ImPlotProp_FillColors, colors_v2,
             ImPlotProp_LineColors, colors_v2,
+            ImPlotProp_FillAlpha, 0.7f,
+            ImPlotProp_LineWeight, 2.0f
+        });
+
+        ImPlot::EndPlot();
+    }
+
+    if (ImPlot::BeginPlot("Colorful Stems", ImVec2(-1,0))) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::SetupAxesLimits(-0.5, 19.5, -1.2, 1.2);
+
+        // 1. Constant color stems
+        static double xs_stem1[20], ys_stem1[20];
+        for (int i = 0; i < 20; ++i) {
+            xs_stem1[i] = i;
+            ys_stem1[i] = sinf(i * 0.4f * (float)M_PI);
+        }
+        ImPlot::PlotStems("Const Color", xs_stem1, ys_stem1, 20, 0.0, {
+            ImPlotProp_LineColor, ImVec4(1.0f, 0.3f, 0.3f, 1.0f),
+            ImPlotProp_Marker, ImPlotMarker_Circle,
+            ImPlotProp_MarkerSize, 2.0f
+        });
+
+        // 2. Per-stem rainbow colors
+        static double xs_stem2[20], ys_stem2[20];
+        static ImU32 colors_stem_rainbow[20];
+        for (int i = 0; i < 20; ++i) {
+            xs_stem2[i] = i;
+            ys_stem2[i] = cosf(i * 0.5f * (float)M_PI) * 0.8f;
+            float t = i / 19.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Jet);
+            colors_stem_rainbow[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotStems("Rainbow Stems", xs_stem2, ys_stem2, 20, 0.0, {
+            ImPlotProp_LineColors, colors_stem_rainbow,
+            ImPlotProp_Marker, ImPlotMarker_Square,
+            ImPlotProp_MarkerSize, 2.0f
+        });
+
+        // 3. Per-stem colormap colors (Viridis)
+        static double xs_stem3[20], ys_stem3[20];
+        static ImU32 colors_stem_viridis[20];
+        for (int i = 0; i < 20; ++i) {
+            xs_stem3[i] = i;
+            ys_stem3[i] = -0.5f + sinf(i * 0.3f * (float)M_PI) * 0.5f;
+            float t = i / 19.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+            colors_stem_viridis[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotStems("Colormap Stems", xs_stem3, ys_stem3, 20, 0.0, {
+            ImPlotProp_LineColors, colors_stem_viridis,
+            ImPlotProp_Marker, ImPlotMarker_Diamond,
+            ImPlotProp_MarkerSize, 2.0f
+        });
+
+        ImPlot::EndPlot();
+    }
+
+    if (ImPlot::BeginPlot("Colorful Infinite Lines", ImVec2(-1,0))) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::SetupAxesLimits(0, 10, -1, 10);
+
+        // 1. Constant color infinite lines
+        static double vals1[5] = {1.0, 2.5, 4.0, 5.5, 7.0};
+        ImPlot::PlotInfLines("Const Color", vals1, 5, {
+            ImPlotProp_LineColor, ImVec4(0.0f, 0.7f, 1.0f, 1.0f),
+        });
+
+        // 2. Per-line rainbow colors (horizontal)
+        static double vals2[8];
+        static ImU32 colors_infline_rainbow[8];
+        for (int i = 0; i < 8; ++i) {
+            vals2[i] = 1.0 + i * 1.0;
+            float t = i / 7.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Jet);
+            colors_infline_rainbow[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotInfLines("Rainbow Horizontal", vals2, 8, {
+            ImPlotProp_LineColors, colors_infline_rainbow,
+            ImPlotProp_Flags, ImPlotInfLinesFlags_Horizontal
+        });
+
+        // 3. Per-line colormap colors (vertical)
+        static double vals3[6];
+        static ImU32 colors_infline_viridis[6];
+        for (int i = 0; i < 6; ++i) {
+            vals3[i] = 1.5 + i * 1.5;
+            float t = i / 5.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Plasma);
+            colors_infline_viridis[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotInfLines("Plasma Vertical", vals3, 6, {
+            ImPlotProp_LineColors, colors_infline_viridis,
         });
 
         ImPlot::EndPlot();

@@ -1045,13 +1045,13 @@ struct RendererLineSegments1 : RendererBase {
     mutable ImVec2 UV1;
 };
 
-template <class _Getter1, class _Getter2>
+template <class _Getter1, class _Getter2, class _GetterColor>
 struct RendererLineSegments2 : RendererBase {
-    RendererLineSegments2(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, float weight) :
+    RendererLineSegments2(const _Getter1& getter1, const _Getter2& getter2, const _GetterColor& getter_color, float weight) :
         RendererBase(ImMin(getter1.Count, getter1.Count), 6, 4),
         Getter1(getter1),
         Getter2(getter2),
-        Col(col),
+        GetterColor(getter_color),
         HalfWeight(ImMax(1.0f,weight)*0.5f)
     {}
     void Init(ImDrawList& draw_list) const {
@@ -1062,12 +1062,13 @@ struct RendererLineSegments2 : RendererBase {
         ImVec2 P2 = this->Transformer(Getter2[prim]);
         if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
             return false;
-        PrimLine(draw_list,P1,P2,HalfWeight,Col,UV0,UV1);
+        ImU32 col = GetterColor[prim];
+        PrimLine(draw_list,P1,P2,HalfWeight,col,UV0,UV1);
         return true;
     }
     const _Getter1& Getter1;
     const _Getter2& Getter2;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     mutable float HalfWeight;
     mutable ImVec2 UV0;
     mutable ImVec2 UV1;
@@ -2513,7 +2514,13 @@ void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _Gette
         // render stems
         if (s.RenderLine) {
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-            RenderPrimitives2<RendererLineSegments2>(getter_mark, getter_base, col_line, s.Spec.LineWeight);
+            if (s.Spec.LineColors != nullptr) {
+                GetterIdxColor color_getter(s.Spec.LineColors, getter_mark.Count);
+                RenderPrimitives3<RendererLineSegments2>(getter_mark, getter_base, color_getter, s.Spec.LineWeight);
+            } else {
+                GetterConstColor color_getter(col_line);
+                RenderPrimitives3<RendererLineSegments2>(getter_mark, getter_base, color_getter, s.Spec.LineWeight);
+            }
         }
         // render markers
         if (s.RenderMarkers) {
@@ -2579,8 +2586,15 @@ void PlotInfLines(const char* label_id, const T* values, int count, const ImPlot
             }
             const ImPlotNextItemData& s = GetItemData();
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-            if (s.RenderLine)
-                RenderPrimitives2<RendererLineSegments2>(getter_min, getter_max, col_line, s.Spec.LineWeight);
+            if (s.RenderLine) {
+                if (s.Spec.LineColors != nullptr) {
+                    GetterIdxColor color_getter(s.Spec.LineColors, count);
+                    RenderPrimitives3<RendererLineSegments2>(getter_min, getter_max, color_getter, s.Spec.LineWeight);
+                } else {
+                    GetterConstColor color_getter(col_line);
+                    RenderPrimitives3<RendererLineSegments2>(getter_min, getter_max, color_getter, s.Spec.LineWeight);
+                }
+            }
             EndItem();
         }
     }
@@ -2594,8 +2608,15 @@ void PlotInfLines(const char* label_id, const T* values, int count, const ImPlot
             }
             const ImPlotNextItemData& s = GetItemData();
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-            if (s.RenderLine)
-                RenderPrimitives2<RendererLineSegments2>(get_min, get_max, col_line, s.Spec.LineWeight);
+            if (s.RenderLine) {
+                if (s.Spec.LineColors != nullptr) {
+                    GetterIdxColor color_getter(s.Spec.LineColors, count);
+                    RenderPrimitives3<RendererLineSegments2>(get_min, get_max, color_getter, s.Spec.LineWeight);
+                } else {
+                    GetterConstColor color_getter(col_line);
+                    RenderPrimitives3<RendererLineSegments2>(get_min, get_max, color_getter, s.Spec.LineWeight);
+                }
+            }
             EndItem();
         }
     }
