@@ -1016,12 +1016,12 @@ struct RendererLineStripSkip : RendererBase {
     mutable ImVec2 UV1;
 };
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererLineSegments1 : RendererBase {
-    RendererLineSegments1(const _Getter& getter, ImU32 col, float weight) :
+    RendererLineSegments1(const _Getter& getter, const _GetterColor& getter_color, float weight) :
         RendererBase(getter.Count / 2, 6, 4),
         Getter(getter),
-        Col(col),
+        GetterColor(getter_color),
         HalfWeight(ImMax(1.0f,weight)*0.5f)
     { }
     void Init(ImDrawList& draw_list) const {
@@ -1032,11 +1032,12 @@ struct RendererLineSegments1 : RendererBase {
         ImVec2 P2 = this->Transformer(Getter[prim*2+1]);
         if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))))
             return false;
-        PrimLine(draw_list,P1,P2,HalfWeight,Col,UV0,UV1);
+        ImU32 col = GetterColor[prim*2];
+        PrimLine(draw_list,P1,P2,HalfWeight,col,UV0,UV1);
         return true;
     }
     const _Getter& Getter;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     mutable float HalfWeight;
     mutable ImVec2 UV0;
     mutable ImVec2 UV1;
@@ -1826,7 +1827,13 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
             if (s.RenderLine) {
                 const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
                 if (ImHasFlag(spec.Flags,ImPlotLineFlags_Segments)) {
-                    RenderPrimitives1<RendererLineSegments1>(getter,col_line,s.Spec.LineWeight);
+                    if (s.Spec.LineColors != NULL) {
+                        IndexerIdxColor color_indexer(s.Spec.LineColors, getter.Count);
+                        RenderPrimitives2<RendererLineSegments1>(getter,color_indexer,s.Spec.LineWeight);
+                    } else {
+                        IndexerConstColor color_indexer(col_line);
+                        RenderPrimitives2<RendererLineSegments1>(getter,color_indexer,s.Spec.LineWeight);
+                    }
                 }
                 else if (ImHasFlag(spec.Flags, ImPlotLineFlags_Loop)) {
                     if (s.Spec.LineColors != NULL) {

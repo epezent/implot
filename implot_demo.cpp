@@ -1061,20 +1061,50 @@ void Demo_NaNValues() {
 
 //-----------------------------------------------------------------------------
 
-void Demo_PerPointColors() {
-    static float xs1[1001], ys1[1001];
-    static ImU32 colors1[1001];
-    for (int i = 0; i < 1001; ++i) {
-        xs1[i] = i * 0.001f;
-        ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + (float)ImGui::GetTime() / 10));
-        colors1[i] = ImGui::GetColorU32(ImVec4(ys1[i], 0.5f, 1.0f - ys1[i], 1.0f));
-    }
+void Demo_PerIndexColors() {
+    static float xs1[101], ys1[101], ys2[101], ys3[101];
+    static ImU32 colors_rainbow[101];
+    static ImU32 colors_colormap[101];
 
-    if (ImPlot::BeginPlot("Colorful Line Plot", ImVec2(-1,0))) {
-        ImPlot::PlotLine("f(x)", xs1, ys1, 1001, {
-            ImPlotProp_LineColor, ImVec4(1,0,1,1),
-            ImPlotProp_LineColors, colors1,
+    ImPlot::PushColormap(ImPlotColormap_Hot);
+    for (int i = 0; i < 101; ++i) {
+        xs1[i] = i * 0.01f;
+        ys1[i] = 0.5f + 0.3f * sinf(20 * xs1[i]);
+        ys2[i] = 0.2f + 0.3f * sinf(15 * xs1[i] + 1.0f);
+        ys3[i] = -0.1f + 0.3f * sinf(10 * xs1[i] + 2.0f);
+
+        // Rainbow colors (HSV sweep)
+        float hue = (float)i / 100.0f;
+        colors_rainbow[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Sample from current colormap
+        float t = (float)i / 100.0f;
+        colors_colormap[i] = ImColor(ImPlot::SampleColormap(t));
+    }
+    ImPlot::PopColormap();
+
+    if (ImPlot::BeginPlot("Colorful Lines", ImVec2(-1,0))) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::SetupAxesLimits(0, 1, -0.5, 1.0);
+
+        // 1. Constant color via LineColor (default behavior)
+        ImPlot::PlotLine("Const Color", xs1, ys1, 101, {
+            ImPlotProp_LineColor, ImVec4(1, 0.5f, 0, 1),
+            ImPlotProp_LineWeight, 1.0f
         });
+
+        // 2. Per-vertex colors via LineColors (rainbow)
+        ImPlot::PlotLine("Rainbow Colors", xs1, ys2, 101, {
+            ImPlotProp_LineColors, colors_rainbow,
+            ImPlotProp_LineWeight, 2.0f
+        });
+
+        // 3. Per-vertex colors sampled from colormap
+        ImPlot::PlotLine("Colormap Colors", xs1, ys3, 101, {
+            ImPlotProp_LineColors, colors_colormap,
+            ImPlotProp_LineWeight, 3.0f
+        });
+
         ImPlot::EndPlot();
     }
 }
@@ -2416,7 +2446,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Images", Demo_Images);
             DemoHeader("Markers and Text", Demo_MarkersAndText);
             DemoHeader("NaN Values", Demo_NaNValues);
-            DemoHeader("Per Point Colors", Demo_PerPointColors);
+            DemoHeader("Per-Index Colors", Demo_PerIndexColors);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Subplots")) {
