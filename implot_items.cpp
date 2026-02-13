@@ -577,19 +577,29 @@ struct GetterXY {
     const int Count;
 };
 
+// Implementation of a 4D point with double precision.
+struct ImPlotPoint4D {
+    double x, y, z, w;
+    IMPLOT_API constexpr ImPlotPoint4D() : x(0.0), y(0.0), z(0.0), w(0.0) { }
+    IMPLOT_API constexpr ImPlotPoint4D(double _x, double _y, double _z, double _w) : x(_x), y(_y), z(_z), w(_w) { }
+    IMPLOT_API constexpr ImPlotPoint4D(const ImVec2& p, const ImVec2& q) : x((double)p.x), y((double)p.y), z((double)q.x), w((double)q.y) { }
+    IMPLOT_API constexpr ImPlotPoint4D(const ImVec4& r) : x((double)r.x), y((double)r.y), z((double)r.z), w((double)r.w) { }
+    IMPLOT_API double& operator[] (size_t idx)       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2 || idx == 3); return ((double*)(void*)(char*)this)[idx]; }
+    IMPLOT_API double  operator[] (size_t idx) const { IM_ASSERT(idx == 0 || idx == 1 || idx == 2 || idx == 3); return ((const double*)(const void*)(const char*)this)[idx]; }
+};
+
 // Functor for returning a 2D vector in 2D space (For Quiver plots)
 template <typename _IndexerX, typename _IndexerY, typename _IndexerU, typename _IndexerV>
 struct GetterXYUV {
-    GetterXYUV(_IndexerX x, _IndexerY y, _IndexerU u, _IndexerV v, int count) 
+    GetterXYUV(_IndexerX x, _IndexerY y, _IndexerU u, _IndexerV v, int count)
         : IndxerX(x), IndxerY(y), IndxerU(u), IndxerV(v), Count(count) { }
-    
-    template <typename I> IMPLOT_INLINE ImPlotQuiver operator()(I idx) const {
-        double u_val = IndxerU(idx);
-        double v_val = IndxerV(idx);
-        double mag = sqrt(u_val*u_val + v_val*v_val);
-        return ImPlotQuiver(IndxerX(idx), IndxerY(idx), u_val, v_val, mag);
+
+    template <typename I> IMPLOT_INLINE ImPlotPoint4D operator()(I idx) const {
+        double z_val = IndxerU(idx);
+        double w_val = IndxerV(idx);
+        return ImPlotPoint4D(IndxerX(idx), IndxerY(idx), z_val, w_val);
     }
-    
+
     const _IndexerX IndxerX;
     const _IndexerY IndxerY;
     const _IndexerU IndxerU;
@@ -741,7 +751,7 @@ struct FitterVector {
     FitterVector(const _Getter1& getter) : Getter(getter) { }
     void Fit(ImPlotAxis& x_axis, ImPlotAxis& y_axis) const {
         for (int i = 0; i < Getter.Count; ++i) {
-            ImPlotQuiver p = Getter(i);
+            ImPlotPoint4D p = Getter(i);
             x_axis.ExtendFitWith(y_axis, p.x, p.y);
             y_axis.ExtendFitWith(x_axis, p.y, p.x);
         }
@@ -1639,16 +1649,16 @@ struct RendererVectorFill : RendererBase {
         UV = draw_list._Data->TexUvWhitePixel;
     }
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
-        ImPlotQuiver vec = Getter(prim);
+        ImPlotPoint4D vec = Getter(prim);
 
         ImVec2 p;
         p.x = this->Transformer.Tx(vec.x);
         p.y = this->Transformer.Ty(vec.y);
 
-        float theta = ImAtan2(-vec.v, vec.u);
+        float theta = ImAtan2(-vec.w, vec.z);
         float cos_theta = ImCos(theta);
         float sin_theta = ImSin(theta);
-        double mag = (double)ImSqrt(vec.mag2);
+        double mag = (double)ImSqrt(vec.z*vec.z + vec.w*vec.w);
 
         double size_scale = Normalized ? 1.0 : ImClamp(ImRemap01(mag, MinMag, MaxMag), 0.0, 1.0);
         ImU32 color_final = Col;

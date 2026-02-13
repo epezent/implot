@@ -494,26 +494,6 @@ struct ImPlotPoint {
 };
 IM_MSVC_RUNTIME_CHECKS_RESTORE
 
-IM_MSVC_RUNTIME_CHECKS_OFF
-// Implementation of a 2D plot vector with double precision.
-struct ImPlotQuiver {
-    double x, y;
-    double u, v;
-    double mag2;
-    IMPLOT_API constexpr ImPlotQuiver()                     : x(0.0), y(0.0), u(0.0), v(0.0), mag2(0.0) { }
-    IMPLOT_API constexpr ImPlotQuiver(double _x, double _y, double _u, double _v) : x(_x), y(_y), u(_u), v(_v), mag2((_u*_u + _v*_v)) { }
-    IMPLOT_API constexpr ImPlotQuiver(double _x, double _y, double _u, double _v, double _mag2) : x(_x), y(_y), u(_u), v(_v), mag2(_mag2) { }  // ADD THIS
-    IMPLOT_API constexpr ImPlotQuiver(const ImVec2& p, const ImVec2& q)      : x((double)p.x), y((double)p.y), u((double)q.x), v((double)q.y), mag2((q.x*q.x + q.y*q.y)) { }
-    IMPLOT_API constexpr ImPlotQuiver(const ImVec4& r)      : x((double)r.x), y((double)r.y), u((double)r.z), v((double)r.w), mag2((r.z*r.z + r.w*r.w)) { }
-    IMPLOT_API double& operator[] (size_t idx)             { IM_ASSERT(idx == 0 || idx == 1 || idx == 2 || idx == 3 || idx == 4); return ((double*)(void*)(char*)this)[idx]; }
-    IMPLOT_API double  operator[] (size_t idx) const       { IM_ASSERT(idx == 0 || idx == 1 || idx == 2 || idx == 3 || idx == 4); return ((const double*)(const void*)(const char*)this)[idx]; }
-#ifdef IMPLOT_POINT_CLASS_EXTRA
-    IMPLOT_POINT_CLASS_EXTRA     
-                                 
-#endif
-};
-IM_MSVC_RUNTIME_CHECKS_RESTORE
-
 // Range defined by a min/max value.
 struct ImPlotRange {
     double Min, Max;
