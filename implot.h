@@ -967,7 +967,7 @@ IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* da
 IMPLOT_TMP void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
 IMPLOT_TMP void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, const ImPlotSpec& spec=ImPlotSpec());
 
-// Plots a polygon. Points are specified as separate x and y arrays. Supports both convex and concave polygons.
+// Plots a polygon. Points are specified in counter-clockwise order. If concave, make sure to set the Concave flag.
 IMPLOT_TMP void PlotPolygon(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec=ImPlotSpec());
 
 // Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]

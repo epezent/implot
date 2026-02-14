@@ -1959,7 +1959,7 @@ void PlotPolygonEx(const char* label_id, const Getter& getter, const ImPlotSpec&
         const ImPlotAxis& y_axis = GetCurrentPlot()->Axes[GetCurrentPlot()->CurrentY];
         Transformer2 transformer(x_axis, y_axis);
 
-        // Flip points to make sure they are in clockwise order for correct filling when one axis is inverted
+        // Flip points to make sure they are in counter-clockwise order for correct filling when one axis is inverted
         bool x_inv = ImHasFlag(x_axis.Flags, ImPlotAxisFlags_Invert);
         bool y_inv = ImHasFlag(y_axis.Flags, ImPlotAxisFlags_Invert);
         bool flip = !((x_inv ? 1 : 0) ^ (y_inv ? 1 : 0));
