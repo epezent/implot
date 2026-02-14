@@ -2202,7 +2202,39 @@ void Demo_CustomPlottersAndTooltips()  {
         MyImPlot::PlotCandlestick("GOOGL",dates, opens, closes, lows, highs, 218, tooltip, 0.25f, bullCol, bearCol);
         ImPlot::EndPlot();
     }
+}
+
+void Demo_CustomColors() {
+
+    if (ImPlot::BeginPlot("Custom Colors")){
+        ImPlot::PlotLineCG("Line Plot", 
+            [](int idx, void* user_data){ 
+                return ImPlotPoint(0.1*idx, sin(0.1*idx)); 
+            }, nullptr, 100, 
+            [](ImPlotCol col, int idx, void* user_data){ 
+                switch (idx % 3){
+                case 0 : return 0xFF0000FFu;
+                case 1 : return 0xFF00FF00u;
+                case 2 : return 0xFFFF0000u;
+                default: return 0u;
+                }
+            }, nullptr);
+        ImPlot::PlotScatterCG("Scatter Plot", 
+            [](int idx, void* user_data){ 
+                srand(idx);
+                return ImPlotPoint(10.0*float(rand())/float(RAND_MAX), -1.0+2.0*float(rand())/float(RAND_MAX));
+            }, nullptr, 20, 
+            [](ImPlotCol col, int idx, void* user_data){ 
+                switch (idx % 3){
+                case 0 : return 0xFF0000FFu;
+                case 1 : return 0xFF00FF00u;
+                case 2 : return 0xFFFF0000u;
+                default: return 0u;
+                }
+            }, nullptr);
+        ImPlot::EndPlot();
     }
+}
 
 //-----------------------------------------------------------------------------
 // DEMO WINDOW
@@ -2292,6 +2324,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Images", Demo_Images);
             DemoHeader("Markers and Text", Demo_MarkersAndText);
             DemoHeader("NaN Values", Demo_NaNValues);
+            DemoHeader("Custom Colors", Demo_CustomColors);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Subplots")) {

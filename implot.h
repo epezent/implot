@@ -599,6 +599,9 @@ typedef int (*ImPlotFormatter)(double value, char* buff, int size, void* user_da
 // Callback signature for data getter.
 typedef ImPlotPoint (*ImPlotGetter)(int idx, void* user_data);
 
+// Callback signature for color getter.
+typedef ImU32 (*ImPlotColorGetter)(ImPlotCol col, int idx, void* user_data);
+
 // Callback signature for axis transform.
 typedef double (*ImPlotTransform)(double value, void* user_data);
 
@@ -868,11 +871,13 @@ IMPLOT_API void SetNextAxesToFit();
 IMPLOT_TMP void PlotLine(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotLine(const char* label_id, const T* xs, const T* ys, int count, ImPlotLineFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotLineG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotLineFlags flags=0);
+IMPLOT_API void PlotLineCG(const char* label_id, ImPlotGetter getter_func, void* data, int count, ImPlotColorGetter color_func, void* color_data, ImPlotLineFlags flags=0);
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, int count, ImPlotScatterFlags flags=0, int offset=0, int stride=sizeof(T));
 IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotScatterFlags flags=0);
+IMPLOT_API void PlotScatterCG(const char* label_id, ImPlotGetter getter, void* data, int count, ImPlotColorGetter color_func, void* color_data, ImPlotScatterFlags flags=0);
 
 // Plots a bubble graph. #szs are the radius of each bubble in plot units.
 IMPLOT_TMP void PlotBubble(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, ImPlotBubbleFlags flags=0, int offset=0, int stride=sizeof(T));
