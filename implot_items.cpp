@@ -1829,6 +1829,30 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool 
     }
 }
 
+template <typename _Getter>
+void RenderColoredMarkers(const _Getter& getter, const ImPlotNextItemData& s) {
+    const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
+    const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
+
+    if (s.Spec.MarkerFillColors != nullptr && s.Spec.MarkerLineColors != nullptr) {
+        GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
+        GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
+        RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+    } else if (s.Spec.MarkerFillColors != nullptr) {
+        GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
+        GetterConstColor line_getter(col_line);
+        RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+    } else if (s.Spec.MarkerLineColors != nullptr) {
+        GetterConstColor fill_getter(col_fill);
+        GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
+        RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+    } else {
+        GetterConstColor fill_getter(col_fill);
+        GetterConstColor line_getter(col_line);
+        RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
+    }
+}
+
 //-----------------------------------------------------------------------------
 // [SECTION] PlotLine
 //-----------------------------------------------------------------------------
@@ -1902,25 +1926,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                 PopPlotClipRect();
                 PushPlotClipRect(s.Spec.MarkerSize);
             }
-            const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            if (s.Spec.MarkerFillColors != nullptr && s.Spec.MarkerLineColors != nullptr) {
-                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
-                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
-                RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else if (s.Spec.MarkerFillColors != nullptr) {
-                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
-                GetterConstColor line_getter(col_line);
-                RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else if (s.Spec.MarkerLineColors != nullptr) {
-                GetterConstColor fill_getter(col_fill);
-                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
-                RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else {
-                GetterConstColor fill_getter(col_fill);
-                GetterConstColor line_getter(col_line);
-                RenderMarkers<_Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            }
+            RenderColoredMarkers(getter, s);
         }
         EndItem();
     }
@@ -1969,25 +1975,7 @@ void PlotScatterEx(const char* label_id, const Getter& getter, const ImPlotSpec&
                 PopPlotClipRect();
                 PushPlotClipRect(s.Spec.MarkerSize);
             }
-            const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            if (s.Spec.MarkerFillColors != nullptr && s.Spec.MarkerLineColors != nullptr) {
-                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
-                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
-                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else if (s.Spec.MarkerFillColors != nullptr) {
-                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
-                GetterConstColor line_getter(col_line);
-                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else if (s.Spec.MarkerLineColors != nullptr) {
-                GetterConstColor fill_getter(col_fill);
-                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
-                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else {
-                GetterConstColor fill_getter(col_fill);
-                GetterConstColor line_getter(col_line);
-                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            }
+            RenderColoredMarkers(getter, s);
         }
         EndItem();
     }
@@ -2131,25 +2119,7 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
         if (s.RenderMarkers) {
             PopPlotClipRect();
             PushPlotClipRect(s.Spec.MarkerSize);
-            const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            if (s.Spec.MarkerFillColors != nullptr && s.Spec.MarkerLineColors != nullptr) {
-                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
-                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
-                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else if (s.Spec.MarkerFillColors != nullptr) {
-                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter.Count, s.Spec.FillAlpha);
-                GetterConstColor line_getter(col_line);
-                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else if (s.Spec.MarkerLineColors != nullptr) {
-                GetterConstColor fill_getter(col_fill);
-                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter.Count);
-                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else {
-                GetterConstColor fill_getter(col_fill);
-                GetterConstColor line_getter(col_line);
-                RenderMarkers<Getter>(getter, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            }
+            RenderColoredMarkers(getter, s);
         }
         EndItem();
     }
@@ -2576,25 +2546,7 @@ void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _Gette
         if (s.RenderMarkers) {
             PopPlotClipRect();
             PushPlotClipRect(s.Spec.MarkerSize);
-            const ImU32 col_line = ImGui::GetColorU32(s.Spec.MarkerLineColor);
-            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.MarkerFillColor);
-            if (s.Spec.MarkerFillColors != nullptr && s.Spec.MarkerLineColors != nullptr) {
-                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter_mark.Count);
-                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter_mark.Count);
-                RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else if (s.Spec.MarkerFillColors != nullptr) {
-                GetterIdxColor fill_getter(s.Spec.MarkerFillColors, getter_mark.Count);
-                GetterConstColor line_getter(col_line);
-                RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else if (s.Spec.MarkerLineColors != nullptr) {
-                GetterConstColor fill_getter(col_fill);
-                GetterIdxColor line_getter(s.Spec.MarkerLineColors, getter_mark.Count);
-                RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            } else {
-                GetterConstColor fill_getter(col_fill);
-                GetterConstColor line_getter(col_line);
-                RenderMarkers<_GetterM>(getter_mark, s.Spec.Marker, s.Spec.MarkerSize, s.RenderMarkerFill, fill_getter, s.RenderMarkerLine, line_getter, s.Spec.LineWeight);
-            }
+            RenderColoredMarkers(getter_mark, s);
         }
         EndItem();
     }
