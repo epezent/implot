@@ -1203,12 +1203,12 @@ void Demo_PerIndexColors() {
     }
 
     if (ImPlot::BeginPlot("Colorful Bubbles", ImVec2(-1,0), ImPlotFlags_Equal)) {
-        ImPlot::PlotBubble("Data 1", xs_bubble, ys1_bubble, szs1_bubble, 20, {
+        ImPlot::PlotBubbles("Data 1", xs_bubble, ys1_bubble, szs1_bubble, 20, {
             ImPlotProp_FillAlpha, 0.5f,
             ImPlotProp_FillColors, colors1_bubble,
             ImPlotProp_LineColors, colors1_bubble
         });
-        ImPlot::PlotBubble("Data 2", xs_bubble, ys2_bubble, szs2_bubble, 20, {
+        ImPlot::PlotBubbles("Data 2", xs_bubble, ys2_bubble, szs2_bubble, 20, {
             ImPlotProp_FillAlpha, 0.5f,
             ImPlotProp_LineColor, ImVec4(0,0,0,0.0),
             ImPlotProp_FillColors, colors2_bubble
