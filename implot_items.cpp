@@ -1701,7 +1701,6 @@ struct RendererCircleLine : RendererBase {
     mutable ImVec2 UV1;
 };
 
-
 static const ImVec2 MARKER_FILL_CIRCLE[10]  = {ImVec2(1.0f, 0.0f), ImVec2(0.809017f, 0.58778524f),ImVec2(0.30901697f, 0.95105654f),ImVec2(-0.30901703f, 0.9510565f),ImVec2(-0.80901706f, 0.5877852f),ImVec2(-1.0f, 0.0f),ImVec2(-0.80901694f, -0.58778536f),ImVec2(-0.3090171f, -0.9510565f),ImVec2(0.30901712f, -0.9510565f),ImVec2(0.80901694f, -0.5877853f)};
 static const ImVec2 MARKER_FILL_SQUARE[4]   = {ImVec2(SQRT_1_2,SQRT_1_2), ImVec2(SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,-SQRT_1_2), ImVec2(-SQRT_1_2,SQRT_1_2)};
 static const ImVec2 MARKER_FILL_DIAMOND[4]  = {ImVec2(1, 0), ImVec2(0, -1), ImVec2(-1, 0), ImVec2(0, 1)};
@@ -1938,6 +1937,64 @@ void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, i
 #define INSTANTIATE_MACRO(T) \
     template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* values, const T* szs, int count, double xscale, double x0, const ImPlotSpec& spec); \
     template IMPLOT_API void PlotBubbles<T>(const char* label_id, const T* xs, const T* ys, const T* szs, int count, const ImPlotSpec& spec);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
+
+//-----------------------------------------------------------------------------
+// [SECTION] PlotPolygon
+//-----------------------------------------------------------------------------
+
+template <typename Getter>
+void PlotPolygonEx(const char* label_id, const Getter& getter, const ImPlotSpec& spec) {
+    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.FillColor, spec.Marker)) {
+        if (getter.Count < 2) {
+            EndItem();
+            return;
+        }
+        const ImPlotNextItemData& s = GetItemData();
+        const bool is_concave = ImHasFlag(spec.Flags, ImPlotPolygonFlags_Concave);
+
+        ImDrawList& draw_list = *GetPlotDrawList();
+        const ImPlotAxis& x_axis = GetCurrentPlot()->Axes[GetCurrentPlot()->CurrentX];
+        const ImPlotAxis& y_axis = GetCurrentPlot()->Axes[GetCurrentPlot()->CurrentY];
+        Transformer2 transformer(x_axis, y_axis);
+
+        // Flip points to make sure they are in clockwise order for correct filling when one axis is inverted
+        bool x_inv = ImHasFlag(x_axis.Flags, ImPlotAxisFlags_Invert);
+        bool y_inv = ImHasFlag(y_axis.Flags, ImPlotAxisFlags_Invert);
+        bool flip = !((x_inv ? 1 : 0) ^ (y_inv ? 1 : 0));
+
+        // Transform all points to screen space
+        ImVec2* points = (ImVec2*)alloca(getter.Count * sizeof(ImVec2));
+        for (int i = 0; i < getter.Count; ++i) {
+            ImPlotPoint p = flip ? getter[getter.Count - 1 - i] : getter[i];
+            points[i] = transformer(p);
+        }
+
+        if (s.RenderFill && getter.Count >= 3) {
+            const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+            if (is_concave)
+                draw_list.AddConcavePolyFilled(points, getter.Count, col_fill);
+            else
+                draw_list.AddConvexPolyFilled(points, getter.Count, col_fill);
+        }
+        if (s.RenderLine && getter.Count >= 2) {
+            const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
+            draw_list.AddPolyline(points, getter.Count, col_line, ImDrawFlags_Closed, s.Spec.LineWeight);
+        }
+
+        EndItem();
+    }
+}
+
+template <typename T>
+void PlotPolygon(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec) {
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter(IndexerIdx<T>(xs,count,spec.Offset,Stride<T>(spec)),IndexerIdx<T>(ys,count,spec.Offset,Stride<T>(spec)),count);
+    return PlotPolygonEx(label_id, getter, spec);
+}
+
+#define INSTANTIATE_MACRO(T) \
+    template IMPLOT_API void PlotPolygon<T>(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 

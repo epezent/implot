@@ -445,6 +445,48 @@ void Demo_BubblePlots() {
 
 //-----------------------------------------------------------------------------
 
+void Demo_PolygonPlots() {
+    // Triangle (convex)
+    static float tri_xs[3] = {0.5f, 1.0f, 0.0f};
+    static float tri_ys[3] = {1.0f, 0.0f, 0.0f};
+
+    // Pentagon (convex)
+    static float pent_xs[5], pent_ys[5];
+    for (int i = 0; i < 5; ++i) {
+        float angle = (float)i * 2.0f * 3.14159f / 5.0f - 3.14159f / 2.0f;
+        pent_xs[i] = 3.0f + 0.8f * cosf(angle);
+        pent_ys[i] = 0.5f + 0.8f * sinf(angle);
+    }
+
+    // Star (concave), counter-clockwise
+    static float star_xs[10], star_ys[10];
+    for (int i = 0; i < 10; ++i) {
+        float angle = (float)i * 2.0f * 3.14159f / 10.0f - 3.14159f / 2.0f;
+        float radius = (i % 2 == 0) ? 0.8f : 0.3f;
+        star_xs[i] = 5.5f + radius * cosf(angle);
+        star_ys[i] = 0.5f + radius * sinf(angle);
+    }
+
+    if (ImPlot::BeginPlot("Polygon Plot", ImVec2(-1,0), ImPlotFlags_Equal)) {
+        ImPlot::PlotPolygon("Triangle", tri_xs, tri_ys, 3, {
+            ImPlotProp_FillAlpha, 0.5f,
+        });
+        ImPlot::PlotPolygon("Pentagon", pent_xs, pent_ys, 5, {
+            ImPlotProp_FillAlpha, 0.5f,
+            ImPlotProp_FillColor, ImVec4(0,1,0,1),
+        });
+        ImPlot::PlotPolygon("Star (Concave)", star_xs, star_ys, 10, {
+            ImPlotProp_FillAlpha, 0.5f,
+            ImPlotProp_FillColor, ImVec4(1,1,0,1),
+            ImPlotProp_Flags, ImPlotPolygonFlags_Concave,
+        });
+
+        ImPlot::EndPlot();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 void Demo_StairstepPlots() {
     static float ys1[21], ys2[21];
     for (int i = 0; i < 21; ++i) {
@@ -2380,6 +2422,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Shaded Plots##", Demo_ShadedPlots);
             DemoHeader("Scatter Plots", Demo_ScatterPlots);
             DemoHeader("Bubble Plots", Demo_BubblePlots);
+            DemoHeader("Polygon Plots", Demo_PolygonPlots);
             DemoHeader("Realtime Plots", Demo_RealtimePlots);
             DemoHeader("Stairstep Plots", Demo_StairstepPlots);
             DemoHeader("Bar Plots", Demo_BarPlots);

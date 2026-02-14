@@ -95,6 +95,7 @@ typedef int ImPlotItemFlags;          // -> ImPlotItemFlags_
 typedef int ImPlotLineFlags;          // -> ImPlotLineFlags_
 typedef int ImPlotScatterFlags;       // -> ImPlotScatterFlags
 typedef int ImPlotBubblesFlags;       // -> ImPlotBubblesFlags
+typedef int ImPlotPolygonFlags;       // -> ImPlotPolygonFlags_
 typedef int ImPlotStairsFlags;        // -> ImPlotStairsFlags_
 typedef int ImPlotShadedFlags;        // -> ImPlotShadedFlags_
 typedef int ImPlotBarsFlags;          // -> ImPlotBarsFlags_
@@ -269,6 +270,12 @@ enum ImPlotScatterFlags_ {
 // Flags for PlotBubbles. Used by setting ImPlotSpec::Flags.
 enum ImPlotBubblesFlags_ {
   ImPlotBubblesFlags_None = 0, // default
+};
+
+// Flags for PlotPolygon. Used by setting ImPlotSpec::Flags.
+enum ImPlotPolygonFlags_ {
+  ImPlotPolygonFlags_None     = 0,       // default (closed, convex polygon)
+  ImPlotPolygonFlags_Concave  = 1 << 10, // use concave polygon filling (slower but supports concave shapes)
 };
 
 // Flags for PlotStairs. Used by setting ImPlotSpec::Flags.
@@ -960,6 +967,9 @@ IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* da
 IMPLOT_TMP void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
 IMPLOT_TMP void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, const ImPlotSpec& spec=ImPlotSpec());
 
+// Plots a polygon. Points are specified as separate x and y arrays. Supports both convex and concave polygons.
+IMPLOT_TMP void PlotPolygon(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec=ImPlotSpec());
+
 // Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec=ImPlotSpec());
@@ -1193,7 +1203,7 @@ IMPLOT_API void PushStyleVar(ImPlotStyleVar idx, int val);
 IMPLOT_API void PushStyleVar(ImPlotStyleVar idx, const ImVec2& val);
 // Undo temporary style variable modification(s). Undo multiple pushes at once by increasing count.
 IMPLOT_API void PopStyleVar(int count = 1);
-    
+
 // Gets the last item primary color (i.e. its legend icon color)
 IMPLOT_API ImVec4 GetLastItemColor();
 
@@ -1201,10 +1211,10 @@ IMPLOT_API ImVec4 GetLastItemColor();
 IMPLOT_API const char* GetStyleColorName(ImPlotCol idx);
 // Returns the null terminated string name for an ImPlotMarker.
 IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
-    
+
 // Returns the next marker and advances the marker for the current plot. You need to call this between Begin/EndPlot!
 IMPLOT_API ImPlotMarker NextMarker();
-    
+
 //-----------------------------------------------------------------------------
 // [SECTION] Colormaps
 //-----------------------------------------------------------------------------
@@ -1274,7 +1284,7 @@ IMPLOT_API void BustColorCache(const char* plot_title_id = nullptr);
 //-----------------------------------------------------------------------------
 // [SECTION] Input Mapping
 //-----------------------------------------------------------------------------
-    
+
 // Provides access to input mapping structure for permanent modifications to controls for pan, select, etc.
 IMPLOT_API ImPlotInputMap& GetInputMap();
 
