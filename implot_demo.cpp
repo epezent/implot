@@ -1061,6 +1061,327 @@ void Demo_NaNValues() {
 
 //-----------------------------------------------------------------------------
 
+void Demo_PerIndexColors() {
+    // Colorful Lines
+    static float xs1[1001], ys1[1001];
+    static ImU32 colors1[1001];
+    for (int i = 0; i < 1001; ++i) {
+        xs1[i] = i * 0.001f;
+        ys1[i] = 0.5f + 0.5f * sinf(50 * (xs1[i] + (float)ImGui::GetTime() / 10));
+        // Rainbow colors for f(x)
+        float hue = (float)i / 1000.0f;
+        colors1[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+    }
+    static double xs2[20], ys2[20];
+    static ImU32 colors2[20];
+    for (int i = 0; i < 20; ++i) {
+        xs2[i] = i * 1/19.0f;
+        ys2[i] = xs2[i] * xs2[i];
+        // Colormap colors for g(x)
+        float t = i / 19.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors2[i] = ImGui::GetColorU32(color);
+    }
+    if (ImPlot::BeginPlot("Colorful Lines")) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::PlotLine("f(x)", xs1, ys1, 1001, {
+            ImPlotProp_LineColors, colors1
+        });
+        ImPlot::PlotLine("g(x)", xs2, ys2, 20, {
+            ImPlotProp_Marker, ImPlotMarker_Circle,
+            ImPlotProp_Flags, ImPlotLineFlags_Segments,
+            ImPlotProp_LineColors, colors2,
+            ImPlotProp_MarkerFillColors, colors2,
+            ImPlotProp_MarkerLineColors, colors2
+        });
+        ImPlot::EndPlot();
+    }
+
+    // Colorful Shaded Plots
+    static float xs_shaded[1001], ys_shaded[1001], ys1_shaded[1001], ys2_shaded[1001], ys3_shaded[1001], ys4_shaded[1001];
+    static ImU32 colors_shaded1[1001], colors_shaded2[1001];
+    srand(0);
+    for (int i = 0; i < 1001; ++i) {
+        xs_shaded[i]  = i * 0.001f;
+        ys_shaded[i]  = 0.25f + 0.25f * sinf(25 * xs_shaded[i]) * sinf(5 * xs_shaded[i]) + RandomRange(-0.01f, 0.01f);
+        ys1_shaded[i] = ys_shaded[i] + RandomRange(0.1f, 0.12f);
+        ys2_shaded[i] = ys_shaded[i] - RandomRange(0.1f, 0.12f);
+        ys3_shaded[i] = 0.75f + 0.2f * sinf(25 * xs_shaded[i]);
+        ys4_shaded[i] = 0.75f + 0.1f * cosf(25 * xs_shaded[i]);
+
+        // Rainbow colors for Uncertain Data
+        float hue = i / 1000.0f;
+        colors_shaded1[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Colormap colors for Overlapping
+        float t = i / 1000.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors_shaded2[i] = ImGui::GetColorU32(color);
+    }
+    static ImPlotSpec spec_shaded(ImPlotProp_FillAlpha, 0.25f);
+
+    if (ImPlot::BeginPlot("Colorful Shaded Plots")) {
+        ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Reverse);
+        ImPlot::PlotShaded("Uncertain Data", xs_shaded, ys1_shaded, ys2_shaded, 1001, {
+            ImPlotProp_FillColors, colors_shaded1,
+            ImPlotProp_FillAlpha, spec_shaded.FillAlpha
+        });
+        ImPlot::PlotLine("Uncertain Data", xs_shaded, ys_shaded, 1001, {
+            ImPlotProp_LineColors, colors_shaded1
+        });
+        ImPlot::PlotShaded("Overlapping", xs_shaded, ys3_shaded, ys4_shaded, 1001, {
+            ImPlotProp_FillColors, colors_shaded2,
+            ImPlotProp_FillAlpha, spec_shaded.FillAlpha
+        });
+        ImPlot::PlotLine("Overlapping", xs_shaded, ys3_shaded, 1001, {
+            ImPlotProp_LineColors, colors_shaded2
+        });
+        ImPlot::PlotLine("Overlapping", xs_shaded, ys4_shaded, 1001, {
+            ImPlotProp_LineColors, colors_shaded2
+        });
+        ImPlot::EndPlot();
+    }
+
+    // Colorful Scatter
+    srand(0);
+    static float xs_scatter1[100], ys_scatter1[100];
+    static ImU32 colors_scatter1_fill[100], colors_scatter1_line[100];
+    static float sizes_scatter1[100];
+    for (int i = 0; i < 100; ++i) {
+        xs_scatter1[i] = i * 0.01f;
+        ys_scatter1[i] = xs_scatter1[i] + 0.1f * ((float)rand() / (float)RAND_MAX);
+        // Rainbow hue colors
+        float hue = i / 99.0f;
+        colors_scatter1_fill[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+        colors_scatter1_line[i] = ImColor::HSV(hue, 0.9f, 0.7f);
+        // Random sizes between 2 and 6
+        sizes_scatter1[i] = 2.0f + 4.0f * ((float)rand() / (float)RAND_MAX);
+    }
+    static float xs_scatter2[50], ys_scatter2[50];
+    static ImU32 colors_scatter2[50];
+    static float sizes_scatter2[50];
+    for (int i = 0; i < 50; i++) {
+        xs_scatter2[i] = 0.25f + 0.2f * ((float)rand() / (float)RAND_MAX);
+        ys_scatter2[i] = 0.75f + 0.2f * ((float)rand() / (float)RAND_MAX);
+        // Colormap colors (Viridis)
+        float t = i / 49.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors_scatter2[i] = ImGui::GetColorU32(color);
+        // Random sizes between 2 and 6
+        sizes_scatter2[i] = 2.0f + 4.0f * ((float)rand() / (float)RAND_MAX);
+    }
+
+    if (ImPlot::BeginPlot("Colorful Scatter", ImVec2(-1,0))) {
+        ImPlot::PlotScatter("Data 1", xs_scatter1, ys_scatter1, 100, {
+            ImPlotProp_MarkerFillColors, colors_scatter1_fill,
+            ImPlotProp_MarkerLineColors, colors_scatter1_line,
+            ImPlotProp_MarkerSizes, sizes_scatter1
+        });
+        ImPlot::PlotScatter("Data 2", xs_scatter2, ys_scatter2, 50, {
+            ImPlotProp_Marker, ImPlotMarker_Square,
+            ImPlotProp_MarkerFillColors, colors_scatter2,
+            ImPlotProp_MarkerLineColors, colors_scatter2,
+            ImPlotProp_MarkerSizes, sizes_scatter2,
+            ImPlotProp_FillAlpha, 0.5f
+        });
+        ImPlot::EndPlot();
+    }
+
+    // Colorful Bubbles
+    srand(0);
+    static float xs_bubble[20], ys1_bubble[20], ys2_bubble[20], szs1_bubble[20], szs2_bubble[20];
+    static ImU32 colors1_bubble[20], colors2_bubble[20];
+    for (int i = 0; i < 20; ++i) {
+        xs_bubble[i] = i * 0.1f;
+        ys1_bubble[i] = (float)rand() / (float)RAND_MAX;
+        ys2_bubble[i] = (float)rand() / (float)RAND_MAX;
+
+        szs1_bubble[i] = 0.02f + 0.08f * ((float)rand() / (float)RAND_MAX);
+        szs2_bubble[i] = 0.02f + 0.08f * ((float)rand() / (float)RAND_MAX);
+
+        // Rainbow colors for Data 1
+        float hue = i / 19.0f;
+        colors1_bubble[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Colormap colors for Data 2
+        float t = i / 19.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors2_bubble[i] = ImGui::GetColorU32(color);
+    }
+
+    if (ImPlot::BeginPlot("Colorful Bubbles", ImVec2(-1,0), ImPlotFlags_Equal)) {
+        ImPlot::PlotBubbles("Data 1", xs_bubble, ys1_bubble, szs1_bubble, 20, {
+            ImPlotProp_FillAlpha, 0.5f,
+            ImPlotProp_FillColors, colors1_bubble,
+            ImPlotProp_LineColors, colors1_bubble
+        });
+        ImPlot::PlotBubbles("Data 2", xs_bubble, ys2_bubble, szs2_bubble, 20, {
+            ImPlotProp_FillAlpha, 0.5f,
+            ImPlotProp_LineColor, ImVec4(0,0,0,0.0),
+            ImPlotProp_FillColors, colors2_bubble
+        });
+
+        ImPlot::EndPlot();
+    }
+
+    // Colorful Stairstep
+    static float ys1_stairs[21], ys2_stairs[21];
+    static ImU32 colors1_stairs[21], colors2_stairs[21];
+    for (int i = 0; i < 21; ++i) {
+        ys1_stairs[i] = 0.75f + 0.2f * sinf(10 * i * 0.05f);
+        ys2_stairs[i] = 0.25f + 0.2f * sinf(10 * i * 0.05f);
+
+        // Rainbow colors for Post Step
+        float hue = i / 20.0f;
+        colors1_stairs[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Colormap colors for Pre Step
+        float t = i / 20.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors2_stairs[i] = ImGui::GetColorU32(color);
+    }
+    static ImPlotStairsFlags flags_stairs = 0;
+    CHECKBOX_FLAG(flags_stairs, ImPlotStairsFlags_Shaded);
+
+    if (ImPlot::BeginPlot("Colorful Stairstep Plot")) {
+        ImPlot::SetupAxes("x","f(x)");
+        ImPlot::SetupAxesLimits(0,1,0,1);
+        ImPlot::PlotLine("##1", ys1_stairs, 21, 0.05f, 0, {
+            ImPlotProp_LineColor, ImVec4(0.5f,0.5f,0.5f,1.0f)
+        });
+        ImPlot::PlotLine("##2", ys2_stairs, 21, 0.05f, 0, {
+            ImPlotProp_LineColor, ImVec4(0.5f,0.5f,0.5f,1.0f)
+        });
+
+        ImPlot::PlotStairs("Post Step (default)", ys1_stairs, 21, 0.05f, 0, {
+            ImPlotProp_Flags, flags_stairs,
+            ImPlotProp_FillAlpha, 0.25f,
+            ImPlotProp_Marker, ImPlotMarker_Auto,
+            ImPlotProp_LineColors, colors1_stairs,
+            ImPlotProp_FillColors, colors1_stairs,
+            ImPlotProp_MarkerFillColors, colors1_stairs,
+            ImPlotProp_MarkerLineColors, colors1_stairs
+        });
+
+        ImPlot::PlotStairs("Pre Step", ys2_stairs, 21, 0.05f, 0, {
+            ImPlotProp_Flags, flags_stairs | ImPlotStairsFlags_PreStep,
+            ImPlotProp_FillAlpha, 0.25f,
+            ImPlotProp_Marker, ImPlotMarker_Auto,
+            ImPlotProp_LineColors, colors2_stairs,
+            ImPlotProp_FillColors, colors2_stairs,
+            ImPlotProp_MarkerFillColors, colors2_stairs,
+            ImPlotProp_MarkerLineColors, colors2_stairs
+        });
+
+        ImPlot::EndPlot();
+    }
+
+    // Colorful Bar Plots
+    static ImS8 data_bars[10] = {1,2,3,4,5,6,7,8,9,10};
+    static ImU32 colors_bars_v[10], colors_bars_h[10];
+    for (int i = 0; i < 10; ++i) {
+        // Rainbow colors for Vertical
+        float hue = i / 9.0f;
+        colors_bars_v[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Colormap colors for Horizontal
+        float t = i / 9.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors_bars_h[i] = ImGui::GetColorU32(color);
+    }
+
+    if (ImPlot::BeginPlot("Colorful Bar Plot")) {
+        ImPlot::PlotBars("Vertical", data_bars, 10, 0.7, 1, {
+            ImPlotProp_FillColors, colors_bars_v,
+            ImPlotProp_LineColors, colors_bars_v
+        });
+        ImPlot::PlotBars("Horizontal", data_bars, 10, 0.4, 1, {
+            ImPlotProp_Flags, ImPlotBarsFlags_Horizontal,
+            ImPlotProp_FillColors, colors_bars_h,
+            ImPlotProp_LineColors, colors_bars_h
+        });
+        ImPlot::EndPlot();
+    }
+
+    // Colorful Stem Plots
+    static double xs_stems[51], ys1_stems[51], ys2_stems[51];
+    static ImU32 colors1_stems[51], colors2_stems[51];
+    for (int i = 0; i < 51; ++i) {
+        xs_stems[i] = i * 0.02;
+        ys1_stems[i] = 1.0 + 0.5 * sin(25*xs_stems[i])*cos(2*xs_stems[i]);
+        ys2_stems[i] = 0.5 + 0.25  * sin(10*xs_stems[i]) * sin(xs_stems[i]);
+
+        // Rainbow colors for Stems 1
+        float hue = i / 50.0f;
+        colors1_stems[i] = ImColor::HSV(hue, 0.8f, 0.9f);
+
+        // Colormap colors for Stems 2
+        float t = i / 50.0f;
+        ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Viridis);
+        colors2_stems[i] = ImGui::GetColorU32(color);
+    }
+
+    if (ImPlot::BeginPlot("Colorful Stem Plots")) {
+        ImPlot::SetupAxisLimits(ImAxis_X1,0,1.0);
+        ImPlot::SetupAxisLimits(ImAxis_Y1,0,1.6);
+        ImPlot::PlotStems("Stems 1", xs_stems, ys1_stems, 51, 0, {
+            ImPlotProp_LineColors, colors1_stems,
+            ImPlotProp_MarkerFillColors, colors1_stems,
+            ImPlotProp_MarkerLineColors, colors1_stems
+        });
+        ImPlot::PlotStems("Stems 2", xs_stems, ys2_stems, 51, 0, {
+            ImPlotProp_Marker, ImPlotMarker_Circle,
+            ImPlotProp_LineColors, colors2_stems,
+            ImPlotProp_MarkerFillColors, colors2_stems,
+            ImPlotProp_MarkerLineColors, colors2_stems
+        });
+        ImPlot::EndPlot();
+    }
+
+    // Colorful Infinite Lines
+    if (ImPlot::BeginPlot("Colorful Infinite Lines", ImVec2(-1,0))) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::SetupAxesLimits(0, 10, -1, 10);
+
+        // 1. Constant color infinite lines
+        static double vals1[5] = {1.0, 2.5, 4.0, 5.5, 7.0};
+        ImPlot::PlotInfLines("Const Color", vals1, 5, {
+            ImPlotProp_LineColor, ImVec4(0.0f, 0.7f, 1.0f, 1.0f),
+        });
+
+        // 2. Per-line rainbow colors (horizontal)
+        static double vals2[8];
+        static ImU32 colors_infline_rainbow[8];
+        for (int i = 0; i < 8; ++i) {
+            vals2[i] = 1.0 + i * 1.0;
+            float t = i / 7.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Jet);
+            colors_infline_rainbow[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotInfLines("Rainbow Horizontal", vals2, 8, {
+            ImPlotProp_LineColors, colors_infline_rainbow,
+            ImPlotProp_Flags, ImPlotInfLinesFlags_Horizontal
+        });
+
+        // 3. Per-line colormap colors (vertical)
+        static double vals3[6];
+        static ImU32 colors_infline_viridis[6];
+        for (int i = 0; i < 6; ++i) {
+            vals3[i] = 1.5 + i * 1.5;
+            float t = i / 5.0f;
+            ImVec4 color = ImPlot::SampleColormap(t, ImPlotColormap_Plasma);
+            colors_infline_viridis[i] = ImGui::GetColorU32(color);
+        }
+        ImPlot::PlotInfLines("Plasma Vertical", vals3, 6, {
+            ImPlotProp_LineColors, colors_infline_viridis,
+        });
+
+        ImPlot::EndPlot();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 void Demo_LogScale() {
     static double xs[1001], ys1[1001], ys2[1001], ys3[1001];
     for (int i = 0; i < 1001; ++i) {
@@ -2396,6 +2717,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Images", Demo_Images);
             DemoHeader("Markers and Text", Demo_MarkersAndText);
             DemoHeader("NaN Values", Demo_NaNValues);
+            DemoHeader("Per-Index Colors", Demo_PerIndexColors);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Subplots")) {
