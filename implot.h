@@ -94,7 +94,7 @@ typedef int ImPlotColormapScaleFlags; // -> ImPlotColormapScaleFlags_
 typedef int ImPlotItemFlags;          // -> ImPlotItemFlags_
 typedef int ImPlotLineFlags;          // -> ImPlotLineFlags_
 typedef int ImPlotScatterFlags;       // -> ImPlotScatterFlags
-typedef int ImPlotBubbleFlags;        // -> ImPlotBubbleFlags
+typedef int ImPlotBubblesFlags;       // -> ImPlotBubblesFlags
 typedef int ImPlotStairsFlags;        // -> ImPlotStairsFlags_
 typedef int ImPlotShadedFlags;        // -> ImPlotShadedFlags_
 typedef int ImPlotBarsFlags;          // -> ImPlotBarsFlags_
@@ -270,9 +270,9 @@ enum ImPlotScatterFlags_ {
     ImPlotScatterFlags_NoClip = 1 << 10, // markers on the edge of a plot will not be clipped
 };
 
-// Flags for PlotBubble. Used by setting ImPlotSpec::Flags.
-enum ImPlotBubbleFlags_ {
-  ImPlotBubbleFlags_None = 0, // default
+// Flags for PlotBubbles. Used by setting ImPlotSpec::Flags.
+enum ImPlotBubblesFlags_ {
+  ImPlotBubblesFlags_None = 0, // default
 };
 
 // Flags for PlotStairs. Used by setting ImPlotSpec::Flags.
@@ -977,8 +977,8 @@ IMPLOT_TMP void PlotScatter(const char* label_id, const T* xs, const T* ys, int 
 IMPLOT_API void PlotScatterG(const char* label_id, ImPlotGetter getter, void* data, int count, const ImPlotSpec& spec=ImPlotSpec());
 
 // Plots a bubble graph. #szs are the radius of each bubble in plot units.
-IMPLOT_TMP void PlotBubble(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
-IMPLOT_TMP void PlotBubble(const char* label_id, const T* xs, const T* ys, const T* szs, int count, const ImPlotSpec& spec=ImPlotSpec());
+IMPLOT_TMP void PlotBubbles(const char* label_id, const T* values, const T* szs, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
+IMPLOT_TMP void PlotBubbles(const char* label_id, const T* xs, const T* ys, const T* szs, int count, const ImPlotSpec& spec=ImPlotSpec());
 
 // Plots a a stairstep graph. The y value is continued constantly to the right from every x position, i.e. the interval [x[i], x[i+1]) has the value y[i]
 IMPLOT_TMP void PlotStairs(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
