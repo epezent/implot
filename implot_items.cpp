@@ -3015,6 +3015,7 @@ void PlotDigitalEx(const char* label_id, Getter getter, const ImPlotSpec& spec) 
                 // do not extend plot outside plot range
                 pMin.x = ImClamp(pMin.x, !x_axis.IsInverted() ? x_axis.PixelMin : x_axis.PixelMax, !x_axis.IsInverted() ? x_axis.PixelMax - 1 : x_axis.PixelMin - 1);
                 pMax.x = ImClamp(pMax.x, !x_axis.IsInverted() ? x_axis.PixelMin : x_axis.PixelMax, !x_axis.IsInverted() ? x_axis.PixelMax - 1 : x_axis.PixelMin - 1);
+
                 //plot a rectangle that extends up to x2 with y1 height
                 if ((gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                     // ImVec4 colAlpha = item->Color;
