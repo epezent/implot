@@ -1686,8 +1686,10 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
         if (opp) {
             if (count_T++ > 0)
                 pad_T += K + P;
-            if (label)
-                pad_T += T + P;
+            if (label) {
+                ImVec2 label_size = ImGui::CalcTextSize(plot.GetAxisLabel(axis));
+                pad_T += label_size.y + P;
+            }
             if (ticks)
                 pad_T += ImMax(T, axis.Ticker.MaxSize.y) + P + (time ? T + P : 0);
             axis.Datum1 = plot.CanvasRect.Min.y + pad_T;
@@ -1697,8 +1699,10 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
         else {
             if (count_B++ > 0)
                 pad_B += K + P;
-            if (label)
-                pad_B += T + P;
+            if (label) {
+                ImVec2 label_size = ImGui::CalcTextSize(plot.GetAxisLabel(axis));
+                pad_B += label_size.y + P;
+            }
             if (ticks)
                 pad_B += ImMax(T, axis.Ticker.MaxSize.y) + P + (time ? T + P : 0);
             axis.Datum1 = plot.CanvasRect.Max.y - pad_B;
@@ -2622,6 +2626,17 @@ void SetupFinish() {
         if (axis.WillRender() && axis.ShowDefaultTicks && plot_width > 0) {
             axis.Locator(axis.Ticker, axis.Range, plot_width, false, axis.Formatter, axis.FormatterData);
         }
+    }
+
+    // (4.5) recalc padding now that we have actual X-axis tick labels (handles multi-line labels)
+    // Save title padding before resetting
+    const float title_pad = (title_size.x > 0) ? (title_size.y + gp.Style.LabelPadding.y) : 0.0f;
+    pad_top = title_pad;
+    pad_bot = 0;
+    PadAndDatumAxesX(plot,pad_top,pad_bot,gp.CurrentAlignmentH);
+    // Update AxesRect to account for title padding (was done in step 0)
+    if (title_size.x > 0) {
+        plot.AxesRect.Min.y = plot.FrameRect.Min.y + gp.Style.PlotPadding.y + title_pad;
     }
 
     // (5) calc plot bb
