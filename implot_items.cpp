@@ -1011,7 +1011,7 @@ struct RendererLineSegments1 : RendererBase {
 template <class _Getter1, class _Getter2>
 struct RendererLineSegments2 : RendererBase {
     RendererLineSegments2(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, float weight) :
-        RendererBase(ImMin(getter1.Count, getter1.Count), 6, 4),
+        RendererBase(ImMin(getter1.Count, getter2.Count), 6, 4),
         Getter1(getter1),
         Getter2(getter2),
         Col(col),
@@ -1039,7 +1039,7 @@ struct RendererLineSegments2 : RendererBase {
 template <class _Getter1, class _Getter2>
 struct RendererBarsFillV : RendererBase {
     RendererBarsFillV(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, double width) :
-        RendererBase(ImMin(getter1.Count, getter1.Count), 6, 4),
+        RendererBase(ImMin(getter1.Count, getter2.Count), 6, 4),
         Getter1(getter1),
         Getter2(getter2),
         Col(col),
@@ -1077,7 +1077,7 @@ struct RendererBarsFillV : RendererBase {
 template <class _Getter1, class _Getter2>
 struct RendererBarsFillH : RendererBase {
     RendererBarsFillH(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, double height) :
-        RendererBase(ImMin(getter1.Count, getter1.Count), 6, 4),
+        RendererBase(ImMin(getter1.Count, getter2.Count), 6, 4),
         Getter1(getter1),
         Getter2(getter2),
         Col(col),
@@ -1115,7 +1115,7 @@ struct RendererBarsFillH : RendererBase {
 template <class _Getter1, class _Getter2>
 struct RendererBarsLineV : RendererBase {
     RendererBarsLineV(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, double width, float weight) :
-        RendererBase(ImMin(getter1.Count, getter1.Count), 24, 8),
+        RendererBase(ImMin(getter1.Count, getter2.Count), 24, 8),
         Getter1(getter1),
         Getter2(getter2),
         Col(col),
@@ -1155,7 +1155,7 @@ struct RendererBarsLineV : RendererBase {
 template <class _Getter1, class _Getter2>
 struct RendererBarsLineH : RendererBase {
     RendererBarsLineH(const _Getter1& getter1, const _Getter2& getter2, ImU32 col, double height, float weight) :
-        RendererBase(ImMin(getter1.Count, getter1.Count), 24, 8),
+        RendererBase(ImMin(getter1.Count, getter2.Count), 24, 8),
         Getter1(getter1),
         Getter2(getter2),
         Col(col),
