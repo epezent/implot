@@ -2247,6 +2247,8 @@ void SetupAxisTicks(ImAxis idx, double v_min, double v_max, int n_ticks, const c
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr && !gp.CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
+    IM_ASSERT_USER_ERROR(labels == nullptr || n_ticks >= 2,
+                         "When providing custom labels, n_ticks must be at least 2!");
     n_ticks = n_ticks < 2 ? 2 : n_ticks;
     FillRange(gp.TempDouble1, n_ticks, v_min, v_max);
     SetupAxisTicks(idx, gp.TempDouble1.Data, n_ticks, labels, show_default);
