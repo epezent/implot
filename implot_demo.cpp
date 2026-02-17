@@ -2596,7 +2596,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
     }
 
     // begin plot item
-    if (ImPlot::BeginItem(label_id)) {
+    if (ImPlot::BeginItem(label_id, ImPlotLegendIconType_FillLine)) {
         // override legend icon color
         ImPlot::GetCurrentItem()->Color = IM_COL32(64,64,64,255);
         // fit data if requested
