@@ -2455,7 +2455,100 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 // [SECTION] PlotPieChart
 //-----------------------------------------------------------------------------
 
-IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col, bool detached = false) {
+IMPLOT_INLINE void PrimPieSliceFill(ImDrawList& draw_list, const ImVec2* points, int count, ImU32 col, const ImVec2& uv) {
+    // Write vertices
+    for (int i = 0; i < count; ++i) {
+        draw_list._VtxWritePtr[i].pos = points[i];
+        draw_list._VtxWritePtr[i].uv = uv;
+        draw_list._VtxWritePtr[i].col = col;
+    }
+    draw_list._VtxWritePtr += count;
+
+    // Write indices as a triangle fan (all triangles share first vertex - the center)
+    for (int i = 2; i < count; ++i) {
+        draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+        draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i - 1);
+        draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + i);
+        draw_list._IdxWritePtr += 3;
+    }
+    draw_list._VtxCurrentIdx += count;
+}
+
+IMPLOT_INLINE void PrimPieSliceLine(ImDrawList& draw_list, const ImVec2* points, int count, ImU32 col, float half_weight, const ImVec2& tex_uv0, const ImVec2& tex_uv1) {
+    // Create a thick polyline by drawing quads between each segment
+    const int segments = count - 1;
+
+    for (int i = 0; i < segments; ++i) {
+        const ImVec2& p1 = points[i];
+        const ImVec2& p2 = points[i + 1];
+
+        // Calculate perpendicular vector for line thickness (same as PrimLine)
+        float dx = p2.x - p1.x;
+        float dy = p2.y - p1.y;
+        IMPLOT_NORMALIZE2F_OVER_ZERO(dx, dy);
+        dx *= half_weight;
+        dy *= half_weight;
+
+        // Four vertices for the quad (same layout as PrimLine)
+        draw_list._VtxWritePtr[0].pos.x = p1.x + dy;
+        draw_list._VtxWritePtr[0].pos.y = p1.y - dx;
+        draw_list._VtxWritePtr[0].uv = tex_uv0;
+        draw_list._VtxWritePtr[0].col = col;
+
+        draw_list._VtxWritePtr[1].pos.x = p2.x + dy;
+        draw_list._VtxWritePtr[1].pos.y = p2.y - dx;
+        draw_list._VtxWritePtr[1].uv = tex_uv0;
+        draw_list._VtxWritePtr[1].col = col;
+
+        draw_list._VtxWritePtr[2].pos.x = p2.x - dy;
+        draw_list._VtxWritePtr[2].pos.y = p2.y + dx;
+        draw_list._VtxWritePtr[2].uv = tex_uv1;
+        draw_list._VtxWritePtr[2].col = col;
+
+        draw_list._VtxWritePtr[3].pos.x = p1.x - dy;
+        draw_list._VtxWritePtr[3].pos.y = p1.y + dx;
+        draw_list._VtxWritePtr[3].uv = tex_uv1;
+        draw_list._VtxWritePtr[3].col = col;
+
+        draw_list._VtxWritePtr += 4;
+
+        // Two triangles for the quad
+        const ImDrawIdx vtx_idx = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+        draw_list._IdxWritePtr[0] = vtx_idx;
+        draw_list._IdxWritePtr[1] = vtx_idx + 1;
+        draw_list._IdxWritePtr[2] = vtx_idx + 2;
+        draw_list._IdxWritePtr[3] = vtx_idx;
+        draw_list._IdxWritePtr[4] = vtx_idx + 2;
+        draw_list._IdxWritePtr[5] = vtx_idx + 3;
+        draw_list._IdxWritePtr += 6;
+
+        draw_list._VtxCurrentIdx += 4;
+    }
+}
+
+IMPLOT_INLINE void RenderPieSliceFill(ImDrawList& draw_list, ImVec2* buffer, int count, ImU32 col) {
+    const ImVec2 uv = draw_list._Data->TexUvWhitePixel;
+    // Reserve space for vertices and indices
+    // Triangle fan: n-2 triangles for n vertices, so (n-2)*3 indices
+    const int idx_count = (count - 2) * 3;
+    draw_list.PrimReserve(idx_count, count);
+    PrimPieSliceFill(draw_list, buffer, count, col, uv);
+}
+
+IMPLOT_INLINE void RenderPieSliceLine(ImDrawList& draw_list, ImVec2* buffer, int count, ImU32 col) {
+    float half_weight = 1.0f;  // Weight of 2.0f -> half_weight of 1.0f
+    ImVec2 tex_uv0, tex_uv1;
+    GetLineRenderProps(draw_list, half_weight, tex_uv0, tex_uv1);
+
+    // Polyline with n points has n-1 segments, each needs 4 vertices and 6 indices
+    const int segments = count - 1;
+    const int vtx_count = segments * 4;
+    const int idx_count = segments * 6;
+    draw_list.PrimReserve(idx_count, vtx_count);
+    PrimPieSliceLine(draw_list, buffer, count, col, half_weight, tex_uv0, tex_uv1);
+}
+
+IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col, ImPlotPieChartFlags flags, bool detached = false) {
     const float resolution = 50 / (2 * IM_PI);
     ImVec2 buffer[52];
 
@@ -2500,10 +2593,11 @@ IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& cent
     buffer[i + 1] = buffer[0];
 
     // fill
-    draw_list.AddConvexPolyFilled(buffer, n + 2, col);
+    RenderPieSliceFill(draw_list, buffer, n + 2, col);
 
     // border (for AA)
-    draw_list.AddPolyline(buffer, n + 2, col, 0, 2.0f);
+    if (!ImHasFlag(flags, ImPlotPieChartFlags_NoSliceBorder))
+        RenderPieSliceLine(draw_list, buffer, n + 2, col);
 }
 
 template <typename T>
@@ -2556,11 +2650,11 @@ void PlotPieChartEx(const char* const label_ids[], IndexerIdx<T> indexer, ImPlot
             if (sum > 0.0) {
                 ImU32 col = GetCurrentItem()->Color;
                 if (percent < 0.5) {
-                    RenderPieSlice(draw_list, center, radius, a0, a1, col, hovered);
+                    RenderPieSlice(draw_list, center, radius, a0, a1, col, spec.Flags, hovered);
                 }
                 else {
-                    RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col, hovered);
-                    RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col, hovered);
+                    RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col, spec.Flags, hovered);
+                    RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col, spec.Flags, hovered);
                 }
             }
             EndItem();
