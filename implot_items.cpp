@@ -405,7 +405,7 @@ constexpr float ITEM_HIGHLIGHT_LINE_SCALE = 2.0f;
 constexpr float ITEM_HIGHLIGHT_MARK_SCALE = 1.25f;
 
 // Begins a new item. Returns false if the item should not be plotted.
-bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& item_col, ImPlotMarker item_mkr) {
+bool BeginItem(const char* label_id, ImPlotLegendIconType_ icon_type, const ImPlotSpec& spec, const ImVec4& item_col, ImPlotMarker item_mkr) {
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr, "PlotX() needs to be called between BeginPlot() and EndPlot()!");
     SetupLock();
@@ -475,6 +475,18 @@ bool BeginItem(const char* label_id, const ImPlotSpec& spec, const ImVec4& item_
         s.RenderMarkerLine = s.Spec.MarkerLineColor.w > 0 && s.Spec.LineWeight > 0;
         s.RenderMarkerFill = s.Spec.MarkerFillColor.w > 0;
         s.RenderMarkers = s.Spec.Marker >= 0 && (s.RenderMarkerFill || s.RenderMarkerLine);
+        // store legend icon data
+        item->LineColor = ImGui::ColorConvertFloat4ToU32(s.Spec.LineColor);
+        item->FillColor = ImGui::ColorConvertFloat4ToU32(s.Spec.FillColor);
+        item->MarkerLineColor = ImGui::ColorConvertFloat4ToU32(s.Spec.MarkerLineColor);
+        item->MarkerFillColor = ImGui::ColorConvertFloat4ToU32(s.Spec.MarkerFillColor);
+        item->Marker = s.Spec.Marker;
+        item->LegendFlags = s.Spec.Flags;
+        item->LegendRenderLine = s.RenderLine;
+        item->LegendRenderFill = s.RenderFill;
+        item->LegendRenderMarkers = s.RenderMarkers;
+        item->LegendLineWeight = s.Spec.LineWeight;
+        item->LegendIconType = icon_type;
         // push rendering clip rect
         PushPlotClipRect();
         return true;
@@ -1777,7 +1789,8 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool 
 
 template <typename _Getter>
 void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter1<_Getter>(getter), spec, spec.LineColor, spec.Marker)) {
+    ImPlotLegendIconType_ icon_type = (spec.Marker != ImPlotMarker_None) ? ImPlotLegendIconType_LineMarkers : ImPlotLegendIconType_Line;
+    if (BeginItemEx(label_id, icon_type, Fitter1<_Getter>(getter), spec, spec.LineColor, spec.Marker)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
@@ -1854,7 +1867,7 @@ template <typename Getter>
 void PlotScatterEx(const char* label_id, const Getter& getter, const ImPlotSpec& spec) {
     // force scatter to render a marker even if none
     ImPlotMarker marker = spec.Marker == ImPlotMarker_None ? ImPlotMarker_Auto: spec.Marker;
-    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.LineColor, marker)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_Markers, Fitter1<Getter>(getter), spec, spec.LineColor, marker)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
@@ -1903,7 +1916,7 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 
 template <typename Getter>
 void PlotBubblesEx(const char* label_id, const Getter& getter, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, FitterBubbles1<Getter>(getter), spec, spec.FillColor, spec.Marker)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_FillLine, FitterBubbles1<Getter>(getter), spec, spec.FillColor, spec.Marker)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
@@ -1947,7 +1960,8 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 
 template <typename Getter>
 void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.LineColor, spec.Marker)) {
+    ImPlotLegendIconType_ icon_type = (spec.Marker != ImPlotMarker_None) ? ImPlotLegendIconType_LineMarkers : ImPlotLegendIconType_Line;
+    if (BeginItemEx(label_id, icon_type, Fitter1<Getter>(getter), spec, spec.LineColor, spec.Marker)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
@@ -2011,7 +2025,7 @@ void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int
 
 template <typename Getter1, typename Getter2>
 void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter2<Getter1,Getter2>(getter1,getter2), spec, spec.FillColor)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_Fill, Fitter2<Getter1,Getter2>(getter1,getter2), spec, spec.FillColor)) {
         if (getter1.Count <= 0 || getter2.Count <= 0) {
             EndItem();
             return;
@@ -2075,7 +2089,7 @@ void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, I
 
 template <typename Getter1, typename Getter2>
 void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 getter2, double width, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, FitterBarV<Getter1,Getter2>(getter1,getter2,width), spec, spec.FillColor)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_FillLine, FitterBarV<Getter1,Getter2>(getter1,getter2,width), spec, spec.FillColor)) {
         if (getter1.Count <= 0 || getter2.Count <= 0) {
             EndItem();
             return;
@@ -2099,7 +2113,7 @@ void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 get
 
 template <typename Getter1, typename Getter2>
 void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, double height, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, FitterBarH<Getter1,Getter2>(getter1,getter2,height), spec, spec.FillColor)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_FillLine, FitterBarH<Getter1,Getter2>(getter1,getter2,height), spec, spec.FillColor)) {
         if (getter1.Count <= 0 || getter2.Count <= 0) {
             EndItem();
             return;
@@ -2263,7 +2277,7 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 
 template <typename _GetterPos, typename _GetterNeg>
 void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), spec, IMPLOT_AUTO_COL)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_Line, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), spec, IMPLOT_AUTO_COL)) {
         if (getter_pos.Count <= 0 || getter_neg.Count <= 0) {
             EndItem();
             return;
@@ -2288,7 +2302,7 @@ void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const 
 
 template <typename _GetterPos, typename _GetterNeg>
 void PlotErrorBarsHEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), spec, IMPLOT_AUTO_COL)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_Line, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), spec, IMPLOT_AUTO_COL)) {
         if (getter_pos.Count <= 0 || getter_neg.Count <= 0) {
             EndItem();
             return;
@@ -2351,7 +2365,8 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 
 template <typename _GetterM, typename _GetterB>
 void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _GetterB& getter_base, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, Fitter2<_GetterM,_GetterB>(getter_mark,getter_base), spec, spec.LineColor, spec.Marker)) {
+    ImPlotLegendIconType_ icon_type = (spec.Marker != ImPlotMarker_None) ? ImPlotLegendIconType_LineMarkers : ImPlotLegendIconType_Line;
+    if (BeginItemEx(label_id, icon_type, Fitter2<_GetterM,_GetterB>(getter_mark,getter_base), spec, spec.LineColor, spec.Marker)) {
         if (getter_mark.Count <= 0 || getter_base.Count <= 0) {
             EndItem();
             return;
@@ -2419,7 +2434,7 @@ void PlotInfLines(const char* label_id, const T* values, int count, const ImPlot
     if (ImHasFlag(spec.Flags, ImPlotInfLinesFlags_Horizontal)) {
         GetterXY<IndexerConst,IndexerIdx<T>> getter_min(IndexerConst(lims.X.Min),IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),count);
         GetterXY<IndexerConst,IndexerIdx<T>> getter_max(IndexerConst(lims.X.Max),IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),count);
-        if (BeginItemEx(label_id, FitterY<GetterXY<IndexerConst,IndexerIdx<T>>>(getter_min), spec, spec.LineColor)) {
+        if (BeginItemEx(label_id, ImPlotLegendIconType_Line, FitterY<GetterXY<IndexerConst,IndexerIdx<T>>>(getter_min), spec, spec.LineColor)) {
             if (count <= 0) {
                 EndItem();
                 return;
@@ -2434,7 +2449,7 @@ void PlotInfLines(const char* label_id, const T* values, int count, const ImPlot
     else {
         GetterXY<IndexerIdx<T>,IndexerConst> get_min(IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),IndexerConst(lims.Y.Min),count);
         GetterXY<IndexerIdx<T>,IndexerConst> get_max(IndexerIdx<T>(values,count,spec.Offset,Stride<T>(spec)),IndexerConst(lims.Y.Max),count);
-        if (BeginItemEx(label_id, FitterX<GetterXY<IndexerIdx<T>,IndexerConst>>(get_min), spec, spec.LineColor)) {
+        if (BeginItemEx(label_id, ImPlotLegendIconType_Line, FitterX<GetterXY<IndexerIdx<T>,IndexerConst>>(get_min), spec, spec.LineColor)) {
             if (count <= 0) {
                 EndItem();
                 return;
@@ -2551,7 +2566,7 @@ void PlotPieChartEx(const char* const label_ids[], IndexerIdx<T> indexer, ImPlot
         if (!skip)
             a1 = a0 + 2 * IM_PI * percent;
 
-        if (BeginItemEx(label_ids[i], FitterRect(Pmin, Pmax), spec)) {
+        if (BeginItemEx(label_ids[i], ImPlotLegendIconType_Fill, FitterRect(Pmin, Pmax), spec)) {
             const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(spec.Flags, ImPlotPieChartFlags_Exploding);
             if (sum > 0.0) {
                 ImU32 col = GetCurrentItem()->Color;
@@ -2778,7 +2793,7 @@ void RenderHeatmap(ImDrawList& draw_list, IndexerIdx<T> indexer, int rows, int c
 
 template <typename T>
 void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, const ImPlotSpec& spec) {
-    if (BeginItemEx(label_id, FitterRect(bounds_min, bounds_max), spec)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_Fill, FitterRect(bounds_min, bounds_max), spec)) {
         if (rows <= 0 || cols <= 0) {
             EndItem();
             return;
@@ -2948,7 +2963,7 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
         max_count *= scale;
     }
 
-    if (BeginItemEx(label_id, FitterRect(range), spec)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_FillLine, FitterRect(range), spec)) {
         if (y_bins <= 0 || x_bins <= 0) {
             EndItem();
             return max_count;
@@ -2973,7 +2988,7 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 
 template <typename Getter>
 void PlotDigitalEx(const char* label_id, Getter getter, const ImPlotSpec& spec) {
-    if (BeginItem(label_id, spec, spec.FillColor)) {
+    if (BeginItem(label_id, ImPlotLegendIconType_Fill, spec, spec.FillColor)) {
         ImPlotContext& gp = *GImPlot;
         ImDrawList& draw_list = *GetPlotDrawList();
         const ImPlotNextItemData& s = GetItemData();
@@ -3055,7 +3070,7 @@ void PlotImage(const char* label_id, ImTextureRef tex_ref, const ImPlotPoint& bm
 #else
 void PlotImage(const char* label_id, ImTextureID tex_ref, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImPlotSpec& spec) {
 #endif
-    if (BeginItemEx(label_id, FitterRect(bmin,bmax), spec)) {
+    if (BeginItemEx(label_id, ImPlotLegendIconType_Fill, FitterRect(bmin,bmax), spec)) {
         ImU32 tint_col32 = ImGui::ColorConvertFloat4ToU32(tint_col);
         GetCurrentItem()->Color = tint_col32;
         ImDrawList& draw_list = *GetPlotDrawList();
@@ -3105,7 +3120,7 @@ void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, 
 //-----------------------------------------------------------------------------
 
 void PlotDummy(const char* label_id, const ImPlotSpec& spec) {
-    if (BeginItem(label_id, spec))
+    if (BeginItem(label_id, ImPlotLegendIconType_Fill, spec))
         EndItem();
 }
 

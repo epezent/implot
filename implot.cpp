@@ -661,6 +661,134 @@ int LegendSortingComp(const void* _a, const void* _b) {
     return strcmp(label_a,label_b);
 }
 
+// Marker geometry (duplicated from implot_items.cpp for legend rendering)
+static const ImVec2 MARKER_FILL_CIRCLE[10]  = {ImVec2(1.0f, 0.0f), ImVec2(0.809017f, 0.58778524f),ImVec2(0.30901697f, 0.95105654f),ImVec2(-0.30901703f, 0.9510565f),ImVec2(-0.80901706f, 0.5877852f),ImVec2(-1.0f, 0.0f),ImVec2(-0.80901694f, -0.58778536f),ImVec2(-0.3090171f, -0.9510565f),ImVec2(0.30901712f, -0.9510565f),ImVec2(0.80901694f, -0.5877853f)};
+static const ImVec2 MARKER_FILL_SQUARE[4]   = {ImVec2(1.0f, 1.0f), ImVec2(1.0f, -1.0f), ImVec2(-1.0f, -1.0f), ImVec2(-1.0f, 1.0f)};
+static const ImVec2 MARKER_FILL_DIAMOND[4]  = {ImVec2(1.0f, 0.0f), ImVec2(0.0f, -1.0f), ImVec2(-1.0f, 0.0f), ImVec2(0.0f, 1.0f)};
+static const ImVec2 MARKER_FILL_UP[3]       = {ImVec2(0.0f, 1.0f), ImVec2(-1.0f, -1.0f), ImVec2(1.0f, -1.0f)};
+static const ImVec2 MARKER_FILL_DOWN[3]     = {ImVec2(0.0f, -1.0f), ImVec2(-1.0f, 1.0f), ImVec2(1.0f, 1.0f)};
+static const ImVec2 MARKER_FILL_LEFT[3]     = {ImVec2(-1.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec2(1.0f, -1.0f)};
+static const ImVec2 MARKER_FILL_RIGHT[3]    = {ImVec2(1.0f, 0.0f), ImVec2(-1.0f, -1.0f), ImVec2(-1.0f, 1.0f)};
+
+void RenderMarkerGeneral(ImDrawList& DrawList, const ImVec2& c, float size, ImPlotMarker marker, bool rend_fill, ImU32 col_fill, bool rend_line, ImU32 col_line, float weight) {
+    ImVec2 points[10];
+    int count = 0;
+    const ImVec2* shape = nullptr;
+
+    // Get marker shape
+    switch (marker) {
+        case ImPlotMarker_Circle:  shape = MARKER_FILL_CIRCLE;  count = 10; break;
+        case ImPlotMarker_Square:  shape = MARKER_FILL_SQUARE;  count = 4;  break;
+        case ImPlotMarker_Diamond: shape = MARKER_FILL_DIAMOND; count = 4;  break;
+        case ImPlotMarker_Up:      shape = MARKER_FILL_UP;      count = 3;  break;
+        case ImPlotMarker_Down:    shape = MARKER_FILL_DOWN;    count = 3;  break;
+        case ImPlotMarker_Left:    shape = MARKER_FILL_LEFT;    count = 3;  break;
+        case ImPlotMarker_Right:   shape = MARKER_FILL_RIGHT;   count = 3;  break;
+        default: return; // Unknown marker
+    }
+
+    // Transform points
+    for (int i = 0; i < count; ++i) {
+        points[i].x = c.x + shape[i].x * size;
+        points[i].y = c.y + shape[i].y * size;
+    }
+
+    // Render fill
+    if (rend_fill && count > 0) {
+        DrawList.AddConvexPolyFilled(points, count, col_fill);
+    }
+
+    // Render outline
+    if (rend_line && count > 0) {
+        DrawList.AddPolyline(points, count, col_line, ImDrawFlags_Closed, weight);
+    }
+
+    // Special cases for line-only markers
+    if (rend_line) {
+        switch (marker) {
+            case ImPlotMarker_Plus: {
+                DrawList.AddLine(ImVec2(c.x - size, c.y), ImVec2(c.x + size, c.y), col_line, weight);
+                DrawList.AddLine(ImVec2(c.x, c.y - size), ImVec2(c.x, c.y + size), col_line, weight);
+                break;
+            }
+            case ImPlotMarker_Cross: {
+                DrawList.AddLine(ImVec2(c.x - size, c.y - size), ImVec2(c.x + size, c.y + size), col_line, weight);
+                DrawList.AddLine(ImVec2(c.x + size, c.y - size), ImVec2(c.x - size, c.y + size), col_line, weight);
+                break;
+            }
+            case ImPlotMarker_Asterisk: {
+                DrawList.AddLine(ImVec2(c.x - size, c.y), ImVec2(c.x + size, c.y), col_line, weight);
+                DrawList.AddLine(ImVec2(c.x, c.y - size), ImVec2(c.x, c.y + size), col_line, weight);
+                DrawList.AddLine(ImVec2(c.x - size, c.y - size), ImVec2(c.x + size, c.y + size), col_line, weight);
+                DrawList.AddLine(ImVec2(c.x + size, c.y - size), ImVec2(c.x - size, c.y + size), col_line, weight);
+                break;
+            }
+        }
+    }
+}
+
+void RenderLegendIcon(ImDrawList& DrawList, const ImRect& icon_bb, const ImPlotItem* item, ImU32 col_icon) {
+    const float icon_center_x = (icon_bb.Min.x + icon_bb.Max.x) * 0.5f;
+    const float icon_center_y = (icon_bb.Min.y + icon_bb.Max.y) * 0.5f;
+    const ImVec2 icon_center(icon_center_x, icon_center_y);
+
+    // Extract alpha from col_icon to apply same modulation to stored colors
+    float alpha = ((col_icon >> IM_COL32_A_SHIFT) & 0xFF) / 255.0f;
+
+    ImU32 line_col = ImAlphaU32(item->LineColor, alpha);
+    ImU32 fill_col = ImAlphaU32(item->FillColor, alpha);
+    ImU32 marker_line_col = ImAlphaU32(item->MarkerLineColor, alpha);
+    ImU32 marker_fill_col = ImAlphaU32(item->MarkerFillColor, alpha);
+
+    // Render based on icon type
+    switch (item->LegendIconType) {
+        case ImPlotLegendIconType_Line: {
+            // Horizontal line only
+            ImVec2 line_start(icon_bb.Min.x, icon_center_y);
+            ImVec2 line_end(icon_bb.Max.x, icon_center_y);
+            DrawList.AddLine(line_start, line_end, line_col, item->LegendLineWeight);
+            break;
+        }
+        case ImPlotLegendIconType_LineMarkers: {
+            // Horizontal line with marker at center
+            ImVec2 line_start(icon_bb.Min.x, icon_center_y);
+            ImVec2 line_end(icon_bb.Max.x, icon_center_y);
+            DrawList.AddLine(line_start, line_end, line_col, item->LegendLineWeight);
+            const float marker_size = icon_bb.GetWidth() * 0.25f;
+            const bool rend_marker_fill = (item->MarkerFillColor & IM_COL32_A_MASK) != 0;
+            const bool rend_marker_line = (item->MarkerLineColor & IM_COL32_A_MASK) != 0;
+            RenderMarkerGeneral(DrawList, icon_center, marker_size, item->Marker,
+                               rend_marker_fill, marker_fill_col, rend_marker_line, marker_line_col, item->LegendLineWeight);
+            break;
+        }
+        case ImPlotLegendIconType_Markers: {
+            // Single marker at center
+            const float marker_size = icon_bb.GetWidth() * 0.5f;
+            const bool rend_marker_fill = (item->MarkerFillColor & IM_COL32_A_MASK) != 0;
+            const bool rend_marker_line = (item->MarkerLineColor & IM_COL32_A_MASK) != 0;
+            RenderMarkerGeneral(DrawList, icon_center, marker_size, item->Marker,
+                               rend_marker_fill, marker_fill_col, rend_marker_line, marker_line_col, item->LegendLineWeight);
+            break;
+        }
+        case ImPlotLegendIconType_Fill: {
+            // Filled square
+            DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, fill_col);
+            break;
+        }
+        case ImPlotLegendIconType_FillLine: {
+            // Filled square with outline
+            DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, fill_col);
+            DrawList.AddRect(icon_bb.Min, icon_bb.Max, line_col, 0.0f, 0, item->LegendLineWeight);
+            break;
+        }
+        default: {
+            // Fallback: solid square
+            DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, col_icon);
+            break;
+        }
+    }
+}
+
 bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hovered, const ImVec2& pad, const ImVec2& spacing, bool vertical, ImDrawList& DrawList) {
     // vars
     const float txt_ht      = ImGui::GetTextLineHeight();
@@ -740,7 +868,7 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
         else
             col_icon = item->Show ? col_item : col_txt_dis;
 
-        DrawList.AddRectFilled(icon_bb.Min, icon_bb.Max, col_icon);
+        RenderLegendIcon(DrawList, icon_bb, item, col_icon);
         const char* text_display_end = ImGui::FindRenderedTextEnd(label, nullptr);
         if (label != text_display_end)
             DrawList.AddText(top_left + ImVec2(icon_size, 0), item->Show ? col_txt_hl  : col_txt_dis, label, text_display_end);
