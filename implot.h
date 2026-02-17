@@ -319,8 +319,8 @@ enum ImPlotPieChartFlags_ {
     ImPlotPieChartFlags_None          = 0,       // default
     ImPlotPieChartFlags_Normalize     = 1 << 10, // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
     ImPlotPieChartFlags_IgnoreHidden  = 1 << 11, // ignore hidden slices when drawing the pie chart (as if they were not there)
-    ImPlotPieChartFlags_Exploding     = 1 << 12, // Explode legend-hovered slice
-    ImPlotPieChartFlags_NoSliceBorder = 1 << 13  // do not draw slice borders (useful when using MSAA)
+    ImPlotPieChartFlags_Exploding     = 1 << 12, // explode legend-hovered slice
+    ImPlotPieChartFlags_NoSliceBorder = 1 << 13  // do not draw slice borders
 };
 
 // Flags for PlotHeatmap. Used by setting ImPlotSpec::Flags.
