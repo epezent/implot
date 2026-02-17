@@ -651,11 +651,12 @@ void Demo_PieCharts() {
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Normalize);
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_IgnoreHidden);
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Exploding);
+    CHECKBOX_FLAG(flags, ImPlotPieChartFlags_NoSliceBorder);
 
     if (ImPlot::BeginPlot("##Pie1", ImVec2(ImGui::GetTextLineHeight()*16,ImGui::GetTextLineHeight()*16), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(0, 1, 0, 1);
-        ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, "%.2f", 90, {ImPlotProp_Flags, flags});
+        ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, "%.2f", 90, {ImPlotProp_FillAlpha, 0.5, ImPlotProp_Flags, flags});
         ImPlot::EndPlot();
     }
 
