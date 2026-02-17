@@ -333,9 +333,10 @@ enum ImPlotHistogramFlags_ {
     ImPlotHistogramFlags_None       = 0,       // default
     ImPlotHistogramFlags_Horizontal = 1 << 10, // histogram bars will be rendered horizontally (not supported by PlotHistogram2D)
     ImPlotHistogramFlags_Cumulative = 1 << 11, // each bin will contain its count plus the counts of all previous bins (not supported by PlotHistogram2D)
-    ImPlotHistogramFlags_Density    = 1 << 12, // counts will be normalized, i.e. the PDF will be visualized, or the CDF will be visualized if Cumulative is also set
+    ImPlotHistogramFlags_Density    = 1 << 12, // counts will be normalized, i.e. the PDF will be visualized, or the CDF will be visualized if Cumulative is also set, or if ImPlotHistogramFlags_NormalizeIgnoreWidth is set the bin counts add up to 1
     ImPlotHistogramFlags_NoOutliers = 1 << 13, // exclude values outside the specified histogram range from the count toward normalizing and cumulative counts
     ImPlotHistogramFlags_ColMajor   = 1 << 14  // data will be read in column major order (not supported by PlotHistogram)
+    ImPlotHistogramFlags_NormalizeIgnoreWidth = 1 << 15  // Ignore bin width for ImPlotHistogramFlags_Density, if both set, a relative histogram is plotted
 };
 
 // Flags for PlotDigital (placeholder). Used by setting ImPlotSpec::Flags.
