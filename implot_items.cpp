@@ -1410,6 +1410,53 @@ struct RendererRectC : RendererBase {
     mutable ImVec2 UV;
 };
 
+template <class _Getter1, class _Getter2>
+struct RendererShadedClip : RendererShaded<_Getter1, _Getter2> {
+    RendererShadedClip(const _Getter1& getter1, const _Getter2& getter2, ImU32 col) :
+        RendererShaded<_Getter1, _Getter2>(getter1, getter2, col)
+    {}
+
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImVec2 P21 = this->Transformer(this->Getter1(prim+1));
+        ImVec2 P22 = this->Transformer(this->Getter2(prim+1));
+        ImRect rect(ImMin(ImMin(ImMin(this->P11,this->P12),P21),P22), ImMax(ImMax(ImMax(this->P11,this->P12),P21),P22));
+        if (!cull_rect.Overlaps(rect)) {
+            this->P11 = P21;
+            this->P12 = P22;
+            return false;
+        }
+        const int intersect = (this->P11.y > this->P12.y && P22.y > P21.y) || (this->P12.y > this->P11.y && P21.y > P22.y);
+        ImVec2 intersection = Intersection(this->P11,P21,this->P12,P22);
+        draw_list._VtxWritePtr[0].pos = this->P11;
+        draw_list._VtxWritePtr[0].uv  = this->UV;
+        draw_list._VtxWritePtr[0].col = this->Col;
+        draw_list._VtxWritePtr[1].pos = P21;
+        draw_list._VtxWritePtr[1].uv  = this->UV;
+        draw_list._VtxWritePtr[1].col = this->Col;
+        draw_list._VtxWritePtr[2].pos = intersection;
+        draw_list._VtxWritePtr[2].uv  = this->UV;
+        draw_list._VtxWritePtr[2].col = this->Col;
+        draw_list._VtxWritePtr[3].pos = this->P12;
+        draw_list._VtxWritePtr[3].uv  = this->UV;
+        draw_list._VtxWritePtr[3].col = this->Col;
+        draw_list._VtxWritePtr[4].pos = P22;
+        draw_list._VtxWritePtr[4].uv  = this->UV;
+        draw_list._VtxWritePtr[4].col = this->Col;
+        draw_list._VtxWritePtr += 5;
+        draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+        draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 1 + intersect);
+        draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 0 + 3 * (this->P11.y >= this->P12.y) );
+        draw_list._IdxWritePtr[3] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 1);
+        draw_list._IdxWritePtr[4] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 3 - intersect);
+        draw_list._IdxWritePtr[5] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 1 + 3 * (P21.y >= P22.y) );
+        draw_list._IdxWritePtr += 6;
+        draw_list._VtxCurrentIdx += 5;
+        this->P11 = P21;
+        this->P12 = P22;
+        return true;
+    }
+};
+
 //-----------------------------------------------------------------------------
 // [SECTION] RenderPrimitives
 //-----------------------------------------------------------------------------
@@ -2067,6 +2114,67 @@ void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, I
     GetterFuncPtr getter1(getter_func1, data1, count);
     GetterFuncPtr getter2(getter_func2, data2, count);
     PlotShadedEx(label_id, getter1, getter2, spec);
+}
+
+//-----------------------------------------------------------------------------
+// [SECTION] PlotShadedClip
+//-----------------------------------------------------------------------------
+
+// NEW
+template <typename Getter1, typename Getter2>
+void PlotShadedClipEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, ImPlotShadedFlags flags) {
+    if (BeginItemEx(label_id, Fitter2<Getter1,Getter2>(getter1,getter2), flags, ImPlotCol_Fill)) {
+        const ImPlotNextItemData& s = GetItemData();
+        if (s.RenderFill) {
+            const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
+            RenderPrimitives2<RendererShadedClip>(getter1,getter2,col);
+        }
+        EndItem();
+    }
+}
+
+template <typename T>
+void PlotShadedClip(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, ImPlotShadedFlags flags, int offset, int stride) {
+    if (!(y_ref > -DBL_MAX))
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;
+    if (!(y_ref < DBL_MAX))
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
+    GetterXY<IndexerLin,IndexerIdx<T>> getter1(IndexerLin(xscale,x0),IndexerIdx<T>(values,count,offset,stride),count);
+    GetterXY<IndexerLin,IndexerConst>  getter2(IndexerLin(xscale,x0),IndexerConst(y_ref),count);
+    PlotShadedClipEx(label_id, getter1, getter2, flags);
+}
+
+template <typename T>
+void PlotShadedClip(const char* label_id, const T* xs, const T* ys, int count, double y_ref, ImPlotShadedFlags flags, int offset, int stride) {
+    if (y_ref == -HUGE_VAL)
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Min;
+    if (y_ref == HUGE_VAL)
+        y_ref = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys,count,offset,stride),count);
+    GetterXY<IndexerIdx<T>,IndexerConst>  getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerConst(y_ref),count);
+    PlotShadedClipEx(label_id, getter1, getter2, flags);
+}
+
+
+template <typename T>
+void PlotShadedClip(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, ImPlotShadedFlags flags, int offset, int stride) {
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter1(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys1,count,offset,stride),count);
+    GetterXY<IndexerIdx<T>,IndexerIdx<T>> getter2(IndexerIdx<T>(xs,count,offset,stride),IndexerIdx<T>(ys2,count,offset,stride),count);
+    PlotShadedClipEx(label_id, getter1, getter2, flags);
+}
+
+#define INSTANTIATE_MACRO(T) \
+    template IMPLOT_API void PlotShadedClip<T>(const char* label_id, const T* values, int count, double y_ref, double xscale, double x0, ImPlotShadedFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotShadedClip<T>(const char* label_id, const T* xs, const T* ys, int count, double y_ref, ImPlotShadedFlags flags, int offset, int stride); \
+    template IMPLOT_API void PlotShadedClip<T>(const char* label_id, const T* xs, const T* ys1, const T* ys2, int count, ImPlotShadedFlags flags, int offset, int stride);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
+
+// custom
+void PlotShadedClipG(const char* label_id, ImPlotGetter getter_func1, void* data1, ImPlotGetter getter_func2, void* data2, int count, ImPlotShadedFlags flags) {
+    GetterFuncPtr getter1(getter_func1, data1, count);
+    GetterFuncPtr getter2(getter_func2, data2, count);
+    PlotShadedClipEx(label_id, getter1, getter2, flags);
 }
 
 //-----------------------------------------------------------------------------
