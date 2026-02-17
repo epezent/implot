@@ -2186,7 +2186,7 @@ void SetupAxisLimits(ImAxis idx, double min_lim, double max_lim, ImPlotCond cond
     ImPlotPlot& plot = *gp.CurrentPlot;
     ImPlotAxis& axis = plot.Axes[idx];
     IM_ASSERT_USER_ERROR(axis.Enabled, "Axis is not enabled! Did you forget to call SetupAxis()?");
-    if (!plot.Initialized || cond == ImPlotCond_Always)
+    if (!plot.Initialized || cond == ImPlotCond_Always || (!axis.HasRange && cond == ImPlotCond_Once))
         axis.SetRange(min_lim, max_lim);
     axis.HasRange  = true;
     axis.RangeCond = cond;
@@ -2454,9 +2454,7 @@ bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
         plot.Axes[i].Reset();
         UpdateAxisColors(plot.Axes[i]);
     }
-    // ensure first axes enabled
-    plot.Axes[ImAxis_X1].Enabled = true;
-    plot.Axes[ImAxis_Y1].Enabled = true;
+
     // set initial axes
     plot.CurrentX = ImAxis_X1;
     plot.CurrentY = ImAxis_Y1;
@@ -2464,6 +2462,10 @@ bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
     // process next plot data (legacy)
     for (int i = 0; i < ImAxis_COUNT; ++i)
         ApplyNextPlotData(i);
+
+    // ensure first axes enabled
+    plot.Axes[ImAxis_X1].Enabled = true;
+    plot.Axes[ImAxis_Y1].Enabled = true;
 
     // clear text buffers
     plot.ClearTextBuffer();
