@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ❓ Q&A
+    url: https://github.com/epezent/implot/discussions/categories/q-a
+    about: Have any questions or need help? Ask here!
+  - name: 📸 Gallery
+    url: https://github.com/epezent/implot/discussions/180
+    about: Share screenshots/videos of your projects using ImPlot!
