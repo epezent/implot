@@ -745,6 +745,50 @@ struct ImPlotAxis
         Ticker.Reset();
     }
 
+    inline void ConstrainZoom(double& _min, double& _max, double zoom_ratio = 0.5) {
+        double z = _max - _min;
+        if (z < ConstraintZoom.Min) {
+            double delta = ConstraintZoom.Min - z;
+            _min -= delta * zoom_ratio;
+            _max += delta * (1.0 - zoom_ratio);
+        } else if (z > ConstraintZoom.Max) {
+            double delta = z - ConstraintZoom.Max;
+            _min += delta * zoom_ratio;
+            _max -= delta * (1.0 - zoom_ratio);
+        }
+        if (_max <= _min) {
+            _max = _min + DBL_EPSILON;
+        }
+    }
+
+    inline void SetMinMax(double _min, double _max, bool force = false, double zoom_ratio = 0.5) {
+        if (!force && IsLockedMin()) {
+            SetMax(_max, force);
+            return;
+        }
+        if (!force && IsLockedMax()) {
+            SetMin(_min, force);
+            return;
+        }
+        _min = ImConstrainNan(ImConstrainInf(_min));
+        _max = ImConstrainNan(ImConstrainInf(_max));
+        // Constrain the zoom first, so that the visible area stays centered if it needs correcting...
+        ConstrainZoom(_min, _max, zoom_ratio);
+        // .. then scroll to ensure it stays within limit constraints
+        if (_min < ConstraintRange.Min) {
+            _max = ImMin(_max + (ConstraintRange.Min - _min), ConstraintRange.Max);
+            _min = ConstraintRange.Min;
+        } else if (_max > ConstraintRange.Max) {
+            _min = ImMax(_min - (_max - ConstraintRange.Max), ConstraintRange.Min);
+            _max = ConstraintRange.Max;
+        }
+        Range.Min = _min;
+        Range.Max = _max;
+        PickerTimeMin = ImPlotTime::FromDouble(Range.Min);
+        PickerTimeMax = ImPlotTime::FromDouble(Range.Max);
+        UpdateTransformCache();
+    };
+
     inline bool SetMin(double _min, bool force=false) {
         if (!force && IsLockedMin())
             return false;
@@ -820,19 +864,7 @@ struct ImPlotAxis
             Range.Min = ConstraintRange.Min;
         if (Range.Max > ConstraintRange.Max)
             Range.Max = ConstraintRange.Max;
-        double z = Range.Size();
-        if (z < ConstraintZoom.Min) {
-            double delta = (ConstraintZoom.Min - z) * 0.5;
-            Range.Min -= delta;
-            Range.Max += delta;
-        }
-        if (z > ConstraintZoom.Max) {
-            double delta = (z - ConstraintZoom.Max) * 0.5;
-            Range.Min += delta;
-            Range.Max -= delta;
-        }
-        if (Range.Max <= Range.Min)
-            Range.Max = Range.Min + DBL_EPSILON;
+        ConstrainZoom(Range.Min, Range.Max);
     }
 
     inline void UpdateTransformCache() {
