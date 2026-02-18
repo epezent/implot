@@ -656,18 +656,21 @@ struct ImPlotStyle {
 
 // Input mapping structure. Default values listed. See also MapInputDefault, MapInputReverse.
 struct ImPlotInputMap {
-    ImGuiMouseButton Pan;           // LMB    enables panning when held,
-    int              PanMod;        // none   optional modifier that must be held for panning/fitting
-    ImGuiMouseButton Fit;           // LMB    initiates fit when double clicked
-    ImGuiMouseButton Select;        // RMB    begins box selection when pressed and confirms selection when released
-    ImGuiMouseButton SelectCancel;  // LMB    cancels active box selection when pressed; cannot be same as Select
-    int              SelectMod;     // none   optional modifier that must be held for box selection
-    int              SelectHorzMod; // Alt    expands active box selection horizontally to plot edge when held
-    int              SelectVertMod; // Shift  expands active box selection vertically to plot edge when held
-    ImGuiMouseButton Menu;          // RMB    opens context menus (if enabled) when clicked
-    int              OverrideMod;   // Ctrl   when held, all input is ignored; used to enable axis/plots as DND sources
-    int              ZoomMod;       // none   optional modifier that must be held for scroll wheel zooming
-    float            ZoomRate;      // 0.1f   zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click); make negative to invert
+    ImGuiMouseButton Pan;               // LMB    enables panning when held,
+    int              PanMod;            // none   optional modifier that must be held for panning/fitting
+    ImGuiMouseButton Fit;               // LMB    initiates fit when double clicked
+    ImGuiMouseButton Select;            // RMB    begins box selection when pressed and confirms selection when released
+    ImGuiMouseButton SelectCancel;      // LMB    cancels active box selection when pressed; cannot be same as Select
+    int              SelectMod;         // none   optional modifier that must be held for box selection
+    int              SelectHorzMod;     // Alt    expands active box selection horizontally to plot edge when held
+    int              SelectVertMod;     // Shift  expands active box selection vertically to plot edge when held
+    ImGuiMouseButton Menu;              // RMB    opens context menus (if enabled) when clicked
+    int              OverrideMod;       // Ctrl   when held, all input is ignored; used to enable axis/plots as DND sources
+    int              ZoomPanToggleMod;  // none   toggle between zoom and pan for scroll wheel behavior
+    bool             ZoomBothAxis;      // true   if true, both axis are zoomed by the scroll wheel, otherwise horizontal axis is zoomed by the horizontal wheel
+    float            ZoomRate;          // 0.1f   zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click); make negative to invert
+    float            ScrollPanRate;     // 100.f  zoom rate for scroll (e.g. 0.1f = 10% plot range every scroll click); make negative to invert
+    bool             ScrollWheelPans;   // false  if true, default behavior of scroll wheel will pan instead of zoom
     IMPLOT_API ImPlotInputMap();
 };
 
