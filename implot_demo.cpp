@@ -437,7 +437,7 @@ void Demo_ScatterPlots() {
 //-----------------------------------------------------------------------------
 
 void Demo_BubblePlots() {
-    IMGUI_DEMO_MARKER("Demo_BubblePlots");
+    IMGUI_DEMO_MARKER("Plots/Bubble Plots");
     srand(0);
     static float xs[20], ys1[20], ys2[20], szs1[20], szs2[20];
     for (int i = 0; i < 20; ++i) {
@@ -461,6 +461,7 @@ void Demo_BubblePlots() {
 //-----------------------------------------------------------------------------
 
 void Demo_PolygonPlots() {
+    IMGUI_DEMO_MARKER("Plots/Polygon Plots");
     // Triangle (convex)
     static float tri_xs[3] = {0.5f, 1.0f, 0.0f};
     static float tri_ys[3] = {1.0f, 0.0f, 0.0f};
