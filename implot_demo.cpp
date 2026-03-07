@@ -657,7 +657,7 @@ void Demo_PieCharts() {
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(0, 1, 0, 1);
         ImPlot::PlotPieChart(labels1, data1, 4, 0.5, 0.5, 0.4, "%.2f", 90, {ImPlotProp_Flags, flags});
-        umPlot::EndPlot();
+        ImPlot::EndPlot();
     }
 
     ImGui::SameLine();
