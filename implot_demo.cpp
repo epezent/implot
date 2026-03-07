@@ -717,6 +717,7 @@ void Demo_PieCharts() {
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Normalize);
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_IgnoreHidden);
     CHECKBOX_FLAG(flags, ImPlotPieChartFlags_Exploding);
+    CHECKBOX_FLAG(flags, ImPlotPieChartFlags_NoSliceBorder);
 
     if (ImPlot::BeginPlot("##Pie1", ImVec2(ImGui::GetTextLineHeight()*16,ImGui::GetTextLineHeight()*16), ImPlotFlags_Equal | ImPlotFlags_NoMouseText)) {
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
