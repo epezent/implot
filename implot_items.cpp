@@ -1965,7 +1965,7 @@ void PlotPolygonEx(const char* label_id, const Getter& getter, const ImPlotSpec&
         bool flip = !((x_inv ? 1 : 0) ^ (y_inv ? 1 : 0));
 
         // Transform all points to screen space
-        ImVec2* points = (ImVec2*)alloca(getter.Count * sizeof(ImVec2));
+        ImVec2* points = (ImVec2*)IM_ALLOC(getter.Count * sizeof(ImVec2));
         for (int i = 0; i < getter.Count; ++i) {
             ImPlotPoint p = flip ? getter[getter.Count - 1 - i] : getter[i];
             points[i] = transformer(p);
@@ -1982,6 +1982,7 @@ void PlotPolygonEx(const char* label_id, const Getter& getter, const ImPlotSpec&
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
             draw_list.AddPolyline(points, getter.Count, col_line, ImDrawFlags_Closed, s.Spec.LineWeight);
         }
+        IM_FREE(points);
 
         EndItem();
     }
