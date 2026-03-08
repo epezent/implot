@@ -4556,6 +4556,77 @@ ImPlotMarker NextMarker() {
     ++gp.CurrentItems->MarkerIdx;
     return idx;
 }
+
+void LoadDefaultLineStyles() {
+    const ImU32 Dash[] = {10, 6};
+    const ImU32 Dot[]  = {2, 6};
+    const ImU32 DashDot[] = {10, 6, 2, 6};
+    const ImU32 DashDotDot[] = {10, 6, 2, 6, 2, 6};
+
+    AddLineStyle(Dash, sizeof(Dash)/sizeof(ImU32));
+    AddLineStyle(Dot, sizeof(Dot)/sizeof(ImU32));
+    AddLineStyle(DashDot, sizeof(DashDot)/sizeof(ImU32));
+    AddLineStyle(DashDotDot, sizeof(DashDotDot)/sizeof(ImU32));
+}
+
+int AddLineStyle(const ImU32* keys, int count) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(count > 1, "The line style size must be greater than 1!");
+    int period = 0;
+    for (int i = 0; i < count; ++i){
+        period += keys[i];
+    }
+    // Get font atlas and add a custom rectangle to it
+    ImFontAtlas *atlas = ImGui::GetIO().Fonts;
+    ImFontAtlasRectId rectID = atlas->AddCustomRect(510, 1);
+    int keyIdx = 0;
+    ImU32 k = 0;
+    ImU32 color = ~0;
+    if (rectID != -1)
+    {
+        // Build the atlas and get the pixel data
+        unsigned char* pixels;
+        int width, height;
+        atlas->GetTexDataAsRGBA32(&pixels, &width, &height);
+        // Retrieve the rectangle location and fill it with data
+        ImFontAtlasRect rect;
+        if (atlas->GetCustomRect(rectID, &rect))
+        {
+            for (int i = 0; i < rect.h; i++)
+            {
+                // Calculate the pointer to the start of the row in the atlas
+                ImU32* row = (ImU32*)pixels + (rect.y + i) * width + rect.x;
+                for (int j = 0; j < rect.w; j++)
+                {
+                    row[j] = color;
+                    if (++k >= keys[keyIdx]) {
+                        color = ~color;
+                        keyIdx = (keyIdx + 1) % count;
+                        k = 0;
+                    }
+                }
+            }
+            ImPlotLineStyleData data(rectID, period, 510);
+            gp.LineStyleData.push_back(data);
+            return gp.LineStyleData.Size - 1;
+        }
+        else
+            IM_ASSERT(0 && "Failed to retrieve custom rectangle from font atlas for line style!");
+    }
+    else
+        IM_ASSERT(0 && "Failed to add custom rectangle to font atlas for line style!");
+
+    return -1;
+}
+
+const ImPlotLineStyleData& GetLineStyleData(ImPlotLineStyle style) {
+    ImPlotContext& gp = *GImPlot;
+    IM_ASSERT_USER_ERROR(style >= 0 && style < gp.LineStyleData.Size, "Invalid line style index!");
+    const ImPlotLineStyleData& data = gp.LineStyleData[style];
+    if (!ImGui::GetIO().Fonts->GetCustomRect(data.RectID, &data.Rect))
+        IM_ASSERT(0 && "Failed to retrieve custom rectangle from font atlas for line style!");
+    return data;
+}
     
 //------------------------------------------------------------------------------
 // [Section] Colormaps

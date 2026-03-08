@@ -115,6 +115,7 @@ typedef int ImPlotCond;               // -> enum ImPlotCond_
 typedef int ImPlotCol;                // -> enum ImPlotCol_
 typedef int ImPlotStyleVar;           // -> enum ImPlotStyleVar_
 typedef int ImPlotScale;              // -> enum ImPlotScale_
+typedef int ImPlotLineStyle;          // -> enum ImPlotLineStyle_
 typedef int ImPlotMarker;             // -> enum ImPlotMarker_
 typedef int ImPlotColormap;           // -> enum ImPlotColormap_
 typedef int ImPlotLocation;           // -> enum ImPlotLocation_
@@ -139,6 +140,7 @@ enum ImAxis_ {
 enum ImPlotProp_ {
     ImPlotProp_LineColor,       // line color (applies to lines, bar edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
     ImPlotProp_LineWeight,      // line weight in pixels (applies to lines, bar edges, marker edges)
+    ImPlotProp_LineStyle,       // line style (applies to lines)
     ImPlotProp_FillColor,       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
     ImPlotProp_FillAlpha,       // alpha multiplier (applies to FillColor and MarkerFillColor)
     ImPlotProp_Marker,          // marker type; specify ImPlotMarker_Auto to use the next unused marker
@@ -429,6 +431,16 @@ enum ImPlotScale_ {
     ImPlotScale_SymLog,     // symmetric log scale
 };
 
+// Line style specifications.
+enum ImPlotLineStyle_ {
+    ImPlotLineStyle_Solid = -1,// default
+    ImPlotLineStyle_Dashed,    // 6px on, 6px off
+    ImPlotLineStyle_Dotted,    // 2px on, 6px off
+    ImPlotLineStyle_DashDot,   // 6px on, 2px off, 2px on, 2px off
+    ImPlotLineStyle_DashDotDot,// 6px on, 2px off, 2px on, 2px off, 2px on, 2px off
+    ImPlotLineStyle_COUNT
+};
+
 // Marker specifications.
 enum ImPlotMarker_ {
     ImPlotMarker_None = -2, // no marker
@@ -510,6 +522,7 @@ enum ImPlotBin_ {
 struct ImPlotSpec {
     ImVec4          LineColor       = IMPLOT_AUTO_COL;       // line color (applies to lines, bar edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
     float           LineWeight      = 1.0f;                  // line weight in pixels (applies to lines, bar edges, marker edges)
+    ImPlotLineStyle LineStyle       = ImPlotLineStyle_Solid; // line style (applies to lines)
     ImVec4          FillColor       = IMPLOT_AUTO_COL;       // fill color (applies to shaded regions, bar faces); IMPLOT_AUTO_COL will use next Colormap color or current item color
     float           FillAlpha       = 1.0f;                  // alpha multiplier (applies to FillColor and MarkerFillColor)
     ImPlotMarker    Marker          = ImPlotMarker_None;     // marker type; specify ImPlotMarker_Auto to use the next unused marker
@@ -544,6 +557,7 @@ struct ImPlotSpec {
         switch (prop) {
         case ImPlotProp_LineColor       : LineColor       = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
         case ImPlotProp_LineWeight      : LineWeight      = (float)v;                                 return;
+        case ImPlotProp_LineStyle       : LineStyle       = (ImPlotLineStyle)v;                       return;
         case ImPlotProp_FillColor       : FillColor       = ImGui::ColorConvertU32ToFloat4((ImU32)v); return;
         case ImPlotProp_FillAlpha       : FillAlpha       = (float)v;                                 return;
         case ImPlotProp_Marker          : Marker          = (ImPlotMarker)v;                          return;
@@ -1215,6 +1229,11 @@ IMPLOT_API const char* GetMarkerName(ImPlotMarker idx);
 
 // Returns the next marker and advances the marker for the current plot. You need to call this between Begin/EndPlot!
 IMPLOT_API ImPlotMarker NextMarker();
+
+// Executes post-setup initialization
+IMPLOT_API void LoadDefaultLineStyles();
+
+IMPLOT_API int AddLineStyle(const ImU32* keys, int count);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Colormaps

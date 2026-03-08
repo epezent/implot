@@ -1063,6 +1063,36 @@ void Demo_RealtimePlots() {
 
 //-----------------------------------------------------------------------------
 
+void Demo_LineStyles() {
+    IMGUI_DEMO_MARKER("Plots/Line Styles");
+    // ImPlot::LoadDefaultLineStyles() must be called before using line styles!
+    // It should be called once during font loading.
+    static ImPlotSpec spec;
+    ImGui::DragFloat("Line Weight", &spec.LineWeight,0.05f,0.5f,32.0f,"%.2f px");
+
+    if (ImPlot::BeginPlot("##LineStyles", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
+
+        ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+        ImPlot::SetupAxesLimits(0, 5, 0, 7);
+
+        ImS8 xs[2] = {1,4};
+        ImS8 ys[2] = {5,6};
+
+        // Line Styles
+        for (int m = 0; m < ImPlotLineStyle_COUNT; ++m) {
+            ImGui::PushID(m);
+            spec.LineStyle = (ImPlotLineStyle)m;
+            ImPlot::PlotLine("##Style", xs, ys, 2, spec);
+            ImGui::PopID();
+            ys[0]--; ys[1]--;
+        }
+
+        ImPlot::EndPlot();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 void Demo_MarkersAndText() {
     IMGUI_DEMO_MARKER("Plots/Markers and Text");
     static ImPlotSpec spec(ImPlotProp_Marker, ImPlotMarker_Auto);
@@ -2499,6 +2529,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Histogram 2D", Demo_Histogram2D);
             DemoHeader("Digital Plots", Demo_DigitalPlots);
             DemoHeader("Images", Demo_Images);
+            DemoHeader("Line Styles", Demo_LineStyles);
             DemoHeader("Markers and Text", Demo_MarkersAndText);
             DemoHeader("NaN Values", Demo_NaNValues);
             ImGui::EndTabItem();

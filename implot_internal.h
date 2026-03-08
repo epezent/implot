@@ -123,6 +123,8 @@ template <typename T>
 static inline T ImRemap01(T x, T x0, T x1) { return (x - x0) / (x1 - x0); }
 // Returns always positive modulo (assumes r != 0)
 static inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
+// Returns the modulo of x by y (assumes y != 0)
+static inline double ImMod(double x, double y) { return fmod(x, y); }
 // Returns true if val is NAN
 static inline bool ImNan(double val) { return isnan(val); }
 // Returns true if val is NAN or INFINITY
@@ -284,6 +286,17 @@ typedef void (*ImPlotLocator)(ImPlotTicker& ticker, const ImPlotRange& range, fl
 //-----------------------------------------------------------------------------
 // [SECTION] Structs
 //-----------------------------------------------------------------------------
+
+struct ImPlotLineStyleData {
+    ImPlotLineStyleData(ImFontAtlasRectId rect_id, float period, float max_length) :
+        RectID(rect_id),
+        Period(period),
+        MaxLength(max_length) {}
+    const ImFontAtlasRectId RectID;   // texture atlas rect ID for line style
+    const float  Period;              // period of line style in pixels
+    const float  MaxLength;           // maximum length of line style in pixels
+    mutable ImFontAtlasRect Rect;     // cached rectangle for line style (filled in on demand)
+};
 
 // Combined date/time format spec
 struct ImPlotDateTimeSpec {
@@ -1243,11 +1256,12 @@ struct ImPlotContext {
     ImPlotTagCollection        Tags;
 
     // Style and Colormaps
-    ImPlotStyle                 Style;
-    ImVector<ImGuiColorMod>     ColorModifiers;
-    ImVector<ImGuiStyleMod>     StyleModifiers;
-    ImPlotColormapData          ColormapData;
-    ImVector<ImPlotColormap>    ColormapModifiers;
+    ImPlotStyle                     Style;
+    ImVector<ImGuiColorMod>         ColorModifiers;
+    ImVector<ImGuiStyleMod>         StyleModifiers;
+    ImPlotColormapData              ColormapData;
+    ImVector<ImPlotColormap>        ColormapModifiers;
+    ImVector<ImPlotLineStyleData>   LineStyleData;
 
     // Time
     tm Tm;
@@ -1507,6 +1521,8 @@ IMPLOT_API ImU32  SampleColormapU32(float t, ImPlotColormap cmap);
 
 // Render a colormap bar
 IMPLOT_API void RenderColorBar(const ImU32* colors, int size, ImDrawList& DrawList, const ImRect& bounds, bool vert, bool reversed, bool continuous);
+
+IMPLOT_API const ImPlotLineStyleData& GetLineStyleData(ImPlotLineStyle style);
 
 //-----------------------------------------------------------------------------
 // [SECTION] Math and Misc Utils
