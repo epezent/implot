@@ -288,14 +288,15 @@ typedef void (*ImPlotLocator)(ImPlotTicker& ticker, const ImPlotRange& range, fl
 //-----------------------------------------------------------------------------
 
 struct ImPlotLineStyleData {
+    ImPlotLineStyleData() {}
     ImPlotLineStyleData(ImFontAtlasRectId rect_id, float period, float max_length) :
         RectID(rect_id),
         Period(period),
         MaxLength(max_length) {}
-    const ImFontAtlasRectId RectID;   // texture atlas rect ID for line style
-    const float  Period;              // period of line style in pixels
-    const float  MaxLength;           // maximum length of line style in pixels
-    mutable ImFontAtlasRect Rect;     // cached rectangle for line style (filled in on demand)
+    ImFontAtlasRectId RectID;  // texture atlas rect ID for line style
+    float  Period;                  // period of line style in pixels
+    float  MaxLength;               // maximum length of line style in pixels
+    mutable ImFontAtlasRect Rect;   // cached rectangle for line style (filled in on demand)
 };
 
 // Combined date/time format spec
@@ -1522,6 +1523,10 @@ IMPLOT_API ImU32  SampleColormapU32(float t, ImPlotColormap cmap);
 // Render a colormap bar
 IMPLOT_API void RenderColorBar(const ImU32* colors, int size, ImDrawList& DrawList, const ImRect& bounds, bool vert, bool reversed, bool continuous);
 
+// Adds a line style with the given ID to ImPlot context. Set ID to -1 to add a line style with an automatically generated ID.
+IMPLOT_API int AddLineStyleInternal(const int ID, const ImU32* keys, const int count);
+
+// Returns line style data for a given line style. Do not store the returned value between frames as it may be invalidated if texture atlas is rebuilt.
 IMPLOT_API const ImPlotLineStyleData& GetLineStyleData(ImPlotLineStyle style);
 
 //-----------------------------------------------------------------------------

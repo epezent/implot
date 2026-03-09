@@ -4563,19 +4563,34 @@ void LoadDefaultLineStyles() {
     const ImU32 DashDot[] = {10, 6, 2, 6};
     const ImU32 DashDotDot[] = {10, 6, 2, 6, 2, 6};
 
-    AddLineStyle(Dash, sizeof(Dash)/sizeof(ImU32));
-    AddLineStyle(Dot, sizeof(Dot)/sizeof(ImU32));
-    AddLineStyle(DashDot, sizeof(DashDot)/sizeof(ImU32));
-    AddLineStyle(DashDotDot, sizeof(DashDotDot)/sizeof(ImU32));
+    // The default line styles are added at fixed indices
+    // We use the internal add function with the desired index to ensure they are stored in the correct order and that user defined line styles are added after them
+    AddLineStyleInternal(ImPlotLineStyle_Dashed, Dash, sizeof(Dash)/sizeof(ImU32));
+    AddLineStyleInternal(ImPlotLineStyle_Dotted, Dot, sizeof(Dot)/sizeof(ImU32));
+    AddLineStyleInternal(ImPlotLineStyle_DashDot, DashDot, sizeof(DashDot)/sizeof(ImU32));
+    AddLineStyleInternal(ImPlotLineStyle_DashDotDot, DashDotDot, sizeof(DashDotDot)/sizeof(ImU32));
 }
 
 int AddLineStyle(const ImU32* keys, int count) {
+    IM_ASSERT_USER_ERROR(count > 1 && count % 2 == 0, "The line style size must be greater than 1 and even!");
+    // User defined line styles are added after the default line styles, so we start with an index of -1 to append to the end of the list
+    return AddLineStyleInternal(-1, keys, count);
+}
+
+int AddLineStyleInternal(const int ID, const ImU32* keys, const int count) {
+    IM_ASSERT(ID < ImPlotLineStyle_COUNT || ID == -1); // ID must be a valid default line style index or -1 for user defined styles
     ImPlotContext& gp = *GImPlot;
-    IM_ASSERT_USER_ERROR(count > 1, "The line style size must be greater than 1!");
     int period = 0;
     for (int i = 0; i < count; ++i){
         period += keys[i];
     }
+    // Reserve space for default line styles if they haven't been added yet
+    if (gp.LineStyleData.Size < ImPlotLineStyle_COUNT) {
+        gp.LineStyleData.resize(ImPlotLineStyle_COUNT);
+        for (int i = 0; i < ImPlotLineStyle_COUNT; ++i) gp.LineStyleData[i].RectID = -1;
+    }
+    if (ID >= 0 && gp.LineStyleData[ID].RectID != -1)
+        return ID; // If the ID is already used
     // Get font atlas and add a custom rectangle to it
     ImFontAtlas *atlas = ImGui::GetIO().Fonts;
     ImFontAtlasRectId rectID = atlas->AddCustomRect(510, 1);
@@ -4606,8 +4621,11 @@ int AddLineStyle(const ImU32* keys, int count) {
                     }
                 }
             }
-            ImPlotLineStyleData data(rectID, period, 510);
-            gp.LineStyleData.push_back(data);
+            // Add the line style data to the context
+            if (ID < 0)
+                gp.LineStyleData.push_back(ImPlotLineStyleData(rectID, period, 510));
+            else
+                gp.LineStyleData[ID] = ImPlotLineStyleData(rectID, period, 510);
             return gp.LineStyleData.Size - 1;
         }
         else
@@ -4615,7 +4633,6 @@ int AddLineStyle(const ImU32* keys, int count) {
     }
     else
         IM_ASSERT(0 && "Failed to add custom rectangle to font atlas for line style!");
-
     return -1;
 }
 
