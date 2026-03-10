@@ -73,7 +73,7 @@ Of course, there's much more you can do with ImPlot...
 
 A comprehensive example of ImPlot's features can be found in `implot_demo.cpp`. Add this file to your sources and call `ImPlot::ShowDemoWindow()` somewhere in your update loop. You are encouraged to use this file as a reference when needing to implement various plot types. The demo is always updated to show new plot types and features as they are added, so check back with each release!
 
-An online version of the demo is hosted [here](https://traineq.org/implot_demo/src/implot_demo.html). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implementation, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this!
+An online version of the demo is hosted [here](https://pthom.github.io/imgui_explorer/?lib=implot). You can view the plots and the source code that generated them. Note that this demo may not always be up to date and is not as performant as a desktop implementation, but it should give you a general taste of what's possible with ImPlot. Special thanks to [pthom](https://github.com/pthom) for creating and hosting this!
 
 More sophisticated demos requiring lengthier code and/or third-party libraries can be found in a separate repository: [implot_demos](https://github.com/epezent/implot_demos). Here, you will find advanced signal processing and ImPlot usage in action. Please read the `Contributing` section of that repository if you have an idea for a new demo!
 
@@ -139,11 +139,11 @@ A: ImPlot plotting functions accept most scalar types:
 
 **Q: Can plot styles be modified?**
 
-A: Yes. Data colormaps and various styling colors and variables can be pushed/popped or modified permanently on startup. Three default styles are available, as well as an automatic style that attempts to match you ImGui style.
+A: Yes. Three default styles are available, as well as an automatic style that attempts to match you ImGui style. You can define any custom style as well. Plot items are generally styled for you based on the current colormap, but can be customized on an individual basis.
 
-**Q: Does ImPlot support logarithmic scaling or time formatting?**
+**Q: Does ImPlot support non-linear axis scaling? Time formatting?**
 
-A: Yep! Both logscale and timescale are supported.
+A: Yes. Logscale and symmetric logscale are provided out of the box, and you can define custom axis scales as well. Time scale with microsecond precision is also available out of the box.
 
 **Q: Does ImPlot support multiple y-axes? x-axes?**
 
@@ -151,7 +151,7 @@ A: Yes. Up to three x-axes and three y-axes can be enabled.
 
 **Q: Does ImPlot support [insert plot type]?**
 
-A: Maybe. Check the demo, gallery, or Announcements ([2020](https://github.com/epezent/implot/issues/48)/[2021](https://github.com/epezent/implot/issues/168))to see if your desired plot type is shown. If not, consider submitting an issue or better yet, a PR!
+A: Maybe. Check the demo, gallery, or Announcements ([2020](https://github.com/epezent/implot/issues/48)/[2021](https://github.com/epezent/implot/issues/168)/[2022](https://github.com/epezent/implot/discussions/370)) to see if your desired plot type is shown. If not, consider submitting an issue or better yet, a PR!
 
 **Q: Does ImPlot support 3D plots?**
 

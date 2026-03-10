@@ -30,7 +30,9 @@ jobs:
           path: imgui
 
       - name: Dependencies
-        run: sudo apt-get install g++-multilib
+        run: |
+          sudo apt-get update
+          sudo apt-get install g++-multilib
 
       - name: Configure
         run: cmake -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_C_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DGCC_ARCH=${{ matrix.arch }} -B cmake-build -S .github
