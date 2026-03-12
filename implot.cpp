@@ -1730,6 +1730,9 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, int innermos
             }
             if (ticks && !ins)
                 pad_T += ImMax(T, axis.Ticker.MaxSize.y) + P + (time ? T + P : 0);
+            // fix ins axis rect overlapping plot title if no label is present and there are no other axes above
+            if (ins && !label && count_T == 1 && plot.HasTitle())
+                pad_T += K + P;
             axis.Datum1 = plot.CanvasRect.Min.y + pad_T;
             axis.Datum2 = last_T;
             last_T = axis.Datum1;
