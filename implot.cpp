@@ -2805,14 +2805,13 @@ void SetupFinish() {
             DrawList.AddText(label_pos, ax.ColorTxt, label);
         }
         if (ax.HasTickLabels()) {
-            const bool has_labels_above_axis = opp ^ ins;
-            const float label_pad_dir        = has_labels_above_axis ? -1.0f : 1.0f;
-            const float label_pad            = label_pad_dir * ((ins ? gp.Style.MajorTickLen.y : gp.Style.LabelPadding.y)
-                                                                + (has_labels_above_axis ? tkr.MaxSize.y : 0));
-            const float label_pad_per_level  = label_pad_dir * (txt_height + gp.Style.LabelPadding.y);
+            const bool labels_opp = opp ^ ins;
+            const float label_pad = ins ? gp.Style.MajorTickLen.y : gp.Style.LabelPadding.y;
+            const float level_pad = txt_height + gp.Style.LabelPadding.y;
             for (int j = 0; j < tkr.TickCount(); ++j) {
                 const ImPlotTick& tk = tkr.Ticks[j];
-                const float datum = ax.Datum1 + label_pad + tk.Level * label_pad_per_level;
+                const float pad   = label_pad + (labels_opp ? tk.LabelSize.y : 0) + (tk.Level * level_pad);
+                const float datum = ax.Datum1 + pad * (labels_opp ? -1.0f : 1.0f);
                 if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.x - 1 && tk.PixelPos <= plot.PlotRect.Max.x + 1) {
                     ImVec2 start(tk.PixelPos - 0.5f * tk.LabelSize.x, datum);
                     DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
@@ -2848,10 +2847,12 @@ void SetupFinish() {
             AddTextVertical(&DrawList, label_pos, ax.ColorTxt, label);
         }
         if (ax.HasTickLabels()) {
+            const bool labels_opp = opp ^ ins;
+            const float label_pad = ins ? gp.Style.MajorTickLen.x : gp.Style.LabelPadding.x;
             for (int j = 0; j < tkr.TickCount(); ++j) {
                 const ImPlotTick& tk = tkr.Ticks[j];
-                const float datum = ax.Datum1 + ((opp ^ ins) ? gp.Style.LabelPadding.x : (-gp.Style.LabelPadding.x - tk.LabelSize.x))
-                                  + ((ins ? gp.Style.LabelPadding.x : 0.0f) * (opp ? -1.0f : 1.0f));
+                const float pad   = label_pad + (labels_opp ? 0 : tk.LabelSize.x);
+                const float datum = ax.Datum1 + pad * (labels_opp ? 1.0f : -1.0f);
                 if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.y - 1 && tk.PixelPos <= plot.PlotRect.Max.y + 1) {
                     ImVec2 start(datum, tk.PixelPos - 0.5f * tk.LabelSize.y);
                     DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
