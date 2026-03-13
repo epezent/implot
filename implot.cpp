@@ -1072,6 +1072,7 @@ ImPlotTime FloorTime(const ImPlotTime& t, ImPlotTimeUnit unit) {
         case ImPlotTimeUnit_Min: gp.Tm.tm_sec  = 0; break;
         default:                 return t;
     }
+    if (unit >= ImPlotTimeUnit_Day) gp.Tm.tm_isdst = -1;
     return MkTime(&gp.Tm);
 }
 
@@ -1289,9 +1290,20 @@ void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, 
         const int step = GetTimeStep(minor_per_major, unit0);
         // generate ticks
         ImPlotTime t1 = FloorTime(ImPlotTime::FromDouble(range.Min), unit1);
+        ImPlotContext& gp = *GImPlot;
+        GetTime(t1, &gp.Tm);
+        int prev_major_is_dst = gp.Tm.tm_isdst;
         while (t1 < t_max) {
             // get next major
-            const ImPlotTime t2 = AddTime(t1, unit1, 1);
+            ImPlotTime t2 = AddTime(t1, unit1, 1);
+            if (GetStyle().UseLocalTime && (unit1 == ImPlotTimeUnit_Day || unit1 == ImPlotTimeUnit_Mo)) {
+                GetTime(t2, &gp.Tm);
+                if (prev_major_is_dst == 0 && gp.Tm.tm_isdst == 1)  // local clock adjusted ahead, current day/month is shorter
+                    t2 = AddTime(t2, ImPlotTimeUnit_Hr, -1);
+                if (prev_major_is_dst == 1 && gp.Tm.tm_isdst == 0)  // local clock adjusted back, current day/month is longer
+                    t2 = AddTime(t2, ImPlotTimeUnit_Hr, 1);
+                prev_major_is_dst = gp.Tm.tm_isdst;
+            }
             // add major tick
             if (t1 >= t_min && t1 <= t_max) {
                 // minor level 0 tick
