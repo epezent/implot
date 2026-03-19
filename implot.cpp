@@ -215,6 +215,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 // Clang/GCC warnings with -Weverything
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wformat-nonliteral"  // warning: format string is not a string literal
+#pragma clang diagnostic ignored "-Wdeprecated-enum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
 #elif defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"    // warning: format not a string literal, format string not checked
 #endif
