@@ -496,7 +496,7 @@ enum ImPlotBin_ {
 //    spec.LineColor = ImVec4(1,0,0,1);
 //    spec.LineWeight = 2.0f;
 //    spec.Marker = ImPlotMarker_Circle;
-//    spec.Flags = ImPlotItemFlags_NoLegend | ImPlotLineFlags_Segments;
+//    spec.Flags = static_cast<ImPlotItemFlags>(ImPlotItemFlags_NoLegend) | ImPlotLineFlags_Segments;
 //    ImPlot::PlotLine("MyLine", xs, ys, 100, spec);
 //
 // 2. Inline using (ImPlotProp,value) pairs (order does NOT matter):
@@ -505,7 +505,7 @@ enum ImPlotBin_ {
 //      ImPlotProp_LineColor, ImVec4(1,0,0,1),
 //      ImPlotProp_LineWeight, 2.0f,
 //      ImPlotProp_Marker, ImPlotMarker_Circle,
-//      ImPlotProp_Flags, ImPlotItemFlags_NoLegend | ImPlotLineFlags_Segments
+//      ImPlotProp_Flags, static_cast<ImPlotItemFlags>(ImPlotItemFlags_NoLegend) | ImPlotLineFlags_Segments
 //    });
 struct ImPlotSpec {
     ImVec4          LineColor       = IMPLOT_AUTO_COL;       // line color (applies to lines, bar edges); IMPLOT_AUTO_COL will use next Colormap color or current item color
