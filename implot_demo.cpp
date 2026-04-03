@@ -35,6 +35,12 @@
 #include <stdlib.h>
 #include <time.h>
 
+// Clang warnings with -Weverything
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wdeprecated-enum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
+#pragma clang diagnostic ignored "-Wenum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
+#endif
+
 #ifdef _MSC_VER
 #define sprintf sprintf_s
 #endif
