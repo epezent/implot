@@ -1069,6 +1069,60 @@ void Demo_RealtimePlots() {
 
 //-----------------------------------------------------------------------------
 
+void Demo_LineStyles() {
+    IMGUI_DEMO_MARKER("Plots/Line Styles");
+    static ImPlotSpec spec;
+    static bool is_init = false;
+    static ImPlotLineStyle custom_style[2];
+    // Custom line styles are defined by an array of on/off lengths in pixels.
+    // The first element is the length of the dash, the second is the length of the gap, and so on.
+    static ImU32 styleA[] = {15, 6, 15, 6, 2, 6}; // dash, dash, dot
+    static ImU32 styleB[] = {20, 6, 10, 6}; // long dash, short dash
+
+    // ImPlot::LoadDefaultLineStyles() must be called before using line styles!
+    // It should be called once after context creation and backend initialization
+    // Called here for demo purposes, but you should call it in your initialization code.
+    if (!is_init) {
+        // Register custom line style before loading defaults
+        custom_style[0] = ImPlot::AddLineStyle(styleA, sizeof(styleA)/sizeof(ImU32));
+        // Load default line styles
+        ImPlot::LoadDefaultLineStyles();
+        // Register custom line style after loading defaults (order doesn't matter)
+        custom_style[1] = ImPlot::AddLineStyle(styleB, sizeof(styleB)/sizeof(ImU32));
+        is_init = true;
+    }
+    ImGui::DragFloat("Line Weight", &spec.LineWeight,0.05f,0.5f,32.0f,"%.2f px");
+
+    if (ImPlot::BeginPlot("##LineStyles", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
+
+        ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+        ImPlot::SetupAxesLimits(0, 5, 0, 9);
+
+        ImS8 xs[2] = {1,4};
+        ImS8 ys[2] = {7,8};
+
+        // Line Styles
+        for (int m = 0; m < ImPlotLineStyle_COUNT; ++m) {
+            ImGui::PushID(m);
+            spec.LineStyle = (ImPlotLineStyle)m;
+            ImPlot::PlotLine("##Style", xs, ys, 2, spec);
+            ImGui::PopID();
+            ys[0]--; ys[1]--;
+        }
+        // Custom Line Styles
+        for (int m = 0; m < 2; ++m) {
+            ImGui::PushID(m);
+            spec.LineStyle = custom_style[m];
+            ImPlot::PlotLine("##Custom", xs, ys, 2, spec);
+            ImGui::PopID();
+            ys[0]--; ys[1]--;
+        }
+        ImPlot::EndPlot();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 void Demo_MarkersAndText() {
     IMGUI_DEMO_MARKER("Plots/Markers and Text");
     static ImPlotSpec spec(ImPlotProp_Marker, ImPlotMarker_Auto);
@@ -2505,6 +2559,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Histogram 2D", Demo_Histogram2D);
             DemoHeader("Digital Plots", Demo_DigitalPlots);
             DemoHeader("Images", Demo_Images);
+            DemoHeader("Line Styles", Demo_LineStyles);
             DemoHeader("Markers and Text", Demo_MarkersAndText);
             DemoHeader("NaN Values", Demo_NaNValues);
             ImGui::EndTabItem();

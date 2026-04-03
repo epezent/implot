@@ -204,6 +204,40 @@ IMPLOT_INLINE void PrimLine(ImDrawList& draw_list, const ImVec2& P1, const ImVec
     draw_list._VtxCurrentIdx += 4;
 }
 
+IMPLOT_INLINE void PrimLineUV(ImDrawList& draw_list, const ImVec2& P1, const ImVec2& P2, float half_weight, ImU32 col, const ImVec2& uv_a, const ImVec2 uv_c) {
+    float dx = P2.x - P1.x;
+    float dy = P2.y - P1.y;
+    ImVec2 uv_b(uv_c.x, uv_a.y), uv_d(uv_a.x, uv_c.y);
+    IMPLOT_NORMALIZE2F_OVER_ZERO(dx, dy);
+    dx *= half_weight;
+    dy *= half_weight;
+    draw_list._VtxWritePtr[0].pos.x = P1.x + dy;
+    draw_list._VtxWritePtr[0].pos.y = P1.y - dx;
+    draw_list._VtxWritePtr[0].uv    = uv_a;
+    draw_list._VtxWritePtr[0].col   = col;
+    draw_list._VtxWritePtr[1].pos.x = P2.x + dy;
+    draw_list._VtxWritePtr[1].pos.y = P2.y - dx;
+    draw_list._VtxWritePtr[1].uv    = uv_b;
+    draw_list._VtxWritePtr[1].col   = col;
+    draw_list._VtxWritePtr[2].pos.x = P2.x - dy;
+    draw_list._VtxWritePtr[2].pos.y = P2.y + dx;
+    draw_list._VtxWritePtr[2].uv    = uv_c;
+    draw_list._VtxWritePtr[2].col   = col;
+    draw_list._VtxWritePtr[3].pos.x = P1.x - dy;
+    draw_list._VtxWritePtr[3].pos.y = P1.y + dx;
+    draw_list._VtxWritePtr[3].uv    = uv_d;
+    draw_list._VtxWritePtr[3].col   = col;
+    draw_list._VtxWritePtr += 4;
+    draw_list._IdxWritePtr[0] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+    draw_list._IdxWritePtr[1] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 1);
+    draw_list._IdxWritePtr[2] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 2);
+    draw_list._IdxWritePtr[3] = (ImDrawIdx)(draw_list._VtxCurrentIdx);
+    draw_list._IdxWritePtr[4] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 2);
+    draw_list._IdxWritePtr[5] = (ImDrawIdx)(draw_list._VtxCurrentIdx + 3);
+    draw_list._IdxWritePtr += 6;
+    draw_list._VtxCurrentIdx += 4;
+}
+
 IMPLOT_INLINE void PrimRectFill(ImDrawList& draw_list, const ImVec2& Pmin, const ImVec2& Pmax, ImU32 col, const ImVec2& uv) {
     draw_list._VtxWritePtr[0].pos   = Pmin;
     draw_list._VtxWritePtr[0].uv    = uv;
@@ -944,6 +978,55 @@ struct RendererLineStrip : RendererBase {
     const _Getter& Getter;
     const ImU32 Col;
     mutable float HalfWeight;
+    mutable ImVec2 P1;
+    mutable ImVec2 UV0;
+    mutable ImVec2 UV1;
+};
+
+template <class _Getter>
+struct RendererLineStripUV : RendererBase {
+    RendererLineStripUV(const _Getter& getter, ImU32 col, ImPlotLineStyleData style_data, float weight) :
+        RendererBase(getter.Count - 1, 6, 4),
+        Getter(getter),
+        Col(col),
+        StyleData(style_data),
+        HalfWeight(ImMax(1.0f,weight)*0.5f),
+        cumLen(0.f)
+    {
+        P1 = this->Transformer(Getter[0]);
+    }
+    void Init(ImDrawList& draw_list) const {
+        GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImVec2 P2 = this->Transformer(Getter[prim + 1]);
+        float segLen;
+        if (!(ImNan(P1.x) || ImNan(P1.y) || ImNan(P2.x) || ImNan(P2.y)))
+            segLen = ImSqrt(ImLengthSqr(P2 - P1));
+        else
+            segLen = 0.f;
+        
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2)))) {
+            cumLen = ImMod(cumLen + segLen, StyleData.Period);
+            P1 = P2;
+            return false;
+        }
+        UV0.x = ImRemap(cumLen, 0.f, StyleData.MaxLength, StyleData.Rect.uv0.x, StyleData.Rect.uv1.x);
+        UV1.x = ImRemap(cumLen + segLen, 0.f, StyleData.MaxLength, StyleData.Rect.uv0.x, StyleData.Rect.uv1.x);
+        UV0.y = StyleData.Rect.uv0.y;
+        UV1.y = StyleData.Rect.uv1.y;
+
+        PrimLineUV(draw_list,P1,P2,HalfWeight,Col,UV0,UV1);
+
+        cumLen = ImMod(cumLen + segLen, StyleData.Period);
+        P1 = P2;
+        return true;
+    }
+    const _Getter& Getter;
+    const ImU32 Col;
+    const ImPlotLineStyleData StyleData;
+    mutable float HalfWeight;
+    mutable float cumLen;
     mutable ImVec2 P1;
     mutable ImVec2 UV0;
     mutable ImVec2 UV1;
@@ -1796,14 +1879,22 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                 else if (ImHasFlag(spec.Flags, ImPlotLineFlags_Loop)) {
                     if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
                         RenderPrimitives1<RendererLineStripSkip>(GetterLoop<_Getter>(getter),col_line,s.Spec.LineWeight);
-                    else
-                        RenderPrimitives1<RendererLineStrip>(GetterLoop<_Getter>(getter),col_line,s.Spec.LineWeight);
+                    else {
+                        if (s.Spec.LineStyle == ImPlotLineStyle_Solid)
+                            RenderPrimitives1<RendererLineStrip>(GetterLoop<_Getter>(getter),col_line,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives1<RendererLineStripUV>(GetterLoop<_Getter>(getter),col_line,GetLineStyleData(s.Spec.LineStyle), s.Spec.LineWeight);
+                    }
                 }
                 else {
                     if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
                         RenderPrimitives1<RendererLineStripSkip>(getter,col_line,s.Spec.LineWeight);
-                    else
-                        RenderPrimitives1<RendererLineStrip>(getter,col_line,s.Spec.LineWeight);
+                    else {
+                        if (s.Spec.LineStyle == ImPlotLineStyle_Solid)
+                            RenderPrimitives1<RendererLineStrip>(getter,col_line,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives1<RendererLineStripUV>(getter,col_line,GetLineStyleData(s.Spec.LineStyle),s.Spec.LineWeight);
+                    }
                 }
             }
         }
