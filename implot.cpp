@@ -215,8 +215,6 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 // Clang/GCC warnings with -Weverything
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wformat-nonliteral"  // warning: format string is not a string literal
-#pragma clang diagnostic ignored "-Wdeprecated-enum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
-#pragma clang diagnostic ignored "-Wenum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
 #elif defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"    // warning: format not a string literal, format string not checked
 #endif
@@ -1876,12 +1874,12 @@ bool UpdateInput(ImPlotPlot& plot) {
 
     // BUTTON STATE -----------------------------------------------------------
 
-    const ImGuiButtonFlags plot_button_flags = ImGuiButtonFlags_AllowOverlap
-                                             | ImGuiButtonFlags_PressedOnClick
-                                             | ImGuiButtonFlags_PressedOnDoubleClick
-                                             | ImGuiButtonFlags_MouseButtonLeft
-                                             | ImGuiButtonFlags_MouseButtonRight
-                                             | ImGuiButtonFlags_MouseButtonMiddle;
+    const ImGuiButtonFlags plot_button_flags = static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_AllowOverlap)
+                                             | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_PressedOnClick)
+                                             | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_PressedOnDoubleClick)
+                                             | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_MouseButtonLeft)
+                                             | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_MouseButtonRight)
+                                             | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_MouseButtonMiddle);
     const ImGuiButtonFlags axis_button_flags = ImGuiButtonFlags_FlattenChildren
                                              | plot_button_flags;
 
@@ -3109,13 +3107,13 @@ void EndPlot() {
                                                         legend_out ? plot.FrameRect : plot.PlotRect,
                                                         legend_out ? gp.Style.PlotPadding : gp.Style.LegendPadding
                                                         );
-        const ImGuiButtonFlags legend_button_flags = ImGuiButtonFlags_AllowOverlap
-                                                    | ImGuiButtonFlags_PressedOnClick
-                                                    | ImGuiButtonFlags_PressedOnDoubleClick
-                                                    | ImGuiButtonFlags_MouseButtonLeft
-                                                    | ImGuiButtonFlags_MouseButtonRight
-                                                    | ImGuiButtonFlags_MouseButtonMiddle
-                                                    | ImGuiButtonFlags_FlattenChildren;
+        const ImGuiButtonFlags legend_button_flags = static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_AllowOverlap)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_PressedOnClick)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_PressedOnDoubleClick)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_MouseButtonLeft)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_MouseButtonRight)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_MouseButtonMiddle)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_FlattenChildren);
         ImGui::KeepAliveID(plot.Items.ID);
         ImGui::ButtonBehavior(legend.RectClamped, plot.Items.ID, &legend.Hovered, &legend.Held, legend_button_flags);
         legend.Hovered = legend.Hovered || (ImGui::IsWindowHovered() && legend.RectClamped.Contains(IO.MousePos));
@@ -3632,13 +3630,13 @@ void EndSubplots() {
         legend.Rect = ImRect(legend_pos, legend_pos + legend_size);
         legend.RectClamped = legend.Rect;
         const bool legend_scrollable = ClampLegendRect(legend.RectClamped,subplot.FrameRect, gp.Style.PlotPadding);
-        const ImGuiButtonFlags legend_button_flags = ImGuiButtonFlags_AllowOverlap
-                                                    | ImGuiButtonFlags_PressedOnClick
-                                                    | ImGuiButtonFlags_PressedOnDoubleClick
-                                                    | ImGuiButtonFlags_MouseButtonLeft
-                                                    | ImGuiButtonFlags_MouseButtonRight
-                                                    | ImGuiButtonFlags_MouseButtonMiddle
-                                                    | ImGuiButtonFlags_FlattenChildren;
+        const ImGuiButtonFlags legend_button_flags = static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_AllowOverlap)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_PressedOnClick)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_PressedOnDoubleClick)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_MouseButtonLeft)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_MouseButtonRight)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_MouseButtonMiddle)
+                                                   | static_cast<ImGuiButtonFlags>(ImGuiButtonFlags_FlattenChildren);
         ImGui::KeepAliveID(subplot.Items.ID);
         ImGui::ButtonBehavior(legend.RectClamped, subplot.Items.ID, &legend.Hovered, &legend.Held, legend_button_flags);
         legend.Hovered = legend.Hovered || (subplot.FrameHovered && legend.RectClamped.Contains(ImGui::GetIO().MousePos));

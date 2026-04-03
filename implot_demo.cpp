@@ -35,12 +35,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-// Clang warnings with -Weverything
-#if defined(__clang__)
-#pragma clang diagnostic ignored "-Wdeprecated-enum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
-#pragma clang diagnostic ignored "-Wenum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
-#endif
-
 #ifdef _MSC_VER
 #define sprintf sprintf_s
 #endif
@@ -2109,7 +2103,7 @@ void Demo_ItemStylingAndSpec() {
         spec.Marker = ImPlotMarker_Square;
         spec.MarkerSize = 6;
         spec.Stride = sizeof(ImVec2);
-        spec.Flags = ImPlotItemFlags_NoLegend | ImPlotLineFlags_Shaded;
+        spec.Flags = ImPlotLineFlags_NoLegend | ImPlotLineFlags_Shaded;
         ImPlot::PlotLine("Line 1", &data1[0].x, &data1[0].y, 20, spec);
 
         // 2. Inline using ImPlotProp,value pairs (order does NOT matter):
@@ -2121,7 +2115,7 @@ void Demo_ItemStylingAndSpec() {
             ImPlotProp_Marker, ImPlotMarker_Diamond,
             ImPlotProp_Size, 6,
             ImPlotProp_Stride, sizeof(ImVec2),
-            ImPlotProp_Flags, ImPlotItemFlags_NoLegend | ImPlotLineFlags_Shaded
+            ImPlotProp_Flags, ImPlotLineFlags_NoLegend | ImPlotLineFlags_Shaded
         });
 
         ImPlot::EndPlot();

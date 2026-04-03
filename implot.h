@@ -253,118 +253,154 @@ enum ImPlotItemFlags_ {
 
 // Flags for PlotLine. Used by setting ImPlotSpec::Flags.
 enum ImPlotLineFlags_ {
-    ImPlotLineFlags_None        = 0,       // default
-    ImPlotLineFlags_Segments    = 1 << 10, // a line segment will be rendered from every two consecutive points
-    ImPlotLineFlags_Loop        = 1 << 11, // the last and first point will be connected to form a closed loop
-    ImPlotLineFlags_SkipNaN     = 1 << 12, // NaNs values will be skipped instead of rendered as missing data
-    ImPlotLineFlags_NoClip      = 1 << 13, // markers (if displayed) on the edge of a plot will not be clipped
-    ImPlotLineFlags_Shaded      = 1 << 14, // a filled region between the line and horizontal origin will be rendered; use PlotShaded for more advanced cases
+    ImPlotLineFlags_None     = 0,                        // default
+    ImPlotLineFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotLineFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotLineFlags_Segments = 1 << 10,                  // a line segment will be rendered from every two consecutive points
+    ImPlotLineFlags_Loop     = 1 << 11,                  // the last and first point will be connected to form a closed loop
+    ImPlotLineFlags_SkipNaN  = 1 << 12,                  // NaNs values will be skipped instead of rendered as missing data
+    ImPlotLineFlags_NoClip   = 1 << 13,                  // markers (if displayed) on the edge of a plot will not be clipped
+    ImPlotLineFlags_Shaded   = 1 << 14,                  // a filled region between the line and horizontal origin will be rendered; use PlotShaded for more advanced cases
 };
 
 // Flags for PlotScatter. Used by setting ImPlotSpec::Flags.
 enum ImPlotScatterFlags_ {
-    ImPlotScatterFlags_None   = 0,       // default
-    ImPlotScatterFlags_NoClip = 1 << 10, // markers on the edge of a plot will not be clipped
+    ImPlotScatterFlags_None     = 0,                        // default
+    ImPlotScatterFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotScatterFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotScatterFlags_NoClip   = 1 << 10,                  // markers on the edge of a plot will not be clipped
 };
 
 // Flags for PlotBubbles. Used by setting ImPlotSpec::Flags.
 enum ImPlotBubblesFlags_ {
-  ImPlotBubblesFlags_None = 0, // default
+    ImPlotBubblesFlags_None     = 0,                        // default
+    ImPlotBubblesFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotBubblesFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
 };
 
 // Flags for PlotPolygon. Used by setting ImPlotSpec::Flags.
 enum ImPlotPolygonFlags_ {
-  ImPlotPolygonFlags_None     = 0,       // default (closed, convex polygon)
-  ImPlotPolygonFlags_Concave  = 1 << 10, // use concave polygon filling (slower but supports concave shapes)
+    ImPlotPolygonFlags_None     = 0,                        // default (closed, convex polygon)
+    ImPlotPolygonFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotPolygonFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotPolygonFlags_Concave  = 1 << 10,                  // use concave polygon filling (slower but supports concave shapes)
 };
 
 // Flags for PlotStairs. Used by setting ImPlotSpec::Flags.
 enum ImPlotStairsFlags_ {
-    ImPlotStairsFlags_None     = 0,       // default
-    ImPlotStairsFlags_PreStep  = 1 << 10, // the y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
-    ImPlotStairsFlags_Shaded   = 1 << 11  // a filled region between the stairs and horizontal origin will be rendered; use PlotShaded for more advanced cases
+    ImPlotStairsFlags_None     = 0,                        // default
+    ImPlotStairsFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotStairsFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotStairsFlags_PreStep  = 1 << 10,                  // the y value is continued constantly to the left from every x position, i.e. the interval (x[i-1], x[i]] has the value y[i]
+    ImPlotStairsFlags_Shaded   = 1 << 11,                  // a filled region between the stairs and horizontal origin will be rendered; use PlotShaded for more advanced cases
 };
 
 // Flags for PlotShaded (placeholder). Used by setting ImPlotSpec::Flags.
 enum ImPlotShadedFlags_ {
-    ImPlotShadedFlags_None  = 0 // default
+    ImPlotShadedFlags_None     = 0,                        // default
+    ImPlotShaderFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotShaderFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
 };
 
 // Flags for PlotBars. Used by setting ImPlotSpec::Flags.
 enum ImPlotBarsFlags_ {
-    ImPlotBarsFlags_None         = 0,       // default
-    ImPlotBarsFlags_Horizontal   = 1 << 10, // bars will be rendered horizontally on the current y-axis
+    ImPlotBarsFlags_None       = 0,                        // default
+    ImPlotBarsFlags_NoLegend   = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotBarsFlags_NoFit      = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotBarsFlags_Horizontal = 1 << 10,                  // bars will be rendered horizontally on the current y-axis
 };
 
 // Flags for PlotBarGroups. Used by setting ImPlotSpec::Flags.
 enum ImPlotBarGroupsFlags_ {
-    ImPlotBarGroupsFlags_None        = 0,       // default
-    ImPlotBarGroupsFlags_Horizontal  = 1 << 10, // bar groups will be rendered horizontally on the current y-axis
-    ImPlotBarGroupsFlags_Stacked     = 1 << 11, // items in a group will be stacked on top of each other
+    ImPlotBarGroupsFlags_None       = 0,                        // default
+    ImPlotBarGroupFlags_NoLegend    = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotBarGroupFlags_NoFit       = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotBarGroupsFlags_Horizontal = 1 << 10,                  // bar groups will be rendered horizontally on the current y-axis
+    ImPlotBarGroupsFlags_Stacked    = 1 << 11,                  // items in a group will be stacked on top of each other
 };
 
 // Flags for PlotErrorBars. Used by setting ImPlotSpec::Flags.
 enum ImPlotErrorBarsFlags_ {
-    ImPlotErrorBarsFlags_None       = 0,       // default
-    ImPlotErrorBarsFlags_Horizontal = 1 << 10, // error bars will be rendered horizontally on the current y-axis
+    ImPlotErrorBarsFlags_None       = 0,                        // default
+    ImPlotErrorBarsFlags_NoLegend   = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotErrorBarsFlags_NoFit      = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotErrorBarsFlags_Horizontal = 1 << 10,                  // error bars will be rendered horizontally on the current y-axis
 };
 
 // Flags for PlotStems. Used by setting ImPlotSpec::Flags.
 enum ImPlotStemsFlags_ {
-    ImPlotStemsFlags_None       = 0,       // default
-    ImPlotStemsFlags_Horizontal = 1 << 10, // stems will be rendered horizontally on the current y-axis
+    ImPlotStemsFlags_None       = 0,                        // default
+    ImPlotStemsFlags_NoLegend   = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotStemsFlags_NoFit      = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotStemsFlags_Horizontal = 1 << 10,                  // stems will be rendered horizontally on the current y-axis
 };
 
 // Flags for PlotInfLines. Used by setting ImPlotSpec::Flags.
 enum ImPlotInfLinesFlags_ {
-    ImPlotInfLinesFlags_None       = 0,      // default
-    ImPlotInfLinesFlags_Horizontal = 1 << 10 // lines will be rendered horizontally on the current y-axis
+    ImPlotInfLinesFlags_None       = 0,                        // default
+    ImPlotInfLinesFlags_NoLegend   = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotInfLinesFlags_NoFit      = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotInfLinesFlags_Horizontal = 1 << 10,                  // lines will be rendered horizontally on the current y-axis
 };
 
 // Flags for PlotPieChart. Used by setting ImPlotSpec::Flags.
 enum ImPlotPieChartFlags_ {
-    ImPlotPieChartFlags_None          = 0,       // default
-    ImPlotPieChartFlags_Normalize     = 1 << 10, // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
-    ImPlotPieChartFlags_IgnoreHidden  = 1 << 11, // ignore hidden slices when drawing the pie chart (as if they were not there)
-    ImPlotPieChartFlags_Exploding     = 1 << 12, // explode legend-hovered slice
-    ImPlotPieChartFlags_NoSliceBorder = 1 << 13  // do not draw slice borders
+    ImPlotPieChartFlags_None          = 0,                        // default
+    ImPlotPieChartFlags_NoLegend      = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotPieChartFlags_NoFit         = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotPieChartFlags_Normalize     = 1 << 10,                  // force normalization of pie chart values (i.e. always make a full circle if sum < 0)
+    ImPlotPieChartFlags_IgnoreHidden  = 1 << 11,                  // ignore hidden slices when drawing the pie chart (as if they were not there)
+    ImPlotPieChartFlags_Exploding     = 1 << 12,                  // explode legend-hovered slice
+    ImPlotPieChartFlags_NoSliceBorder = 1 << 13,                  // do not draw slice borders
 };
 
 // Flags for PlotHeatmap. Used by setting ImPlotSpec::Flags.
 enum ImPlotHeatmapFlags_ {
-    ImPlotHeatmapFlags_None     = 0,       // default
-    ImPlotHeatmapFlags_ColMajor = 1 << 10, // data will be read in column major order
+    ImPlotHeatmapFlags_None     = 0,                        // default
+    ImPlotHeatmapFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotHeatmapFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotHeatmapFlags_ColMajor = 1 << 10,                  // data will be read in column major order
 };
 
 // Flags for PlotHistogram and PlotHistogram2D. Used by setting ImPlotSpec::Flags.
 enum ImPlotHistogramFlags_ {
-    ImPlotHistogramFlags_None       = 0,       // default
-    ImPlotHistogramFlags_Horizontal = 1 << 10, // histogram bars will be rendered horizontally (not supported by PlotHistogram2D)
-    ImPlotHistogramFlags_Cumulative = 1 << 11, // each bin will contain its count plus the counts of all previous bins (not supported by PlotHistogram2D)
-    ImPlotHistogramFlags_Density    = 1 << 12, // counts will be normalized, i.e. the PDF will be visualized, or the CDF will be visualized if Cumulative is also set
-    ImPlotHistogramFlags_NoOutliers = 1 << 13, // exclude values outside the specified histogram range from the count toward normalizing and cumulative counts
-    ImPlotHistogramFlags_ColMajor   = 1 << 14  // data will be read in column major order (not supported by PlotHistogram)
+    ImPlotHistogramFlags_None       = 0,                        // default
+    ImPlotHistogramFlags_NoLegend   = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotHistogramFlags_NoFit      = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotHistogramFlags_Horizontal = 1 << 10,                  // histogram bars will be rendered horizontally (not supported by PlotHistogram2D)
+    ImPlotHistogramFlags_Cumulative = 1 << 11,                  // each bin will contain its count plus the counts of all previous bins (not supported by PlotHistogram2D)
+    ImPlotHistogramFlags_Density    = 1 << 12,                  // counts will be normalized, i.e. the PDF will be visualized, or the CDF will be visualized if Cumulative is also set
+    ImPlotHistogramFlags_NoOutliers = 1 << 13,                  // exclude values outside the specified histogram range from the count toward normalizing and cumulative counts
+    ImPlotHistogramFlags_ColMajor   = 1 << 14,                  // data will be read in column major order (not supported by PlotHistogram)
 };
 
 // Flags for PlotDigital (placeholder). Used by setting ImPlotSpec::Flags.
 enum ImPlotDigitalFlags_ {
-    ImPlotDigitalFlags_None = 0 // default
+    ImPlotDigitalFlags_None     = 0,                        // default
+    ImPlotDigitalFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotDigitalFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
 };
 
 // Flags for PlotImage (placeholder). Used by setting ImPlotSpec::Flags.
 enum ImPlotImageFlags_ {
-    ImPlotImageFlags_None = 0 // default
+    ImPlotImageFlags_None     = 0,                        // default
+    ImPlotImageFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotImageFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
 };
 
 // Flags for PlotText. Used by setting ImPlotSpec::Flags.
 enum ImPlotTextFlags_ {
-    ImPlotTextFlags_None     = 0,       // default
-    ImPlotTextFlags_Vertical = 1 << 10  // text will be rendered vertically
+    ImPlotTextFlags_None     = 0,                        // default
+    ImPlotTextFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotTextFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
+    ImPlotTextFlags_Vertical = 1 << 10                   // text will be rendered vertically
 };
 
 // Flags for PlotDummy (placeholder). Used by setting ImPlotSpec::Flags.
 enum ImPlotDummyFlags_ {
-    ImPlotDummyFlags_None = 0 // default
+    ImPlotDummyFlags_None     = 0,                        // default
+    ImPlotDummyFlags_NoLegend = ImPlotItemFlags_NoLegend, // see ImPlotItemFlags_NoLegend
+    ImPlotDummyFlags_NoFit    = ImPlotItemFlags_NoFit,    // see ImPlotItemFlags_NoFit
 };
 
 // Represents a condition for SetupAxisLimits etc. (same as ImGuiCond, but we only support a subset of those enums)
