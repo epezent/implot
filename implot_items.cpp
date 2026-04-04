@@ -2377,7 +2377,7 @@ void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& ge
                 GetterIdxColor fill_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
             } else {
-                GetterConstColor fill_getter(col_fill);
+                GetterConstColor fill_getter(col_fill, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
             }
             if (rend_line && col_fill == col_line)
