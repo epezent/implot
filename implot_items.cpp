@@ -1917,7 +1917,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 } else {
                     const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-                    GetterConstColor color_getter(col_fill);
+                    GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 }
             }
@@ -2270,7 +2270,7 @@ void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& g
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             } else {
                 const ImU32 col = ImGui::GetColorU32(s.Spec.FillColor);
-                GetterConstColor color_getter(col);
+                GetterConstColor color_getter(col, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             }
         }
