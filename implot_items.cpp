@@ -705,6 +705,7 @@ struct GetterConstColor {
 struct GetterIdxColor {
     GetterIdxColor(const ImU32* data, int count, float alpha = 1.0f) : Data(data), Count(count), Alpha(alpha) { }
     template <typename I> IMPLOT_INLINE ImU32 operator[](I idx) const {
+        IM_ASSERT(idx >= 0 && idx < Count);
         ImU32 col = Data[idx];
         if (Alpha < 1.0f) {
             ImVec4 col_vec = ImGui::ColorConvertU32ToFloat4(col);
@@ -731,6 +732,7 @@ struct GetterConstSize {
 struct GetterIdxSize {
     GetterIdxSize(const float* data, int count) : Data(data), Count(count) { }
     template <typename I> IMPLOT_INLINE float operator[](I idx) const {
+        IM_ASSERT(idx >= 0 && idx < Count);
         return Data[idx];
     }
     const float* Data;
