@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v1.0
 
 /*
 
@@ -32,7 +32,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2026/02/12 (0.18) - ImPlotSpec replaces the SetNextXXX style functions. The guide below shows show to migrate from SetNextXXX to ImPlotSpec.
+- 2026/02/12 (1.0) - ImPlotSpec replaces the SetNextXXX style functions. The guide below shows show to migrate from SetNextXXX to ImPlotSpec.
                         - `SetNextLineStyle` has been removed, styling should be set via ImPlotSpec.
                           ```
                           // Before
@@ -87,7 +87,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
                            ImPlot::PlotErrorBars("ErrorBar", xs, ys, err, count, spec);
                            ```
                         - Flags, Offset and Stride should also be set via ImPlotSpec now.
-- 2023/10/02 (0.18) - ImPlotSpec was made the default and _only_ way of styling plot items. Therefore the following features were removed:
+- 2023/10/02 (1.0) - ImPlotSpec was made the default and _only_ way of styling plot items. Therefore the following features were removed:
                       - ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar have been removed and thus are no longer supported by PushStyleColor.
                         You can use a common ImPlotSpec instance across multiple PlotX calls to emulate PushStyleColor behavior.
                       - ImPlotStyleVar_LineWeight, ImPlotStyleVar_Marker, ImPlotStyleVar_MarkerSize, ImPlotStyleVar_MarkerWeight, ImPlotStyleVar_FillAlpha, ImPlotStyleVar_ErrorBarSize, and ImPlotStyleVar_ErrorBarWeight
@@ -5921,20 +5921,7 @@ void StyleColorsLight(ImPlotStyle* dst) {
 
 #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
 
-bool BeginPlot(const char* title, const char* x_label, const char* y1_label, const ImVec2& size,
-               ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y1_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags,
-               const char* y2_label, const char* y3_label)
-{
-    if (!BeginPlot(title, size, flags))
-        return false;
-    SetupAxis(ImAxis_X1, x_label, x_flags);
-    SetupAxis(ImAxis_Y1, y1_label, y1_flags);
-    if (ImHasFlag(flags, ImPlotFlags_YAxis2))
-        SetupAxis(ImAxis_Y2, y2_label, y2_flags);
-    if (ImHasFlag(flags, ImPlotFlags_YAxis3))
-        SetupAxis(ImAxis_Y3, y3_label, y3_flags);
-    return true;
-}
+// Deprecated method will go in here
 
 #endif
 

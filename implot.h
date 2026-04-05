@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v1.0
 
 // Table of Contents:
 //
@@ -62,9 +62,9 @@
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "0.18 WIP"
+#define IMPLOT_VERSION "1.0"
 // ImPlot version integer encoded as XYYZZ (X=major, YY=minor, ZZ=patch).
-#define IMPLOT_VERSION_NUM 1801
+#define IMPLOT_VERSION_NUM 10000
 // Macro for templated plotting functions; keeps header clean.
 #define IMPLOT_TMP template <typename T> IMPLOT_API
 
@@ -1388,34 +1388,17 @@ IMPLOT_API void ShowDemoWindow(bool* p_open = nullptr);
 #define IMPLOT_DEPRECATED(method) method
 #endif
 
-enum ImPlotFlagsObsolete_ {
-    ImPlotFlags_YAxis2 = 1 << 20,
-    ImPlotFlags_YAxis3 = 1 << 21,
-};
-
 namespace ImPlot {
 
-// OBSOLETED in v0.18 (from February 2026)
-// IMPLOT_API void SetNextLineStyle(const ImVec4& col = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO); // OBSOLETED IN 0.18 // Set ImPlotSpec.LineColor/LineWeight or construct ImPlotSpec with { ImPlotSpec_LineColor, color, ImPlotSpec_LineWeight, weight }.
+// OBSOLETED in v1.0 (from February 2026)
+// IMPLOT_API void SetNextLineStyle(const ImVec4& col = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO); // OBSOLETED IN v1.0 // Set ImPlotSpec.LineColor/LineWeight or construct ImPlotSpec with { ImPlotSpec_LineColor, color, ImPlotSpec_LineWeight, weight }.
 
-// IMPLOT_API void SetNextFillStyle(const ImVec4& col = IMPLOT_AUTO_COL, float alpha_mod = IMPLOT_AUTO);// OBSOLETED IN 0.18 // Set ImPlotSpec.FillColor/FillAlpha or construct ImPlotSpec with { ImPlotSpec_FillColor, color, ImPlotSpec_FillAlpha, alpha }.
+// IMPLOT_API void SetNextFillStyle(const ImVec4& col = IMPLOT_AUTO_COL, float alpha_mod = IMPLOT_AUTO);// OBSOLETED IN v1.0 // Set ImPlotSpec.FillColor/FillAlpha or construct ImPlotSpec with { ImPlotSpec_FillColor, color, ImPlotSpec_FillAlpha, alpha }.
 
-// IMPLOT_API void SetNextMarkerStyle(ImPlotMarker marker = IMPLOT_AUTO, float size = IMPLOT_AUTO, const ImVec4& fill = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO, const ImVec4& outline = IMPLOT_AUTO_COL); // OBSOLETED IN 0.18 // Set ImPlotSpec.Marker/MarkerSize/MarkerFillColor/LineWeight/MarkerLineColor or construct ImPlotSpec with { ImPlotSpec_Marker, marker, ImPlotSpec_MarkerSize, size, ImPlotSpec_MarkerFillColor, fill_color, ImPlotSpec_LineWeight, weight, ImPlotSpec_MarkerLineColor, outline }.
+// IMPLOT_API void SetNextMarkerStyle(ImPlotMarker marker = IMPLOT_AUTO, float size = IMPLOT_AUTO, const ImVec4& fill = IMPLOT_AUTO_COL, float weight = IMPLOT_AUTO, const ImVec4& outline = IMPLOT_AUTO_COL); // OBSOLETED IN v1.0 // Set ImPlotSpec.Marker/MarkerSize/MarkerFillColor/LineWeight/MarkerLineColor or construct ImPlotSpec with { ImPlotSpec_Marker, marker, ImPlotSpec_MarkerSize, size, ImPlotSpec_MarkerFillColor, fill_color, ImPlotSpec_LineWeight, weight, ImPlotSpec_MarkerLineColor, outline }.
 
-// IMPLOT_API void SetNextErrorBarStyle(const ImVec4& col = IMPLOT_AUTO_COL, float size = IMPLOT_AUTO, float weight = IMPLOT_AUTO); // OBSOLETED IN 0.18 // Set ImPlotSpec.LineColor/Size/LineWeight or construct ImPlotSpec with { ImPlotSpec_LineColor, col, ImPlotSpec_Size, size, ImPlotSpec_LineWeight, weight }.
+// IMPLOT_API void SetNextErrorBarStyle(const ImVec4& col = IMPLOT_AUTO_COL, float size = IMPLOT_AUTO, float weight = IMPLOT_AUTO); // OBSOLETED IN v1.0 // Set ImPlotSpec.LineColor/Size/LineWeight or construct ImPlotSpec with { ImPlotSpec_LineColor, col, ImPlotSpec_Size, size, ImPlotSpec_LineWeight, weight }.
 
-// OBSOLETED in v0.13 -> PLANNED REMOVAL in v1.0
-IMPLOT_DEPRECATED( IMPLOT_API bool BeginPlot(const char* title_id,
-                                             const char* x_label,  // = nullptr,
-                                             const char* y_label,  // = nullptr,
-                                             const ImVec2& size       = ImVec2(-1,0),
-                                             ImPlotFlags flags        = ImPlotFlags_None,
-                                             ImPlotAxisFlags x_flags  = 0,
-                                             ImPlotAxisFlags y_flags  = 0,
-                                             ImPlotAxisFlags y2_flags = ImPlotAxisFlags_AuxDefault,
-                                             ImPlotAxisFlags y3_flags = ImPlotAxisFlags_AuxDefault,
-                                             const char* y2_label     = nullptr,
-                                             const char* y3_label     = nullptr) );
 
 } // namespace ImPlot
 
