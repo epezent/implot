@@ -967,26 +967,55 @@ struct ImPlotAlignmentData {
     void Reset() { PadA = PadB = PadAMax = PadBMax = 0; }
 };
 
+// Legend icon types
+enum ImPlotLegendIconType_ {
+    ImPlotLegendIconType_Line,          // Horizontal line (line plots)
+    ImPlotLegendIconType_LineMarkers,   // Horizontal line with marker (line plots with markers)
+    ImPlotLegendIconType_Markers,       // Single marker (scatter plots)
+    ImPlotLegendIconType_Fill,          // Filled square (shaded plots, pie charts)
+    ImPlotLegendIconType_FillLine       // Filled square with outline (bars, histograms)
+};
+
 // State information for Plot items
 struct ImPlotItem
 {
-    ImGuiID      ID;
-    ImU32        Color;
-    ImPlotMarker Marker;
-    ImRect       LegendHoverRect;
-    int          NameOffset;
-    bool         Show;
-    bool         LegendHovered;
-    bool         SeenThisFrame;
+    ImGuiID              ID;
+    ImU32                Color;
+    ImU32                LineColor;
+    ImU32                FillColor;
+    ImU32                MarkerLineColor;
+    ImU32                MarkerFillColor;
+    ImPlotMarker         Marker;
+    ImPlotItemFlags      LegendFlags;
+    ImPlotLegendIconType_ LegendIconType;
+    ImRect               LegendHoverRect;
+    int                  NameOffset;
+    bool                 Show;
+    bool                 LegendHovered;
+    bool                 SeenThisFrame;
+    bool                 LegendRenderLine;
+    bool                 LegendRenderFill;
+    bool                 LegendRenderMarkers;
+    float                LegendLineWeight;
 
     ImPlotItem() {
-        ID            = 0;
-        Color         = IM_COL32_WHITE;
-        Marker        = ImPlotMarker_None;
-        NameOffset    = -1;
-        Show          = true;
-        SeenThisFrame = false;
-        LegendHovered = false;
+        ID                   = 0;
+        Color                = IM_COL32_WHITE;
+        LineColor            = IM_COL32_WHITE;
+        FillColor            = IM_COL32_WHITE;
+        MarkerLineColor      = IM_COL32_WHITE;
+        MarkerFillColor      = IM_COL32_WHITE;
+        Marker               = ImPlotMarker_None;
+        LegendFlags          = ImPlotItemFlags_None;
+        LegendIconType       = ImPlotLegendIconType_Line;
+        NameOffset           = -1;
+        Show                 = true;
+        SeenThisFrame        = false;
+        LegendHovered        = false;
+        LegendRenderLine     = false;
+        LegendRenderFill     = false;
+        LegendRenderMarkers  = false;
+        LegendLineWeight     = 1.0f;
     }
 
     ~ImPlotItem() { ID = 0; }
@@ -1333,12 +1362,12 @@ IMPLOT_API void ShowSubplotsContextMenu(ImPlotSubplot& subplot);
 //-----------------------------------------------------------------------------
 
 // Begins a new item. Returns false if the item should not be plotted. Pushes PlotClipRect.
-IMPLOT_API bool BeginItem(const char* label_id, const ImPlotSpec& spec = ImPlotSpec(), const ImVec4& item_col = IMPLOT_AUTO_COL, ImPlotMarker item_mkr = ImPlotMarker_Invalid);
+IMPLOT_API bool BeginItem(const char* label_id, ImPlotLegendIconType_ icon_type, const ImPlotSpec& spec = ImPlotSpec(), const ImVec4& item_col = IMPLOT_AUTO_COL, ImPlotMarker item_mkr = ImPlotMarker_Invalid);
 
 // Same as above but with fitting functionality.
 template <typename _Fitter>
-bool BeginItemEx(const char* label_id, const _Fitter& fitter, const ImPlotSpec& spec, const ImVec4& item_col = IMPLOT_AUTO_COL, ImPlotMarker item_mkr = ImPlotMarker_Invalid) {
-    if (BeginItem(label_id, spec, item_col, item_mkr)) {
+bool BeginItemEx(const char* label_id, ImPlotLegendIconType_ icon_type, const _Fitter& fitter, const ImPlotSpec& spec, const ImVec4& item_col = IMPLOT_AUTO_COL, ImPlotMarker item_mkr = ImPlotMarker_Invalid) {
+    if (BeginItem(label_id, icon_type, spec, item_col, item_mkr)) {
         ImPlotPlot& plot = *GetCurrentPlot();
         if (plot.FitThisFrame && !ImHasFlag(spec.Flags, ImPlotItemFlags_NoFit))
             fitter.Fit(plot.Axes[plot.CurrentX], plot.Axes[plot.CurrentY]);
