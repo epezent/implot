@@ -212,9 +212,10 @@ static inline ImU32 ImLerpU32(const ImU32* colors, int size, float t) {
     return ImMixU32(colors[i1], colors[i2], (ImU32)(tr*256));
 }
 
-// Set alpha channel of 32-bit color from float in range [0.0 1.0]
-static inline ImU32 ImAlphaU32(ImU32 col, float alpha) {
-    return col & ~((ImU32)((1.0f-alpha)*255)<<IM_COL32_A_SHIFT);
+// Multiply alpha channel of 32-bit color by float
+static inline ImU32 ImAlphaU32(ImU32 col, float alpha_mul) {
+    ImU32 alpha = (ImU32)ImClamp((int)((col >> IM_COL32_A_SHIFT) * alpha_mul), 0, 255);
+    return (col & ~IM_COL32_A_MASK) | (alpha << IM_COL32_A_SHIFT);
 }
 
 // Returns true of two ranges overlap
@@ -1468,7 +1469,12 @@ static inline bool IsColorAuto(ImPlotCol idx) { return IsColorAuto(GImPlot->Styl
 IMPLOT_API ImVec4 GetAutoColor(ImPlotCol idx);
 
 // Returns the style color whether it is automatic or custom set
-static inline ImVec4 GetStyleColorVec4(ImPlotCol idx) { return IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx]; }
+static inline ImVec4 GetStyleColorVec4(ImPlotCol idx, float alpha_mul = 1.0f) {
+    ImVec4 color = IsColorAuto(idx) ? GetAutoColor(idx) : GImPlot->Style.Colors[idx];
+    color.w *= ImGui::GetStyle().Alpha * alpha_mul;
+    return color;
+}
+
 static inline ImU32  GetStyleColorU32(ImPlotCol idx)  { return ImGui::ColorConvertFloat4ToU32(GetStyleColorVec4(idx)); }
 
 // Draws vertical text. The position is the bottom left of the text rect.
