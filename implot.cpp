@@ -750,6 +750,60 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
     return hovered && !any_item_hovered;
 }
 
+
+
+//-----------------------------------------------------------------------------
+// Offset plus delta formatter
+//-----------------------------------------------------------------------------
+int FormatOffsetPlusDelta(double value, char* buff, int size, char* fmt, int decimal_shift, double offset) {
+    return ImFormatString(buff, size, fmt, (value - offset) * ImPow(10., (double) -decimal_shift));
+}
+bool UseOffset(ImPlotRange Range) {
+    if((Range.Max > 0) != (Range.Min > 0)) {
+        return false;
+    }
+    int range_most_sig_place = (int) floor(ImLog10(Range.Max - Range.Min));
+    int extremum_most_sig_place = (int) floor(ImLog10(ImMax(ImAbs(Range.Max),ImAbs(Range.Min))));
+    // present the ticks as a delta relative to an offset if the most significant digit of the
+    // range is at least 3 digits to the right of the most significant digit of the extremum
+    return range_most_sig_place - extremum_most_sig_place <= -3;
+}
+
+int GetDecimalShift(ImPlotRange Range) {
+    int decimal_shift;
+    int n_axis_unit_thresh_log10 = 1;
+    if(UseOffset(Range)) {
+    // if the range is not between 0.01 and 10 user units, then scale the labels by a factor
+    // 10^(3n) to ensure the range is between 0.01 and 10 label units.  here, a user unit is a
+    // change of 1 in the units employed by the user, and a label unit is a change of 1 in the
+    // units used for the tick labeling
+        decimal_shift = ((int)((ImLog10(Range.Max - Range.Min) - 1)/3)) * 3;
+    } else {
+    // if the abs of the most extreme value is not between 0.1 and 100 user units, then scale
+    // the labels by a factor 10^(3n) to ensure the abs of the most extreme label value is
+    // between 0.1 and 100 label units
+        decimal_shift = ((int)((ImLog10(ImMax(ImAbs(Range.Max),ImAbs(Range.Min))) - 2)/3)) * 3;
+    }
+    return decimal_shift;
+}
+
+double GetOffset(ImPlotRange Range) {
+    double offset;
+    if(UseOffset(Range)) {
+        int range_most_sig_place = (int) floor(ImLog10(Range.Max - Range.Min));
+        double minabs = (Range.Max > 0) ? Range.Min : Range.Max;
+        // how often should the offset change as the user pans across the axis? the two lines
+        // below set the axis offset to the range min (positive values) or the range max
+        // (negative values) truncated to 2 digits to the left of the range_most_sig_place.
+        // the place value of this place is between 10 and 100 times the axis range
+        float ten_base = pow(10.,-range_most_sig_place - 2);
+        offset = (minabs > 0) ? floor(minabs*ten_base) / ten_base : ceil(minabs*ten_base)/ten_base;
+    } else {
+        offset = 0.;
+    }
+    return offset;
+}
+
 //-----------------------------------------------------------------------------
 // Locators
 //-----------------------------------------------------------------------------
@@ -768,8 +822,18 @@ void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixel
     const double graphmax   = ceil(range.Max / interval) * interval;
     bool first_major_set    = false;
     int  first_major_idx    = 0;
+
     const int idx0 = ticker.TickCount(); // ticker may have user custom ticks
     ImVec2 total_size(0,0);
+    Formatter_Offset_Plus_Delta_Data fopdd;
+    if(formatter == Formatter_Offset_Plus_Delta) {
+        ticker.LabelDecimalShift = GetDecimalShift(range);
+        ticker.LabelOffset = GetOffset(range);
+        fopdd.decimal_shift = ticker.LabelDecimalShift;
+        fopdd.offset = ticker.LabelOffset;
+        fopdd.fmt = (char *) formatter_data;
+        formatter_data = &fopdd;
+    }
     for (double major = graphmin; major < graphmax + 0.5 * interval; major += interval) {
         // is this zero? combat zero formatting issues
         if (major-interval < 0 && major+interval > 0)
@@ -794,6 +858,10 @@ void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixel
             ticker.Ticks[i].ShowLabel = false;
         for (int i = first_major_idx+1; i < ticker.TickCount(); i += 2)
             ticker.Ticks[i].ShowLabel = false;
+    }
+    if(formatter == Formatter_Offset_Plus_Delta) {
+        // reset formatter_data so that it doesn't point to fopdd when fopdd goes out of scope
+        formatter_data = fopdd.fmt;
     }
 }
 
@@ -1648,7 +1716,11 @@ void LabelAxisValue(const ImPlotAxis& axis, double value, char* buff, int size, 
     else {
         if (round)
             value = RoundAxisValue(axis, value);
-        axis.Formatter(value, buff, size, axis.FormatterData);
+        if(axis.Formatter == Formatter_Offset_Plus_Delta) {
+            Formatter_Default(value, buff, size, axis.FormatterData);
+        } else {
+            axis.Formatter(value, buff, size, axis.FormatterData);
+        }
     }
 }
 
@@ -2513,6 +2585,59 @@ bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
 // SetupFinish
 //-----------------------------------------------------------------------------
 
+void AxisLabelWithOffsetAndDeltaDecorations(char* label, ImPlotAxis ax) {
+    ImPlotPlot &plot  = *GImPlot->CurrentPlot;
+    const char* base_label = plot.GetAxisLabel(ax);
+    if(ax.Formatter == Formatter_Offset_Plus_Delta) {
+        char offset_label[IMPLOT_LABEL_MAX_SIZE];
+        char decimal_shift_label[IMPLOT_LABEL_MAX_SIZE];
+        if(ax.Ticker.LabelDecimalShift != 0) {
+            ImFormatString(decimal_shift_label, IMPLOT_LABEL_MAX_SIZE, " x 10^%d", -ax.Ticker.LabelDecimalShift);
+        } else {
+            decimal_shift_label[0] = '\0';
+        }
+        if(ax.Ticker.LabelOffset != 0) {
+            ImFormatString(offset_label, IMPLOT_LABEL_MAX_SIZE, " %c %g",
+                ax.Ticker.LabelOffset > 0 ? '-' : '+',
+                ImAbs(ax.Ticker.LabelOffset));
+        } else {
+            offset_label[0] = '\0';
+        }
+
+        bool both_on = (ax.Ticker.LabelDecimalShift != 0) && (ax.Ticker.LabelOffset != 0);
+        ImFormatString(label, IMPLOT_LABEL_MAX_SIZE, "%s%s%s%s%s",
+                both_on ? "(" : "",
+                base_label,
+                offset_label,
+                both_on ? ")" : "",
+                decimal_shift_label);
+    } else {
+        ImFormatString(label, IMPLOT_LABEL_MAX_SIZE, "%s", base_label);
+    }
+}
+
+void OffsetAndDeltaLabel(char* label, ImPlotAxis ax) {
+    ImPlotPlot &plot  = *GImPlot->CurrentPlot;
+    char offset_label[IMPLOT_LABEL_MAX_SIZE];
+    char decimal_shift_label[IMPLOT_LABEL_MAX_SIZE];
+    if(ax.Ticker.LabelDecimalShift != 0) {
+        ImFormatString(decimal_shift_label, IMPLOT_LABEL_MAX_SIZE, "x10^%d", ax.Ticker.LabelDecimalShift);
+    } else {
+        decimal_shift_label[0] = '\0';
+    }
+    if(ax.Ticker.LabelOffset != 0) {
+        ImFormatString(offset_label, IMPLOT_LABEL_MAX_SIZE, "%c %g",
+            ax.Ticker.LabelOffset > 0 ? '+' : '-',
+            ImAbs(ax.Ticker.LabelOffset));
+    } else {
+        offset_label[0] = '\0';
+    }
+    ImFormatString(label, IMPLOT_LABEL_MAX_SIZE, "%s%s%s",
+            decimal_shift_label,
+            (ax.Ticker.LabelDecimalShift != 0) && (ax.Ticker.LabelOffset != 0) ? " " : "",
+            offset_label);
+}
+
 void SetupFinish() {
     IM_ASSERT_USER_ERROR(GImPlot != nullptr, "No current context. Did you call ImPlot::CreateContext() or ImPlot::SetCurrentContext()?");
     ImPlotContext& gp = *GImPlot;
@@ -2542,9 +2667,12 @@ void SetupFinish() {
             else
                 axis.FormatterData = (void*)IMPLOT_LABEL_FORMAT;
         }
+
         if (axis.Locator == nullptr) {
             axis.Locator = Locator_Default;
         }
+
+        IM_ASSERT_USER_ERROR((axis.Formatter != Formatter_Offset_Plus_Delta) || (axis.Locator == Locator_Default), "The Offset_Plus_Delta tick formatter can only be used with the default tick locator");
     }
 
     // setup nullptr orthogonal axes
@@ -2754,7 +2882,12 @@ void SetupFinish() {
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
         if (ax.HasLabel()) {
-            const char* label        = plot.GetAxisLabel(ax);
+            char label[IMPLOT_LABEL_MAX_SIZE];
+            if(ax.Formatter == Formatter_Offset_Plus_Delta && ImHasFlag(ax.Flags, ImPlotAxisFlags_CompactOffsetAndDelta)) {
+                AxisLabelWithOffsetAndDeltaDecorations(label, ax); 
+            } else {
+                ImFormatString(label, IMPLOT_LABEL_MAX_SIZE, "%s", plot.GetAxisLabel(ax));
+            }
             const ImVec2 label_size  = ImGui::CalcTextSize(label);
             const float label_offset = (ax.HasTickLabels() ? tkr.MaxSize.y + gp.Style.LabelPadding.y : 0.0f)
                                      + (tkr.Levels - 1) * (txt_height + gp.Style.LabelPadding.y)
@@ -2763,6 +2896,7 @@ void SetupFinish() {
                                    opp ? ax.Datum1 - label_offset - label_size.y : ax.Datum1 + label_offset);
             DrawList.AddText(label_pos, ax.ColorTxt, label);
         }
+
         if (ax.HasTickLabels()) {
             for (int j = 0; j < tkr.TickCount(); ++j) {
                 const ImPlotTick& tk = tkr.Ticks[j];
@@ -2774,6 +2908,20 @@ void SetupFinish() {
                 }
             }
         }
+
+        if (ax.Formatter == Formatter_Offset_Plus_Delta && !ImHasFlag(ax.Flags, ImPlotAxisFlags_CompactOffsetAndDelta)) {
+            char offset_delta_label[IMPLOT_LABEL_MAX_SIZE];
+            OffsetAndDeltaLabel(offset_delta_label, ax);
+            const ImVec2 label_size  = ImGui::CalcTextSize(offset_delta_label);
+            const float label_offset = (ax.HasTickLabels() ? tkr.MaxSize.y + gp.Style.LabelPadding.y : 0.0f)
+                                     + (tkr.Levels - 1) * (txt_height + gp.Style.LabelPadding.y);
+            const ImVec2 label_pos(plot.PlotRect.Max.x - label_size.x,
+                                   opp ? ax.Datum1 - label_offset - label_size.y : ax.Datum1 + label_offset);
+            DrawList.AddText(label_pos, ax.ColorTxt, offset_delta_label);
+        }
+// 
+
+
     }
 
     // render y axis button, label, tick labels
@@ -2793,7 +2941,12 @@ void SetupFinish() {
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
         if (ax.HasLabel()) {
-            const char* label        = plot.GetAxisLabel(ax);
+            char label[IMPLOT_LABEL_MAX_SIZE];
+            if(ax.Formatter == Formatter_Offset_Plus_Delta && ImHasFlag(ax.Flags, ImPlotAxisFlags_CompactOffsetAndDelta)) {
+                AxisLabelWithOffsetAndDeltaDecorations(label, ax); 
+            } else {
+                ImFormatString(label, IMPLOT_LABEL_MAX_SIZE, "%s", plot.GetAxisLabel(ax));
+            }
             const ImVec2 label_size  = CalcTextSizeVertical(label);
             const float label_offset = (ax.HasTickLabels() ? tkr.MaxSize.x + gp.Style.LabelPadding.x : 0.0f)
                                      + gp.Style.LabelPadding.x;
@@ -2810,6 +2963,14 @@ void SetupFinish() {
                     DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
                 }
             }
+        }
+        if (ax.Formatter == Formatter_Offset_Plus_Delta && !ImHasFlag(ax.Flags, ImPlotAxisFlags_CompactOffsetAndDelta)) {
+            char offset_delta_label[IMPLOT_LABEL_MAX_SIZE];
+            OffsetAndDeltaLabel(offset_delta_label, ax);
+            const ImVec2 label_size  = ImGui::CalcTextSize(offset_delta_label);
+            const ImVec2 label_pos(plot.PlotRect.Min.x,
+                                   plot.PlotRect.Min.y - label_size.y);
+            DrawList.AddText(label_pos, ax.ColorTxt, offset_delta_label);
         }
     }
 
