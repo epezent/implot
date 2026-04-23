@@ -1020,6 +1020,45 @@ struct RendererLineStrip : RendererBase {
     mutable ImVec2 UV1;
 };
 
+template <class _Getter, class _GetterColor, class _Filter>
+struct RendererLineStripFiltered : RendererBase {
+    RendererLineStripFiltered(const _Getter& getter, const _GetterColor& getter_color, const _Filter& filter, float weight) :
+        RendererBase(getter.Count - 1, 6, 4),
+        Getter(getter),
+        GetterColor(getter_color),
+        Filter(filter),
+        HalfWeight(ImMax(1.0f,weight)*0.5f)
+    {
+        rawP1 = Getter[0];
+        P1 = this->Transformer(rawP1);
+    }
+    void Init(ImDrawList& draw_list) const {
+        GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint rawP2 = Getter[prim + 1];
+        ImVec2 P2 = this->Transformer(rawP2);
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))) || !Filter(prim + 1, rawP1, rawP2)) {
+            P1 = P2;
+            rawP1 = rawP2;
+            return false;
+        }
+        ImU32 col = GetterColor[prim];
+        PrimLine(draw_list,P1,P2,HalfWeight,col,UV0,UV1);
+        P1 = P2;
+        rawP1 = rawP2;
+        return true;
+    }
+    const _Getter& Getter;
+    const _GetterColor& GetterColor;
+    const _Filter& Filter;
+    mutable float HalfWeight;
+    mutable ImVec2 P1;
+    mutable ImPlotPoint rawP1;
+    mutable ImVec2 UV0;
+    mutable ImVec2 UV1;
+};
+
 template <class _Getter, class _GetterColor>
 struct RendererLineStripSkip : RendererBase {
     RendererLineStripSkip(const _Getter& getter, const _GetterColor& getter_color, float weight) :
@@ -1055,8 +1094,8 @@ struct RendererLineStripSkip : RendererBase {
 };
 
 template <class _Getter, class _GetterColor, class _Filter>
-struct RendererLineStripSkipCustom : RendererBase {
-    RendererLineStripSkipCustom(const _Getter& getter, const _GetterColor& getter_color, const _Filter& filter, float weight) :
+struct RendererLineStripSkipFiltered : RendererBase {
+    RendererLineStripSkipFiltered(const _Getter& getter, const _GetterColor& getter_color, const _Filter& filter, float weight) :
         RendererBase(getter.Count - 1, 6, 4),
         Getter(getter),
         GetterColor(getter_color),
@@ -1072,7 +1111,7 @@ struct RendererLineStripSkipCustom : RendererBase {
     IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
         ImPlotPoint rawP2 = Getter[prim + 1];
         ImVec2 P2 = this->Transformer(rawP2);
-        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))) && !Filter(prim + 1, rawP1, rawP2)) {
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))) || !Filter(prim + 1, rawP1, rawP2)) {
             if (!ImNan(P2.x) && !ImNan(P2.y)){
                 P1 = P2;
                 rawP1 = rawP2;
@@ -1124,6 +1163,37 @@ struct RendererLineSegments1 : RendererBase {
     mutable ImVec2 UV1;
 };
 
+template <class _Getter, class _GetterColor, class _Filter>
+struct RendererLineSegments1Filtered : RendererBase {
+    RendererLineSegments1Filtered(const _Getter& getter, const _GetterColor& getter_color, const _Filter& filter, float weight) :
+        RendererBase(getter.Count / 2, 6, 4),
+        Getter(getter),
+        GetterColor(getter_color),
+        Filter(filter),
+        HalfWeight(ImMax(1.0f,weight)*0.5f)
+    { }
+    void Init(ImDrawList& draw_list) const {
+        GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint rawP1 = Getter[prim*2+0];
+        ImPlotPoint rawP2 = Getter[prim*2+1];
+        ImVec2 P1 = this->Transformer(rawP1);
+        ImVec2 P2 = this->Transformer(rawP2);
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))) || !Filter(prim, rawP1, rawP2))
+            return false;
+        ImU32 col = GetterColor[prim*2];
+        PrimLine(draw_list,P1,P2,HalfWeight,col,UV0,UV1);
+        return true;
+    }
+    const _Getter& Getter;
+    const _GetterColor& GetterColor;
+    const _Filter& Filter;
+    mutable float HalfWeight;
+    mutable ImVec2 UV0;
+    mutable ImVec2 UV1;
+};
+
 template <class _Getter1, class _Getter2, class _GetterColor>
 struct RendererLineSegments2 : RendererBase {
     RendererLineSegments2(const _Getter1& getter1, const _Getter2& getter2, const _GetterColor& getter_color, float weight) :
@@ -1148,6 +1218,38 @@ struct RendererLineSegments2 : RendererBase {
     const _Getter1& Getter1;
     const _Getter2& Getter2;
     const _GetterColor& GetterColor;
+    mutable float HalfWeight;
+    mutable ImVec2 UV0;
+    mutable ImVec2 UV1;
+};
+
+template <class _Getter1, class _Getter2, class _GetterColor, class _Filter>
+struct RendererLineSegments2Filtered : RendererBase {
+    RendererLineSegments2Filtered(const _Getter1& getter1, const _Getter2& getter2, const _GetterColor& getter_color, const _Filter& filter, float weight) :
+        RendererBase(ImMin(getter1.Count, getter2.Count), 6, 4),
+        Getter1(getter1),
+        Getter2(getter2),
+        GetterColor(getter_color),
+        HalfWeight(ImMax(1.0f,weight)*0.5f)
+    {}
+    void Init(ImDrawList& draw_list) const {
+        GetLineRenderProps(draw_list, HalfWeight, UV0, UV1);
+    }
+    IMPLOT_INLINE bool Render(ImDrawList& draw_list, const ImRect& cull_rect, int prim) const {
+        ImPlotPoint rawP1 = Getter1[prim];
+        ImPlotPoint rawP2 = Getter2[prim];
+        ImVec2 P1 = this->Transformer(rawP1);
+        ImVec2 P2 = this->Transformer(rawP2);
+        if (!cull_rect.Overlaps(ImRect(ImMin(P1, P2), ImMax(P1, P2))) || !Filter(prim, rawP1, rawP2))
+            return false;
+        ImU32 col = GetterColor[prim];
+        PrimLine(draw_list,P1,P2,HalfWeight,col,UV0,UV1);
+        return true;
+    }
+    const _Getter1& Getter1;
+    const _Getter2& Getter2;
+    const _GetterColor& GetterColor;
+    const _Filter& Filter;
     mutable float HalfWeight;
     mutable ImVec2 UV0;
     mutable ImVec2 UV1;
@@ -1595,7 +1697,7 @@ void RenderPrimitives2(const _Getter1& getter1, const _Getter2& getter2, Args...
 }
 
 template<template<class, class, class> class _Renderer, class _Getter1, class _Getter2, class _Filter, typename ...Args>
-void RenderPrimitives2Filter(const _Getter1& getter1, const _Getter2& getter2, const _Filter& filter, Args... args){
+void RenderPrimitives2Filtered(const _Getter1& getter1, const _Getter2& getter2, const _Filter& filter, Args... args){
     ImDrawList& draw_list = *GetPlotDrawList();
     const ImRect& cull_rect = GetCurrentPlot()->PlotRect;
     RenderPrimitivesEx(_Renderer<_Getter1,_Getter2, _Filter>(getter1,getter2,filter,args...), draw_list, cull_rect);
@@ -2042,7 +2144,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
 }
 
 template <typename _Getter, typename _Filter>
-void PlotLineFilter(const char* label_id, const _Getter& getter, const _Filter& filter, const ImPlotSpec& spec) {
+void PlotLineFiltered(const char* label_id, const _Getter& getter, const _Filter& filter, const ImPlotSpec& spec) {
     if (BeginItemEx(label_id, Fitter1<_Getter>(getter), spec, spec.LineColor, spec.Marker)) {
         if (getter.Count <= 0) {
             EndItem();
@@ -2050,14 +2152,57 @@ void PlotLineFilter(const char* label_id, const _Getter& getter, const _Filter& 
         }
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1) {
+            if (ImHasFlag(spec.Flags, ImPlotLineFlags_Shaded) && s.RenderFill) {
+                GetterOverrideY<_Getter> getter2(getter, 0);
+                if (s.Spec.FillColors != nullptr) {
+                    GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
+                    RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
+                } else {
+                    const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
+                    GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                    RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
+                }
+            }
             if (s.RenderLine) {
                 const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
-                if (s.Spec.LineColors != nullptr) {
-                    GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
-                    RenderPrimitives2Filter<RendererLineStripSkipCustom>(getter,color_getter,filter,s.Spec.LineWeight);
-                } else {
-                    GetterConstColor color_getter(col_line);
-                    RenderPrimitives2Filter<RendererLineStripSkipCustom>(getter,color_getter,filter,s.Spec.LineWeight);
+                if (ImHasFlag(spec.Flags,ImPlotLineFlags_Segments)) {
+                    if (s.Spec.LineColors != nullptr) {
+                        GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
+                        RenderPrimitives2Filtered<RendererLineSegments1Filtered>(getter,color_getter,filter,s.Spec.LineWeight);
+                    } else {
+                        GetterConstColor color_getter(col_line);
+                        RenderPrimitives2Filtered<RendererLineSegments1Filtered>(getter,color_getter,filter,s.Spec.LineWeight);
+                    }
+                }
+                else if (ImHasFlag(spec.Flags, ImPlotLineFlags_Loop)) {
+                    if (s.Spec.LineColors != nullptr) {
+                        GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
+                        if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                            RenderPrimitives2Filtered<RendererLineStripSkipFiltered>(GetterLoop<_Getter>(getter),color_getter,filter,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2Filtered<RendererLineStripFiltered>(GetterLoop<_Getter>(getter),color_getter,filter,s.Spec.LineWeight);
+                    } else {
+                        GetterConstColor color_getter(col_line);
+                        if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                            RenderPrimitives2Filtered<RendererLineStripSkipFiltered>(GetterLoop<_Getter>(getter),color_getter,filter,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2Filtered<RendererLineStripFiltered>(GetterLoop<_Getter>(getter),color_getter,filter,s.Spec.LineWeight);
+                    }
+                }
+                else {
+                    if (s.Spec.LineColors != nullptr) {
+                        GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
+                        if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                            RenderPrimitives2Filtered<RendererLineStripSkipFiltered>(getter,color_getter,filter,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2Filtered<RendererLineStripFiltered>(getter,color_getter,filter,s.Spec.LineWeight);
+                    } else {
+                        GetterConstColor color_getter(col_line);
+                        if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
+                            RenderPrimitives2Filtered<RendererLineStripSkipFiltered>(getter,color_getter,filter,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2Filtered<RendererLineStripFiltered>(getter,color_getter,filter,s.Spec.LineWeight);
+                    }
                 }
             }
         }
@@ -2097,10 +2242,10 @@ void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int c
     PlotLineEx(label_id, getter, spec);
 }
 
-void PlotLineG(const char* label_id, ImPlotGetter getter_func, ImPlotFilter filter_func, void* data, int count, const ImPlotSpec& spec){
+void PlotLineFiltered(const char* label_id, ImPlotGetter getter_func, ImPlotFilter filter_func, void* data, int count, const ImPlotSpec& spec){
     GetterFuncPtr getter(getter_func,data, count);
     FilterFuncPtr filter(filter_func,data);
-    PlotLineFilter(label_id, getter, filter, spec);
+    PlotLineFiltered(label_id, getter, filter, spec);
 }
 
 //-----------------------------------------------------------------------------

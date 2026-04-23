@@ -992,7 +992,7 @@ IMPLOT_API void SetNextAxesToFit();
 IMPLOT_TMP void PlotLine(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
 IMPLOT_TMP void PlotLine(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec=ImPlotSpec());
 IMPLOT_API void PlotLineG(const char* label_id, ImPlotGetter getter, void* data, int count, const ImPlotSpec& spec=ImPlotSpec());
-IMPLOT_API void PlotLineFilter(const char* label_id, ImPlotGetter getter, ImPlotFilter filter, void* data, int count, const ImPlotSpec& spec=ImPlotSpec());
+IMPLOT_API void PlotLineFiltered(const char* label_id, ImPlotGetter getter, ImPlotFilter filter, void* data, int count, const ImPlotSpec& spec=ImPlotSpec());
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
