@@ -2145,7 +2145,11 @@ void PlotPolygonEx(const char* label_id, const Getter& getter, const ImPlotSpec&
         }
         if (s.RenderLine && getter.Count >= 2) {
             const ImU32 col_line = ImGui::GetColorU32(s.Spec.LineColor);
+#if IMGUI_VERSION_NUM < 19276
             draw_list.AddPolyline(points, getter.Count, col_line, ImDrawFlags_Closed, s.Spec.LineWeight);
+#else
+            draw_list.AddPolyline(points, getter.Count, col_line, s.Spec.LineWeight, ImDrawFlags_Closed);
+#endif
         }
         IM_FREE(points);
 
