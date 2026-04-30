@@ -1821,6 +1821,8 @@ constexpr ImVec2 MARKER_LINE_RIGHT[6]    = {ImVec2(1,0),  ImVec2(-0.5, SQRT_3_2)
 constexpr ImVec2 MARKER_LINE_ASTERISK[6] = {ImVec2(-SQRT_3_2, -0.5f), ImVec2(SQRT_3_2, 0.5f),  ImVec2(-SQRT_3_2, 0.5f), ImVec2(SQRT_3_2, -0.5f), ImVec2(0, -1), ImVec2(0, 1)};
 constexpr ImVec2 MARKER_LINE_PLUS[4]     = {ImVec2(-1, 0), ImVec2(1, 0), ImVec2(0, -1), ImVec2(0, 1)};
 constexpr ImVec2 MARKER_LINE_CROSS[4]    = {ImVec2(-SQRT_1_2,-SQRT_1_2),ImVec2(SQRT_1_2,SQRT_1_2),ImVec2(SQRT_1_2,-SQRT_1_2),ImVec2(-SQRT_1_2,SQRT_1_2)};
+constexpr ImVec2 MARKER_LINE_VERTICAL[2] = {ImVec2(0, -1), ImVec2(0, 1)};
+constexpr ImVec2 MARKER_LINE_HORIZONTAL[2] = {ImVec2(-1, 0), ImVec2(1, 0)};
 
 template <typename _Getter, typename _GetterFillColor, typename _GetterLineColor, typename _GetterSize>
 void RenderMarkers(const _Getter& getter, ImPlotMarker marker, bool rend_fill, const _GetterFillColor& col_fill_getter, bool rend_line, const _GetterLineColor& col_line_getter, const _GetterSize& size_getter, float weight) {
@@ -1847,6 +1849,8 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, bool rend_fill, c
             case ImPlotMarker_Asterisk  : RenderPrimitives3<RendererMarkersLine>(getter,col_line_getter,size_getter,MARKER_LINE_ASTERISK,6,weight); break;
             case ImPlotMarker_Plus      : RenderPrimitives3<RendererMarkersLine>(getter,col_line_getter,size_getter,MARKER_LINE_PLUS,    4,weight); break;
             case ImPlotMarker_Cross     : RenderPrimitives3<RendererMarkersLine>(getter,col_line_getter,size_getter,MARKER_LINE_CROSS,   4,weight); break;
+            case ImPlotMarker_Vertical  : RenderPrimitives3<RendererMarkersLine>(getter,col_line_getter,size_getter,MARKER_LINE_VERTICAL,2,weight); break;
+            case ImPlotMarker_Horizontal: RenderPrimitives3<RendererMarkersLine>(getter,col_line_getter,size_getter,MARKER_LINE_HORIZONTAL,2,weight); break;
         }
     }
 }
