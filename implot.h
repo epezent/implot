@@ -448,6 +448,8 @@ enum ImPlotMarker_ {
     ImPlotMarker_Cross,     // a cross marker (not fill-able)
     ImPlotMarker_Plus,      // a plus marker (not fill-able)
     ImPlotMarker_Asterisk,  // a asterisk marker (not fill-able)
+    ImPlotMarker_Vertical,   // a vertical line marker (not fill-able)
+    ImPlotMarker_Horizontal, // a horizontal line marker (not fill-able)
     ImPlotMarker_COUNT
 };
 
