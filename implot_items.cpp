@@ -3498,7 +3498,15 @@ void PlotText(const char* text, double x, double y, const ImVec2& pixel_offset, 
 //-----------------------------------------------------------------------------
 
 void PlotDummy(const char* label_id, const ImPlotSpec& spec) {
-    if (BeginItem(label_id, spec))
+    // Pick the first non-auto color from the spec to override the legend icon color
+    ImVec4 item_col = spec.LineColor;
+    if (IsColorAuto(item_col))
+        item_col = spec.FillColor;
+    if (IsColorAuto(item_col))
+        item_col = spec.MarkerLineColor;
+    if (IsColorAuto(item_col))
+        item_col = spec.MarkerFillColor;
+    if (BeginItem(label_id, spec, item_col, spec.Marker))
         EndItem();
 }
 
