@@ -2008,7 +2008,7 @@ template <typename Getter>
 void PlotScatterEx(const char* label_id, const Getter& getter, const ImPlotSpec& spec) {
     // force scatter to render a marker even if none
     ImPlotMarker marker = spec.Marker == ImPlotMarker_None ? ImPlotMarker_Auto: spec.Marker;
-    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.LineColor, marker)) {
+    if (BeginItemEx(label_id, Fitter1<Getter>(getter), spec, spec.MarkerLineColor, marker)) {
         if (getter.Count <= 0) {
             EndItem();
             return;
