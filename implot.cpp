@@ -307,6 +307,8 @@ const char* GetMarkerName(ImPlotMarker marker) {
         case ImPlotMarker_Cross:    return "Cross";
         case ImPlotMarker_Plus:     return "Plus";
         case ImPlotMarker_Asterisk: return "Asterisk";
+        case ImPlotMarker_Vertical: return "Vertical";
+        case ImPlotMarker_Horizontal: return "Horizontal";
         default:                    return "";
     }
 }
