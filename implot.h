@@ -190,6 +190,7 @@ enum ImPlotAxisFlags_ {
     ImPlotAxisFlags_PanStretch    = 1 << 13, // panning in a locked or constrained state will cause the axis to stretch if possible
     ImPlotAxisFlags_LockMin       = 1 << 14, // the axis minimum value will be locked when panning/zooming
     ImPlotAxisFlags_LockMax       = 1 << 15, // the axis maximum value will be locked when panning/zooming
+    ImPlotAxisFlags_CompactOffsetAndDelta = 1 << 16,
     ImPlotAxisFlags_Lock          = ImPlotAxisFlags_LockMin | ImPlotAxisFlags_LockMax,
     ImPlotAxisFlags_NoDecorations = ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_NoTickMarks | ImPlotAxisFlags_NoTickLabels,
     ImPlotAxisFlags_AuxDefault    = ImPlotAxisFlags_NoGridLines | ImPlotAxisFlags_Opposite
@@ -1353,6 +1354,19 @@ IMPLOT_API void ShowStyleEditor(ImPlotStyle* ref = nullptr);
 IMPLOT_API void ShowUserGuide();
 // Shows ImPlot metrics/debug information window.
 IMPLOT_API void ShowMetricsWindow(bool* p_popen = nullptr);
+
+struct Formatter_Offset_Plus_Delta_Data {
+    int decimal_shift;
+    double offset;
+    char* fmt;
+};
+
+int FormatOffsetPlusDelta(double value, char* buffer, int size, char * fmt, int decimal_shift, double offset);
+
+IMPLOT_API inline int Formatter_Offset_Plus_Delta(double value, char* buff, int size, void* data) {
+    Formatter_Offset_Plus_Delta_Data* fopdd = (Formatter_Offset_Plus_Delta_Data*)data;
+    return FormatOffsetPlusDelta(value, buff, size, fopdd->fmt, fopdd->decimal_shift, fopdd->offset);
+}
 
 //-----------------------------------------------------------------------------
 // [SECTION] Demo
