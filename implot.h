@@ -720,6 +720,9 @@ typedef int (*ImPlotFormatter)(double value, char* buff, int size, void* user_da
 // Callback signature for data getter.
 typedef ImPlotPoint (*ImPlotGetter)(int idx, void* user_data);
 
+// Callback signature for line segments filters.
+typedef bool (*ImPlotFilter)(int idx, ImPlotPoint p1, ImPlotPoint p2, void* user_data);
+
 // Callback signature for axis transform.
 typedef double (*ImPlotTransform)(double value, void* user_data);
 
@@ -989,6 +992,7 @@ IMPLOT_API void SetNextAxesToFit();
 IMPLOT_TMP void PlotLine(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
 IMPLOT_TMP void PlotLine(const char* label_id, const T* xs, const T* ys, int count, const ImPlotSpec& spec=ImPlotSpec());
 IMPLOT_API void PlotLineG(const char* label_id, ImPlotGetter getter, void* data, int count, const ImPlotSpec& spec=ImPlotSpec());
+IMPLOT_API void PlotLineFiltered(const char* label_id, ImPlotGetter getter, ImPlotFilter filter, void* data, int count, const ImPlotSpec& spec=ImPlotSpec());
 
 // Plots a standard 2D scatter plot. Default marker is ImPlotMarker_Circle.
 IMPLOT_TMP void PlotScatter(const char* label_id, const T* values, int count, double xscale=1, double xstart=0, const ImPlotSpec& spec=ImPlotSpec());
