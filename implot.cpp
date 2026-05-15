@@ -704,7 +704,7 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
         label_bb.Min = top_left;
         label_bb.Max = top_left + ImVec2(label_width + icon_size, icon_size);
         ImU32 col_txt_hl;
-        ImU32 col_item = ImAlphaU32(item->Color,1);
+        ImU32 col_item = ImAlphaU32(item->Color, ImGui::GetStyle().Alpha);
 
         ImRect button_bb(icon_bb.Min, label_bb.Max);
 
