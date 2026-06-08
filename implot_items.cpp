@@ -157,7 +157,14 @@ static inline double ImStdDev(const TContainer& values, int count) {
     return sqrt(x);
 }
 
-IMPLOT_INLINE void GetLineRenderProps(const ImDrawList& draw_list, float& half_weight, ImVec2& tex_uv0, ImVec2& tex_uv1) {
+IMPLOT_INLINE void GetLineRenderProps(ImDrawList& draw_list, float& half_weight, ImVec2& tex_uv0, ImVec2& tex_uv1) {
+#if IMGUI_VERSION_NUM >= 19299 || defined(IM_DRAWLIST_TEX_LINES_SAMPLE_COUNT)
+    float fringe;
+    draw_list._SelectLineTexture(half_weight * 2.0f, &tex_uv0, &tex_uv1, &fringe, draw_list.Flags);
+    //tex_uv0.x -= 0.5f * draw_list._Data->FontAtlas->TexUvScale.x; // Changed in features/drawlist_v193 but seems unncessary?
+    //tex_uv1.x -= 0.5f * draw_list._Data->FontAtlas->TexUvScale.x;
+    half_weight += fringe * 0.5f;
+#else
     const bool aa = ImHasFlag(draw_list.Flags, ImDrawListFlags_AntiAliasedLines) &&
                     ImHasFlag(draw_list.Flags, ImDrawListFlags_AntiAliasedLinesUseTex);
     if (aa) {
@@ -169,6 +176,7 @@ IMPLOT_INLINE void GetLineRenderProps(const ImDrawList& draw_list, float& half_w
     else {
         tex_uv0 = tex_uv1 = draw_list._Data->TexUvWhitePixel;
     }
+#endif
 }
 
 IMPLOT_INLINE void PrimLine(ImDrawList& draw_list, const ImVec2& P1, const ImVec2& P2, float half_weight, ImU32 col, const ImVec2& tex_uv0, const ImVec2 tex_uv1) {
