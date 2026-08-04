@@ -3043,10 +3043,8 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
         for (int i = 0; i < count; ++i) {
             ImVec2 open_pos  = ImPlot::PlotToPixels(xs[i] - half_width, opens[i]);
             ImVec2 close_pos = ImPlot::PlotToPixels(xs[i] + half_width, closes[i]);
-            ImVec2 low_pos   = ImPlot::PlotToPixels(xs[i], lows[i]);
-            ImVec2 high_pos  = ImPlot::PlotToPixels(xs[i], highs[i]);
             ImU32 color      = ImGui::GetColorU32(opens[i] > closes[i] ? bearCol : bullCol);
-            draw_list->AddLine(low_pos, high_pos, color);
+            ImPlot::AddLineV(draw_list, (float)xs[i], (float)lows[i], (float)highs[i], color);
             draw_list->AddRectFilled(open_pos, close_pos, color);
         }
 

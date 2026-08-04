@@ -1508,6 +1508,15 @@ IMPLOT_API ImU32  SampleColormapU32(float t, ImPlotColormap cmap);
 // Render a colormap bar
 IMPLOT_API void RenderColorBar(const ImU32* colors, int size, ImDrawList& DrawList, const ImRect& bounds, bool vert, bool reversed, bool continuous);
 
+// Render Horizontal/Vertical lines
+#if (IMGUI_VERSION_NUM < 19275)
+static inline void AddLineH(ImDrawList *draw_list, float x1, float x2, float y, ImU32 col, float thickness = 1.0f)  { draw_list->AddLine(ImVec2(x1, y), ImVec2(x2, y), col, thickness); }
+static inline void AddLineV(ImDrawList* draw_list, float x, float y1, float y2, ImU32 col, float thickness = 1.0f)  { draw_list->AddLine(ImVec2(x, y1), ImVec2(x, y2), col, thickness); }
+#else
+static inline void AddLineH(ImDrawList *draw_list, float x1, float x2, float y, ImU32 col, float thickness = 1.0f)  { draw_list->AddLineH(x1, x2, y, col, thickness); }
+static inline void AddLineV(ImDrawList *draw_list, float x, float y1, float y2, ImU32 col, float thickness = 1.0f)  { draw_list->AddLineV(x, y1, y2, col, thickness); }
+#endif
+
 //-----------------------------------------------------------------------------
 // [SECTION] Math and Misc Utils
 //-----------------------------------------------------------------------------

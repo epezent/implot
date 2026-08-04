@@ -2561,10 +2561,10 @@ void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const 
         for (int i = 0; i < getter_pos.Count; ++i) {
             ImVec2 p1 = PlotToPixels(getter_neg[i],IMPLOT_AUTO,IMPLOT_AUTO);
             ImVec2 p2 = PlotToPixels(getter_pos[i],IMPLOT_AUTO,IMPLOT_AUTO);
-            draw_list.AddLine(p1,p2,col, s.Spec.LineWeight);
+            draw_list.AddLine(p1, p2, col, s.Spec.LineWeight);
             if (rend_whisker) {
-                draw_list.AddLine(p1 - ImVec2(half_whisker, 0), p1 + ImVec2(half_whisker, 0), col, s.Spec.LineWeight);
-                draw_list.AddLine(p2 - ImVec2(half_whisker, 0), p2 + ImVec2(half_whisker, 0), col, s.Spec.LineWeight);
+                AddLineH(&draw_list, p1.x - half_whisker, p1.x + half_whisker, p1.y, col, s.Spec.LineWeight);
+                AddLineH(&draw_list, p2.x - half_whisker, p2.x + half_whisker, p2.y, col, s.Spec.LineWeight);
             }
         }
         EndItem();
@@ -2588,8 +2588,8 @@ void PlotErrorBarsHEx(const char* label_id, const _GetterPos& getter_pos, const 
             ImVec2 p2 = PlotToPixels(getter_pos[i],IMPLOT_AUTO,IMPLOT_AUTO);
             draw_list.AddLine(p1, p2, col, s.Spec.LineWeight);
             if (rend_whisker) {
-                draw_list.AddLine(p1 - ImVec2(0, half_whisker), p1 + ImVec2(0, half_whisker), col, s.Spec.LineWeight);
-                draw_list.AddLine(p2 - ImVec2(0, half_whisker), p2 + ImVec2(0, half_whisker), col, s.Spec.LineWeight);
+                AddLineV(&draw_list, p1.x, p1.y - half_whisker, p1.y + half_whisker, col, s.Spec.LineWeight);
+                AddLineV(&draw_list, p2.x, p2.y - half_whisker, p2.y + half_whisker, col, s.Spec.LineWeight);
             }
         }
         EndItem();
