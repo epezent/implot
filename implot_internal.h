@@ -588,6 +588,8 @@ struct ImPlotTicker {
     ImVec2               MaxSize;
     ImVec2               LateSize;
     int                  Levels;
+    double               LabelOffset;
+    int                  LabelDecimalShift;
 
     ImPlotTicker() {
         Reset();
@@ -644,6 +646,8 @@ struct ImPlotTicker {
         MaxSize = LateSize;
         LateSize = ImVec2(0,0);
         Levels = 1;
+        LabelOffset = 0.;
+        LabelDecimalShift = 0;
     }
 
     int TickCount() const {
@@ -1146,6 +1150,7 @@ struct ImPlotPlot
     }
 
     inline const char* GetAxisLabel(const ImPlotAxis& axis) const { return TextBuffer.Buf.Data + axis.LabelOffset; }
+
 };
 
 // Holds subplot data that must persist after EndSubplot
