@@ -1929,7 +1929,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 } else {
                     const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-                    GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                    GetterConstColor color_getter(col_fill);
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 }
             }
@@ -2200,7 +2200,7 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
                         GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
                         RenderPrimitives2<RendererStairsPreShaded>(getter, color_getter);
                     } else {
-                        GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                        GetterConstColor color_getter(col_fill);
                         RenderPrimitives2<RendererStairsPreShaded>(getter, color_getter);
                     }
                 } else {
@@ -2208,7 +2208,7 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
                         GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
                         RenderPrimitives2<RendererStairsPostShaded>(getter, color_getter);
                     } else {
-                        GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                        GetterConstColor color_getter(col_fill);
                         RenderPrimitives2<RendererStairsPostShaded>(getter, color_getter);
                     }
                 }
@@ -2286,7 +2286,7 @@ void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& g
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             } else {
                 const ImU32 col = ImGui::GetColorU32(s.Spec.FillColor);
-                GetterConstColor color_getter(col, s.Spec.FillAlpha);
+                GetterConstColor color_getter(col);
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             }
         }
