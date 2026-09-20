@@ -4265,11 +4265,15 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
         if ((hovered || held) && show_curs && move_allowed)
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
         if (move_allowed && held && ImGui::IsMouseDragging(0)) {
-            for (int i = 0; i < 4; ++i) {
-                ImPlotPoint pp = PixelsToPlot(p[i] + ImGui::GetIO().MouseDelta,IMPLOT_AUTO,IMPLOT_AUTO);
-                *y[i] = pp.y;
-                *x[i] = pp.x;
-            }
+            auto new_center = ImPlot::GetPlotMousePos();
+            double x_len = *x_max - *x_min;
+            double y_len = *y_max - *y_min;
+            double new_x_min = new_center.x - (x_len / 2.0);
+            double new_y_min = new_center.y - (y_len / 2.0);
+            *x_min = new_x_min;
+            *y_min = new_y_min;
+            *x_max = new_x_min + x_len;
+            *y_max = new_y_min + y_len;
             modified = true;
         }
     }
