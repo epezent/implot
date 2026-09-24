@@ -1911,7 +1911,8 @@ void Demo_DragPoints() {
     static ImPlotDragToolFlags flags = ImPlotDragToolFlags_None;
     ImGui::CheckboxFlags("NoCursors", (unsigned int*)&flags, ImPlotDragToolFlags_NoCursors); ImGui::SameLine();
     ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
-    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
+    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoMove", (unsigned int*)&flags, ImPlotDragToolFlags_NoMove);
     ImPlotAxisFlags ax_flags = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoTickMarks;
     bool clicked[4] = {false, false, false, false};
     bool hovered[4] = {false, false, false, false};
@@ -1973,7 +1974,8 @@ void Demo_DragLines() {
     static ImPlotDragToolFlags flags = ImPlotDragToolFlags_None;
     ImGui::CheckboxFlags("NoCursors", (unsigned int*)&flags, ImPlotDragToolFlags_NoCursors); ImGui::SameLine();
     ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
-    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
+    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoMove", (unsigned int*)&flags, ImPlotDragToolFlags_NoMove);
     if (ImPlot::BeginPlot("##lines",ImVec2(-1,0))) {
         ImPlot::SetupAxesLimits(0,1,0,1);
         ImPlot::DragLineX(0,&x1,ImVec4(1,1,1,1),1,flags);
@@ -2019,7 +2021,9 @@ void Demo_DragRects() {
     static ImPlotDragToolFlags flags = ImPlotDragToolFlags_None;
     ImGui::CheckboxFlags("NoCursors", (unsigned int*)&flags, ImPlotDragToolFlags_NoCursors); ImGui::SameLine();
     ImGui::CheckboxFlags("NoFit", (unsigned int*)&flags, ImPlotDragToolFlags_NoFit); ImGui::SameLine();
-    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs);
+    ImGui::CheckboxFlags("NoInput", (unsigned int*)&flags, ImPlotDragToolFlags_NoInputs); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoMove", (unsigned int*)&flags, ImPlotDragToolFlags_NoMove); ImGui::SameLine();
+    ImGui::CheckboxFlags("NoResize", (unsigned int*)&flags, ImPlotDragToolFlags_NoResize);
 
     if (ImPlot::BeginPlot("##Main",ImVec2(-1,ImGui::GetTextLineHeight()*10))) {
         ImPlot::SetupAxes(nullptr,nullptr,ImPlotAxisFlags_NoTickLabels,ImPlotAxisFlags_NoTickLabels);

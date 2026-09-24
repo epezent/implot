@@ -3973,6 +3973,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+    const bool move_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoMove);
     const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, radius);
     const ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
     const ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
@@ -3984,6 +3985,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
 
     ImGui::KeepAliveID(id);
     if (input) {
+        rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
         bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
         if (out_clicked) *out_clicked = clicked;
         if (out_hovered) *out_hovered = hovered;
@@ -3991,7 +3993,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     }
 
     bool modified = false;
-    if (held && ImGui::IsMouseDragging(0)) {
+    if (move_allowed && held && ImGui::IsMouseDragging(0)) {
         *x = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
         *y = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
         modified = true;
@@ -4023,6 +4025,8 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+    const bool move_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoMove);
+
     const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, thickness/2);
     float yt = gp.CurrentPlot->PlotRect.Min.y;
     float yb = gp.CurrentPlot->PlotRect.Max.y;
@@ -4033,6 +4037,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
 
     ImGui::KeepAliveID(id);
     if (input) {
+        rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
         bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
         if (out_clicked) *out_clicked = clicked;
         if (out_hovered) *out_hovered = hovered;
@@ -4047,7 +4052,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
 
     bool modified = false;
-    if (held && ImGui::IsMouseDragging(0)) {
+    if (move_allowed && held && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
         modified = true;
     }
@@ -4078,6 +4083,8 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+    const bool move_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoMove);
+
     const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, thickness/2);
     float xl = gp.CurrentPlot->PlotRect.Min.x;
     float xr = gp.CurrentPlot->PlotRect.Max.x;
@@ -4089,6 +4096,7 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
 
     ImGui::KeepAliveID(id);
     if (input) {
+        rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
         bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
         if (out_clicked) *out_clicked = clicked;
         if (out_hovered) *out_hovered = hovered;
@@ -4103,7 +4111,7 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
 
     bool modified = false;
-    if (held && ImGui::IsMouseDragging(0)) {
+    if (move_allowed && held && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
         modified = true;
     }
@@ -4134,6 +4142,9 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+    const bool move_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoMove);
+    const bool resize_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoResize);
+
     bool    h[] = {true,false,true,false};
     double* x[] = {x_min,x_max,x_max,x_min};
     double* y[] = {y_min,y_min,y_max,y_max};
@@ -4143,6 +4154,7 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     ImVec2 pc = PlotToPixels((*x_min+*x_max)/2,(*y_min+*y_max)/2,IMPLOT_AUTO,IMPLOT_AUTO);
     ImRect rect(ImMin(p[0],p[2]),ImMax(p[0],p[2]));
     ImRect rect_grab = rect; rect_grab.Expand(DRAG_GRAB_HALF_SIZE);
+    rect_grab.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
 
     ImGuiMouseCursor cur[4];
     if (show_curs) {
@@ -4162,11 +4174,12 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     bool clicked = false, hovered = false, held = false;
 
     const bool is_movable = *x_min != *x_max || *y_min != *y_max;
-    if (is_movable) {
+    if (is_movable && move_allowed) {
         ImGui::KeepAliveID(id);
         if (input) {
             // middle point
             ImRect b_rect(pc.x-DRAG_GRAB_HALF_SIZE,pc.y-DRAG_GRAB_HALF_SIZE,pc.x+DRAG_GRAB_HALF_SIZE,pc.y+DRAG_GRAB_HALF_SIZE);
+            b_rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
             clicked = ImGui::ButtonBehavior(b_rect,id,&hovered,&held);
             if (out_clicked) *out_clicked = clicked;
             if (out_hovered) *out_hovered = hovered;
@@ -4185,56 +4198,60 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
         }
     }
 
-    for (int i = 0; i < 4; ++i) {
-        // points
-        ImRect b_rect(p[i].x - DRAG_GRAB_HALF_SIZE, p[i].y - DRAG_GRAB_HALF_SIZE, p[i].x + DRAG_GRAB_HALF_SIZE, p[i].y + DRAG_GRAB_HALF_SIZE);
-        ImGuiID p_id = id + i + 1;
-        ImGui::KeepAliveID(p_id);
-        if (input) {
-            clicked = ImGui::ButtonBehavior(b_rect,p_id,&hovered,&held);
-            if (out_clicked) *out_clicked = *out_clicked || clicked;
-            if (out_hovered) *out_hovered = *out_hovered || hovered;
-            if (out_held)    *out_held    = *out_held    || held;
-        }
-        if ((hovered || held) && show_curs)
-            ImGui::SetMouseCursor(cur[i]);
+    if (resize_allowed) {
+        for (int i = 0; i < 4; ++i) {
+            // points
+            ImRect b_rect(p[i].x - DRAG_GRAB_HALF_SIZE, p[i].y - DRAG_GRAB_HALF_SIZE, p[i].x + DRAG_GRAB_HALF_SIZE, p[i].y + DRAG_GRAB_HALF_SIZE);
+            b_rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
+            ImGuiID p_id = id + i + 1;
+            ImGui::KeepAliveID(p_id);
+            if (input) {
+                clicked = ImGui::ButtonBehavior(b_rect,p_id,&hovered,&held);
+                if (out_clicked) *out_clicked = *out_clicked || clicked;
+                if (out_hovered) *out_hovered = *out_hovered || hovered;
+                if (out_held)    *out_held    = *out_held    || held;
+            }
+            if ((hovered || held) && show_curs)
+                ImGui::SetMouseCursor(cur[i]);
 
-        if (held && ImGui::IsMouseDragging(0)) {
-            *x[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
-            *y[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
-            modified = true;
-        }
-
-        // edges
-        ImVec2 e_min = ImMin(p[i],p[(i+1)%4]);
-        ImVec2 e_max = ImMax(p[i],p[(i+1)%4]);
-        b_rect = h[i] ? ImRect(e_min.x + DRAG_GRAB_HALF_SIZE, e_min.y - DRAG_GRAB_HALF_SIZE, e_max.x - DRAG_GRAB_HALF_SIZE, e_max.y + DRAG_GRAB_HALF_SIZE)
-                    : ImRect(e_min.x - DRAG_GRAB_HALF_SIZE, e_min.y + DRAG_GRAB_HALF_SIZE, e_max.x + DRAG_GRAB_HALF_SIZE, e_max.y - DRAG_GRAB_HALF_SIZE);
-        ImGuiID e_id = id + i + 5;
-        ImGui::KeepAliveID(e_id);
-        if (input) {
-            clicked = ImGui::ButtonBehavior(b_rect,e_id,&hovered,&held);
-            if (out_clicked) *out_clicked = *out_clicked || clicked;
-            if (out_hovered) *out_hovered = *out_hovered || hovered;
-            if (out_held)    *out_held    = *out_held    || held;
-        }
-        if ((hovered || held) && show_curs)
-            h[i] ? ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS) : ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-        if (held && ImGui::IsMouseDragging(0)) {
-            if (h[i])
-                *y[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
-            else
+            if (held && ImGui::IsMouseDragging(0)) {
                 *x[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
-            modified = true;
-        }
-        if (hovered && ImGui::IsMouseDoubleClicked(0))
-        {
-            ImPlotRect b = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
-            if (h[i])
-                *y[i] = ((y[i] == y_min && *y_min < *y_max) || (y[i] == y_max && *y_max < *y_min)) ? b.Y.Min : b.Y.Max;
-            else
-                *x[i] = ((x[i] == x_min && *x_min < *x_max) || (x[i] == x_max && *x_max < *x_min)) ? b.X.Min : b.X.Max;
-            modified = true;
+                *y[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
+                modified = true;
+            }
+
+            // edges
+            ImVec2 e_min = ImMin(p[i],p[(i+1)%4]);
+            ImVec2 e_max = ImMax(p[i],p[(i+1)%4]);
+            b_rect = h[i] ? ImRect(e_min.x + DRAG_GRAB_HALF_SIZE, e_min.y - DRAG_GRAB_HALF_SIZE, e_max.x - DRAG_GRAB_HALF_SIZE, e_max.y + DRAG_GRAB_HALF_SIZE)
+                        : ImRect(e_min.x - DRAG_GRAB_HALF_SIZE, e_min.y + DRAG_GRAB_HALF_SIZE, e_max.x + DRAG_GRAB_HALF_SIZE, e_max.y - DRAG_GRAB_HALF_SIZE);
+            b_rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
+            ImGuiID e_id = id + i + 5;
+            ImGui::KeepAliveID(e_id);
+            if (input) {
+                clicked = ImGui::ButtonBehavior(b_rect,e_id,&hovered,&held);
+                if (out_clicked) *out_clicked = *out_clicked || clicked;
+                if (out_hovered) *out_hovered = *out_hovered || hovered;
+                if (out_held)    *out_held    = *out_held    || held;
+            }
+            if ((hovered || held) && show_curs)
+                h[i] ? ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS) : ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+            if (held && ImGui::IsMouseDragging(0)) {
+                if (h[i])
+                    *y[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
+                else
+                    *x[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
+                modified = true;
+            }
+            if (hovered && ImGui::IsMouseDoubleClicked(0))
+            {
+                ImPlotRect b = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
+                if (h[i])
+                    *y[i] = ((y[i] == y_min && *y_min < *y_max) || (y[i] == y_max && *y_max < *y_min)) ? b.Y.Min : b.Y.Max;
+                else
+                    *x[i] = ((x[i] == x_min && *x_min < *x_max) || (x[i] == x_max && *x_max < *x_min)) ? b.X.Min : b.X.Max;
+                modified = true;
+            }
         }
     }
 
@@ -4258,9 +4275,13 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     DrawList.AddRectFilled(rect.Min, rect.Max, col32_a);
     DrawList.AddRect(rect.Min, rect.Max, col32);
     if (input && (modified || mouse_inside)) {
-        DrawList.AddCircleFilled(pc,DRAG_GRAB_HALF_SIZE,col32);
-        for (int i = 0; i < 4; ++i)
-            DrawList.AddCircleFilled(p[i],DRAG_GRAB_HALF_SIZE,col32);
+        if (move_allowed) {
+            DrawList.AddCircleFilled(pc,DRAG_GRAB_HALF_SIZE,col32);
+        }
+        if (resize_allowed) {
+            for (int i = 0; i < 4; ++i)
+                DrawList.AddCircleFilled(p[i],DRAG_GRAB_HALF_SIZE,col32);
+        }
     }
     PopPlotClipRect();
     ImGui::PopID();
