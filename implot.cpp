@@ -766,7 +766,21 @@ void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixel
     const int nMinor        = 10;
     const int nMajor        = ImMax(2, (int)IM_ROUND(pixels / (vertical ? 300.0f : 400.0f)));
     const double nice_range = NiceNum(range.Size() * 0.99, false);
-    const double interval   = NiceNum(nice_range / (nMajor - 1), true);
+    double interval         = NiceNum(nice_range / (nMajor - 1), true);
+    // Guard against a degenerate range whose Min/Max differ by less than
+    // floating point precision can resolve at this magnitude (e.g. a range
+    // produced by SetupAxisLimits(v, v): ImPlotAxis widens an exact
+    // zero-width request to Max = Min + DBL_EPSILON, so the range.Min ==
+    // range.Max check above does not catch it). In that case interval can
+    // underflow below one ULP of Min/Max, which would make `major +=
+    // interval` below a floating-point no-op and loop forever. Clamp
+    // interval to at least one ULP at this magnitude; for any normally
+    // conditioned range interval is always many orders of magnitude larger
+    // than this clamp, so it has no effect there.
+    const double magnitude    = ImMax(ImAbs(range.Min), ImAbs(range.Max));
+    const double min_interval = nextafter(magnitude, HUGE_VAL) - magnitude;
+    if (interval < min_interval)
+        interval = min_interval;
     const double graphmin   = floor(range.Min / interval) * interval;
     const double graphmax   = ceil(range.Max / interval) * interval;
     bool first_major_set    = false;
