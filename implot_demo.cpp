@@ -1895,7 +1895,7 @@ void Demo_LegendOptions() {
         ImPlot::PlotLineG("Item 003", MyImPlot::SawWave,  &data5, 1000);         // combined with previous "Item C"
 
         for (int i = 0; i < num_dummy_items; ++i) {
-            char label[16];
+            char label[32];
             snprintf(label, sizeof(label), "Item %03d", i+4);
             ImPlot::PlotDummy(label);
         }
