@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v1.0
+// ImPlot v1.1 WIP
 
 // Table of Contents:
 //
@@ -62,9 +62,9 @@
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "1.0"
+#define IMPLOT_VERSION "1.1 WIP"
 // ImPlot version integer encoded as XYYZZ (X=major, YY=minor, ZZ=patch).
-#define IMPLOT_VERSION_NUM 10000
+#define IMPLOT_VERSION_NUM 10100
 // Macro for templated plotting functions; keeps header clean.
 #define IMPLOT_TMP template <typename T> IMPLOT_API
 
@@ -449,6 +449,8 @@ enum ImPlotMarker_ {
     ImPlotMarker_Cross,     // a cross marker (not fill-able)
     ImPlotMarker_Plus,      // a plus marker (not fill-able)
     ImPlotMarker_Asterisk,  // a asterisk marker (not fill-able)
+    ImPlotMarker_Vertical,   // a vertical line marker (not fill-able)
+    ImPlotMarker_Horizontal, // a horizontal line marker (not fill-able)
     ImPlotMarker_COUNT
 };
 

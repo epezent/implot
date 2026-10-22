@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v1.0
+// ImPlot v1.1 WIP
 
 // We define this so that the demo does not accidentally use deprecated API
 #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
@@ -1078,7 +1078,7 @@ void Demo_MarkersAndText() {
     if (ImPlot::BeginPlot("##MarkerStyles", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
 
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-        ImPlot::SetupAxesLimits(0, 10, 0, 12);
+        ImPlot::SetupAxesLimits(0, 10, -2, 12);
 
         ImS8 xs[2] = {1,4};
         ImS8 ys[2] = {10,11};
@@ -1101,11 +1101,11 @@ void Demo_MarkersAndText() {
             ys[0]--; ys[1]--;
         }
 
-        ImPlot::PlotText("Filled Markers", 2.5f, 6.0f);
-        ImPlot::PlotText("Open Markers",   7.5f, 6.0f);
+        ImPlot::PlotText("Filled Markers", 2.5f, 5.0f);
+        ImPlot::PlotText("Open Markers",   7.5f, 5.0f);
 
         ImPlot::PushStyleColor(ImPlotCol_InlayText, ImVec4(1,0,1,1));
-        ImPlot::PlotText("Vertical Text", 5.0f, 6.0f, ImVec2(0,0), {ImPlotProp_Flags, ImPlotTextFlags_Vertical});
+        ImPlot::PlotText("Vertical Text", 5.0f, 5.0f, ImVec2(0,0), {ImPlotProp_Flags, ImPlotTextFlags_Vertical});
         ImPlot::PopStyleColor();
 
         ImPlot::EndPlot();
@@ -1895,7 +1895,7 @@ void Demo_LegendOptions() {
         ImPlot::PlotLineG("Item 003", MyImPlot::SawWave,  &data5, 1000);         // combined with previous "Item C"
 
         for (int i = 0; i < num_dummy_items; ++i) {
-            char label[16];
+            char label[32];
             snprintf(label, sizeof(label), "Item %03d", i+4);
             ImPlot::PlotDummy(label);
         }
@@ -3043,10 +3043,8 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
         for (int i = 0; i < count; ++i) {
             ImVec2 open_pos  = ImPlot::PlotToPixels(xs[i] - half_width, opens[i]);
             ImVec2 close_pos = ImPlot::PlotToPixels(xs[i] + half_width, closes[i]);
-            ImVec2 low_pos   = ImPlot::PlotToPixels(xs[i], lows[i]);
-            ImVec2 high_pos  = ImPlot::PlotToPixels(xs[i], highs[i]);
             ImU32 color      = ImGui::GetColorU32(opens[i] > closes[i] ? bearCol : bullCol);
-            draw_list->AddLine(low_pos, high_pos, color);
+            ImPlot::AddLineV(draw_list, (float)xs[i], (float)lows[i], (float)highs[i], color);
             draw_list->AddRectFilled(open_pos, close_pos, color);
         }
 
