@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v1.0
 
 // You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
@@ -118,7 +118,7 @@ static inline void ImFlipFlag(TSet& set, TFlag flag) { ImHasFlag(set, flag) ? se
 // Linearly remaps x from [x0 x1] to [y0 y1].
 template <typename T>
 static inline T ImRemap(T x, T x0, T x1, T y0, T y1) { return y0 + (x - x0) * (y1 - y0) / (x1 - x0); }
-// Linear rempas x from [x0 x1] to [0 1]
+// Linearly remaps x from [x0 x1] to [0 1]
 template <typename T>
 static inline T ImRemap01(T x, T x0, T x1) { return (x - x0) / (x1 - x0); }
 // Returns always positive modulo (assumes r != 0)

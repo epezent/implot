@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v1.0
 
 /*
 
@@ -32,7 +32,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2026/02/12 (0.18) - ImPlotSpec replaces the SetNextXXX style functions. The guide below shows show to migrate from SetNextXXX to ImPlotSpec.
+- 2026/02/12 (1.0) - ImPlotSpec replaces the SetNextXXX style functions. The guide below shows show to migrate from SetNextXXX to ImPlotSpec.
                         - `SetNextLineStyle` has been removed, styling should be set via ImPlotSpec.
                           ```
                           // Before
@@ -87,7 +87,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
                            ImPlot::PlotErrorBars("ErrorBar", xs, ys, err, count, spec);
                            ```
                         - Flags, Offset and Stride should also be set via ImPlotSpec now.
-- 2023/10/02 (0.18) - ImPlotSpec was made the default and _only_ way of styling plot items. Therefore the following features were removed:
+- 2023/10/02 (1.0) - ImPlotSpec was made the default and _only_ way of styling plot items. Therefore the following features were removed:
                       - ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar have been removed and thus are no longer supported by PushStyleColor.
                         You can use a common ImPlotSpec instance across multiple PlotX calls to emulate PushStyleColor behavior.
                       - ImPlotStyleVar_LineWeight, ImPlotStyleVar_Marker, ImPlotStyleVar_MarkerSize, ImPlotStyleVar_MarkerWeight, ImPlotStyleVar_FillAlpha, ImPlotStyleVar_ErrorBarSize, and ImPlotStyleVar_ErrorBarWeight
@@ -215,6 +215,8 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 // Clang/GCC warnings with -Weverything
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wformat-nonliteral"  // warning: format string is not a string literal
+#pragma clang diagnostic ignored "-Wdeprecated-enum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
+#pragma clang diagnostic ignored "-Wenum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
 #elif defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"    // warning: format not a string literal, format string not checked
 #endif
@@ -501,22 +503,22 @@ void Initialize(ImPlotContext* ctx) {
     ResetCtxForNextAlignedPlots(ctx);
     ResetCtxForNextSubplot(ctx);
 
-    const ImU32 Deep[]     = {4289753676, 4283598045, 4285048917, 4283584196, 4289950337, 4284512403, 4291005402, 4287401100, 4285839820, 4291671396                        };
-    const ImU32 Dark[]     = {4280031972, 4290281015, 4283084621, 4288892568, 4278222847, 4281597951, 4280833702, 4290740727, 4288256409                                    };
-    const ImU32 Pastel[]   = {4289639675, 4293119411, 4291161036, 4293184478, 4289124862, 4291624959, 4290631909, 4293712637, 4294111986                                    };
-    const ImU32 Paired[]   = {4293119554, 4290017311, 4287291314, 4281114675, 4288256763, 4280031971, 4285513725, 4278222847, 4292260554, 4288298346, 4288282623, 4280834481};
-    const ImU32 Viridis[]  = {4283695428, 4285867080, 4287054913, 4287455029, 4287526954, 4287402273, 4286883874, 4285579076, 4283552122, 4280737725, 4280674301            };
-    const ImU32 Plasma[]   = {4287039501, 4288480321, 4289200234, 4288941455, 4287638193, 4286072780, 4284638433, 4283139314, 4281771772, 4280667900, 4280416752            };
-    const ImU32 Hot[]      = {4278190144, 4278190208, 4278190271, 4278190335, 4278206719, 4278223103, 4278239231, 4278255615, 4283826175, 4289396735, 4294967295            };
-    const ImU32 Cool[]     = {4294967040, 4294960666, 4294954035, 4294947661, 4294941030, 4294934656, 4294928025, 4294921651, 4294915020, 4294908646, 4294902015            };
-    const ImU32 Pink[]     = {4278190154, 4282532475, 4284308894, 4285690554, 4286879686, 4287870160, 4288794330, 4289651940, 4291685869, 4293392118, 4294967295            };
-    const ImU32 Jet[]      = {4289331200, 4294901760, 4294923520, 4294945280, 4294967040, 4289396565, 4283826090, 4278255615, 4278233855, 4278212095, 4278190335            };
+    const ImU32 Deep[]     = {IM_RGB(76,114,176),IM_RGB(221,132,82),IM_RGB(85,168,104),IM_RGB(196,78,82),IM_RGB(129,114,179),IM_RGB(147,120,96),IM_RGB(218,139,195),IM_RGB(140,140,140),IM_RGB(204,185,116),IM_RGB(100,181,205)};
+    const ImU32 Dark[]     = {IM_RGB(228,26,28),IM_RGB(55,126,184),IM_RGB(77,175,74),IM_RGB(152,78,163),IM_RGB(255,127,0),IM_RGB(255,255,51),IM_RGB(166,86,40),IM_RGB(247,129,191),IM_RGB(153,153,153)};
+    const ImU32 Pastel[]   = {IM_RGB(251,180,174),IM_RGB(179,205,227),IM_RGB(204,235,197),IM_RGB(222,203,228),IM_RGB(254,217,166),IM_RGB(255,255,204),IM_RGB(229,216,189),IM_RGB(253,218,236),IM_RGB(242,242,242)};
+    const ImU32 Paired[]   = {IM_RGB(66,206,227),IM_RGB(31,120,180),IM_RGB(178,223,138),IM_RGB(51,160,44),IM_RGB(251,154,153),IM_RGB(227,26,28),IM_RGB(253,191,111),IM_RGB(255,127,0),IM_RGB(202,178,214),IM_RGB(106,61,154),IM_RGB(255,255,153),IM_RGB(177,89,40)};
+    const ImU32 Viridis[]  = {IM_RGB(68,1,84),IM_RGB(72,36,117),IM_RGB(65,68,135),IM_RGB(53,95,141),IM_RGB(42,120,142),IM_RGB(33,145,140),IM_RGB(34,168,132),IM_RGB(68,191,112),IM_RGB(122,209,81),IM_RGB(189,223,38),IM_RGB(253,231,37)};
+    const ImU32 Plasma[]   = {IM_RGB(13,8,135),IM_RGB(65,4,157),IM_RGB(106,0,168),IM_RGB(143,13,164),IM_RGB(177,42,144),IM_RGB(204,71,120),IM_RGB(225,100,98),IM_RGB(242,132,75),IM_RGB(252,166,54),IM_RGB(252,206,37),IM_RGB(240,249,33)};
+    const ImU32 Hot[]      = {IM_RGB(64,0,0),IM_RGB(128,0,0),IM_RGB(191,0,0),IM_RGB(255,0,0),IM_RGB(255,64,0),IM_RGB(255,128,0),IM_RGB(255,191,0),IM_RGB(255,255,0),IM_RGB(255,255,85),IM_RGB(255,255,170),IM_RGB(255,255,255)};
+    const ImU32 Cool[]     = {IM_RGB(0,255,255),IM_RGB(26,230,255),IM_RGB(51,204,255),IM_RGB(77,179,255),IM_RGB(102,153,255),IM_RGB(128,128,255),IM_RGB(153,102,255),IM_RGB(179,77,255),IM_RGB(204,51,255),IM_RGB(230,26,255),IM_RGB(255,0,255)};
+    const ImU32 Pink[]     = {IM_RGB(74,0,0),IM_RGB(123,66,66),IM_RGB(158,93,93),IM_RGB(186,114,114),IM_RGB(198,151,132),IM_RGB(208,180,147),IM_RGB(218,206,161),IM_RGB(228,228,174),IM_RGB(237,237,205),IM_RGB(246,246,231),IM_RGB(255,255,255)};
+    const ImU32 Jet[]      = {IM_RGB(0,0,170),IM_RGB(0,0,255),IM_RGB(0,85,255),IM_RGB(0,170,255),IM_RGB(0,255,255),IM_RGB(85,255,170),IM_RGB(170,255,85),IM_RGB(255,255,0),IM_RGB(255,170,0),IM_RGB(255,85,0),IM_RGB(255,0,0)};
     const ImU32 Twilight[] = {IM_RGB(226,217,226),IM_RGB(166,191,202),IM_RGB(109,144,192),IM_RGB(95,88,176),IM_RGB(83,30,124),IM_RGB(47,20,54),IM_RGB(100,25,75),IM_RGB(159,60,80),IM_RGB(192,117,94),IM_RGB(208,179,158),IM_RGB(226,217,226)};
     const ImU32 RdBu[]     = {IM_RGB(103,0,31),IM_RGB(178,24,43),IM_RGB(214,96,77),IM_RGB(244,165,130),IM_RGB(253,219,199),IM_RGB(247,247,247),IM_RGB(209,229,240),IM_RGB(146,197,222),IM_RGB(67,147,195),IM_RGB(33,102,172),IM_RGB(5,48,97)};
     const ImU32 BrBG[]     = {IM_RGB(84,48,5),IM_RGB(140,81,10),IM_RGB(191,129,45),IM_RGB(223,194,125),IM_RGB(246,232,195),IM_RGB(245,245,245),IM_RGB(199,234,229),IM_RGB(128,205,193),IM_RGB(53,151,143),IM_RGB(1,102,94),IM_RGB(0,60,48)};
     const ImU32 PiYG[]     = {IM_RGB(142,1,82),IM_RGB(197,27,125),IM_RGB(222,119,174),IM_RGB(241,182,218),IM_RGB(253,224,239),IM_RGB(247,247,247),IM_RGB(230,245,208),IM_RGB(184,225,134),IM_RGB(127,188,65),IM_RGB(77,146,33),IM_RGB(39,100,25)};
     const ImU32 Spectral[] = {IM_RGB(158,1,66),IM_RGB(213,62,79),IM_RGB(244,109,67),IM_RGB(253,174,97),IM_RGB(254,224,139),IM_RGB(255,255,191),IM_RGB(230,245,152),IM_RGB(171,221,164),IM_RGB(102,194,165),IM_RGB(50,136,189),IM_RGB(94,79,162)};
-    const ImU32 Greys[]    = {IM_COL32_WHITE, IM_COL32_BLACK                                                                                                                };
+    const ImU32 Greys[]    = {IM_COL32_WHITE, IM_COL32_BLACK};
 
     IMPLOT_APPEND_CMAP(Deep, true);
     IMPLOT_APPEND_CMAP(Dark, true);
@@ -1686,8 +1688,10 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
         if (opp) {
             if (count_T++ > 0)
                 pad_T += K + P;
-            if (label)
-                pad_T += T + P;
+            if (label) {
+                ImVec2 label_size = ImGui::CalcTextSize(plot.GetAxisLabel(axis));
+                pad_T += label_size.y + P;
+            }
             if (ticks)
                 pad_T += ImMax(T, axis.Ticker.MaxSize.y) + P + (time ? T + P : 0);
             axis.Datum1 = plot.CanvasRect.Min.y + pad_T;
@@ -1697,8 +1701,10 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
         else {
             if (count_B++ > 0)
                 pad_B += K + P;
-            if (label)
-                pad_B += T + P;
+            if (label) {
+                ImVec2 label_size = ImGui::CalcTextSize(plot.GetAxisLabel(axis));
+                pad_B += label_size.y + P;
+            }
             if (ticks)
                 pad_B += ImMax(T, axis.Ticker.MaxSize.y) + P + (time ? T + P : 0);
             axis.Datum1 = plot.CanvasRect.Max.y - pad_B;
@@ -2026,6 +2032,9 @@ bool UpdateInput(ImPlotPlot& plot) {
         float tx = ImRemap(IO.MousePos.x, plot.PlotRect.Min.x, plot.PlotRect.Max.x, 0.0f, 1.0f);
         float ty = ImRemap(IO.MousePos.y, plot.PlotRect.Min.y, plot.PlotRect.Max.y, 0.0f, 1.0f);
 
+        // Track which axis to use as reference for equal aspect
+        ImPlotAxis* equal_ref_axis = nullptr;
+
         for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
             ImPlotAxis& x_axis = plot.XAxis(i);
             const bool equal_zoom   = axis_equal && x_axis.OrthoAxis != nullptr;
@@ -2033,13 +2042,12 @@ bool UpdateInput(ImPlotPlot& plot) {
             if (x_hov[i] && !x_axis.IsInputLocked() && !equal_locked) {
                 ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.ID);
                 if (zoom_rate != 0.0f) {
-                    float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
-                    const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - rect_size.x * tx * zoom_rate * correction);
-                    const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x + rect_size.x * (1 - tx) * zoom_rate * correction);
+                    const double plot_l = x_axis.PixelsToPlot(plot.PlotRect.Min.x - rect_size.x * tx * zoom_rate);
+                    const double plot_r = x_axis.PixelsToPlot(plot.PlotRect.Max.x + rect_size.x * (1 - tx) * zoom_rate);
                     x_axis.SetMin(x_axis.IsInverted() ? plot_r : plot_l);
                     x_axis.SetMax(x_axis.IsInverted() ? plot_l : plot_r);
-                    if (axis_equal && x_axis.OrthoAxis != nullptr)
-                        x_axis.OrthoAxis->SetAspect(x_axis.GetAspect());
+                    if (equal_zoom)
+                        equal_ref_axis = &x_axis;
                     changed = true;
                 }
             }
@@ -2051,16 +2059,20 @@ bool UpdateInput(ImPlotPlot& plot) {
             if (y_hov[i] && !y_axis.IsInputLocked() && !equal_locked) {
                 ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, plot.ID);
                 if (zoom_rate != 0.0f) {
-                    float correction = (plot.Hovered && equal_zoom) ? 0.5f : 1.0f;
-                    const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - rect_size.y * ty * zoom_rate * correction);
-                    const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y + rect_size.y * (1 - ty) * zoom_rate * correction);
+                    const double plot_t = y_axis.PixelsToPlot(plot.PlotRect.Min.y - rect_size.y * ty * zoom_rate);
+                    const double plot_b = y_axis.PixelsToPlot(plot.PlotRect.Max.y + rect_size.y * (1 - ty) * zoom_rate);
                     y_axis.SetMin(y_axis.IsInverted() ? plot_t : plot_b);
                     y_axis.SetMax(y_axis.IsInverted() ? plot_b : plot_t);
-                    if (axis_equal && y_axis.OrthoAxis != nullptr)
-                        y_axis.OrthoAxis->SetAspect(y_axis.GetAspect());
+                    if (equal_zoom)
+                        equal_ref_axis = &y_axis;
                     changed = true;
                 }
             }
+        }
+
+        // Apply equal aspect constraint after zooming both axes
+        if (equal_ref_axis != nullptr && equal_ref_axis->OrthoAxis != nullptr) {
+            equal_ref_axis->OrthoAxis->SetAspect(equal_ref_axis->GetAspect());
         }
     }
 
@@ -2247,6 +2259,8 @@ void SetupAxisTicks(ImAxis idx, double v_min, double v_max, int n_ticks, const c
     ImPlotContext& gp = *GImPlot;
     IM_ASSERT_USER_ERROR(gp.CurrentPlot != nullptr && !gp.CurrentPlot->SetupLocked,
                          "Setup needs to be called after BeginPlot and before any setup locking functions (e.g. PlotX)!");
+    IM_ASSERT_USER_ERROR(labels == nullptr || n_ticks >= 2,
+                         "When providing custom labels, n_ticks must be at least 2!");
     n_ticks = n_ticks < 2 ? 2 : n_ticks;
     FillRange(gp.TempDouble1, n_ticks, v_min, v_max);
     SetupAxisTicks(idx, gp.TempDouble1.Data, n_ticks, labels, show_default);
@@ -2622,6 +2636,17 @@ void SetupFinish() {
         if (axis.WillRender() && axis.ShowDefaultTicks && plot_width > 0) {
             axis.Locator(axis.Ticker, axis.Range, plot_width, false, axis.Formatter, axis.FormatterData);
         }
+    }
+
+    // (4.5) recalc padding now that we have actual X-axis tick labels (handles multi-line labels)
+    // Save title padding before resetting
+    const float title_pad = (title_size.x > 0) ? (title_size.y + gp.Style.LabelPadding.y) : 0.0f;
+    pad_top = title_pad;
+    pad_bot = 0;
+    PadAndDatumAxesX(plot,pad_top,pad_bot,gp.CurrentAlignmentH);
+    // Update AxesRect to account for title padding (was done in step 0)
+    if (title_size.x > 0) {
+        plot.AxesRect.Min.y = plot.FrameRect.Min.y + gp.Style.PlotPadding.y + title_pad;
     }
 
     // (5) calc plot bb
@@ -5896,20 +5921,7 @@ void StyleColorsLight(ImPlotStyle* dst) {
 
 #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
 
-bool BeginPlot(const char* title, const char* x_label, const char* y1_label, const ImVec2& size,
-               ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y1_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags,
-               const char* y2_label, const char* y3_label)
-{
-    if (!BeginPlot(title, size, flags))
-        return false;
-    SetupAxis(ImAxis_X1, x_label, x_flags);
-    SetupAxis(ImAxis_Y1, y1_label, y1_flags);
-    if (ImHasFlag(flags, ImPlotFlags_YAxis2))
-        SetupAxis(ImAxis_Y2, y2_label, y2_flags);
-    if (ImHasFlag(flags, ImPlotFlags_YAxis3))
-        SetupAxis(ImAxis_Y3, y3_label, y3_flags);
-    return true;
-}
+// Deprecated method will go in here
 
 #endif
 
