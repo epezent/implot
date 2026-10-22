@@ -3209,7 +3209,7 @@ double PlotHistogram(const char* label_id, const T* values, int count, int bins,
     const bool cumulative = ImHasFlag(spec.Flags, ImPlotHistogramFlags_Cumulative);
     const bool density    = ImHasFlag(spec.Flags, ImPlotHistogramFlags_Density);
     const bool outliers   = !ImHasFlag(spec.Flags, ImPlotHistogramFlags_NoOutliers);
-	const bool ignoreWidth = ImHasFlag(spec.flags, ImPlotHistogramFlags_NormalizeIgnoreWidth);
+	const bool ignoreWidth = ImHasFlag(spec.Flags, ImPlotHistogramFlags_NormalizeIgnoreWidth);
 
     IndexerIdx<T> indexer(values,count,spec.Offset,Stride<T>(spec));
 
