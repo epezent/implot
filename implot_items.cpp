@@ -75,28 +75,7 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
 // [SECTION] Template instantiation utility
 //-----------------------------------------------------------------------------
 
-// By default, templates are instantiated for `float`, `double`, and for the following integer types, which are defined in imgui.h:
-//     signed char         ImS8;   // 8-bit signed integer
-//     unsigned char       ImU8;   // 8-bit unsigned integer
-//     signed short        ImS16;  // 16-bit signed integer
-//     unsigned short      ImU16;  // 16-bit unsigned integer
-//     signed int          ImS32;  // 32-bit signed integer == int
-//     unsigned int        ImU32;  // 32-bit unsigned integer
-//     signed   long long  ImS64;  // 64-bit signed integer
-//     unsigned long long  ImU64;  // 64-bit unsigned integer
-// (note: this list does *not* include `long`, `unsigned long` and `long double`)
-//
-// You can customize the supported types by defining IMPLOT_CUSTOM_NUMERIC_TYPES at compile time to define your own type list.
-//    As an example, you could use the compile time define given by the line below in order to support only float and double.
-//        -DIMPLOT_CUSTOM_NUMERIC_TYPES="(float)(double)"
-//    In order to support all known C++ types, use:
-//        -DIMPLOT_CUSTOM_NUMERIC_TYPES="(signed char)(unsigned char)(signed short)(unsigned short)(signed int)(unsigned int)(signed long)(unsigned long)(signed long long)(unsigned long long)(float)(double)(long double)"
-
-#ifdef IMPLOT_CUSTOM_NUMERIC_TYPES
-    #define IMPLOT_NUMERIC_TYPES IMPLOT_CUSTOM_NUMERIC_TYPES
-#else
-    #define IMPLOT_NUMERIC_TYPES (ImS8)(ImU8)(ImS16)(ImU16)(ImS32)(ImU32)(ImS64)(ImU64)(float)(double)
-#endif
+// The list of supported types, IMPLOT_NUMERIC_TYPES, is defined in implot_internal.h.
 
 // CALL_INSTANTIATE_FOR_NUMERIC_TYPES will duplicate the template instantiation code `INSTANTIATE_MACRO(T)` on supported types.
 #define _CAT(x, y) _CAT_(x, y)
@@ -697,15 +676,7 @@ struct GetterError {
 //-----------------------------------------------------------------------------
 
 struct GetterConstColor {
-    GetterConstColor(ImU32 color, float alpha = 1.0f) {
-        ImU32 col = color;
-        if (alpha < 1.0f) {
-            ImVec4 col_vec = ImGui::ColorConvertU32ToFloat4(col);
-            col_vec.w *= alpha;
-            col = ImGui::GetColorU32(col_vec);
-        }
-        Color = col;
-    }
+    GetterConstColor(ImU32 color) : Color(color) { }
     template <typename I> IMPLOT_INLINE ImU32 operator[](I) const { return Color; }
     ImU32 Color;
 };
@@ -1929,7 +1900,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 } else {
                     const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-                    GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                    GetterConstColor color_getter(col_fill);
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 }
             }
@@ -2200,7 +2171,7 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
                         GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
                         RenderPrimitives2<RendererStairsPreShaded>(getter, color_getter);
                     } else {
-                        GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                        GetterConstColor color_getter(col_fill);
                         RenderPrimitives2<RendererStairsPreShaded>(getter, color_getter);
                     }
                 } else {
@@ -2208,7 +2179,7 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
                         GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
                         RenderPrimitives2<RendererStairsPostShaded>(getter, color_getter);
                     } else {
-                        GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                        GetterConstColor color_getter(col_fill);
                         RenderPrimitives2<RendererStairsPostShaded>(getter, color_getter);
                     }
                 }
@@ -2286,7 +2257,7 @@ void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& g
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             } else {
                 const ImU32 col = ImGui::GetColorU32(s.Spec.FillColor);
-                GetterConstColor color_getter(col, s.Spec.FillAlpha);
+                GetterConstColor color_getter(col);
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             }
         }
@@ -2359,7 +2330,7 @@ void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 get
                 GetterIdxColor fill_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererBarsFillV>(getter1, getter2, fill_getter, width);
             } else {
-                GetterConstColor fill_getter(col_fill, s.Spec.FillAlpha);
+                GetterConstColor fill_getter(col_fill);
                 RenderPrimitives3<RendererBarsFillV>(getter1, getter2, fill_getter, width);
             }
             if (rend_line && col_fill == col_line)
@@ -2395,7 +2366,7 @@ void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& ge
                 GetterIdxColor fill_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
             } else {
-                GetterConstColor fill_getter(col_fill, s.Spec.FillAlpha);
+                GetterConstColor fill_getter(col_fill);
                 RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
             }
             if (rend_line && col_fill == col_line)

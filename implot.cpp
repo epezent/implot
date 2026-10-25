@@ -766,7 +766,12 @@ void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixel
     const int nMinor        = 10;
     const int nMajor        = ImMax(2, (int)IM_ROUND(pixels / (vertical ? 300.0f : 400.0f)));
     const double nice_range = NiceNum(range.Size() * 0.99, false);
-    const double interval   = NiceNum(nice_range / (nMajor - 1), true);
+    double interval         = NiceNum(nice_range / (nMajor - 1), true);
+    // keep interval >= one ULP so `major += interval` always advances (e.g. range from SetupAxisLimits(v, v))
+    const double magnitude    = ImMax(ImAbs(range.Min), ImAbs(range.Max));
+    const double min_interval = nextafter(magnitude, HUGE_VAL) - magnitude;
+    if (interval < min_interval)
+        interval = min_interval;
     const double graphmin   = floor(range.Min / interval) * interval;
     const double graphmax   = ceil(range.Max / interval) * interval;
     bool first_major_set    = false;
@@ -5100,7 +5105,8 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SameLine(); ImGui::Checkbox("Only Modified Colors", &output_only_modified);
 
             static ImGuiTextFilter filter;
-            filter.Draw("Filter colors", ImGui::GetFontSize() * 16);
+            ImGui::SetNextItemWidth(ImGui::GetFontSize() * 16);
+            filter.Draw("Filter colors");
 
             static ImGuiColorEditFlags alpha_flags = ImGuiColorEditFlags_AlphaPreviewHalf;
 #if IMGUI_VERSION_NUM < 19173
