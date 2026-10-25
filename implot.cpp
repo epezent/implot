@@ -4049,6 +4049,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+    const bool move_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoMove);
     const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, radius);
     const ImVec4 color = IsColorAuto(col) ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : col;
     const ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
@@ -4068,7 +4069,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
     }
 
     bool modified = false;
-    if (held && ImGui::IsMouseDragging(0)) {
+    if (move_allowed && held && ImGui::IsMouseDragging(0)) {
         *x = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
         *y = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
         modified = true;
@@ -4076,7 +4077,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
 
     PushPlotClipRect();
     ImDrawList& DrawList = *GetPlotDrawList();
-    if ((hovered || held) && show_curs)
+    if ((hovered || held) && show_curs && move_allowed)
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     if (modified && no_delay)
         pos = PlotToPixels(*x,*y,IMPLOT_AUTO,IMPLOT_AUTO);
@@ -4100,6 +4101,8 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+    const bool move_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoMove);
+
     const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, thickness/2);
     float yt = gp.CurrentPlot->PlotRect.Min.y;
     float yb = gp.CurrentPlot->PlotRect.Max.y;
@@ -4117,7 +4120,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
         if (out_held)    *out_held    = held;
     }
 
-    if ((hovered || held) && show_curs)
+    if ((hovered || held) && show_curs && move_allowed)
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
 
     float len = gp.Style.MajorTickLen.x;
@@ -4125,7 +4128,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
 
     bool modified = false;
-    if (held && ImGui::IsMouseDragging(0)) {
+    if (move_allowed && held && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
         modified = true;
     }
@@ -4156,6 +4159,8 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+    const bool move_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoMove);
+
     const float grab_half_size = ImMax(DRAG_GRAB_HALF_SIZE, thickness/2);
     float xl = gp.CurrentPlot->PlotRect.Min.x;
     float xr = gp.CurrentPlot->PlotRect.Max.x;
@@ -4174,7 +4179,7 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
         if (out_held)    *out_held    = held;
     }
 
-    if ((hovered || held) && show_curs)
+    if ((hovered || held) && show_curs && move_allowed)
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
 
     float len = gp.Style.MajorTickLen.y;
@@ -4182,7 +4187,7 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImU32 col32 = ImGui::ColorConvertFloat4ToU32(color);
 
     bool modified = false;
-    if (held && ImGui::IsMouseDragging(0)) {
+    if (move_allowed && held && ImGui::IsMouseDragging(0)) {
         *value = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
         modified = true;
     }
@@ -4213,6 +4218,9 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     const bool input = !ImHasFlag(flags, ImPlotDragToolFlags_NoInputs);
     const bool show_curs = !ImHasFlag(flags, ImPlotDragToolFlags_NoCursors);
     const bool no_delay = !ImHasFlag(flags, ImPlotDragToolFlags_Delayed);
+    const bool move_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoMove);
+    const bool resize_allowed = !ImHasFlag(flags, ImPlotDragToolFlags_NoResize);
+
     bool    h[] = {true,false,true,false};
     double* x[] = {x_min,x_max,x_max,x_min};
     double* y[] = {y_min,y_min,y_max,y_max};
@@ -4254,9 +4262,9 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
             if (out_held)    *out_held    = held;
         }
 
-        if ((hovered || held) && show_curs)
+        if ((hovered || held) && show_curs && move_allowed)
             ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-        if (held && ImGui::IsMouseDragging(0)) {
+        if (move_allowed && held && ImGui::IsMouseDragging(0)) {
             for (int i = 0; i < 4; ++i) {
                 ImPlotPoint pp = PixelsToPlot(p[i] + ImGui::GetIO().MouseDelta,IMPLOT_AUTO,IMPLOT_AUTO);
                 *y[i] = pp.y;
@@ -4278,10 +4286,10 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
             if (out_hovered) *out_hovered = *out_hovered || hovered;
             if (out_held)    *out_held    = *out_held    || held;
         }
-        if ((hovered || held) && show_curs)
+        if ((hovered || held) && show_curs && resize_allowed)
             ImGui::SetMouseCursor(cur[i]);
 
-        if (held && ImGui::IsMouseDragging(0)) {
+        if (resize_allowed && held && ImGui::IsMouseDragging(0)) {
             *x[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
             *y[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
             modified = true;
@@ -4301,16 +4309,16 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
             if (out_hovered) *out_hovered = *out_hovered || hovered;
             if (out_held)    *out_held    = *out_held    || held;
         }
-        if ((hovered || held) && show_curs)
+        if ((hovered || held) && show_curs && resize_allowed)
             h[i] ? ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS) : ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-        if (held && ImGui::IsMouseDragging(0)) {
+        if (resize_allowed && held && ImGui::IsMouseDragging(0)) {
             if (h[i])
                 *y[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).y;
             else
                 *x[i] = ImPlot::GetPlotMousePos(IMPLOT_AUTO,IMPLOT_AUTO).x;
             modified = true;
         }
-        if (hovered && ImGui::IsMouseDoubleClicked(0))
+        if (resize_allowed && hovered && ImGui::IsMouseDoubleClicked(0))
         {
             ImPlotRect b = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
             if (h[i])
