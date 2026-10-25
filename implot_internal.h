@@ -149,10 +149,22 @@ template <typename T>
 static inline T ImRemap01(T x, T x0, T x1) { return (x - x0) / (x1 - x0); }
 // Returns always positive modulo (assumes r != 0)
 static inline int ImPosMod(int l, int r) { return (l % r + r) % r; }
+// Returns the IEEE-754 bit pattern of val. NaN and infinity are tested on these bits rather than with isnan() or
+// comparisons, so the tests need no <cmath>, don't depend on whether isnan is a macro or a function, and keep
+// working when -ffast-math (-ffinite-math-only) or /fp:fast lets the compiler assume floats are never NaN or infinite.
+static inline ImU64 ImDoubleBits(double val) {
+    static_assert(sizeof(ImU64) == sizeof(double), "ImDoubleBits expects a 64-bit double");
+    ImU64 bits;
+    memcpy(&bits, &val, sizeof(bits));
+#if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__ && (defined(__GNUC__) || defined(__clang__))
+    __asm__("" : "+r"(bits)); // hide the bits from the optimizer, which would otherwise fold these tests to false
+#endif
+    return bits;
+}
 // Returns true if val is NAN
-static inline bool ImNan(double val) { return isnan(val); }
+static inline bool ImNan(double val) { return (ImDoubleBits(val) & 0x7FFFFFFFFFFFFFFFull) > 0x7FF0000000000000ull; }
 // Returns true if val is NAN or INFINITY
-static inline bool ImNanOrInf(double val) { return !(val >= -DBL_MAX && val <= DBL_MAX) || ImNan(val); }
+static inline bool ImNanOrInf(double val) { return (ImDoubleBits(val) & 0x7FF0000000000000ull) == 0x7FF0000000000000ull; }
 // Turns NANs to 0s
 static inline double ImConstrainNan(double val) { return ImNan(val) ? 0 : val; }
 // Turns infinity to floating point maximums
