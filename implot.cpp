@@ -1395,6 +1395,7 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool /*time_a
     bool grid            = axis.HasGridLines();
     bool ticks           = axis.HasTickMarks();
     bool labels          = axis.HasTickLabels();
+    bool labelsInside    = axis.HasTickLabelsInside();
     double drag_speed    = (axis.Range.Size() <= DBL_EPSILON) ? DBL_EPSILON * 1.0e+13 : 0.01 * axis.Range.Size(); // recover from almost equal axis limits.
 
     if (axis.Scale == ImPlotScale_Time) {
@@ -1499,7 +1500,8 @@ void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bool /*time_a
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickMarks);
     if (ImGui::Checkbox("Tick Labels", &labels))
         ImFlipFlag(axis.Flags, ImPlotAxisFlags_NoTickLabels);
-
+    if (ImGui::Checkbox("Tick Labels Inside", &labelsInside))
+        ImFlipFlag(axis.Flags, ImPlotAxisFlags_TickLabelsInside);
 }
 
 bool ShowLegendContextMenu(ImPlotLegend& legend, bool visible) {
@@ -1669,7 +1671,42 @@ void UpdateAxisColors(ImPlotAxis& axis) {
     // axis.ColorHiLi     = IM_COL32_BLACK_TRANS;
 }
 
-void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignmentData* align) {
+static void FindInnermostAxesX(ImPlotPlot& plot, int& innermost_T, int& innermost_B) {
+    innermost_T = innermost_B = -1;
+    for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
+        ImPlotAxis& axis = plot.XAxis(i);
+        if (!axis.Enabled)
+            continue;
+        const bool opp = axis.IsOpposite();
+        if (opp && innermost_T == -1)
+            innermost_T = i;
+        if (!opp && innermost_B == -1)
+            innermost_B = i;
+    }
+}
+
+static void FindInnermostAxesY(ImPlotPlot& plot, int& innermost_L, int& innermost_R) {
+    innermost_L = innermost_R = -1;
+    for (int i = 0; i < IMPLOT_NUM_Y_AXES; i++) {
+        ImPlotAxis& axis = plot.YAxis(i);
+        if (!axis.Enabled)
+            continue;
+        const bool opp = axis.IsOpposite();
+        if (opp && innermost_R == -1)
+            innermost_R = i;
+        if (!opp && innermost_L == -1)
+            innermost_L = i;
+    }
+}
+
+static bool IsInnermostAxis(int i, bool opp, int innermost, int innermost_opp) {
+    if (opp)
+        return i == innermost_opp;
+    else
+        return i == innermost;
+}
+
+void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, int innermost_T, int innermost_B, ImPlotAlignmentData* align) {
 
     ImPlotContext& gp = *GImPlot;
 
@@ -1689,6 +1726,7 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
         const bool label = axis.HasLabel();
         const bool ticks = axis.HasTickLabels();
         const bool opp   = axis.IsOpposite();
+        const bool ins   = axis.HasTickLabelsInside() && IsInnermostAxis(i, opp, innermost_B, innermost_T);
         const bool time  = axis.Scale == ImPlotScale_Time;
         if (opp) {
             if (count_T++ > 0)
@@ -1697,8 +1735,11 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
                 ImVec2 label_size = ImGui::CalcTextSize(plot.GetAxisLabel(axis));
                 pad_T += label_size.y + P;
             }
-            if (ticks)
+            if (ticks && !ins)
                 pad_T += ImMax(T, axis.Ticker.MaxSize.y) + P + (time ? T + P : 0);
+            // fix ins axis rect overlapping plot title if no label is present and there are no other axes above
+            if (ins && !label && count_T == 1 && plot.HasTitle())
+                pad_T += K + P;
             axis.Datum1 = plot.CanvasRect.Min.y + pad_T;
             axis.Datum2 = last_T;
             last_T = axis.Datum1;
@@ -1710,7 +1751,7 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
                 ImVec2 label_size = ImGui::CalcTextSize(plot.GetAxisLabel(axis));
                 pad_B += label_size.y + P;
             }
-            if (ticks)
+            if (ticks && !ins)
                 pad_B += ImMax(T, axis.Ticker.MaxSize.y) + P + (time ? T + P : 0);
             axis.Datum1 = plot.CanvasRect.Max.y - pad_B;
             axis.Datum2 = last_B;
@@ -1738,7 +1779,7 @@ void PadAndDatumAxesX(ImPlotPlot& plot, float& pad_T, float& pad_B, ImPlotAlignm
     }
 }
 
-void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, ImPlotAlignmentData* align) {
+void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, int innermost_L, int innermost_R, ImPlotAlignmentData* align) {
 
     //   [   pad_L   ]                 [   pad_R   ]
     //   .................CanvasRect................
@@ -1773,12 +1814,13 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, ImPlotAlignm
         const bool label = axis.HasLabel();
         const bool ticks = axis.HasTickLabels();
         const bool opp   = axis.IsOpposite();
+        const bool ins   = axis.HasTickLabelsInside() && IsInnermostAxis(i, opp, innermost_L, innermost_R);
         if (opp) {
             if (count_R++ > 0)
                 pad_R += K + P;
             if (label)
                 pad_R += T + P;
-            if (ticks)
+            if (ticks && !ins)
                 pad_R += axis.Ticker.MaxSize.x + P;
             axis.Datum1 = plot.CanvasRect.Max.x - pad_R;
             axis.Datum2 = last_R;
@@ -1789,7 +1831,7 @@ void PadAndDatumAxesY(ImPlotPlot& plot, float& pad_L, float& pad_R, ImPlotAlignm
                 pad_L += K + P;
             if (label)
                 pad_L += T + P;
-            if (ticks)
+            if (ticks && !ins)
                 pad_L += axis.Ticker.MaxSize.x + P;
             axis.Datum1 = plot.CanvasRect.Min.x + pad_L;
             axis.Datum2 = last_L;
@@ -2609,6 +2651,7 @@ void SetupFinish() {
 
     // plot bb
     float pad_top = 0, pad_bot = 0, pad_left = 0, pad_right = 0;
+    int innermost_top = -1, innermost_bot = -1, innermost_left = -1, innermost_right = -1;
 
     // (0) calc top padding form title
     ImVec2 title_size(0.0f, 0.0f);
@@ -2620,7 +2663,8 @@ void SetupFinish() {
     }
 
     // (1) calc addition top padding and bot padding
-    PadAndDatumAxesX(plot,pad_top,pad_bot,gp.CurrentAlignmentH);
+    FindInnermostAxesX(plot, innermost_top, innermost_bot);
+    PadAndDatumAxesX(plot,pad_top,pad_bot,innermost_top,innermost_bot,gp.CurrentAlignmentH);
 
     const float plot_height = plot.CanvasRect.GetHeight() - pad_top - pad_bot;
 
@@ -2633,7 +2677,8 @@ void SetupFinish() {
     }
 
     // (3) calc left/right pad
-    PadAndDatumAxesY(plot,pad_left,pad_right,gp.CurrentAlignmentV);
+    FindInnermostAxesY(plot, innermost_left, innermost_right);
+    PadAndDatumAxesY(plot,pad_left,pad_right,innermost_left,innermost_right,gp.CurrentAlignmentV);
 
     const float plot_width = plot.CanvasRect.GetWidth() - pad_left - pad_right;
 
@@ -2650,7 +2695,7 @@ void SetupFinish() {
     const float title_pad = (title_size.x > 0) ? (title_size.y + gp.Style.LabelPadding.y) : 0.0f;
     pad_top = title_pad;
     pad_bot = 0;
-    PadAndDatumAxesX(plot,pad_top,pad_bot,gp.CurrentAlignmentH);
+    PadAndDatumAxesX(plot,pad_top,pad_bot,innermost_top,innermost_bot,gp.CurrentAlignmentH);
     // Update AxesRect to account for title padding (was done in step 0)
     if (title_size.x > 0) {
         plot.AxesRect.Min.y = plot.FrameRect.Min.y + gp.Style.PlotPadding.y + title_pad;
@@ -2744,6 +2789,10 @@ void SetupFinish() {
             RenderGridLinesY(DrawList, y_axis.Ticker, plot.PlotRect,  y_axis.ColorMaj, y_axis.ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
     }
 
+    // rects of the inside x tick labels drawn below, so inside y tick labels can skip the ones they overlap
+    ImVector<ImRect>& x_inside_label_rects = gp.TempRect1;
+    x_inside_label_rects.resize(0);
+
     // render x axis button, label, tick labels
     for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
         ImPlotAxis& ax = plot.XAxis(i);
@@ -2760,23 +2809,33 @@ void SetupFinish() {
         }
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
+        const bool ins = ax.HasTickLabelsInside() && IsInnermostAxis(i, opp, innermost_bot, innermost_top);
         if (ax.HasLabel()) {
             const char* label        = plot.GetAxisLabel(ax);
             const ImVec2 label_size  = ImGui::CalcTextSize(label);
-            const float label_offset = (ax.HasTickLabels() ? tkr.MaxSize.y + gp.Style.LabelPadding.y : 0.0f)
-                                     + (tkr.Levels - 1) * (txt_height + gp.Style.LabelPadding.y)
+            const float label_offset = (ax.HasTickLabels() && !ins ? tkr.MaxSize.y + gp.Style.LabelPadding.y
+                                                                   + (tkr.Levels - 1) * (txt_height + gp.Style.LabelPadding.y) : 0.0f)
                                      + gp.Style.LabelPadding.y;
             const ImVec2 label_pos(plot.PlotRect.GetCenter().x - label_size.x * 0.5f,
                                    opp ? ax.Datum1 - label_offset - label_size.y : ax.Datum1 + label_offset);
             DrawList.AddText(label_pos, ax.ColorTxt, label);
         }
         if (ax.HasTickLabels()) {
+            const bool labels_opp = opp ^ ins;
+            // inside labels start past the tick marks, which are drawn inward from the plot edge
+            const float label_pad = ins && ax.HasTickMarks() ? gp.Style.MajorTickLen.x : gp.Style.LabelPadding.y;
+            const float level_pad = txt_height + gp.Style.LabelPadding.y;
             for (int j = 0; j < tkr.TickCount(); ++j) {
                 const ImPlotTick& tk = tkr.Ticks[j];
-                const float datum = ax.Datum1 + (opp ? (-gp.Style.LabelPadding.y -txt_height -tk.Level * (txt_height + gp.Style.LabelPadding.y))
-                                                     : gp.Style.LabelPadding.y + tk.Level * (txt_height + gp.Style.LabelPadding.y));
+                const float pad   = label_pad + (labels_opp ? tk.LabelSize.y : 0) + (tk.Level * level_pad);
+                const float datum = ax.Datum1 + pad * (labels_opp ? -1.0f : 1.0f);
                 if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.x - 1 && tk.PixelPos <= plot.PlotRect.Max.x + 1) {
                     ImVec2 start(tk.PixelPos - 0.5f * tk.LabelSize.x, datum);
+                    // keep inside labels within the plot, shifting the ones at the ends along the axis
+                    if (ins) {
+                        start.x = ImMax(plot.PlotRect.Min.x, ImMin(start.x, plot.PlotRect.Max.x - tk.LabelSize.x));
+                        x_inside_label_rects.push_back(ImRect(start, start + tk.LabelSize));
+                    }
                     DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
                 }
             }
@@ -2799,22 +2858,35 @@ void SetupFinish() {
         }
         const ImPlotTicker& tkr = ax.Ticker;
         const bool opp = ax.IsOpposite();
+        const bool ins = ax.HasTickLabelsInside() && IsInnermostAxis(i, opp, innermost_left, innermost_right);
         if (ax.HasLabel()) {
             const char* label        = plot.GetAxisLabel(ax);
             const ImVec2 label_size  = CalcTextSizeVertical(label);
-            const float label_offset = (ax.HasTickLabels() ? tkr.MaxSize.x + gp.Style.LabelPadding.x : 0.0f)
+            const float label_offset = (ax.HasTickLabels() && !ins ? tkr.MaxSize.x + gp.Style.LabelPadding.x : 0.0f)
                                      + gp.Style.LabelPadding.x;
             const ImVec2 label_pos(opp ? ax.Datum1 + label_offset : ax.Datum1 - label_offset - label_size.x,
                                    plot.PlotRect.GetCenter().y + label_size.y * 0.5f);
             AddTextVertical(&DrawList, label_pos, ax.ColorTxt, label);
         }
         if (ax.HasTickLabels()) {
+            const bool labels_opp = opp ^ ins;
+            const float label_pad = ins && ax.HasTickMarks() ? gp.Style.MajorTickLen.y : gp.Style.LabelPadding.x;
             for (int j = 0; j < tkr.TickCount(); ++j) {
                 const ImPlotTick& tk = tkr.Ticks[j];
-                const float datum = ax.Datum1 + (opp ? gp.Style.LabelPadding.x : (-gp.Style.LabelPadding.x - tk.LabelSize.x));
+                const float pad   = label_pad + (labels_opp ? 0 : tk.LabelSize.x);
+                const float datum = ax.Datum1 + pad * (labels_opp ? 1.0f : -1.0f);
                 if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.y - 1 && tk.PixelPos <= plot.PlotRect.Max.y + 1) {
                     ImVec2 start(datum, tk.PixelPos - 0.5f * tk.LabelSize.y);
-                    DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
+                    bool hidden = false;
+                    if (ins) {
+                        start.y = ImMax(plot.PlotRect.Min.y, ImMin(start.y, plot.PlotRect.Max.y - tk.LabelSize.y));
+                        // at the corners, inside x tick labels win over the inside y tick labels they overlap
+                        const ImRect rect(start, start + tk.LabelSize);
+                        for (int k = 0; k < x_inside_label_rects.Size && !hidden; ++k)
+                            hidden = x_inside_label_rects[k].Overlaps(rect);
+                    }
+                    if (!hidden)
+                        DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
                 }
             }
         }
