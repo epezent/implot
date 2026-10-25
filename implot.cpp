@@ -4178,6 +4178,13 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     bool modified = false;
     bool clicked = false, hovered = false, held = false;
 
+    // the handles below OR into the outputs, so start them from false even when the middle handle is skipped
+    if (input) {
+        if (out_clicked) *out_clicked = false;
+        if (out_hovered) *out_hovered = false;
+        if (out_held)    *out_held    = false;
+    }
+
     const bool is_movable = *x_min != *x_max || *y_min != *y_max;
     if (is_movable && move_allowed) {
         ImGui::KeepAliveID(id);
