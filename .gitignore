@@ -1,0 +1,31 @@
+## Dear ImGui artifacts
+imgui.ini
+imgui*.ini
+
+## Visual Studio artifacts
+.vs
+ipch
+*.opensdf
+*.log
+*.pdb
+*.ilk
+*.user
+*.sdf
+*.suo
+*.VC.db
+*.VC.VC.opendb
+
+## Commonly used CMake directories & CMake CPM cache
+build*/
+.cache
+
+## JetBrains IDE artifacts
+.idea
+cmake-build-*
+
+## VS code artifacts
+.vscode
+
+## LLM instruction files
+CLAUDE.md
+GEMINI.md
