@@ -364,6 +364,7 @@ bool IsLastItemHidden() {
 
 void BustItemCache() {
     ImPlotContext& gp = *GImPlot;
+    gp.PreviousItem = nullptr; // it points into the item pools freed below
     for (int p = 0; p < gp.Plots.GetBufSize(); ++p) {
         ImPlotPlot& plot = *gp.Plots.GetByIndex(p);
         plot.Items.Reset();
@@ -381,6 +382,7 @@ void BustColorCache(const char* plot_title_id) {
     }
     else {
         ImGuiID id = ImGui::GetCurrentWindow()->GetID(plot_title_id);
+        gp.PreviousItem = nullptr; // it may point into the item pool freed below
         ImPlotPlot* plot = gp.Plots.GetByKey(id);
         if (plot != nullptr)
             plot->Items.Reset();
