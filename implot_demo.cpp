@@ -30,6 +30,7 @@
 
 #include "implot.h"
 #ifndef IMGUI_DISABLE
+#include "implot_internal.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -201,29 +202,15 @@ struct HugeTimeData {
 // [SECTION] Numeric Type Gating
 //-----------------------------------------------------------------------------
 
-// A handful of the demos below hardcode their plot data as a specific non-float/double numeric
-// type (e.g. ImS8, int, unsigned int), purely to show that PlotXxx() isn't limited to float and
-// double. ImPlot only explicitly instantiates PlotXxx<T> for the types listed in the
-// IMPLOT_NUMERIC_TYPES macro (see implot_items.cpp), which defaults to every supported type but
-// can be restricted at compile time -- e.g. -DIMPLOT_CUSTOM_NUMERIC_TYPES="(float)(double)" -- to
-// shrink the resulting binary. If a demo below used a type that build excluded, calling
-// PlotXxx<T> for it would still compile (it's a perfectly valid template call) but fail to
-// *link*, since no definition would exist anywhere for that particular instantiation.
-//
-// To avoid that, we mirror the same type list here and use it to compile out, at compile time,
-// just the few demos that need a type outside of it, instead of assuming every demo (or the
-// library itself) can always use every type.
+// A few demos below hardcode their data as a type other than float/double (e.g. ImS8, int). ImPlot
+// only instantiates PlotXxx<T> for the types in IMPLOT_NUMERIC_TYPES (see implot_internal.h), which
+// can be restricted with IMPLOT_CUSTOM_NUMERIC_TYPES. Calling PlotXxx<T> for an excluded type still
+// compiles but fails to link, so those demos are compiled out for it.
 //
 // A demo that plots data of a type other than float/double must be declared with
 // IMPLOT_DEMO_TYPE_GATED (below).
 
-#ifdef IMPLOT_CUSTOM_NUMERIC_TYPES
-    #define IMPLOT_DEMO_NUMERIC_TYPES IMPLOT_CUSTOM_NUMERIC_TYPES
-#else
-    #define IMPLOT_DEMO_NUMERIC_TYPES (ImS8)(ImU8)(ImS16)(ImU16)(ImS32)(ImU32)(ImS64)(ImU64)(float)(double)
-#endif
-
-// Walks IMPLOT_DEMO_NUMERIC_TYPES, expanding IMPLOT_DEMO_TYPE_MACRO(T) once per listed type.
+// Walks IMPLOT_NUMERIC_TYPES, expanding IMPLOT_DEMO_TYPE_MACRO(T) once per listed type.
 #define IMPLOT_DEMO_CAT(x, y) IMPLOT_DEMO_CAT_(x, y)
 #define IMPLOT_DEMO_CAT_(x, y) x ## y
 #define IMPLOT_DEMO_WALK_TYPES(chain) IMPLOT_DEMO_CAT(IMPLOT_DEMO_WALK_TYPES_1 chain, _END)
@@ -237,7 +224,7 @@ namespace Demo {
 // IsTypeEnabled<T>::Value is true iff ImPlot explicitly instantiates PlotXxx<T>.
 template <typename T> struct IsTypeEnabled { enum { Value = 0 }; };
 #define IMPLOT_DEMO_TYPE_MACRO(T) template <> struct IsTypeEnabled<T> { enum { Value = 1 }; };
-IMPLOT_DEMO_WALK_TYPES(IMPLOT_DEMO_NUMERIC_TYPES)
+IMPLOT_DEMO_WALK_TYPES(IMPLOT_NUMERIC_TYPES)
 #undef IMPLOT_DEMO_TYPE_MACRO
 
 // A tiny local enable_if, so this doesn't need to pull in <type_traits> for its one use below.
@@ -251,7 +238,7 @@ void ShowTypeDisabledNotice() {
 } // namespace Demo
 
 // Declares Name<T>() such that exactly one of two bodies is ever compiled for a given T: the one
-// written immediately after this macro if T is one of IMPLOT_DEMO_NUMERIC_TYPES, or an automatic
+// written immediately after this macro if T is one of IMPLOT_NUMERIC_TYPES, or an automatic
 // fallback that calls ShowTypeDisabledNotice() otherwise. Since the two are separate function
 // template overloads selected via SFINAE, the one that doesn't apply to T is never instantiated,
 // so it can safely reference PlotXxx<T> without ever actually calling it (and without the linker

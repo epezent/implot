@@ -73,7 +73,7 @@ endif()
 
 # Define supported types via command line:
 #   - With no choice all types are supported (so that the CI provides support for all known types)
-#   - with -DIMPLOT_CUSTOM_NUMERIC_TYPES="default" the default set defined in implot_items.cpp is used
+#   - with -DIMPLOT_CUSTOM_NUMERIC_TYPES="default" the default set defined in implot_internal.h is used
 #   - with -DIMPLOT_CUSTOM_NUMERIC_TYPES="(int)(float)(double)" only int, float and double are supported
 if (NOT DEFINED IMPLOT_CUSTOM_NUMERIC_TYPES)
     set(IMPLOT_CUSTOM_NUMERIC_TYPES "all")
