@@ -338,6 +338,7 @@ ImPlotItem* GetItem(const char* label_id) {
 }
 
 bool IsItemHidden(const char* label_id) {
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentItems != nullptr, "IsItemHidden() needs to be called within an itemized context!");
     ImPlotItem* item = GetItem(label_id);
     return item != nullptr && !item->Show;
 }

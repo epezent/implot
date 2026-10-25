@@ -1143,6 +1143,10 @@ IMPLOT_API void CancelPlotSelection();
 // Hides or shows the next plot item (i.e. as if it were toggled from the legend).
 // Use ImPlotCond_Always if you need to forcefully set this every frame.
 IMPLOT_API void HideNextItem(bool hidden = true, ImPlotCond cond = ImPlotCond_Once);
+// Returns true if the plot item #label_id in the current plot is hidden (i.e. toggled off from the legend or by HideNextItem).
+// Can be called before the item is submitted (e.g. to skip expensive work for a hidden item), in which case it reports
+// the state from the previous frame. Returns false for items that have never been submitted. See also IsLastItemHidden.
+IMPLOT_API bool IsItemHidden(const char* label_id);
 
 // Use the following around calls to Begin/EndPlot to align l/r/t/b padding.
 // Consider using Begin/EndSubplots first. They are more feature rich and
