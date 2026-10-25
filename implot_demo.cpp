@@ -1147,8 +1147,7 @@ void Demo_RealtimePlots() {
 
 //-----------------------------------------------------------------------------
 
-void Demo_LineStyles() {
-    IMGUI_DEMO_MARKER("Plots/Line Styles");
+IMPLOT_DEMO_TYPE_GATED(Demo_LineStyles_) {
     static ImPlotSpec spec;
     static bool is_init = false;
     static ImPlotLineStyle custom_style[2];
@@ -1176,8 +1175,8 @@ void Demo_LineStyles() {
         ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(0, 5, 0, 9);
 
-        ImS8 xs[2] = {1,4};
-        ImS8 ys[2] = {7,8};
+        T xs[2] = {1,4};
+        T ys[2] = {7,8};
 
         // Line Styles
         for (int m = 0; m < ImPlotLineStyle_COUNT; ++m) {
@@ -1197,6 +1196,11 @@ void Demo_LineStyles() {
         }
         ImPlot::EndPlot();
     }
+}
+
+void Demo_LineStyles() {
+    IMGUI_DEMO_MARKER("Plots/Line Styles");
+    Demo_LineStyles_<ImS8>();
 }
 
 //-----------------------------------------------------------------------------
