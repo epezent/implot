@@ -338,6 +338,7 @@ ImPlotItem* GetItem(const char* label_id) {
 }
 
 bool IsItemHidden(const char* label_id) {
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentItems != nullptr, "IsItemHidden() needs to be called within an itemized context!");
     ImPlotItem* item = GetItem(label_id);
     return item != nullptr && !item->Show;
 }
@@ -354,8 +355,16 @@ ImVec4 GetLastItemColor() {
     return ImVec4();
 }
 
+bool IsLastItemHidden() {
+    ImPlotContext& gp = *GImPlot;
+    if (gp.PreviousItem)
+        return !gp.PreviousItem->Show;
+    return false;
+}
+
 void BustItemCache() {
     ImPlotContext& gp = *GImPlot;
+    gp.PreviousItem = nullptr; // it points into the item pools freed below
     for (int p = 0; p < gp.Plots.GetBufSize(); ++p) {
         ImPlotPlot& plot = *gp.Plots.GetByIndex(p);
         plot.Items.Reset();
@@ -373,6 +382,7 @@ void BustColorCache(const char* plot_title_id) {
     }
     else {
         ImGuiID id = ImGui::GetCurrentWindow()->GetID(plot_title_id);
+        gp.PreviousItem = nullptr; // it may point into the item pool freed below
         ImPlotPlot* plot = gp.Plots.GetByKey(id);
         if (plot != nullptr)
             plot->Items.Reset();

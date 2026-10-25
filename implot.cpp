@@ -2457,6 +2457,8 @@ bool BeginPlot(const char* title_id, const ImVec2& size, ImPlotFlags flags) {
     plot.Items.ID            = ID - 1;
     plot.JustCreated         = just_created;
     plot.SetupLocked         = false;
+    // the last item belongs to another plot (or to the previous frame)
+    gp.PreviousItem          = nullptr;
 
     // check flags
     if (plot.JustCreated)
