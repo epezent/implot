@@ -75,28 +75,7 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
 // [SECTION] Template instantiation utility
 //-----------------------------------------------------------------------------
 
-// By default, templates are instantiated for `float`, `double`, and for the following integer types, which are defined in imgui.h:
-//     signed char         ImS8;   // 8-bit signed integer
-//     unsigned char       ImU8;   // 8-bit unsigned integer
-//     signed short        ImS16;  // 16-bit signed integer
-//     unsigned short      ImU16;  // 16-bit unsigned integer
-//     signed int          ImS32;  // 32-bit signed integer == int
-//     unsigned int        ImU32;  // 32-bit unsigned integer
-//     signed   long long  ImS64;  // 64-bit signed integer
-//     unsigned long long  ImU64;  // 64-bit unsigned integer
-// (note: this list does *not* include `long`, `unsigned long` and `long double`)
-//
-// You can customize the supported types by defining IMPLOT_CUSTOM_NUMERIC_TYPES at compile time to define your own type list.
-//    As an example, you could use the compile time define given by the line below in order to support only float and double.
-//        -DIMPLOT_CUSTOM_NUMERIC_TYPES="(float)(double)"
-//    In order to support all known C++ types, use:
-//        -DIMPLOT_CUSTOM_NUMERIC_TYPES="(signed char)(unsigned char)(signed short)(unsigned short)(signed int)(unsigned int)(signed long)(unsigned long)(signed long long)(unsigned long long)(float)(double)(long double)"
-
-#ifdef IMPLOT_CUSTOM_NUMERIC_TYPES
-    #define IMPLOT_NUMERIC_TYPES IMPLOT_CUSTOM_NUMERIC_TYPES
-#else
-    #define IMPLOT_NUMERIC_TYPES (ImS8)(ImU8)(ImS16)(ImU16)(ImS32)(ImU32)(ImS64)(ImU64)(float)(double)
-#endif
+// The list of supported types, IMPLOT_NUMERIC_TYPES, is defined in implot_internal.h.
 
 // CALL_INSTANTIATE_FOR_NUMERIC_TYPES will duplicate the template instantiation code `INSTANTIATE_MACRO(T)` on supported types.
 #define _CAT(x, y) _CAT_(x, y)

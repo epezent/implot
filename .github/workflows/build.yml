@@ -45,6 +45,26 @@ jobs:
           file cmake-build/example_implot
           cmake-build/example_implot
 
+  Linux-custom-types:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/checkout@v3
+        with:
+          repository: ocornut/imgui
+          path: imgui
+
+      - name: Configure
+        run: cmake -DCMAKE_BUILD_TYPE=release "-DIMPLOT_CUSTOM_NUMERIC_TYPES=(float)(double)" -B cmake-build -S .github
+
+      - name: Build
+        run: cmake --build cmake-build --parallel $(nproc)
+
+      - name: Run
+        run: cmake-build/example_implot
+
   MacOS:
     runs-on: macos-latest
 
