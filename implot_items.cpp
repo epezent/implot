@@ -697,15 +697,7 @@ struct GetterError {
 //-----------------------------------------------------------------------------
 
 struct GetterConstColor {
-    GetterConstColor(ImU32 color, float alpha = 1.0f) {
-        ImU32 col = color;
-        if (alpha < 1.0f) {
-            ImVec4 col_vec = ImGui::ColorConvertU32ToFloat4(col);
-            col_vec.w *= alpha;
-            col = ImGui::GetColorU32(col_vec);
-        }
-        Color = col;
-    }
+    GetterConstColor(ImU32 color) : Color(color) { }
     template <typename I> IMPLOT_INLINE ImU32 operator[](I) const { return Color; }
     ImU32 Color;
 };
@@ -2359,7 +2351,7 @@ void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 get
                 GetterIdxColor fill_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererBarsFillV>(getter1, getter2, fill_getter, width);
             } else {
-                GetterConstColor fill_getter(col_fill, s.Spec.FillAlpha);
+                GetterConstColor fill_getter(col_fill);
                 RenderPrimitives3<RendererBarsFillV>(getter1, getter2, fill_getter, width);
             }
             if (rend_line && col_fill == col_line)
@@ -2395,7 +2387,7 @@ void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& ge
                 GetterIdxColor fill_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
             } else {
-                GetterConstColor fill_getter(col_fill, s.Spec.FillAlpha);
+                GetterConstColor fill_getter(col_fill);
                 RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
             }
             if (rend_line && col_fill == col_line)
