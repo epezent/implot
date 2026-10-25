@@ -1026,12 +1026,12 @@ struct RendererLineStrip : RendererBase {
     mutable ImVec2 UV1;
 };
 
-template <class _Getter>
+template <class _Getter, class _GetterColor>
 struct RendererLineStripUV : RendererBase {
-    RendererLineStripUV(const _Getter& getter, ImU32 col, ImPlotLineStyleData style_data, float weight) :
+    RendererLineStripUV(const _Getter& getter, const _GetterColor& getter_color, ImPlotLineStyleData style_data, float weight) :
         RendererBase(getter.Count - 1, 6, 4),
         Getter(getter),
-        Col(col),
+        GetterColor(getter_color),
         StyleData(style_data),
         HalfWeight(ImMax(1.0f,weight)*0.5f),
         cumLen(0.f)
@@ -1059,14 +1059,15 @@ struct RendererLineStripUV : RendererBase {
         UV0.y = StyleData.Rect.uv0.y;
         UV1.y = StyleData.Rect.uv1.y;
 
-        PrimLineUV(draw_list,P1,P2,HalfWeight,Col,UV0,UV1);
+        ImU32 col = GetterColor[prim];
+        PrimLineUV(draw_list,P1,P2,HalfWeight,col,UV0,UV1);
 
         cumLen = ImMod(cumLen + segLen, StyleData.Period);
         P1 = P2;
         return true;
     }
     const _Getter& Getter;
-    const ImU32 Col;
+    const _GetterColor& GetterColor;
     const ImPlotLineStyleData StyleData;
     mutable float HalfWeight;
     mutable float cumLen;
@@ -2011,8 +2012,10 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                         GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
                             RenderPrimitives2<RendererLineStripSkip>(GetterLoop<_Getter>(getter),color_getter,s.Spec.LineWeight);
-                        else
+                        else if (s.Spec.LineStyle == ImPlotLineStyle_Solid)
                             RenderPrimitives2<RendererLineStrip>(GetterLoop<_Getter>(getter),color_getter,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2<RendererLineStripUV>(GetterLoop<_Getter>(getter),color_getter,GetLineStyleData(s.Spec.LineStyle),s.Spec.LineWeight);
                     } else {
                         GetterConstColor color_getter(col_line);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
@@ -2020,7 +2023,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                         else if (s.Spec.LineStyle == ImPlotLineStyle_Solid)
                             RenderPrimitives2<RendererLineStrip>(GetterLoop<_Getter>(getter),color_getter,s.Spec.LineWeight);
                         else
-                            RenderPrimitives1<RendererLineStripUV>(GetterLoop<_Getter>(getter),col_line,GetLineStyleData(s.Spec.LineStyle),s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStripUV>(GetterLoop<_Getter>(getter),color_getter,GetLineStyleData(s.Spec.LineStyle),s.Spec.LineWeight);
                     }
                 }
                 else {
@@ -2028,8 +2031,10 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                         GetterIdxColor color_getter(s.Spec.LineColors, getter.Count);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
                             RenderPrimitives2<RendererLineStripSkip>(getter,color_getter,s.Spec.LineWeight);
-                        else
+                        else if (s.Spec.LineStyle == ImPlotLineStyle_Solid)
                             RenderPrimitives2<RendererLineStrip>(getter,color_getter,s.Spec.LineWeight);
+                        else
+                            RenderPrimitives2<RendererLineStripUV>(getter,color_getter,GetLineStyleData(s.Spec.LineStyle),s.Spec.LineWeight);
                     } else {
                         GetterConstColor color_getter(col_line);
                         if (ImHasFlag(spec.Flags, ImPlotLineFlags_SkipNaN))
@@ -2037,7 +2042,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                         else if (s.Spec.LineStyle == ImPlotLineStyle_Solid)
                             RenderPrimitives2<RendererLineStrip>(getter,color_getter,s.Spec.LineWeight);
                         else
-                            RenderPrimitives1<RendererLineStripUV>(getter,col_line,GetLineStyleData(s.Spec.LineStyle),s.Spec.LineWeight);
+                            RenderPrimitives2<RendererLineStripUV>(getter,color_getter,GetLineStyleData(s.Spec.LineStyle),s.Spec.LineWeight);
                     }
                 }
             }
