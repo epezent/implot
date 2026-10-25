@@ -2810,8 +2810,8 @@ void SetupFinish() {
         if (ax.HasLabel()) {
             const char* label        = plot.GetAxisLabel(ax);
             const ImVec2 label_size  = ImGui::CalcTextSize(label);
-            const float label_offset = (ax.HasTickLabels() && !ins ? tkr.MaxSize.y + gp.Style.LabelPadding.y : 0.0f)
-                                     + (tkr.Levels - 1) * (txt_height + gp.Style.LabelPadding.y)
+            const float label_offset = (ax.HasTickLabels() && !ins ? tkr.MaxSize.y + gp.Style.LabelPadding.y
+                                                                   + (tkr.Levels - 1) * (txt_height + gp.Style.LabelPadding.y) : 0.0f)
                                      + gp.Style.LabelPadding.y;
             const ImVec2 label_pos(plot.PlotRect.GetCenter().x - label_size.x * 0.5f,
                                    opp ? ax.Datum1 - label_offset - label_size.y : ax.Datum1 + label_offset);
