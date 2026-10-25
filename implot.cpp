@@ -4006,7 +4006,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
 
     PushPlotClipRect();
     ImDrawList& DrawList = *GetPlotDrawList();
-    if ((hovered || held) && show_curs)
+    if ((hovered || held) && show_curs && move_allowed)
         ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
     if (modified && no_delay)
         pos = PlotToPixels(*x,*y,IMPLOT_AUTO,IMPLOT_AUTO);
@@ -4049,7 +4049,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
         if (out_held)    *out_held    = held;
     }
 
-    if ((hovered || held) && show_curs)
+    if ((hovered || held) && show_curs && move_allowed)
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
 
     float len = gp.Style.MajorTickLen.x;
@@ -4108,7 +4108,7 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
         if (out_held)    *out_held    = held;
     }
 
-    if ((hovered || held) && show_curs)
+    if ((hovered || held) && show_curs && move_allowed)
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
 
     float len = gp.Style.MajorTickLen.y;
