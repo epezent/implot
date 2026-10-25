@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v1.1 WIP
+// ImPlot v1.1
 
 // Table of Contents:
 //
@@ -62,7 +62,7 @@
 #endif
 
 // ImPlot version string.
-#define IMPLOT_VERSION "1.1 WIP"
+#define IMPLOT_VERSION "1.1"
 // ImPlot version integer encoded as XYYZZ (X=major, YY=minor, ZZ=patch).
 #define IMPLOT_VERSION_NUM 10100
 // Macro for templated plotting functions; keeps header clean.
