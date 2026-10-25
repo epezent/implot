@@ -2790,6 +2790,10 @@ void SetupFinish() {
             RenderGridLinesY(DrawList, y_axis.Ticker, plot.PlotRect,  y_axis.ColorMaj, y_axis.ColorMin, gp.Style.MajorGridSize.y, gp.Style.MinorGridSize.y);
     }
 
+    // rects of the inside x tick labels drawn below, so inside y tick labels can skip the ones they overlap
+    ImVector<ImRect>& x_inside_label_rects = gp.TempRect1;
+    x_inside_label_rects.resize(0);
+
     // render x axis button, label, tick labels
     for (int i = 0; i < IMPLOT_NUM_X_AXES; i++) {
         ImPlotAxis& ax = plot.XAxis(i);
@@ -2829,8 +2833,10 @@ void SetupFinish() {
                 if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.x - 1 && tk.PixelPos <= plot.PlotRect.Max.x + 1) {
                     ImVec2 start(tk.PixelPos - 0.5f * tk.LabelSize.x, datum);
                     // keep inside labels within the plot, shifting the ones at the ends along the axis
-                    if (ins)
+                    if (ins) {
                         start.x = ImMax(plot.PlotRect.Min.x, ImMin(start.x, plot.PlotRect.Max.x - tk.LabelSize.x));
+                        x_inside_label_rects.push_back(ImRect(start, start + tk.LabelSize));
+                    }
                     DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
                 }
             }
@@ -2872,9 +2878,16 @@ void SetupFinish() {
                 const float datum = ax.Datum1 + pad * (labels_opp ? 1.0f : -1.0f);
                 if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.y - 1 && tk.PixelPos <= plot.PlotRect.Max.y + 1) {
                     ImVec2 start(datum, tk.PixelPos - 0.5f * tk.LabelSize.y);
-                    if (ins)
+                    bool hidden = false;
+                    if (ins) {
                         start.y = ImMax(plot.PlotRect.Min.y, ImMin(start.y, plot.PlotRect.Max.y - tk.LabelSize.y));
-                    DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
+                        // at the corners, inside x tick labels win over the inside y tick labels they overlap
+                        const ImRect rect(start, start + tk.LabelSize);
+                        for (int k = 0; k < x_inside_label_rects.Size && !hidden; ++k)
+                            hidden = x_inside_label_rects[k].Overlaps(rect);
+                    }
+                    if (!hidden)
+                        DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
                 }
             }
         }

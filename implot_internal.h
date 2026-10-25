@@ -1282,6 +1282,7 @@ struct ImPlotContext {
     // Temp data for general use
     ImVector<double>   TempDouble1, TempDouble2;
     ImVector<int>      TempInt1;
+    ImVector<ImRect>   TempRect1;
 
     // Misc
     int                DigitalPlotItemCnt;
