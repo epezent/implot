@@ -239,8 +239,8 @@ enum ImPlotDragToolFlags_ {
     ImPlotDragToolFlags_NoFit     = 1 << 1, // the drag tool won't be considered for plot fits
     ImPlotDragToolFlags_NoInputs  = 1 << 2, // lock the tool from user inputs
     ImPlotDragToolFlags_Delayed   = 1 << 3, // tool rendering will be delayed one frame; useful when applying position-constraints
-    ImPlotDragToolFlags_NoMove    = 1 << 4, // lock the tool from user inputs
-    ImPlotDragToolFlags_NoResize  = 1 << 5, // lock the tool from user inputs
+    ImPlotDragToolFlags_NoMove    = 1 << 4, // the tool can't be moved by the user, but still reports clicks and hovers (DragRect can still be resized)
+    ImPlotDragToolFlags_NoResize  = 1 << 5, // the tool can't be resized by the user (DragRect only)
 };
 
 // Flags for ColormapScale
