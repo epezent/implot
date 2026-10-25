@@ -2643,6 +2643,11 @@ void Demo_TickLabels()  {
         ImGui::SameLine();
         ImGui::Checkbox("Show Custom Labels", &custom_labels);
     }
+    static bool labels_inside = false;
+    ImGui::Checkbox("Labels Inside", &labels_inside);
+    ImGui::SameLine();
+    ImGui::TextDisabled("(only the innermost axis on each side: X1, Y1 and Y2, not Y3)");
+    const ImPlotAxisFlags inside = labels_inside ? ImPlotAxisFlags_TickLabelsInside : ImPlotAxisFlags_None;
     const double pi = 3.14;
     const char* pi_str[] = {"PI"};
     static double yticks[] = {100,300,700,900};
@@ -2650,9 +2655,10 @@ void Demo_TickLabels()  {
     static double yticks_aux[] = {0.2,0.4,0.6};
     static const char* ylabels_aux[] = {"A","B","C","D","E","F"};
     if (ImPlot::BeginPlot("##Ticks")) {
+        ImPlot::SetupAxes(nullptr, nullptr, inside, inside);
         ImPlot::SetupAxesLimits(2.5,5,0,1000);
-        ImPlot::SetupAxis(ImAxis_Y2, nullptr, ImPlotAxisFlags_AuxDefault);
-        ImPlot::SetupAxis(ImAxis_Y3, nullptr, ImPlotAxisFlags_AuxDefault);
+        ImPlot::SetupAxis(ImAxis_Y2, nullptr, ImPlotAxisFlags_AuxDefault | inside);
+        ImPlot::SetupAxis(ImAxis_Y3, nullptr, ImPlotAxisFlags_AuxDefault | inside);
         if (custom_fmt) {
             ImPlot::SetupAxisFormat(ImAxis_X1, "%g ms");
             ImPlot::SetupAxisFormat(ImAxis_Y1, MetricFormatter, (void*)"Hz");
