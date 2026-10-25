@@ -768,9 +768,16 @@ void Demo_StemPlots() {
 void Demo_InfiniteLines() {
     IMGUI_DEMO_MARKER("Plots/Infinite Lines");
     static double vals[] = {0.25, 0.5, 0.75};
+    static const char* labels[] = {"x = 0.25", "x = 0.50", "x = 0.75"};
+    ImGui::BulletText("Toggle \"Vertical\" in the legend: its text labels hide with it.");
     if (ImPlot::BeginPlot("##Infinite")) {
         ImPlot::SetupAxes(nullptr,nullptr,ImPlotAxisFlags_NoInitialFit,ImPlotAxisFlags_NoInitialFit);
         ImPlot::PlotInfLines("Vertical",vals,3);
+        // PlotText is not a legend item, so skip it when its lines are hidden
+        if (!ImPlot::IsLastItemHidden()) {
+            for (int i = 0; i < 3; ++i)
+                ImPlot::PlotText(labels[i],vals[i],0.9,ImVec2(36,0),{ImPlotProp_Flags, ImPlotItemFlags_NoFit});
+        }
         ImPlot::PlotInfLines("Horizontal",vals,3,{ImPlotProp_Flags, ImPlotInfLinesFlags_Horizontal});
         ImPlot::EndPlot();
     }
