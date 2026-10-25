@@ -135,7 +135,7 @@ A: Yes, within reason. You can plot tens to hundreds of thousands of points with
 **Q: What data types can I plot?**
 
 A: ImPlot plotting functions accept most scalar types:
-`float`, `double`, `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`. Arrays of custom structs or classes (e.g. `Vector2f` or similar) are easily passed to ImPlot functions using the built-in striding features (see `implot.h` for documentation), and many plotters provide a "getter" overload which accepts data generating callbacks. You can fully customize the list of accepted types by defining `IMPLOT_CUSTOM_NUMERIC_TYPES` at compile time: see doc in `implot_items.cpp`.
+`float`, `double`, `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`. Arrays of custom structs or classes (e.g. `Vector2f` or similar) are easily passed to ImPlot functions using the built-in striding features (see `implot.h` for documentation), and many plotters provide a "getter" overload which accepts data generating callbacks. You can fully customize the list of accepted types by defining `IMPLOT_CUSTOM_NUMERIC_TYPES` at compile time: see doc in `implot_internal.h` (the define must be visible to every ImPlot source file, including `implot_demo.cpp`, or be set in `imconfig.h`).
 
 **Q: Can plot styles be modified?**
 

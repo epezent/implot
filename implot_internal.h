@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v1.1 WIP
 
 // You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
@@ -71,6 +71,32 @@ constexpr int IMPLOT_NUM_Y_AXES = ImAxis_COUNT - IMPLOT_NUM_X_AXES;
 // [SECTION] Macros
 //-----------------------------------------------------------------------------
 
+// By default, templates are instantiated for `float`, `double`, and for the following integer types, which are defined in imgui.h:
+//     signed char         ImS8;   // 8-bit signed integer
+//     unsigned char       ImU8;   // 8-bit unsigned integer
+//     signed short        ImS16;  // 16-bit signed integer
+//     unsigned short      ImU16;  // 16-bit unsigned integer
+//     signed int          ImS32;  // 32-bit signed integer == int
+//     unsigned int        ImU32;  // 32-bit unsigned integer
+//     signed   long long  ImS64;  // 64-bit signed integer
+//     unsigned long long  ImU64;  // 64-bit unsigned integer
+// (note: this list does *not* include `long`, `unsigned long` and `long double`)
+//
+// You can customize the supported types by defining IMPLOT_CUSTOM_NUMERIC_TYPES at compile time to define your own type list.
+//    As an example, you could use the compile time define given by the line below in order to support only float and double.
+//        -DIMPLOT_CUSTOM_NUMERIC_TYPES="(float)(double)"
+//    Note that the demo (implot_demo.cpp) plots float and double data, so those two must stay in the list for it to link
+//    (e.g. "(double)" alone fails with an undefined PlotBars<float>). The define must also reach implot_demo.cpp, not only
+//    implot_items.cpp (or go in imconfig.h); otherwise the demo falls back to the default list and may fail to link.
+//    In order to support all known C++ types, use:
+//        -DIMPLOT_CUSTOM_NUMERIC_TYPES="(signed char)(unsigned char)(signed short)(unsigned short)(signed int)(unsigned int)(signed long)(unsigned long)(signed long long)(unsigned long long)(float)(double)(long double)"
+
+#ifdef IMPLOT_CUSTOM_NUMERIC_TYPES
+    #define IMPLOT_NUMERIC_TYPES IMPLOT_CUSTOM_NUMERIC_TYPES
+#else
+    #define IMPLOT_NUMERIC_TYPES (ImS8)(ImU8)(ImS16)(ImU16)(ImS32)(ImU32)(ImS64)(ImU64)(float)(double)
+#endif
+
 // Split ImU32 color into RGB components [0 255]
 #define IM_COL32_SPLIT_RGB(col,r,g,b) \
     ImU32 r = ((col >> IM_COL32_R_SHIFT) & 0xFF); \
@@ -118,7 +144,7 @@ static inline void ImFlipFlag(TSet& set, TFlag flag) { ImHasFlag(set, flag) ? se
 // Linearly remaps x from [x0 x1] to [y0 y1].
 template <typename T>
 static inline T ImRemap(T x, T x0, T x1, T y0, T y1) { return y0 + (x - x0) * (y1 - y0) / (x1 - x0); }
-// Linear rempas x from [x0 x1] to [0 1]
+// Linearly remaps x from [x0 x1] to [0 1]
 template <typename T>
 static inline T ImRemap01(T x, T x0, T x1) { return (x - x0) / (x1 - x0); }
 // Returns always positive modulo (assumes r != 0)
@@ -1528,6 +1554,15 @@ IMPLOT_API int AddLineStyleInternal(const int ID, const ImU32* keys, const int c
 
 // Returns line style data for a given line style. Do not store the returned value between frames as it may be invalidated if texture atlas is rebuilt.
 IMPLOT_API const ImPlotLineStyleData& GetLineStyleData(ImPlotLineStyle style);
+
+// Render Horizontal/Vertical lines
+#if (IMGUI_VERSION_NUM < 19275)
+static inline void AddLineH(ImDrawList *draw_list, float x1, float x2, float y, ImU32 col, float thickness = 1.0f)  { draw_list->AddLine(ImVec2(x1, y), ImVec2(x2, y), col, thickness); }
+static inline void AddLineV(ImDrawList* draw_list, float x, float y1, float y2, ImU32 col, float thickness = 1.0f)  { draw_list->AddLine(ImVec2(x, y1), ImVec2(x, y2), col, thickness); }
+#else
+static inline void AddLineH(ImDrawList *draw_list, float x1, float x2, float y, ImU32 col, float thickness = 1.0f)  { draw_list->AddLineH(x1, x2, y, col, thickness); }
+static inline void AddLineV(ImDrawList *draw_list, float x, float y1, float y2, ImU32 col, float thickness = 1.0f)  { draw_list->AddLineV(x, y1, y2, col, thickness); }
+#endif
 
 //-----------------------------------------------------------------------------
 // [SECTION] Math and Misc Utils

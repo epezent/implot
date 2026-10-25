@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.18 WIP
+// ImPlot v1.1 WIP
 
 /*
 
@@ -32,7 +32,7 @@ Below is a change-log of API breaking changes only. If you are using one of the 
 When you are not sure about a old symbol or function name, try using the Search/Find function of your IDE to look for comments or references in all implot files.
 You can read releases logs https://github.com/epezent/implot/releases for more details.
 
-- 2026/02/12 (0.18) - ImPlotSpec replaces the SetNextXXX style functions. The guide below shows show to migrate from SetNextXXX to ImPlotSpec.
+- 2026/02/12 (1.0) - ImPlotSpec replaces the SetNextXXX style functions. The guide below shows show to migrate from SetNextXXX to ImPlotSpec.
                         - `SetNextLineStyle` has been removed, styling should be set via ImPlotSpec.
                           ```
                           // Before
@@ -87,7 +87,7 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
                            ImPlot::PlotErrorBars("ErrorBar", xs, ys, err, count, spec);
                            ```
                         - Flags, Offset and Stride should also be set via ImPlotSpec now.
-- 2023/10/02 (0.18) - ImPlotSpec was made the default and _only_ way of styling plot items. Therefore the following features were removed:
+- 2023/10/02 (1.0) - ImPlotSpec was made the default and _only_ way of styling plot items. Therefore the following features were removed:
                       - ImPlotCol_Line, ImPlotCol_Fill, ImPlotCol_MarkerOutline, ImPlotCol_MarkerFill, ImPlotCol_ErrorBar have been removed and thus are no longer supported by PushStyleColor.
                         You can use a common ImPlotSpec instance across multiple PlotX calls to emulate PushStyleColor behavior.
                       - ImPlotStyleVar_LineWeight, ImPlotStyleVar_Marker, ImPlotStyleVar_MarkerSize, ImPlotStyleVar_MarkerWeight, ImPlotStyleVar_FillAlpha, ImPlotStyleVar_ErrorBarSize, and ImPlotStyleVar_ErrorBarWeight
@@ -215,8 +215,11 @@ You can read releases logs https://github.com/epezent/implot/releases for more d
 // Clang/GCC warnings with -Weverything
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wformat-nonliteral"  // warning: format string is not a string literal
+#pragma clang diagnostic ignored "-Wdeprecated-enum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
+#pragma clang diagnostic ignored "-Wenum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
 #elif defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"    // warning: format not a string literal, format string not checked
+#pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion" // warning: bitwise operation between different enumeration types ('XXXFlags_' and 'XXXFlagsPrivate_') is deprecated
 #endif
 
 // Global plot context
@@ -305,6 +308,8 @@ const char* GetMarkerName(ImPlotMarker marker) {
         case ImPlotMarker_Cross:    return "Cross";
         case ImPlotMarker_Plus:     return "Plus";
         case ImPlotMarker_Asterisk: return "Asterisk";
+        case ImPlotMarker_Vertical: return "Vertical";
+        case ImPlotMarker_Horizontal: return "Horizontal";
         default:                    return "";
     }
 }
@@ -501,22 +506,22 @@ void Initialize(ImPlotContext* ctx) {
     ResetCtxForNextAlignedPlots(ctx);
     ResetCtxForNextSubplot(ctx);
 
-    const ImU32 Deep[]     = {4289753676, 4283598045, 4285048917, 4283584196, 4289950337, 4284512403, 4291005402, 4287401100, 4285839820, 4291671396                        };
-    const ImU32 Dark[]     = {4280031972, 4290281015, 4283084621, 4288892568, 4278222847, 4281597951, 4280833702, 4290740727, 4288256409                                    };
-    const ImU32 Pastel[]   = {4289639675, 4293119411, 4291161036, 4293184478, 4289124862, 4291624959, 4290631909, 4293712637, 4294111986                                    };
-    const ImU32 Paired[]   = {4293119554, 4290017311, 4287291314, 4281114675, 4288256763, 4280031971, 4285513725, 4278222847, 4292260554, 4288298346, 4288282623, 4280834481};
-    const ImU32 Viridis[]  = {4283695428, 4285867080, 4287054913, 4287455029, 4287526954, 4287402273, 4286883874, 4285579076, 4283552122, 4280737725, 4280674301            };
-    const ImU32 Plasma[]   = {4287039501, 4288480321, 4289200234, 4288941455, 4287638193, 4286072780, 4284638433, 4283139314, 4281771772, 4280667900, 4280416752            };
-    const ImU32 Hot[]      = {4278190144, 4278190208, 4278190271, 4278190335, 4278206719, 4278223103, 4278239231, 4278255615, 4283826175, 4289396735, 4294967295            };
-    const ImU32 Cool[]     = {4294967040, 4294960666, 4294954035, 4294947661, 4294941030, 4294934656, 4294928025, 4294921651, 4294915020, 4294908646, 4294902015            };
-    const ImU32 Pink[]     = {4278190154, 4282532475, 4284308894, 4285690554, 4286879686, 4287870160, 4288794330, 4289651940, 4291685869, 4293392118, 4294967295            };
-    const ImU32 Jet[]      = {4289331200, 4294901760, 4294923520, 4294945280, 4294967040, 4289396565, 4283826090, 4278255615, 4278233855, 4278212095, 4278190335            };
+    const ImU32 Deep[]     = {IM_RGB(76,114,176),IM_RGB(221,132,82),IM_RGB(85,168,104),IM_RGB(196,78,82),IM_RGB(129,114,179),IM_RGB(147,120,96),IM_RGB(218,139,195),IM_RGB(140,140,140),IM_RGB(204,185,116),IM_RGB(100,181,205)};
+    const ImU32 Dark[]     = {IM_RGB(228,26,28),IM_RGB(55,126,184),IM_RGB(77,175,74),IM_RGB(152,78,163),IM_RGB(255,127,0),IM_RGB(255,255,51),IM_RGB(166,86,40),IM_RGB(247,129,191),IM_RGB(153,153,153)};
+    const ImU32 Pastel[]   = {IM_RGB(251,180,174),IM_RGB(179,205,227),IM_RGB(204,235,197),IM_RGB(222,203,228),IM_RGB(254,217,166),IM_RGB(255,255,204),IM_RGB(229,216,189),IM_RGB(253,218,236),IM_RGB(242,242,242)};
+    const ImU32 Paired[]   = {IM_RGB(66,206,227),IM_RGB(31,120,180),IM_RGB(178,223,138),IM_RGB(51,160,44),IM_RGB(251,154,153),IM_RGB(227,26,28),IM_RGB(253,191,111),IM_RGB(255,127,0),IM_RGB(202,178,214),IM_RGB(106,61,154),IM_RGB(255,255,153),IM_RGB(177,89,40)};
+    const ImU32 Viridis[]  = {IM_RGB(68,1,84),IM_RGB(72,36,117),IM_RGB(65,68,135),IM_RGB(53,95,141),IM_RGB(42,120,142),IM_RGB(33,145,140),IM_RGB(34,168,132),IM_RGB(68,191,112),IM_RGB(122,209,81),IM_RGB(189,223,38),IM_RGB(253,231,37)};
+    const ImU32 Plasma[]   = {IM_RGB(13,8,135),IM_RGB(65,4,157),IM_RGB(106,0,168),IM_RGB(143,13,164),IM_RGB(177,42,144),IM_RGB(204,71,120),IM_RGB(225,100,98),IM_RGB(242,132,75),IM_RGB(252,166,54),IM_RGB(252,206,37),IM_RGB(240,249,33)};
+    const ImU32 Hot[]      = {IM_RGB(64,0,0),IM_RGB(128,0,0),IM_RGB(191,0,0),IM_RGB(255,0,0),IM_RGB(255,64,0),IM_RGB(255,128,0),IM_RGB(255,191,0),IM_RGB(255,255,0),IM_RGB(255,255,85),IM_RGB(255,255,170),IM_RGB(255,255,255)};
+    const ImU32 Cool[]     = {IM_RGB(0,255,255),IM_RGB(26,230,255),IM_RGB(51,204,255),IM_RGB(77,179,255),IM_RGB(102,153,255),IM_RGB(128,128,255),IM_RGB(153,102,255),IM_RGB(179,77,255),IM_RGB(204,51,255),IM_RGB(230,26,255),IM_RGB(255,0,255)};
+    const ImU32 Pink[]     = {IM_RGB(74,0,0),IM_RGB(123,66,66),IM_RGB(158,93,93),IM_RGB(186,114,114),IM_RGB(198,151,132),IM_RGB(208,180,147),IM_RGB(218,206,161),IM_RGB(228,228,174),IM_RGB(237,237,205),IM_RGB(246,246,231),IM_RGB(255,255,255)};
+    const ImU32 Jet[]      = {IM_RGB(0,0,170),IM_RGB(0,0,255),IM_RGB(0,85,255),IM_RGB(0,170,255),IM_RGB(0,255,255),IM_RGB(85,255,170),IM_RGB(170,255,85),IM_RGB(255,255,0),IM_RGB(255,170,0),IM_RGB(255,85,0),IM_RGB(255,0,0)};
     const ImU32 Twilight[] = {IM_RGB(226,217,226),IM_RGB(166,191,202),IM_RGB(109,144,192),IM_RGB(95,88,176),IM_RGB(83,30,124),IM_RGB(47,20,54),IM_RGB(100,25,75),IM_RGB(159,60,80),IM_RGB(192,117,94),IM_RGB(208,179,158),IM_RGB(226,217,226)};
     const ImU32 RdBu[]     = {IM_RGB(103,0,31),IM_RGB(178,24,43),IM_RGB(214,96,77),IM_RGB(244,165,130),IM_RGB(253,219,199),IM_RGB(247,247,247),IM_RGB(209,229,240),IM_RGB(146,197,222),IM_RGB(67,147,195),IM_RGB(33,102,172),IM_RGB(5,48,97)};
     const ImU32 BrBG[]     = {IM_RGB(84,48,5),IM_RGB(140,81,10),IM_RGB(191,129,45),IM_RGB(223,194,125),IM_RGB(246,232,195),IM_RGB(245,245,245),IM_RGB(199,234,229),IM_RGB(128,205,193),IM_RGB(53,151,143),IM_RGB(1,102,94),IM_RGB(0,60,48)};
     const ImU32 PiYG[]     = {IM_RGB(142,1,82),IM_RGB(197,27,125),IM_RGB(222,119,174),IM_RGB(241,182,218),IM_RGB(253,224,239),IM_RGB(247,247,247),IM_RGB(230,245,208),IM_RGB(184,225,134),IM_RGB(127,188,65),IM_RGB(77,146,33),IM_RGB(39,100,25)};
     const ImU32 Spectral[] = {IM_RGB(158,1,66),IM_RGB(213,62,79),IM_RGB(244,109,67),IM_RGB(253,174,97),IM_RGB(254,224,139),IM_RGB(255,255,191),IM_RGB(230,245,152),IM_RGB(171,221,164),IM_RGB(102,194,165),IM_RGB(50,136,189),IM_RGB(94,79,162)};
-    const ImU32 Greys[]    = {IM_COL32_WHITE, IM_COL32_BLACK                                                                                                                };
+    const ImU32 Greys[]    = {IM_COL32_WHITE, IM_COL32_BLACK};
 
     IMPLOT_APPEND_CMAP(Deep, true);
     IMPLOT_APPEND_CMAP(Dark, true);
@@ -761,7 +766,12 @@ void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixel
     const int nMinor        = 10;
     const int nMajor        = ImMax(2, (int)IM_ROUND(pixels / (vertical ? 300.0f : 400.0f)));
     const double nice_range = NiceNum(range.Size() * 0.99, false);
-    const double interval   = NiceNum(nice_range / (nMajor - 1), true);
+    double interval         = NiceNum(nice_range / (nMajor - 1), true);
+    // keep interval >= one ULP so `major += interval` always advances (e.g. range from SetupAxisLimits(v, v))
+    const double magnitude    = ImMax(ImAbs(range.Min), ImAbs(range.Max));
+    const double min_interval = nextafter(magnitude, HUGE_VAL) - magnitude;
+    if (interval < min_interval)
+        interval = min_interval;
     const double graphmin   = floor(range.Min / interval) * interval;
     const double graphmax   = ceil(range.Max / interval) * interval;
     bool first_major_set    = false;
@@ -1828,9 +1838,9 @@ static inline void RenderGridLinesX(ImDrawList& DrawList, const ImPlotTicker& ti
             continue;
         if (xt.Level == 0) {
             if (xt.Major)
-                DrawList.AddLine(ImVec2(xt.PixelPos, rect.Min.y), ImVec2(xt.PixelPos, rect.Max.y), col_maj, size_maj);
+                AddLineV(&DrawList, xt.PixelPos, rect.Min.y, rect.Max.y, col_maj, size_maj);
             else if (density < 0.2f)
-                DrawList.AddLine(ImVec2(xt.PixelPos, rect.Min.y), ImVec2(xt.PixelPos, rect.Max.y), col_min, size_min);
+                AddLineV(&DrawList, xt.PixelPos, rect.Min.y, rect.Max.y, col_min, size_min);
         }
     }
 }
@@ -1845,9 +1855,9 @@ static inline void RenderGridLinesY(ImDrawList& DrawList, const ImPlotTicker& ti
         if (yt.PixelPos < rect.Min.y || yt.PixelPos > rect.Max.y)
             continue;
         if (yt.Major)
-            DrawList.AddLine(ImVec2(rect.Min.x, yt.PixelPos), ImVec2(rect.Max.x, yt.PixelPos), col_maj, size_maj);
+            AddLineH(&DrawList, rect.Min.x, rect.Max.x, yt.PixelPos, col_maj, size_maj);
         else if (density < 0.2f)
-            DrawList.AddLine(ImVec2(rect.Min.x, yt.PixelPos), ImVec2(rect.Max.x, yt.PixelPos), col_min, size_min);
+            AddLineH(&DrawList, rect.Min.x, rect.Max.x, yt.PixelPos, col_min, size_min);
     }
 }
 
@@ -2880,10 +2890,10 @@ void EndPlot() {
                 const ImVec2 start(tk.PixelPos, ax.Datum1);
                 const float len = (!aux && tk.Major) ? gp.Style.MajorTickLen.x  : gp.Style.MinorTickLen.x;
                 const float thk = (!aux && tk.Major) ? gp.Style.MajorTickSize.x : gp.Style.MinorTickSize.x;
-                DrawList.AddLine(start, start + ImVec2(0,direction*len), ax.ColorTick, thk);
+                AddLineV(&DrawList, start.x, start.y, start.y + direction*len, ax.ColorTick, thk);
             }
             if (aux || !render_border)
-                DrawList.AddLine(ImVec2(plot.PlotRect.Min.x,ax.Datum1), ImVec2(plot.PlotRect.Max.x,ax.Datum1), ax.ColorTick, gp.Style.MinorTickSize.x);
+                AddLineH(&DrawList, plot.PlotRect.Min.x,plot.PlotRect.Max.x,ax.Datum1, ax.ColorTick, gp.Style.MinorTickSize.x);
         }
         count_B += !opp;
         count_T +=  opp;
@@ -2907,10 +2917,10 @@ void EndPlot() {
                 const ImVec2 start(ax.Datum1, tk.PixelPos);
                 const float len = (!aux && tk.Major) ? gp.Style.MajorTickLen.y  : gp.Style.MinorTickLen.y;
                 const float thk = (!aux && tk.Major) ? gp.Style.MajorTickSize.y : gp.Style.MinorTickSize.y;
-                DrawList.AddLine(start, start + ImVec2(direction*len,0), ax.ColorTick, thk);
+                AddLineH(&DrawList, start.x, start.x + direction*len, start.y, ax.ColorTick, thk);
             }
             if (aux || !render_border)
-                DrawList.AddLine(ImVec2(ax.Datum1, plot.PlotRect.Min.y), ImVec2(ax.Datum1, plot.PlotRect.Max.y), ax.ColorTick, gp.Style.MinorTickSize.y);
+                AddLineV(&DrawList, ax.Datum1, plot.PlotRect.Min.y, plot.PlotRect.Max.y, ax.ColorTick, gp.Style.MinorTickSize.y);
         }
         count_L += !opp;
         count_R +=  opp;
@@ -2965,19 +2975,11 @@ void EndPlot() {
     if (ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs) && plot.Hovered && !(any_x_held || any_y_held) && !plot.Selecting && !plot.Items.Legend.Hovered) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         ImVec2 xy = IO.MousePos;
-        ImVec2 h1(plot.PlotRect.Min.x, xy.y);
-        ImVec2 h2(xy.x - 5, xy.y);
-        ImVec2 h3(xy.x + 5, xy.y);
-        ImVec2 h4(plot.PlotRect.Max.x, xy.y);
-        ImVec2 v1(xy.x, plot.PlotRect.Min.y);
-        ImVec2 v2(xy.x, xy.y - 5);
-        ImVec2 v3(xy.x, xy.y + 5);
-        ImVec2 v4(xy.x, plot.PlotRect.Max.y);
         ImU32 col = GetStyleColorU32(ImPlotCol_Crosshairs);
-        DrawList.AddLine(h1, h2, col);
-        DrawList.AddLine(h3, h4, col);
-        DrawList.AddLine(v1, v2, col);
-        DrawList.AddLine(v3, v4, col);
+        AddLineH(&DrawList, plot.PlotRect.Min.x, xy.x - 5, xy.y, col);
+        AddLineH(&DrawList, xy.x + 5, plot.PlotRect.Max.x, xy.y, col);
+        AddLineV(&DrawList, xy.x, plot.PlotRect.Min.y, xy.y - 5, col);
+        AddLineV(&DrawList, xy.x, xy.y + 5, plot.PlotRect.Max.y, col);
     }
 
     // render mouse pos
@@ -3169,8 +3171,13 @@ void EndPlot() {
     }
 
     // render border
+#if IMGUI_VERSION_NUM < 19276
     if (render_border)
-        DrawList.AddRect(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBorder), 0, ImDrawFlags_RoundCornersAll, gp.Style.PlotBorderSize);
+        DrawList.AddRect(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBorder), 0, ImDrawFlags_None, gp.Style.PlotBorderSize);
+#else
+    if (render_border)
+        DrawList.AddRect(plot.PlotRect.Min, plot.PlotRect.Max, GetStyleColorU32(ImPlotCol_PlotBorder), 0, gp.Style.PlotBorderSize, ImDrawFlags_None);
+#endif
 
     // render tags
     for (int i = 0; i < gp.Tags.Size; ++i) {
@@ -3530,8 +3537,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
                         subplot.RowRatios[r+1] = subplot.TempSizes[1] - dp;
                     }
                 }
-                DrawList.AddLine(ImVec2(IM_ROUND(subplot.GridRect.Min.x),IM_ROUND(ypos)),
-                                 ImVec2(IM_ROUND(subplot.GridRect.Max.x),IM_ROUND(ypos)),
+                AddLineH(&DrawList, IM_ROUND(subplot.GridRect.Min.x), IM_ROUND(subplot.GridRect.Max.x),IM_ROUND(ypos),
                                  sep_hld ? act_col : hov_col, SUBPLOT_BORDER_SIZE);
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
             }
@@ -3560,8 +3566,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
                         subplot.ColRatios[c+1] = subplot.TempSizes[1] - dp;
                     }
                 }
-                DrawList.AddLine(ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Min.y)),
-                                 ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Max.y)),
+                AddLineV(&DrawList, IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Min.y),IM_ROUND(subplot.GridRect.Max.y),
                                  sep_hld ? act_col : hov_col, SUBPLOT_BORDER_SIZE);
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
             }
@@ -4056,9 +4061,9 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImDrawList& DrawList = *GetPlotDrawList();
     if (modified && no_delay)
         x  = IM_ROUND(PlotToPixels(*value,0,IMPLOT_AUTO,IMPLOT_AUTO).x);
-    DrawList.AddLine(ImVec2(x,yt), ImVec2(x,yb),     col32,   thickness);
-    DrawList.AddLine(ImVec2(x,yt), ImVec2(x,yt+len), col32, 3*thickness);
-    DrawList.AddLine(ImVec2(x,yb), ImVec2(x,yb-len), col32, 3*thickness);
+    AddLineV(&DrawList,x,yt,yb,     col32,   thickness);
+    AddLineV(&DrawList,x,yt,yt+len, col32, 3*thickness);
+    AddLineV(&DrawList,x,yb,yb-len, col32, 3*thickness);
     PopPlotClipRect();
 
     // ImGui::PopID();
@@ -4112,9 +4117,9 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImDrawList& DrawList = *GetPlotDrawList();
     if (modified && no_delay)
         y  = IM_ROUND(PlotToPixels(0, *value,IMPLOT_AUTO,IMPLOT_AUTO).y);
-    DrawList.AddLine(ImVec2(xl,y), ImVec2(xr,y),     col32,   thickness);
-    DrawList.AddLine(ImVec2(xl,y), ImVec2(xl+len,y), col32, 3*thickness);
-    DrawList.AddLine(ImVec2(xr,y), ImVec2(xr-len,y), col32, 3*thickness);
+    AddLineH(&DrawList,xl,xr,y,     col32,   thickness);
+    AddLineH(&DrawList,xl,xl+len,y, col32, 3*thickness);
+    AddLineH(&DrawList,xr,xr-len,y, col32, 3*thickness);
     PopPlotClipRect();
 
     ImGui::PopID();
@@ -4856,8 +4861,10 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
         const float tick_t     = (float)((y_pos_plt - scale_min) / (scale_max - scale_min));
         const ImU32 tick_col = CalcTextColor(gp.ColormapData.LerpTable(cmap,tick_t));
         if (y_pos < bb_grad.Max.y - 2 && y_pos > bb_grad.Min.y + 2) {
-            DrawList.AddLine(opposite ? ImVec2(bb_grad.Min.x+1, y_pos) : ImVec2(bb_grad.Max.x-1, y_pos),
-                             opposite ? ImVec2(bb_grad.Min.x + tick_width, y_pos) : ImVec2(bb_grad.Max.x - tick_width, y_pos),
+            AddLineH(&DrawList,
+                             opposite ? (bb_grad.Min.x+1) : (bb_grad.Max.x-1),
+                             opposite ? (bb_grad.Min.x + tick_width) : (bb_grad.Max.x - tick_width),
+                             y_pos,
                              tick_col,
                              tick_thick);
         }
@@ -5165,7 +5172,8 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SameLine(); ImGui::Checkbox("Only Modified Colors", &output_only_modified);
 
             static ImGuiTextFilter filter;
-            filter.Draw("Filter colors", ImGui::GetFontSize() * 16);
+            ImGui::SetNextItemWidth(ImGui::GetFontSize() * 16);
+            filter.Draw("Filter colors");
 
             static ImGuiColorEditFlags alpha_flags = ImGuiColorEditFlags_AlphaPreviewHalf;
 #if IMGUI_VERSION_NUM < 19173
@@ -6007,20 +6015,7 @@ void StyleColorsLight(ImPlotStyle* dst) {
 
 #ifndef IMPLOT_DISABLE_OBSOLETE_FUNCTIONS
 
-bool BeginPlot(const char* title, const char* x_label, const char* y1_label, const ImVec2& size,
-               ImPlotFlags flags, ImPlotAxisFlags x_flags, ImPlotAxisFlags y1_flags, ImPlotAxisFlags y2_flags, ImPlotAxisFlags y3_flags,
-               const char* y2_label, const char* y3_label)
-{
-    if (!BeginPlot(title, size, flags))
-        return false;
-    SetupAxis(ImAxis_X1, x_label, x_flags);
-    SetupAxis(ImAxis_Y1, y1_label, y1_flags);
-    if (ImHasFlag(flags, ImPlotFlags_YAxis2))
-        SetupAxis(ImAxis_Y2, y2_label, y2_flags);
-    if (ImHasFlag(flags, ImPlotFlags_YAxis3))
-        SetupAxis(ImAxis_Y3, y3_label, y3_flags);
-    return true;
-}
+// Deprecated method will go in here
 
 #endif
 
