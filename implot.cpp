@@ -763,7 +763,12 @@ void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixel
     const int nMinor        = 10;
     const int nMajor        = ImMax(2, (int)IM_ROUND(pixels / (vertical ? 300.0f : 400.0f)));
     const double nice_range = NiceNum(range.Size() * 0.99, false);
-    const double interval   = NiceNum(nice_range / (nMajor - 1), true);
+    double interval         = NiceNum(nice_range / (nMajor - 1), true);
+    // keep interval >= one ULP so `major += interval` always advances (e.g. range from SetupAxisLimits(v, v))
+    const double magnitude    = ImMax(ImAbs(range.Min), ImAbs(range.Max));
+    const double min_interval = nextafter(magnitude, HUGE_VAL) - magnitude;
+    if (interval < min_interval)
+        interval = min_interval;
     const double graphmin   = floor(range.Min / interval) * interval;
     const double graphmax   = ceil(range.Max / interval) * interval;
     bool first_major_set    = false;
@@ -1830,9 +1835,9 @@ static inline void RenderGridLinesX(ImDrawList& DrawList, const ImPlotTicker& ti
             continue;
         if (xt.Level == 0) {
             if (xt.Major)
-                DrawList.AddLine(ImVec2(xt.PixelPos, rect.Min.y), ImVec2(xt.PixelPos, rect.Max.y), col_maj, size_maj);
+                AddLineV(&DrawList, xt.PixelPos, rect.Min.y, rect.Max.y, col_maj, size_maj);
             else if (density < 0.2f)
-                DrawList.AddLine(ImVec2(xt.PixelPos, rect.Min.y), ImVec2(xt.PixelPos, rect.Max.y), col_min, size_min);
+                AddLineV(&DrawList, xt.PixelPos, rect.Min.y, rect.Max.y, col_min, size_min);
         }
     }
 }
@@ -1847,9 +1852,9 @@ static inline void RenderGridLinesY(ImDrawList& DrawList, const ImPlotTicker& ti
         if (yt.PixelPos < rect.Min.y || yt.PixelPos > rect.Max.y)
             continue;
         if (yt.Major)
-            DrawList.AddLine(ImVec2(rect.Min.x, yt.PixelPos), ImVec2(rect.Max.x, yt.PixelPos), col_maj, size_maj);
+            AddLineH(&DrawList, rect.Min.x, rect.Max.x, yt.PixelPos, col_maj, size_maj);
         else if (density < 0.2f)
-            DrawList.AddLine(ImVec2(rect.Min.x, yt.PixelPos), ImVec2(rect.Max.x, yt.PixelPos), col_min, size_min);
+            AddLineH(&DrawList, rect.Min.x, rect.Max.x, yt.PixelPos, col_min, size_min);
     }
 }
 
@@ -2882,10 +2887,10 @@ void EndPlot() {
                 const ImVec2 start(tk.PixelPos, ax.Datum1);
                 const float len = (!aux && tk.Major) ? gp.Style.MajorTickLen.x  : gp.Style.MinorTickLen.x;
                 const float thk = (!aux && tk.Major) ? gp.Style.MajorTickSize.x : gp.Style.MinorTickSize.x;
-                DrawList.AddLine(start, start + ImVec2(0,direction*len), ax.ColorTick, thk);
+                AddLineV(&DrawList, start.x, start.y, start.y + direction*len, ax.ColorTick, thk);
             }
             if (aux || !render_border)
-                DrawList.AddLine(ImVec2(plot.PlotRect.Min.x,ax.Datum1), ImVec2(plot.PlotRect.Max.x,ax.Datum1), ax.ColorTick, gp.Style.MinorTickSize.x);
+                AddLineH(&DrawList, plot.PlotRect.Min.x,plot.PlotRect.Max.x,ax.Datum1, ax.ColorTick, gp.Style.MinorTickSize.x);
         }
         count_B += !opp;
         count_T +=  opp;
@@ -2909,10 +2914,10 @@ void EndPlot() {
                 const ImVec2 start(ax.Datum1, tk.PixelPos);
                 const float len = (!aux && tk.Major) ? gp.Style.MajorTickLen.y  : gp.Style.MinorTickLen.y;
                 const float thk = (!aux && tk.Major) ? gp.Style.MajorTickSize.y : gp.Style.MinorTickSize.y;
-                DrawList.AddLine(start, start + ImVec2(direction*len,0), ax.ColorTick, thk);
+                AddLineH(&DrawList, start.x, start.x + direction*len, start.y, ax.ColorTick, thk);
             }
             if (aux || !render_border)
-                DrawList.AddLine(ImVec2(ax.Datum1, plot.PlotRect.Min.y), ImVec2(ax.Datum1, plot.PlotRect.Max.y), ax.ColorTick, gp.Style.MinorTickSize.y);
+                AddLineV(&DrawList, ax.Datum1, plot.PlotRect.Min.y, plot.PlotRect.Max.y, ax.ColorTick, gp.Style.MinorTickSize.y);
         }
         count_L += !opp;
         count_R +=  opp;
@@ -2967,19 +2972,11 @@ void EndPlot() {
     if (ImHasFlag(plot.Flags, ImPlotFlags_Crosshairs) && plot.Hovered && !(any_x_held || any_y_held) && !plot.Selecting && !plot.Items.Legend.Hovered) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         ImVec2 xy = IO.MousePos;
-        ImVec2 h1(plot.PlotRect.Min.x, xy.y);
-        ImVec2 h2(xy.x - 5, xy.y);
-        ImVec2 h3(xy.x + 5, xy.y);
-        ImVec2 h4(plot.PlotRect.Max.x, xy.y);
-        ImVec2 v1(xy.x, plot.PlotRect.Min.y);
-        ImVec2 v2(xy.x, xy.y - 5);
-        ImVec2 v3(xy.x, xy.y + 5);
-        ImVec2 v4(xy.x, plot.PlotRect.Max.y);
         ImU32 col = GetStyleColorU32(ImPlotCol_Crosshairs);
-        DrawList.AddLine(h1, h2, col);
-        DrawList.AddLine(h3, h4, col);
-        DrawList.AddLine(v1, v2, col);
-        DrawList.AddLine(v3, v4, col);
+        AddLineH(&DrawList, plot.PlotRect.Min.x, xy.x - 5, xy.y, col);
+        AddLineH(&DrawList, xy.x + 5, plot.PlotRect.Max.x, xy.y, col);
+        AddLineV(&DrawList, xy.x, plot.PlotRect.Min.y, xy.y - 5, col);
+        AddLineV(&DrawList, xy.x, xy.y + 5, plot.PlotRect.Max.y, col);
     }
 
     // render mouse pos
@@ -3537,8 +3534,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
                         subplot.RowRatios[r+1] = subplot.TempSizes[1] - dp;
                     }
                 }
-                DrawList.AddLine(ImVec2(IM_ROUND(subplot.GridRect.Min.x),IM_ROUND(ypos)),
-                                 ImVec2(IM_ROUND(subplot.GridRect.Max.x),IM_ROUND(ypos)),
+                AddLineH(&DrawList, IM_ROUND(subplot.GridRect.Min.x), IM_ROUND(subplot.GridRect.Max.x),IM_ROUND(ypos),
                                  sep_hld ? act_col : hov_col, SUBPLOT_BORDER_SIZE);
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
             }
@@ -3567,8 +3563,7 @@ bool BeginSubplots(const char* title, int rows, int cols, const ImVec2& size, Im
                         subplot.ColRatios[c+1] = subplot.TempSizes[1] - dp;
                     }
                 }
-                DrawList.AddLine(ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Min.y)),
-                                 ImVec2(IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Max.y)),
+                AddLineV(&DrawList, IM_ROUND(xpos),IM_ROUND(subplot.GridRect.Min.y),IM_ROUND(subplot.GridRect.Max.y),
                                  sep_hld ? act_col : hov_col, SUBPLOT_BORDER_SIZE);
                 ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
             }
@@ -3991,6 +3986,7 @@ bool DragPoint(int n_id, double* x, double* y, const ImVec4& col, float radius, 
 
     ImGui::KeepAliveID(id);
     if (input) {
+        rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
         bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
         if (out_clicked) *out_clicked = clicked;
         if (out_hovered) *out_hovered = hovered;
@@ -4040,6 +4036,7 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
 
     ImGui::KeepAliveID(id);
     if (input) {
+        rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
         bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
         if (out_clicked) *out_clicked = clicked;
         if (out_hovered) *out_hovered = hovered;
@@ -4063,9 +4060,9 @@ bool DragLineX(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImDrawList& DrawList = *GetPlotDrawList();
     if (modified && no_delay)
         x  = IM_ROUND(PlotToPixels(*value,0,IMPLOT_AUTO,IMPLOT_AUTO).x);
-    DrawList.AddLine(ImVec2(x,yt), ImVec2(x,yb),     col32,   thickness);
-    DrawList.AddLine(ImVec2(x,yt), ImVec2(x,yt+len), col32, 3*thickness);
-    DrawList.AddLine(ImVec2(x,yb), ImVec2(x,yb-len), col32, 3*thickness);
+    AddLineV(&DrawList,x,yt,yb,     col32,   thickness);
+    AddLineV(&DrawList,x,yt,yt+len, col32, 3*thickness);
+    AddLineV(&DrawList,x,yb,yb-len, col32, 3*thickness);
     PopPlotClipRect();
 
     // ImGui::PopID();
@@ -4096,6 +4093,7 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
 
     ImGui::KeepAliveID(id);
     if (input) {
+        rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
         bool clicked = ImGui::ButtonBehavior(rect,id,&hovered,&held);
         if (out_clicked) *out_clicked = clicked;
         if (out_hovered) *out_hovered = hovered;
@@ -4119,9 +4117,9 @@ bool DragLineY(int n_id, double* value, const ImVec4& col, float thickness, ImPl
     ImDrawList& DrawList = *GetPlotDrawList();
     if (modified && no_delay)
         y  = IM_ROUND(PlotToPixels(0, *value,IMPLOT_AUTO,IMPLOT_AUTO).y);
-    DrawList.AddLine(ImVec2(xl,y), ImVec2(xr,y),     col32,   thickness);
-    DrawList.AddLine(ImVec2(xl,y), ImVec2(xl+len,y), col32, 3*thickness);
-    DrawList.AddLine(ImVec2(xr,y), ImVec2(xr-len,y), col32, 3*thickness);
+    AddLineH(&DrawList,xl,xr,y,     col32,   thickness);
+    AddLineH(&DrawList,xl,xl+len,y, col32, 3*thickness);
+    AddLineH(&DrawList,xr,xr-len,y, col32, 3*thickness);
     PopPlotClipRect();
 
     ImGui::PopID();
@@ -4150,6 +4148,7 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     ImVec2 pc = PlotToPixels((*x_min+*x_max)/2,(*y_min+*y_max)/2,IMPLOT_AUTO,IMPLOT_AUTO);
     ImRect rect(ImMin(p[0],p[2]),ImMax(p[0],p[2]));
     ImRect rect_grab = rect; rect_grab.Expand(DRAG_GRAB_HALF_SIZE);
+    rect_grab.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
 
     ImGuiMouseCursor cur[4];
     if (show_curs) {
@@ -4174,6 +4173,7 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
         if (input) {
             // middle point
             ImRect b_rect(pc.x-DRAG_GRAB_HALF_SIZE,pc.y-DRAG_GRAB_HALF_SIZE,pc.x+DRAG_GRAB_HALF_SIZE,pc.y+DRAG_GRAB_HALF_SIZE);
+            b_rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
             clicked = ImGui::ButtonBehavior(b_rect,id,&hovered,&held);
             if (out_clicked) *out_clicked = clicked;
             if (out_hovered) *out_hovered = hovered;
@@ -4195,6 +4195,7 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
     for (int i = 0; i < 4; ++i) {
         // points
         ImRect b_rect(p[i].x - DRAG_GRAB_HALF_SIZE, p[i].y - DRAG_GRAB_HALF_SIZE, p[i].x + DRAG_GRAB_HALF_SIZE, p[i].y + DRAG_GRAB_HALF_SIZE);
+        b_rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
         ImGuiID p_id = id + i + 1;
         ImGui::KeepAliveID(p_id);
         if (input) {
@@ -4217,6 +4218,7 @@ bool DragRect(int n_id, double* x_min, double* y_min, double* x_max, double* y_m
         ImVec2 e_max = ImMax(p[i],p[(i+1)%4]);
         b_rect = h[i] ? ImRect(e_min.x + DRAG_GRAB_HALF_SIZE, e_min.y - DRAG_GRAB_HALF_SIZE, e_max.x - DRAG_GRAB_HALF_SIZE, e_max.y + DRAG_GRAB_HALF_SIZE)
                     : ImRect(e_min.x - DRAG_GRAB_HALF_SIZE, e_min.y + DRAG_GRAB_HALF_SIZE, e_max.x + DRAG_GRAB_HALF_SIZE, e_max.y - DRAG_GRAB_HALF_SIZE);
+        b_rect.ClipWithFull(GImPlot->CurrentPlot->PlotRect);
         ImGuiID e_id = id + i + 5;
         ImGui::KeepAliveID(e_id);
         if (input) {
@@ -4775,8 +4777,10 @@ void ColormapScale(const char* label, double scale_min, double scale_max, const 
         const float tick_t     = (float)((y_pos_plt - scale_min) / (scale_max - scale_min));
         const ImU32 tick_col = CalcTextColor(gp.ColormapData.LerpTable(cmap,tick_t));
         if (y_pos < bb_grad.Max.y - 2 && y_pos > bb_grad.Min.y + 2) {
-            DrawList.AddLine(opposite ? ImVec2(bb_grad.Min.x+1, y_pos) : ImVec2(bb_grad.Max.x-1, y_pos),
-                             opposite ? ImVec2(bb_grad.Min.x + tick_width, y_pos) : ImVec2(bb_grad.Max.x - tick_width, y_pos),
+            AddLineH(&DrawList,
+                             opposite ? (bb_grad.Min.x+1) : (bb_grad.Max.x-1),
+                             opposite ? (bb_grad.Min.x + tick_width) : (bb_grad.Max.x - tick_width),
+                             y_pos,
                              tick_col,
                              tick_thick);
         }
@@ -5084,7 +5088,8 @@ void ShowStyleEditor(ImPlotStyle* ref) {
             ImGui::SameLine(); ImGui::Checkbox("Only Modified Colors", &output_only_modified);
 
             static ImGuiTextFilter filter;
-            filter.Draw("Filter colors", ImGui::GetFontSize() * 16);
+            ImGui::SetNextItemWidth(ImGui::GetFontSize() * 16);
+            filter.Draw("Filter colors");
 
             static ImGuiColorEditFlags alpha_flags = ImGuiColorEditFlags_AlphaPreviewHalf;
 #if IMGUI_VERSION_NUM < 19173
