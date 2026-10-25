@@ -676,15 +676,7 @@ struct GetterError {
 //-----------------------------------------------------------------------------
 
 struct GetterConstColor {
-    GetterConstColor(ImU32 color, float alpha = 1.0f) {
-        ImU32 col = color;
-        if (alpha < 1.0f) {
-            ImVec4 col_vec = ImGui::ColorConvertU32ToFloat4(col);
-            col_vec.w *= alpha;
-            col = ImGui::GetColorU32(col_vec);
-        }
-        Color = col;
-    }
+    GetterConstColor(ImU32 color) : Color(color) { }
     template <typename I> IMPLOT_INLINE ImU32 operator[](I) const { return Color; }
     ImU32 Color;
 };
@@ -1908,7 +1900,7 @@ void PlotLineEx(const char* label_id, const _Getter& getter, const ImPlotSpec& s
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 } else {
                     const ImU32 col_fill = ImGui::GetColorU32(s.Spec.FillColor);
-                    GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                    GetterConstColor color_getter(col_fill);
                     RenderPrimitives3<RendererShaded>(getter,getter2,color_getter);
                 }
             }
@@ -2179,7 +2171,7 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
                         GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
                         RenderPrimitives2<RendererStairsPreShaded>(getter, color_getter);
                     } else {
-                        GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                        GetterConstColor color_getter(col_fill);
                         RenderPrimitives2<RendererStairsPreShaded>(getter, color_getter);
                     }
                 } else {
@@ -2187,7 +2179,7 @@ void PlotStairsEx(const char* label_id, const Getter& getter, const ImPlotSpec& 
                         GetterIdxColor color_getter(s.Spec.FillColors, getter.Count, s.Spec.FillAlpha);
                         RenderPrimitives2<RendererStairsPostShaded>(getter, color_getter);
                     } else {
-                        GetterConstColor color_getter(col_fill, s.Spec.FillAlpha);
+                        GetterConstColor color_getter(col_fill);
                         RenderPrimitives2<RendererStairsPostShaded>(getter, color_getter);
                     }
                 }
@@ -2265,7 +2257,7 @@ void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& g
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             } else {
                 const ImU32 col = ImGui::GetColorU32(s.Spec.FillColor);
-                GetterConstColor color_getter(col, s.Spec.FillAlpha);
+                GetterConstColor color_getter(col);
                 RenderPrimitives3<RendererShaded>(getter1,getter2,color_getter);
             }
         }
@@ -2338,7 +2330,7 @@ void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 get
                 GetterIdxColor fill_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererBarsFillV>(getter1, getter2, fill_getter, width);
             } else {
-                GetterConstColor fill_getter(col_fill, s.Spec.FillAlpha);
+                GetterConstColor fill_getter(col_fill);
                 RenderPrimitives3<RendererBarsFillV>(getter1, getter2, fill_getter, width);
             }
             if (rend_line && col_fill == col_line)
@@ -2374,7 +2366,7 @@ void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& ge
                 GetterIdxColor fill_getter(s.Spec.FillColors, getter1.Count, s.Spec.FillAlpha);
                 RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
             } else {
-                GetterConstColor fill_getter(col_fill, s.Spec.FillAlpha);
+                GetterConstColor fill_getter(col_fill);
                 RenderPrimitives3<RendererBarsFillH>(getter1, getter2, fill_getter, height);
             }
             if (rend_line && col_fill == col_line)
