@@ -354,6 +354,13 @@ ImVec4 GetLastItemColor() {
     return ImVec4();
 }
 
+bool IsLastItemHidden() {
+    ImPlotContext& gp = *GImPlot;
+    if (gp.PreviousItem)
+        return !gp.PreviousItem->Show;
+    return false;
+}
+
 void BustItemCache() {
     ImPlotContext& gp = *GImPlot;
     for (int p = 0; p < gp.Plots.GetBufSize(); ++p) {

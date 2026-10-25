@@ -1143,8 +1143,6 @@ IMPLOT_API void CancelPlotSelection();
 // Hides or shows the next plot item (i.e. as if it were toggled from the legend).
 // Use ImPlotCond_Always if you need to forcefully set this every frame.
 IMPLOT_API void HideNextItem(bool hidden = true, ImPlotCond cond = ImPlotCond_Once);
-// Returns true if the last plot item was hidden
-IMPLOT_API bool GetLastItemHidden();
 
 // Use the following around calls to Begin/EndPlot to align l/r/t/b padding.
 // Consider using Begin/EndSubplots first. They are more feature rich and
@@ -1242,6 +1240,8 @@ IMPLOT_API void PopStyleVar(int count = 1);
 
 // Gets the last item primary color (i.e. its legend icon color)
 IMPLOT_API ImVec4 GetLastItemColor();
+// Returns true if the last plot item is hidden (i.e. toggled off from the legend or by HideNextItem).
+IMPLOT_API bool IsLastItemHidden();
 
 // Returns the null terminated string name for an ImPlotCol.
 IMPLOT_API const char* GetStyleColorName(ImPlotCol idx);
