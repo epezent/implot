@@ -2819,7 +2819,8 @@ void SetupFinish() {
         }
         if (ax.HasTickLabels()) {
             const bool labels_opp = opp ^ ins;
-            const float label_pad = ins ? gp.Style.MajorTickLen.y : gp.Style.LabelPadding.y;
+            // inside labels start past the tick marks, which are drawn inward from the plot edge
+            const float label_pad = ins && ax.HasTickMarks() ? gp.Style.MajorTickLen.x : gp.Style.LabelPadding.y;
             const float level_pad = txt_height + gp.Style.LabelPadding.y;
             for (int j = 0; j < tkr.TickCount(); ++j) {
                 const ImPlotTick& tk = tkr.Ticks[j];
@@ -2861,7 +2862,7 @@ void SetupFinish() {
         }
         if (ax.HasTickLabels()) {
             const bool labels_opp = opp ^ ins;
-            const float label_pad = ins ? gp.Style.MajorTickLen.x : gp.Style.LabelPadding.x;
+            const float label_pad = ins && ax.HasTickMarks() ? gp.Style.MajorTickLen.y : gp.Style.LabelPadding.x;
             for (int j = 0; j < tkr.TickCount(); ++j) {
                 const ImPlotTick& tk = tkr.Ticks[j];
                 const float pad   = label_pad + (labels_opp ? 0 : tk.LabelSize.x);
