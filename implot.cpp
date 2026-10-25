@@ -2828,6 +2828,9 @@ void SetupFinish() {
                 const float datum = ax.Datum1 + pad * (labels_opp ? -1.0f : 1.0f);
                 if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.x - 1 && tk.PixelPos <= plot.PlotRect.Max.x + 1) {
                     ImVec2 start(tk.PixelPos - 0.5f * tk.LabelSize.x, datum);
+                    // keep inside labels within the plot, shifting the ones at the ends along the axis
+                    if (ins)
+                        start.x = ImMax(plot.PlotRect.Min.x, ImMin(start.x, plot.PlotRect.Max.x - tk.LabelSize.x));
                     DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
                 }
             }
@@ -2869,6 +2872,8 @@ void SetupFinish() {
                 const float datum = ax.Datum1 + pad * (labels_opp ? 1.0f : -1.0f);
                 if (tk.ShowLabel && tk.PixelPos >= plot.PlotRect.Min.y - 1 && tk.PixelPos <= plot.PlotRect.Max.y + 1) {
                     ImVec2 start(datum, tk.PixelPos - 0.5f * tk.LabelSize.y);
+                    if (ins)
+                        start.y = ImMax(plot.PlotRect.Min.y, ImMin(start.y, plot.PlotRect.Max.y - tk.LabelSize.y));
                     DrawList.AddText(start, ax.ColorTxt, tkr.GetText(j));
                 }
             }
