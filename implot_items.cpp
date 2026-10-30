@@ -55,7 +55,7 @@
     #define IMPLOT_INLINE inline
 #endif
 
-#if defined __SSE__ || defined __x86_64__ || defined _M_X64
+#if (defined __SSE__ || defined __x86_64__ || defined _M_X64) && !defined(IMGUI_DISABLE_SSE)
 #ifndef IMGUI_ENABLE_SSE
 #include <immintrin.h>
 #endif
