@@ -2821,6 +2821,23 @@ void Demo_ColormapWidgets() {
 
 //-----------------------------------------------------------------------------
 
+void Demo_PlotLimitsChanging() {
+    unsigned int lin[10] = {8,8,9,7,8,8,8,9,7,8};
+    unsigned int bar[10] = {1,2,5,3,4,1,2,5,3,4};
+
+    if (ImPlot::BeginPlot("##LimitsChanging")) {
+        ImPlot::SetupAxes( "x-axis", "y-axis");
+        ImPlot::SetupAxesLimits(-0.5f, 9.5f, 0, 10);
+        ImPlot::PlotBars("Bars", bar, 10, 0.5f);
+        ImPlot::PlotLine("Line", lin, 10);
+        bool is_changing = ImPlot::IsAxisRangeChanging(ImAxis_X1);
+        ImGui::Text("Axis X1 is changing: %s", (is_changing ? "true" : "false"));
+        ImPlot::EndPlot();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
 void Demo_CustomPlottersAndTooltips()  {
     IMGUI_DEMO_MARKER("Custom/Custom Plotters and Tooltips");
     ImGui::BulletText("You can create custom plotters or extend ImPlot using implot_internal.h.");
@@ -2975,6 +2992,7 @@ void ShowDemoWindow(bool* p_open) {
             DemoHeader("Legend Options", Demo_LegendOptions);
             DemoHeader("Legend Popups", Demo_LegendPopups);
             DemoHeader("Colormap Widgets", Demo_ColormapWidgets);
+            DemoHeader("Plot limits changing", Demo_PlotLimitsChanging);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Custom")) {
