@@ -757,11 +757,22 @@ bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool hov
 constexpr float TICK_FILL_X = 0.8f;
 constexpr float TICK_FILL_Y = 1.0f;
 
+// The locators' pixel densities (e.g. one major tick per 400 pixels) are for a font scale of 1: the tick spacing
+// grows with the font scale, as the labels do. On Windows at 250%, a plot and its labels are 2.5 times wider in pixels.
+static float TickSpacingScale() {
+#if IMGUI_VERSION_NUM >= 19200
+    const ImGuiStyle& style = ImGui::GetStyle();
+    return style.FontScaleMain * style.FontScaleDpi;
+#else
+    return ImGui::GetIO().FontGlobalScale;
+#endif
+}
+
 void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data) {
     if (range.Min == range.Max)
         return;
     const int nMinor        = 10;
-    const int nMajor        = ImMax(2, (int)IM_ROUND(pixels / (vertical ? 300.0f : 400.0f)));
+    const int nMajor        = ImMax(2, (int)IM_ROUND(pixels / TickSpacingScale() / (vertical ? 300.0f : 400.0f)));
     const double nice_range = NiceNum(range.Size() * 0.99, false);
     double interval         = NiceNum(nice_range / (nMajor - 1), true);
     // keep interval >= one ULP so `major += interval` always advances (e.g. range from SetupAxisLimits(v, v))
@@ -804,7 +815,8 @@ void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixel
 
 bool CalcLogarithmicExponents(const ImPlotRange& range, float pix, bool vertical, int& exp_min, int& exp_max, int& exp_step) {
     if (range.Min * range.Max > 0) {
-        const int nMajor = vertical ? ImMax(2, (int)IM_ROUND(pix * 0.02f)) : ImMax(2, (int)IM_ROUND(pix * 0.01f)); // TODO: magic numbers
+        const float pix_unscaled = pix / TickSpacingScale();
+        const int nMajor = vertical ? ImMax(2, (int)IM_ROUND(pix_unscaled * 0.02f)) : ImMax(2, (int)IM_ROUND(pix_unscaled * 0.01f)); // TODO: magic numbers
         double log_min = ImLog10(ImAbs(range.Min));
         double log_max = ImLog10(ImAbs(range.Max));
         double log_a = ImMin(log_min,log_max);
@@ -1266,7 +1278,7 @@ void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, 
     IM_ASSERT_USER_ERROR(vertical == false, "Cannot locate Time ticks on vertical axis!");
     (void)vertical;
     // get units for level 0 and level 1 labels
-    const ImPlotTimeUnit unit0 = GetUnitForRange(range.Size() / (pixels / 100)); // level = 0 (top)
+    const ImPlotTimeUnit unit0 = GetUnitForRange(range.Size() / (pixels / TickSpacingScale() / 100)); // level = 0 (top)
     const ImPlotTimeUnit unit1 = ImClamp(unit0 + 1, 0, ImPlotTimeUnit_COUNT-1);  // level = 1 (bottom)
     // get time format specs
     const ImPlotDateTimeSpec fmt0 = GetDateTimeFmt(TimeFormatLevel0, unit0);
