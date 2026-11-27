@@ -3156,7 +3156,7 @@ void PlotCandlestick(const char* label_id, const double* xs, const double* opens
             ImVec2 close_pos = ImPlot::PlotToPixels(xs[i] + half_width, closes[i]);
             ImU32 color      = ImGui::GetColorU32(opens[i] > closes[i] ? bearCol : bullCol);
             ImPlot::AddLineV(draw_list, (float)xs[i], (float)lows[i], (float)highs[i], color);
-            draw_list->AddRectFilled(open_pos, close_pos, color);
+            draw_list->AddRectFilled(ImMin(open_pos, close_pos), ImMax(open_pos, close_pos), color);
         }
 
         // end plot item

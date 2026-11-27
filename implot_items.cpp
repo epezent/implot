@@ -3104,7 +3104,8 @@ void RenderHeatmap(ImDrawList& draw_list, IndexerIdx<T> indexer, int rows, int c
         ImVec2 a = transformer(bounds_min);
         ImVec2 b = transformer(bounds_max);
         ImU32  col = GetColormapColorU32(0,gp.Style.Colormap);
-        draw_list.AddRectFilled(a, b, col);
+        // ImDrawList::AddRectFilled expects p_min upper-left and p_max lower-right (ImGui 1.93 culls negative-extent rects)
+        draw_list.AddRectFilled(ImMin(a, b), ImMax(a, b), col);
         return;
     }
     const double yref = reverse_y ? bounds_max.y : bounds_min.y;
@@ -3405,7 +3406,7 @@ void PlotDigitalEx(const char* label_id, Getter getter, const ImPlotSpec& spec) 
                 if ((gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                     // ImVec4 colAlpha = item->Color;
                     // colAlpha.w = item->Highlight ? 1.0f : 0.9f;
-                    draw_list.AddRectFilled(pMin, pMax, ImGui::GetColorU32(s.Spec.FillColor));
+                    draw_list.AddRectFilled(ImMin(pMin, pMax), ImMax(pMin, pMax), ImGui::GetColorU32(s.Spec.FillColor));
                 }
                 itemData1 = itemData2;
             }
